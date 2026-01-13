@@ -1,0 +1,10 @@
+# Navigate to your locales directory
+cd public/locales
+
+# Compare keys between English and Italian
+echo "=== Keys missing in Italian (it) ==="
+diff <(jq -r 'keys[]' en/translation.json | sort) <(jq -r 'keys[]' it/translation.json | sort) | grep '^>'
+
+# Compare keys between English and French
+echo -e "\n=== Keys missing in French (fr) ==="
+diff <(jq -r 'keys[]' en/translation.json | sort) <(jq -r 'keys[]' fr/translation.json | sort) | grep '^>'

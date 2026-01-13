@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [18.x]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v3
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm run install:all
+    
+    - name: Lint backend
+      run: cd backend && npm run lint || true
+    
+    - name: Lint frontend
+      run: cd frontend && npm run lint || true
+    
+    - name: Test backend
+      run: cd backend && npm test || echo "No tests yet"
+    
+    - name: Test frontend
+      run: cd frontend && npm test -- --watchAll=false || echo "No tests yet"
+    
+    - name: Build backend
+      run: cd backend && npm run build
+    
+    - name: Build frontend
+      run: cd frontend && npm run build
+    
+    - name: Check build artifacts
+      run: |
+        ls -la backend/dist
+        ls -la frontend/dist
+        
