@@ -2,7 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react({
+      // Suppress Fast Refresh warnings for specific files
+      exclude: [
+        /\/contexts\/AuthContext\.tsx$/,
+        /\/contexts\/LoadingContext\.tsx$/
+      ]
+    })
+  ],
   optimizeDeps: {
     include: ['@emotion/react', '@emotion/styled'],
   },

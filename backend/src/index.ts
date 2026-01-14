@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
+import { i18next, middleware as i18nextMiddleware } from './i18n';
 import { database } from './db/database';
 import userRoutes from './routes/users';
 import theaterRoutes from './routes/theaters';
@@ -20,6 +21,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Initialize i18n middleware
+app.use(i18nextMiddleware.handle(i18next));
+
 const apiPrefix = 'api';
 const apiVersion = 'v1';
 const prefix = `/${apiPrefix}/${apiVersion}`;
@@ -28,12 +32,41 @@ app.use(`${prefix}/users`, userRoutes);
 app.use(`${prefix}/theaters`, theaterRoutes);
 app.use(`${prefix}/shows`, showRoutes);
 
+// Serve translation files from shared folder
+app.use(`${prefix}/locales`, express.static(
+  path.join(__dirname, '../../shared/locales')
+));
+
+// Make i18n available in all routes
+declare global {
+  namespace Express {
+    interface Request {
+      t: any;
+      language: string;
+    }
+  }
+}
+
+// Add middleware to add language to response locals
+app.use((req: any, res: any, next) => {
+  // Make current language available in response locals
+  res.locals.language = req.language;
+  next();
+});
+
 app.get(`${prefix}/health`, (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
+});
+
+// Example route with translation
+app.get(`${prefix}/test`, (req: any, res) => {
+  // Use req.t for translations in request context
+  const message = req.t('hello_world');
+  res.json({ message });
 });
 
 // Serve static files from React build (MUST be after API routes)

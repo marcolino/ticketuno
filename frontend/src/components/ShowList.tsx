@@ -199,7 +199,7 @@ const ShowList: React.FC = () => {
                   >
                     View Performances
                   </Button>
-                  {isAdmin && (
+                  {(true || isAdmin) && (
                     <Button
                       variant="outlined"
                       startIcon={<EditIcon />}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -24,7 +24,7 @@ import {
 } from '@mui/material';
 import {
   //EventSeat as EventSeatIcon,
-  Login as LoginIcon,
+  //Login as LoginIcon,
   //Add as AddIcon,
   //Home as HomeIcon,
   //AccountCircle as AccountCircleIcon,

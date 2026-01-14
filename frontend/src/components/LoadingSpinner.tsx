@@ -1,5 +1,5 @@
 import { useLoading } from '../contexts/LoadingContext';
-import { Backdrop, CircularProgress, Box } from '@mui/material';
+import { Backdrop, CircularProgress } from '@mui/material';
 
 export const LoadingSpinner = () => {
   const { isLoading } = useLoading();

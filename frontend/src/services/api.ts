@@ -1,8 +1,8 @@
-// src/services/api.ts
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { Theater, TheaterStats } from '../types/theater';
 import { User, LoginCredentials, RegisterData } from '../types/user';
 import { Show, ShowStats, ShowPerformance, ShowWithDetails } from '../types/show';
+import i18n from '../i18n'; 
 
 //const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
 const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH ?? '/api/'; // TODO: set default from config...
@@ -25,6 +25,59 @@ const api: AxiosInstance = axios.create({
 // Store the original request method
 //const originalRequest = api.request;
 //const originalRequest: AxiosInstance['request'] = api.request.bind(api);
+
+// ========== LANGUAGE INTERCEPTOR ==========
+// Interceptor to add language to all requests
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  const currentLanguage = i18n.language || 'en';
+  
+  // Add Accept-Language header for HTTP language detection
+  config.headers = config.headers || {};
+  config.headers['Accept-Language'] = currentLanguage;
+  
+  // Add language as query parameter (optional, for GET requests)
+  if (config.method?.toLowerCase() === 'get' || config.method?.toLowerCase() === 'delete') {
+    config.params = {
+      ...config.params,
+      lng: currentLanguage
+    };
+  }
+
+  // Add language header for POST/PUT/PATCH requests
+  if (['post', 'put', 'patch'].includes(config.method?.toLowerCase() || '')) {
+    config.headers['Content-Language'] = currentLanguage;
+  }
+  
+  return config;
+});
+
+// Helper function to get current language
+export const getCurrentLanguage = (): string => {
+  return i18n.language || 'en';
+};
+
+// Function to change language both in frontend and sync with backend
+export const changeLanguage = async (lng: string): Promise<void> => {
+  await i18n.changeLanguage(lng);
+  // Optionally, we could notify the backend about language change
+  // api.post('/api/users/language', { language: lng });
+};
+
+// ========== RESPONSE INTERCEPTOR FOR LANGUAGE SYNC ==========
+// If backend sends language in response headers, sync it
+api.interceptors.response.use(
+  (response) => {
+    const backendLanguage = response.headers['content-language'];
+    if (backendLanguage && backendLanguage !== i18n.language) {
+      // Sync frontend language with backend if different
+      i18n.changeLanguage(backendLanguage);
+    }
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
 
 // ========== LOADING INTERCEPTORS SETUP ==========
 // Store loading control functions

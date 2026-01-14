@@ -65,7 +65,7 @@ router.post('/login', async (req, res) => {
 
     const user = await database.getUserByEmail(email);
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: req.t('Invalid credentials') });
     }
 
     const validPassword = await bcrypt.compare(password, user.password);
@@ -87,7 +87,7 @@ router.post('/login', async (req, res) => {
 
     res.json({ token, user: profile });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to login' });
+    res.status(500).json({ error: req.t('Failed to login') });
   }
 });
 

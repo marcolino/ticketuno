@@ -35,7 +35,7 @@ router.get('/', async (req, res) => {
 
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch theaters' });
+    res.status(500).json({ error: req.t('Failed to fetch theaters') });
   }
 });
 

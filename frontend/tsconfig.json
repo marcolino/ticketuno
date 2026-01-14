@@ -16,8 +16,12 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "../shared/types"
+    ]
   },
-  "include": ["src", "src/global.d.ts"],
+  "include": ["src", "src/global.d.ts", "../shared/types/**/*"],
   //"references": [{ "path": "../backend/tsconfig.json" }]
 }
