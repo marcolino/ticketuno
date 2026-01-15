@@ -5,6 +5,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { LoadingProvider } from './contexts/LoadingContext';
+import OAuthHandler from './components/OAuthHandler';
 import { ProtectedRoute as PR } from './components/ProtectedRoute';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import Layout from './components/Layout';
@@ -16,8 +17,6 @@ import TheaterSeating from './components/TheaterSeating';
 import TheaterEdit from './components/TheaterEdit';
 import Profile from './components/Profile';
 import NotFound from './components/NotFound';
-import './i18n';
-
 
 console.log('🎭 App is starting');
 
@@ -33,6 +32,7 @@ const App: React.FC = () => {
               v7_startTransition: true,
               v7_relativeSplatPath: true,
             }}>
+              <OAuthHandler />
               <Layout>
                 <Routes>
                   <Route path="/" element={<ShowList />} />

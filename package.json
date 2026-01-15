@@ -28,9 +28,9 @@
     "db:backup": "fly ssh console --app ticketuno -C 'cat /data/theaters.db' > backup-$(date +%Y%m%d-%H%M%S).db"
   },
   "devDependencies": {
-    "i18next-cli": "^1.34.1",
+    "concurrently": "^8.2.2",
     "i18n-auto-translation": "^1.0.1",
-    "concurrently": "^8.2.2"
+    "i18next-cli": "^1.34.1"
   },
   "keywords": [
     "theater",

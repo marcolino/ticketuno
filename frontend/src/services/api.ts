@@ -1,21 +1,28 @@
 import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import { Theater, TheaterStats } from '../types/theater';
-import { User, LoginCredentials, RegisterData } from '../types/user';
+import { 
+  User, 
+  LoginCredentials,
+  LoginResponse,
+  RegisterData, 
+  VerificationData,
+  ForgotPasswordData,
+  ResetPasswordData
+} from '../types/user';
 import { Show, ShowStats, ShowPerformance, ShowWithDetails } from '../types/show';
 import i18n from '../i18n'; 
 
 //const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
-const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH ?? '/api/'; // TODO: set default from config...
-const API_VERSION = import.meta.env.VITE_API_VERSION ?? 'v1'; // TODO: set default from config...
-const BASE_URL = `${API_BASE_PATH}${API_VERSION}`;
+const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH; // ?? '/api/'; // TODO: set default from config...
+const API_VERSION = import.meta.env.VITE_API_VERSION; // ?? 'v1'; // TODO: set default from config...
+const API_BASE_URL = `${API_BASE_PATH}${API_VERSION}`;
 
-//console.log('API_BASE_URL:', API_BASE_URL); // TODO: DEBUG ONLY
-console.log('BASE_URL:', BASE_URL); // TODO: DEBUG ONLY
+console.log('API_BASE_URL:', API_BASE_URL); // TODO: DEBUG ONLY
 
 // Create the main API instance
 const api: AxiosInstance = axios.create({
   //baseURL: `${API_BASE_URL}${API_BASE_PATH}${API_VERSION}`,
-  baseURL: BASE_URL,
+  baseURL: API_BASE_URL,
   timeout: 10000, // TODO: set default from config...
   headers: { // TODO: set default from config...
     'Content-Type': 'application/json',
@@ -169,24 +176,7 @@ if (token) {
 
 // Optional: Add response interceptor to handle token expiration
 api.interceptors.response.use(
-  //(response) => response,
   async (response) => {
-
-    // console.log('Vite env:', {
-    //   MODE: import.meta.env.MODE,
-    //   DEV: import.meta.env.DEV,  // Might be undefined
-    //   PROD: import.meta.env.PROD,
-    //   BASE_URL: import.meta.env.BASE_URL,
-    //   allKeys: Object.keys(import.meta.env)
-    // });
-    
-    /*
-    // Add artificial delay for testing (remove in production)
-    if (import.meta.env.DEV) {
-      console.log("import.meta.env.DEV:", import.meta.env.DEV);
-      await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
-    }
-    */
     return response;
   },
   (error) => {
@@ -194,7 +184,7 @@ api.interceptors.response.use(
       // Token expired or invalid
       setAuthToken(null);
       // Optionally redirect to login page
-      // window.location.href = '/login';
+      // window.location.href = '/'; // TODO: force login dialog to open
     }
     return Promise.reject(error);
   }
@@ -203,11 +193,45 @@ api.interceptors.response.use(
 
 // ========== API ENDPOINTS ==========
 export const userApi = {
+  // Login
   login: (credentials: LoginCredentials) => 
-    api.post<{ token: string; user: User }>('/users/login', credentials),
-  register: (data: RegisterData) => 
-    api.post<{ token: string; user: User }>('/users/register', data),
+    //api.post<{ token: string; user: User }>('/users/login', credentials),
+    api.post<LoginResponse>('/users/login', credentials),
+  // Direct registration
+  // register: (data: RegisterData) =>
+  //   api.post<{ token: string; user: User }>('/users/register', data),
+  
+  // Registration with 2FA
+  register: (data: RegisterData) =>
+    api.post<{ message: string; email: string, verificationCode: string }>('/users/register', data),
+  
+  // Verify email
+  verifyEmail: (data: VerificationData) =>
+    api.post<{ token: string; user: User; message: string }>('/users/verify-email', data),
+  
+  // Resend verification code
+  resendVerification: (email: string) =>
+    api.post('/users/resend-verification', { email }),
+  
+  // Forgot password
+  forgotPassword: (data: ForgotPasswordData) =>
+    api.post('/users/forgot-password', data),
+  
+  // Password reset
+  resetPassword: (data: ResetPasswordData) =>
+    api.post('/users/reset-password', data),
+  
+  // Google OAuth
+  getGoogleAuthUrl: () =>
+    api.get<{ authUrl: string }>('/users/auth/google'),
+  
+  googleCallback: (code: string) =>
+    api.post<{ token: string; user: User }>('/users/auth/google/callback', { code }),
+
+  // Get user profile
   getProfile: () => api.get<User>('/users/profile'),
+
+  // Update user profile
   updateProfile: (data: Partial<User>) => 
     api.put<User>('/users/profile', data),
 };
@@ -222,7 +246,7 @@ export const theaterApi = {
   bookSeats: (theaterId: string, seatIds: string[]) => 
     api.post(`/theaters/${theaterId}/book`, { seatIds }),
   
-  // Example with skip-loading header for background refresh
+  // Refresh theaters in background with skip-loading header (currently unused)
   refreshTheaters: () => api.get('/theaters/refresh', {
     headers: { 'X-Skip-Loading': 'true' }
   }),

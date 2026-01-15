@@ -99,9 +99,30 @@ app.use('/api/*', (req, res) => {
 });
 
 // Catch-all handler: send React app for any non-API route (MUST be the last)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/index.html'));
-});
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../public/index.html'));
+// });
+//
+// // AFTER all API routes, add:
+if (process.env.NODE_ENV === 'production') { // in production mode
+  app.use(express.static(path.join(__dirname, '../public')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/index.html'));
+  });
+} else { // 404 non-API in development mode
+  app.get('*', (req, res) => {
+    res.status(404).json({ error: 'Use frontend at localhost:3000' }); // TODO: use config
+  });
+}
+
+// Add artificial delay for all routes (in development only)
+if (config.nodeEnv === 'development') {
+  app.use((req, res, next) => {
+    if (config.server.delayMilliseconds) {
+      setTimeout(next, config.server.delayMilliseconds);
+    }
+  });
+}
 
 database.initialize().then(() => {
   app.listen(config.port, () => {

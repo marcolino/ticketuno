@@ -22,6 +22,5 @@
       "../shared/types"
     ]
   },
-  "include": ["src", "src/global.d.ts", "../shared/types/**/*"],
-  //"references": [{ "path": "../backend/tsconfig.json" }]
+  //"include": ["src", "src/global.d.ts", "../shared/types/**/*"],
 }

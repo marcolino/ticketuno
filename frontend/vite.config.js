@@ -15,8 +15,8 @@ export default defineConfig({
     include: ['@emotion/react', '@emotion/styled'],
   },
   server: {
-    port: 3000, // Match your CRA port
-    open: true, // Opens browser on start
+    port: 3000, // Match CRA port
+    open: false, // Opens browser on start
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

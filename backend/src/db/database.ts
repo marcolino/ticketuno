@@ -53,6 +53,12 @@ class Database {
           last_name TEXT NOT NULL,
           phone TEXT,
           role TEXT NOT NULL,
+          is_verified INTEGER DEFAULT 0,
+          verification_code TEXT,
+          verification_code_expiry TEXT,
+          reset_password_code TEXT,
+          reset_password_code_expiry TEXT,
+          google_id TEXT UNIQUE,
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
         );
@@ -133,17 +139,55 @@ class Database {
   async createUser(user: User): Promise<void> {
     return new Promise((resolve, reject) => {
       const sql = `
-        INSERT INTO users (id, email, password, first_name, last_name, phone, role, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO users (
+          id, email, password, first_name, last_name, phone, role,
+          is_verified, verification_code, verification_code_expiry,
+          google_id, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       this.db!.run(
         sql,
-        [user.id, user.email, user.password, user.firstName, user.lastName, user.phone, user.role, user.createdAt, user.updatedAt],
+        [
+          user.id, user.email, user.password, user.firstName, user.lastName, user.phone, user.role,
+          user.isVerified ? 1 : 0, user.verificationCode, user.verificationCodeExpiry,
+          user.googleId, user.createdAt, user.updatedAt
+        ],
         (err) => {
           if (err) reject(err);
           else resolve();
         }
       );
+    });
+  }
+
+  private mapRowToUser(row: any): User {
+    return {
+      id: row.id,
+      email: row.email,
+      password: row.password,
+      firstName: row.first_name,
+      lastName: row.last_name,
+      phone: row.phone,
+      role: row.role,
+      isVerified: row.is_verified === 1,
+      verificationCode: row.verification_code,
+      verificationCodeExpiry: row.verification_code_expiry,
+      resetPasswordCode: row.reset_password_code,
+      resetPasswordCodeExpiry: row.reset_password_code_expiry,
+      googleId: row.google_id,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  }
+
+  // Get user by Google ID
+  async getUserByGoogleId(googleId: string): Promise<User | null> {
+    return new Promise((resolve, reject) => {
+      this.db!.get('SELECT * FROM users WHERE google_id = ?', [googleId], (err, row: any) => {
+        if (err) reject(err);
+        else if (!row) resolve(null);
+        else resolve(this.mapRowToUser(row));
+      });
     });
   }
 
@@ -163,6 +207,7 @@ class Database {
           lastName: 'admin surname',
           phone: undefined,
           role: 'admin',
+          isVerified: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -190,6 +235,9 @@ class Database {
             lastName: row.last_name,
             phone: row.phone,
             role: row.role,
+            isVerified: row.isVerified, // ? 1 : 0 ???
+            verificationCode: row.verification_code,
+            verificationCodeExpiry: row.verification_code_expiry,
             createdAt: row.created_at,
             updatedAt: row.updated_at
           });
@@ -212,6 +260,7 @@ class Database {
             lastName: row.last_name,
             phone: row.phone,
             role: row.role,
+            isVerified: row.isVerified,
             createdAt: row.created_at,
             updatedAt: row.updated_at
           });
@@ -234,6 +283,7 @@ class Database {
             lastName: row.last_name,
             phone: row.phone,
             role: row.role,
+            isVerified: row.isVerified,
             createdAt: row.created_at,
             updatedAt: row.updated_at
           }));
@@ -248,27 +298,36 @@ class Database {
       const fields: string[] = [];
       const values: any[] = [];
       
-      if (updates.firstName) {
-        fields.push('first_name = ?');
-        values.push(updates.firstName);
-      }
-      if (updates.lastName) {
-        fields.push('last_name = ?');
-        values.push(updates.lastName);
-      }
-      if (updates.phone !== undefined) {
-        fields.push('phone = ?');
-        values.push(updates.phone);
-      }
-      if (updates.email) {
-        fields.push('email = ?');
-        values.push(updates.email);
-      }
-      if (updates.role) {
-        fields.push('role = ?');
-        values.push(updates.role);
-      }
+      const fieldMap: Record<string, string> = {
+        firstName: 'first_name',
+        lastName: 'last_name',
+        phone: 'phone',
+        email: 'email',
+        role: 'role',
+        password: 'password',
+        isVerified: 'is_verified',
+        verificationCode: 'verification_code',
+        verificationCodeExpiry: 'verification_code_expiry',
+        resetPasswordCode: 'reset_password_code',
+        resetPasswordCodeExpiry: 'reset_password_code_expiry',
+        googleId: 'google_id',
+      };
+
+      Object.entries(updates).forEach(([key, value]) => {
+        if (fieldMap[key] && value !== undefined) {
+          fields.push(`${fieldMap[key]} = ?`);
+          if (key === 'isVerified') {
+            values.push(value ? 1 : 0);
+          } else {
+            values.push(value);
+          }
+        }
+      });
       
+      if (fields.length === 0) {
+        return resolve();
+      }
+
       fields.push('updated_at = ?');
       values.push(new Date().toISOString());
       values.push(id);
