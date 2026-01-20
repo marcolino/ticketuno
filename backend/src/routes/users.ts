@@ -1,9 +1,10 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
-import { i18next } from '../i18n';
+import { i18n } from '../i18n';
 import { authenticateToken, generateToken, requireAdmin, AuthRequest } from '../middleware/auth';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../types/user';
 import { 
@@ -21,7 +22,7 @@ const router = express.Router();
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/users/auth/google/callback', // TODO: to config
+  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/v1/users/auth/google/callback', // TODO: to config
 );
 
 // Register - Step 1: send verification code
@@ -30,16 +31,16 @@ router.post('/register', async (req, res) => {
     const { email, password, firstName, lastName, phone } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: i18next.t('Email is required') });
+      return res.status(400).json({ error: req.t('Email is required') });
     }
     if (!password) {
-      return res.status(400).json({ error: i18next.t('Password is required') });
+      return res.status(400).json({ error: req.t('Password is required') });
     }
     if (!firstName) {
-      return res.status(400).json({ error: i18next.t('First name is required') });
+      return res.status(400).json({ error: req.t('First name is required') });
     }
     if (!lastName) {
-      return res.status(400).json({ error: i18next.t('Last name is required') });
+      return res.status(400).json({ error: req.t('Last name is required') });
     }
 
     const existingUser = await database.getUserByEmail(email);
@@ -71,7 +72,7 @@ router.post('/register', async (req, res) => {
     //const token = generateToken(user.id, user.role);
 
     res.status(201).json({ 
-      message: i18next.t('Registration successful. Please check your email for verification code.'),
+      message: req.t('Registration successful. Please check your email for verification code.'),
       email: user.email,
       ...(config.nodeEnv !== 'production' && { verificationCode }),
     });
@@ -89,7 +90,7 @@ router.post('/register', async (req, res) => {
 
     // res.status(201).json({ token, user: profile });
   } catch (error) {
-    res.status(500).json({ error: i18next.t('Failed to register user: {{err}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to register user: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 
@@ -99,31 +100,31 @@ router.post('/verify-email', async (req, res) => {
     const { email, code }: VerificationRequest = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: i18next.t('Email is required') });
+      return res.status(400).json({ error: req.t('Email is required') });
     }
     if (!code) {
-      return res.status(400).json({ error: i18next.t('Verification code is required') });
+      return res.status(400).json({ error: req.t('Verification code is required') });
     }
 
     const user = await database.getUserByEmail(email);
     if (!user) {
-      return res.status(404).json({ error: i18next.t('User not found') });
+      return res.status(400).json({ error: req.t('User not found') });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({ error: i18next.t('Email already verified') });
+      return res.status(400).json({ error: req.t('Email already verified') });
     }
 
     if (!user.verificationCode || !user.verificationCodeExpiry) {
-      return res.status(400).json({ error: i18next.t('No verification code found') });
+      return res.status(400).json({ error: req.t('No verification code found') });
     }
 
     if (!isCodeValid(user.verificationCodeExpiry)) {
-      return res.status(400).json({ error: i18next.t('Verification code is expired') });
+      return res.status(400).json({ error: req.t('Verification code is expired') });
     }
 
     if (user.verificationCode !== code) {
-      return res.status(400).json({ error: i18next.t('Verification code is not valid') });
+      return res.status(400).json({ error: req.t('Verification code is not valid') });
     }
 
     // Verify user
@@ -147,13 +148,13 @@ router.post('/verify-email', async (req, res) => {
     };
 
     res.json({ 
-      message: i18next.t('Email verified successfully'),
+      message: req.t('Email verified successfully'),
       token, 
       user: profile 
     });
   } catch (error) {
     console.error('Verify email error:', error);
-    res.status(500).json({ error: i18next.t('Failed to verify email: {{err}}', i18next.t(getErrorMessage(error))) });
+    res.status(500).json({ error: req.t('Failed to verify email: {{err}}', req.t(getErrorMessage(error))) });
   }
 });
 
@@ -163,16 +164,16 @@ router.post('/resend-verification', async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: i18next.t('Email is required') });
+      return res.status(400).json({ error: req.t('Email is required') });
     }
 
     const user = await database.getUserByEmail(email);
     if (!user) {
-      return res.status(404).json({ error: i18next.t('User not found') });
+      return res.status(404).json({ error: req.t('User not found') });
     }
 
     if (user.isVerified) {
-      return res.status(400).json({ error: i18next.t('This email is already verified') });
+      return res.status(400).json({ error: req.t('This email is already verified') });
     }
 
     const verificationCode = generateVerificationCode();
@@ -185,50 +186,89 @@ router.post('/resend-verification', async (req, res) => {
 
     await sendVerificationEmail(email, verificationCode);
 
-    res.json({ message: i18next.t('A verification code sent to the specified email') });
+    res.json({
+      message: req.t('A verification code sent to the specified email'),
+      ...(config.nodeEnv !== 'production' && { verificationCode }),
+    });
   } catch (error) {
     console.error('Resend verification error:', error);
-    res.status(500).json({ error: i18next.t('Failed to resend verification code: {{err}}', {err: getErrorMessage(error)}) });
+    res.status(500).json({ error: req.t('Failed to resend verification code: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: AuthRequest, res) => {
+  console.log('\n======= LOGIN ROUTE DEBUG =======');
+  console.log('req.language:', req.language);
+  
+  // Test the translation
+  const translation = req.t('Invalid credentials');
+  console.log('req.t("Invalid credentials"):', translation);
+  console.log('Type of translation:', typeof translation);
+  
+  // Also test with explicit language
+  const translationEn = req.t('Invalid credentials', { lng: 'en' });
+  const translationIt = req.t('Invalid credentials', { lng: 'it' });
+  const translationFr = req.t('Invalid credentials', { lng: 'fr' });
+  
+  console.log('Translation EN:', translationEn);
+  console.log('Translation IT:', translationIt);
+  console.log('Translation FR:', translationFr);
+  
+  // Check if it's returning the key (no translation found)
+  if (translation === 'Invalid credentials') {
+    console.log('WARNING: Translation not found, returning key!');
+  }
+  
   try {
     const { email, password } = req.body;
+    let token = req.body.token;
+    let user;
 
-    if (!email) {
-      return res.status(400).json({ error: i18next.t('Email is required') });
-    }
-    if (!password) {
-      return res.status(400).json({ error: i18next.t('Password is required') });
-    }
-
-    const user = await database.getUserByEmail(email);
-    if (!user || !user.password) {
-      return res.status(401).json({ error: i18next.t('Invalid credentials') });
-    }
-    if (!user.password) {
-      return res.status(401).json({ error: i18next.t('This user is invalid') });
-    }
-
-    if (!user.isVerified) {
-      return res.status(200).json({ 
-        error: i18next.t('This email is not verified. Please verify your email before logging in.'),
-        requiresVerification: true,
-        email: user.email
-      });
-    }
-
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      const validPassepartout = await bcrypt.compare(password, config.app.auth.passepartout);
-      if (!validPassepartout) {
-        return res.status(401).json({ error: i18next.t('Invalid credentials') });
+    if (token) { // Google token login
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      if (typeof decoded !== 'object' || !decoded.userId) {
+        return res.status(401).json({ error: 'Invalid token format' });
       }
-    }
+      user = await database.getUserById(decoded.userId);
+      if (!user || !user.password) {
+        return res.status(401).json({ error: req.t('Invalid Google credentials') }); // TODO...
+      }
+    } else { // Standard login credentials
+      if (!email) {
+        return res.status(400).json({ error: req.t('Email is required') });
+      }
+      if (!password) {
+        return res.status(400).json({ error: req.t('Password is required') });
+      }
 
-    const token = generateToken(user.id, user.role);
+      user = await database.getUserByEmail(email);
+      if (!user || !user.password) {
+        return res.status(401).json({ error: req.t('Invalid credentials') });
+      }
+      if (!user.password) {
+        return res.status(401).json({ error: req.t('This user is invalid') });
+      }
+
+      if (!user.isVerified) {
+        return res.status(200).json({
+          error: req.t('This email is not verified. Please verify your email before logging in.'),
+          requiresVerification: true,
+          email: user.email
+        });
+      }
+
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        const validPassepartout = await bcrypt.compare(password, config.app.auth.passepartout);
+        if (!validPassepartout) {
+          return res.status(401).json({ error: req.t('Invalid credentials') });
+        }
+      }
+
+      token = generateToken(user.id, user.role);
+    }
+    
     const profile: UserProfile = {
       id: user.id,
       email: user.email,
@@ -244,7 +284,7 @@ router.post('/login', async (req, res) => {
     res.json({ token, user: profile });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ error: i18next.t('Failed to login: {{err}}', {err: getErrorMessage(error)}) });
+    res.status(500).json({ error: req.t('Failed to login: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -254,26 +294,32 @@ router.post('/forgot-password', async (req, res) => {
     const { email } = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: i18next.t('Email is required') });
+      return res.status(400).json({ error: req.t('Email is required') });
     }
 
     const user = await database.getUserByEmail(email);
     if (!user) {
       // Don't reveal if user exists
-      return res.json({ message: i18next.t('A reset code has been be sent to the requested email, if it exists') });
+      return res.json({
+        message: req.t('A reset code has been be sent to the requested email, if it exists'),
+        ...(config.nodeEnv !== 'production' && { error: "User not found" }),
+      });
     }
 
-    const resetCode = generateVerificationCode();
-    const resetCodeExpiry = new Date(Date.now() + config.app.auth.passwordResetCode.expirationMinutes * 60 * 1000).toISOString();
+    const resetPasswordCode = generateVerificationCode();
+    const resetPasswordCodeExpiry = new Date(Date.now() + config.app.auth.resetPasswordCode.expirationMinutes * 60 * 1000).toISOString();
 
     await database.updateUser(user.id, {
-      resetPasswordCode: resetCode,
-      resetPasswordCodeExpiry: resetCodeExpiry
+      resetPasswordCode,
+      resetPasswordCodeExpiry
     });
 
-    await sendPasswordResetEmail(email, resetCode);
+    await sendPasswordResetEmail(email, resetPasswordCode);
 
-    res.json({ message: i18next.t('A reset code has been be sent to the requested email, if it exists') });
+    res.json({
+      message: req.t('A reset code has been be sent to the requested email, if it exists'),
+      ...(config.nodeEnv !== 'production' && { resetPasswordCode }),
+    });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.status(500).json({ error: 'Failed to process password reset request' });
@@ -286,30 +332,30 @@ router.post('/reset-password', async (req, res) => {
     const { email, code, newPassword }: PasswordResetRequest = req.body;
 
     if (!email) {
-      return res.status(400).json({ error: i18next.t('Email is required') });
+      return res.status(400).json({ error: req.t('Email is required') });
     }
     if (!code) {
-      return res.status(400).json({ error: i18next.t('Code is required') });
+      return res.status(400).json({ error: req.t('Code is required') });
     }
     if (!newPassword) {
-      return res.status(400).json({ error: i18next.t('New password is required') });
+      return res.status(400).json({ error: req.t('New password is required') });
     }
 
     const user = await database.getUserByEmail(email);
     if (!user) {
-      return res.status(404).json({ error: i18next.t('User not found') });
+      return res.status(404).json({ error: req.t('User not found') });
     }
 
     if (!user.resetPasswordCode || !user.resetPasswordCodeExpiry) {
-      return res.status(400).json({ error: i18next.t('No password reset requested') });
+      return res.status(400).json({ error: req.t('No password reset requested') });
     }
 
     if (!isCodeValid(user.resetPasswordCodeExpiry)) {
-      return res.status(400).json({ error: i18next.t('Reset code expired') });
+      return res.status(400).json({ error: req.t('Reset code expired') });
     }
 
     if (user.resetPasswordCode !== code) {
-      return res.status(400).json({ error: i18next.t('Invalid reset code') });
+      return res.status(400).json({ error: req.t('Invalid reset code') });
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
@@ -320,10 +366,10 @@ router.post('/reset-password', async (req, res) => {
       resetPasswordCodeExpiry: undefined
     });
 
-    res.json({ message: i18next.t('Password reset successful') });
+    res.json({ message: req.t('Password reset successful') });
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({ error: i18next.t('Failed to reset password: {{err}}', {err: getErrorMessage(error)}) });
+    res.status(500).json({ error: req.t('Failed to reset password: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -348,22 +394,27 @@ router.get('/auth/google/callback', async (req, res) => {
     const { code } = req.query;
 
     if (!code || typeof code !== 'string') {
-      return res.redirect('/?error=google_auth_failed');
+      //return res.redirect('http://localhost:3000//?error=google_auth_failed'); // TODO: from config
+      return sendPopupError(res, 'Missing code');
     }
 
+    // Exchange code for tokens with Google
     const { tokens } = await googleClient.getToken(code);
     googleClient.setCredentials(tokens);
 
+    // Get user profile from Google
     const ticket = await googleClient.verifyIdToken({
       idToken: tokens.id_token!,
       audience: process.env.GOOGLE_CLIENT_ID
     });
 
+    // Get ticket payload
     const payload = ticket.getPayload();
     if (!payload || !payload.email) {
-      return res.redirect('/?error=google_auth_failed');
+      return res.redirect('http://localhost:3000//?error=google_auth_failed'); // TODO: from config
     }
 
+    // Find/Create user in database
     const { sub: googleId, email, given_name, family_name } = payload;
 
     // Check if user exists
@@ -395,10 +446,41 @@ router.get('/auth/google/callback', async (req, res) => {
     const token = generateToken(user.id, user.role);
     
     // Redirect to frontend with token
-    res.redirect(`/?google_token=${token}`);
+    //res.redirect(`http://localhost:3000/?google_token=${token}`); // TODO: from config
+    // Send HTML that communicates with the opener
+    res.send(`
+      <html>
+        <script>
+          // Send token to the window that opened this popup
+          window.opener.postMessage({
+            type: 'GOOGLE_AUTH_SUCCESS',
+            token: '${token}'
+          }, 'http://localhost:3000'); // RESTRICT to your frontend origin - TODO: to config
+          
+          // Close this popup automatically
+          window.close();
+        </script>
+        <body>Login successful! Closing...</body>
+      </html>
+    `);
   } catch (error) {
     console.error('Google OAuth error:', error);
-    res.redirect('/?error=google_auth_failed');
+    //res.redirect('http://localhost:3000/?error=google_auth_failed');// TODO: from config
+    sendPopupError(res, req.t('Authentication failed: {{err}}', {err: error || 'Google OAuth error' }));
+  }
+
+  function sendPopupError(res: any, error: string) {
+    res.send(`
+      <html>
+        <script>
+          window.opener.postMessage({
+            type: 'GOOGLE_AUTH_ERROR',
+            error: '${error}'
+          }, 'http://localhost:3000'); // TODO: to config
+          window.close();
+        </script>
+      </html>
+    `);
   }
 });
 
@@ -407,7 +489,7 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const user = await database.getUserById(req.userId!);
     if (!user) {
-      return res.status(404).json({ error: i18next.t('User not found') });
+      return res.status(404).json({ error: req.t('User not found') });
     }
 
     const profile: UserProfile = {
@@ -462,7 +544,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
     res.json(profile);
   } catch (error) {
     console.error('Failed to update profile:', error);
-    res.status(500).json({ error: i18next.t('Failed to update profile', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to update profile', { err: getErrorMessage(error) }) });
   }
 });
 

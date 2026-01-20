@@ -13,7 +13,7 @@ interface ToastConfig {
 }
 
 interface ToastContextType {
-  showToast: (config: Omit<ToastConfig, 'key'> & { key?: string }) => void;
+  eventToast: (config: Omit<ToastConfig, 'key'> & { key?: string }) => void;
 }
 
 // Slide transition for toasts
@@ -29,7 +29,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [open, setOpen] = useState(false);
   
   // Store the toast function in a ref so we can access it globally
-  const showToast = (config: Omit<ToastConfig, 'key'> & { key?: string }) => {
+  const eventToast = (config: Omit<ToastConfig, 'key'> & { key?: string }) => {
     const toastWithKey: ToastConfig = {
       ...config,
       key: config.key || Date.now().toString(),
@@ -41,7 +41,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
 
   // Store the function in the ref when component mounts
   React.useEffect(() => {
-    (toastRef as any).current = { showToast };
+    (toastRef as any).current = { eventToast };
   }, []);
 
   const handleClose = (key?: string) => {
@@ -101,10 +101,10 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
 };
 
 // Direct function export (no hook usage)
-export const showToast = {
+export const eventToast = {
   success: (message: string, options?: { duration?: number; action?: ReactNode }) => {
     if (toastRef.current) {
-      toastRef.current.showToast({ message, type: 'success', ...options });
+      toastRef.current.eventToast({ message, type: 'success', ...options });
     } else {
       console.warn('ToastProvider not mounted yet');
     }
@@ -112,7 +112,7 @@ export const showToast = {
   
   error: (message: string, options?: { duration?: number; action?: ReactNode }) => {
     if (toastRef.current) {
-      toastRef.current.showToast({ message, type: 'error', ...options });
+      toastRef.current.eventToast({ message, type: 'error', ...options });
     } else {
       console.warn('ToastProvider not mounted yet');
     }
@@ -120,7 +120,7 @@ export const showToast = {
   
   warning: (message: string, options?: { duration?: number; action?: ReactNode }) => {
     if (toastRef.current) {
-      toastRef.current.showToast({ message, type: 'warning', ...options });
+      toastRef.current.eventToast({ message, type: 'warning', ...options });
     } else {
       console.warn('ToastProvider not mounted yet');
     }
@@ -128,7 +128,7 @@ export const showToast = {
   
   info: (message: string, options?: { duration?: number; action?: ReactNode }) => {
     if (toastRef.current) {
-      toastRef.current.showToast({ message, type: 'info', ...options });
+      toastRef.current.eventToast({ message, type: 'info', ...options });
     } else {
       console.warn('ToastProvider not mounted yet');
     }
@@ -164,7 +164,7 @@ export const showToast = {
     );
     
     if (toastRef.current) {
-      toastRef.current.showToast({ 
+      toastRef.current.eventToast({ 
         message, 
         type: 'info', 
         duration: undefined, // Manual close only

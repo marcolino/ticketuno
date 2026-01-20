@@ -1,5 +1,5 @@
 import React, { createContext, useContext, ReactNode } from 'react';
-import toast, { Toaster, ToastOptions } from 'react-hot-toast';
+import hotToast, { Toaster, ToastOptions } from 'react-hot-toast';
 import { Alert, AlertColor, Button, Box } from '@mui/material';
 
 interface ToastContextType {
@@ -42,7 +42,7 @@ const ToastAlert = ({
       severity={severity}
       variant="filled"
       onClose={() => {
-        toast.dismiss(t.id);
+        hotToast.dismiss(t.id);
         onClose?.();
       }}
       action={
@@ -56,7 +56,7 @@ const ToastAlert = ({
                 variant="outlined"
                 onClick={() => {
                   action.onClick();
-                  toast.dismiss(t.id);
+                  hotToast.dismiss(t.id);
                 }}
                 sx={{
                   fontSize: '12px',
@@ -99,14 +99,14 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     position: 'bottom-right',
   };
 
-  // Helper to show any toast
-  const showToast = (
+  // Helper to event any toast
+  const eventToast = (
     message: string, 
     severity: AlertColor = 'info',
     options?: ToastOptions,
     actions?: Array<{label: string; onClick: () => void}>
   ): string => {
-    return toast.custom(
+    return hotToast.custom(
       (t) => (
         <ToastAlert 
           t={t}
@@ -121,16 +121,16 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
   // Individual toast functions
   const success = (message: string, options?: ToastOptions) => 
-    showToast(message, 'success', options);
+    eventToast(message, 'success', options);
 
   const error = (message: string, options?: ToastOptions) => 
-    showToast(message, 'error', options);
+    eventToast(message, 'error', options);
 
   const warning = (message: string, options?: ToastOptions) => 
-    showToast(message, 'warning', options);
+    eventToast(message, 'warning', options);
 
   const info = (message: string, options?: ToastOptions) => 
-    showToast(message, 'info', options);
+    eventToast(message, 'info', options);
 
   // Toast with action buttons
   const withActions = (
@@ -139,15 +139,15 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     severity: AlertColor = 'info',
     options?: ToastOptions
   ): string => {
-    return showToast(message, severity, { ...options, duration: Infinity }, actions);
+    return eventToast(message, severity, { ...options, duration: Infinity }, actions);
   };
 
   const dismiss = (id?: string) => {
-    toast.dismiss(id);
+    hotToast.dismiss(id);
   };
 
   const dismissAll = () => {
-    toast.dismiss();
+    hotToast.dismiss();
   };
 
   const contextValue: ToastContextType = {
@@ -193,7 +193,7 @@ export const useToast = () => {
 // Direct function exports (can be imported without hook)
 // These are perfect for your request: toastSuccess(), toastError(), etc.
 export const toastSuccess = (message: string, options?: ToastOptions) => {
-  return toast.custom(
+  return hotToast.custom(
     (t) => (
       <ToastAlert 
         t={t}
@@ -206,7 +206,7 @@ export const toastSuccess = (message: string, options?: ToastOptions) => {
 };
 
 export const toastError = (message: string, options?: ToastOptions) => {
-  return toast.custom(
+  return hotToast.custom(
     (t) => (
       <ToastAlert 
         t={t}
@@ -219,7 +219,7 @@ export const toastError = (message: string, options?: ToastOptions) => {
 };
 
 export const toastWarning = (message: string, options?: ToastOptions) => {
-  return toast.custom(
+  return hotToast.custom(
     (t) => (
       <ToastAlert 
         t={t}
@@ -232,7 +232,7 @@ export const toastWarning = (message: string, options?: ToastOptions) => {
 };
 
 export const toastInfo = (message: string, options?: ToastOptions) => {
-  return toast.custom(
+  return hotToast.custom(
     (t) => (
       <ToastAlert 
         t={t}
@@ -250,7 +250,7 @@ export const toastWithActions = (
   severity: AlertColor = 'info',
   options?: ToastOptions
 ) => {
-  return toast.custom(
+  return hotToast.custom(
     (t) => (
       <ToastAlert 
         t={t}
@@ -264,12 +264,12 @@ export const toastWithActions = (
 };
 
 // Convenience object for direct import
-export const toastAPI = {
+export const toast = {
   success: toastSuccess,
   error: toastError,
   warning: toastWarning,
   info: toastInfo,
   withActions: toastWithActions,
-  dismiss: toast.dismiss,
-  dismissAll: () => toast.dismiss(),
+  dismiss: hotToast.dismiss,
+  dismissAll: () => hotToast.dismiss(),
 };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
@@ -21,12 +21,12 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { showApi, theaterApi } from '../services/api';
-import { Show, ShowPerformance } from '../types/show';
+import { eventApi, theaterApi } from '../services/api';
+import { Event, EventPerformance } from '../types/event';
 import { TheaterStats } from '../types/theater';
 import { useAuth } from '../contexts/AuthContext';
 
-const ShowEdit: React.FC = () => {
+const EventEdit: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated, isAdmin } = useAuth();
@@ -37,7 +37,7 @@ const ShowEdit: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // Show fields
+  // Event fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
@@ -60,26 +60,14 @@ const ShowEdit: React.FC = () => {
   const [minimumAge, setMinimumAge] = useState<number>(0);
   const [typicalStartTime, setTypicalStartTime] = useState('19:30');
   const [typicalEndTime, setTypicalEndTime] = useState('');
-  const [showPosterUrl, setShowPosterUrl] = useState('');
+  const [eventPosterUrl, setEventPosterUrl] = useState('');
   const [trailerUrl, setTrailerUrl] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
   const [contentWarnings, setContentWarnings] = useState('');
   const [status, setStatus] = useState<'scheduled' | 'in_progress' | 'completed' | 'cancelled'>('scheduled');
 
   // Performances
-  const [performances, setPerformances] = useState<Partial<ShowPerformance>[]>([]);
-
-  useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
-      navigate('/');
-      return;
-    }
-
-    loadTheaters();
-    if (isEditMode) {
-      loadShow();
-    }
-  }, [isAuthenticated, isAdmin, isEditMode, navigate]);
+  const [performances, setPerformances] = useState<Partial<EventPerformance>[]>([]);
 
   const loadTheaters = async () => {
     try {
@@ -90,50 +78,62 @@ const ShowEdit: React.FC = () => {
     }
   };
 
-  const loadShow = async () => {
+  const loadEvent = useCallback(async () => {
     try {
-      const response = await showApi.getShowById(id!);
-      const show = response.data;
+      const response = await eventApi.getEventById(id!);
+      const event = response.data;
       
-      setTitle(show.title);
-      setDescription(show.description || '');
-      setGenre(show.genre || '');
-      setDurationMinutes(show.durationMinutes || 120);
-      setIntermissionCount(show.intermissionCount || 1);
-      setRating(show.rating || '');
-      setLanguage(show.language || 'English');
-      setDirector(show.director || '');
-      setPlaywright(show.playwright || '');
-      setProducer(show.producer || '');
-      setChoreographer(show.choreographer || '');
-      setMusicalDirector(show.musicalDirector || '');
-      setTheaterId(show.theaterId);
-      setStageType(show.stageType || '');
-      setOpeningDate(show.openingDate || '');
-      setClosingDate(show.closingDate || '');
-      setBaseTicketPrice(show.baseTicketPrice);
-      setCurrency(show.currency);
-      setSpecialRequirements(show.specialRequirements || '');
-      setMinimumAge(show.minimumAge || 0);
-      setTypicalStartTime(show.typicalStartTime || '19:30');
-      setTypicalEndTime(show.typicalEndTime || '');
-      setShowPosterUrl(show.showPosterUrl || '');
-      setTrailerUrl(show.trailerUrl || '');
-      setWebsiteUrl(show.websiteUrl || '');
-      setContentWarnings(show.contentWarnings || '');
-      setStatus(show.status);
+      setTitle(event.title);
+      setDescription(event.description || '');
+      setGenre(event.genre || '');
+      setDurationMinutes(event.durationMinutes || 120);
+      setIntermissionCount(event.intermissionCount || 1);
+      setRating(event.rating || '');
+      setLanguage(event.language || 'English');
+      setDirector(event.director || '');
+      setPlaywright(event.playwright || '');
+      setProducer(event.producer || '');
+      setChoreographer(event.choreographer || '');
+      setMusicalDirector(event.musicalDirector || '');
+      setTheaterId(event.theaterId);
+      setStageType(event.stageType || '');
+      setOpeningDate(event.openingDate || '');
+      setClosingDate(event.closingDate || '');
+      setBaseTicketPrice(event.baseTicketPrice);
+      setCurrency(event.currency);
+      setSpecialRequirements(event.specialRequirements || '');
+      setMinimumAge(event.minimumAge || 0);
+      setTypicalStartTime(event.typicalStartTime || '19:30');
+      setTypicalEndTime(event.typicalEndTime || '');
+      setEventPosterUrl(event.eventPosterUrl || '');
+      setTrailerUrl(event.trailerUrl || '');
+      setWebsiteUrl(event.websiteUrl || '');
+      setContentWarnings(event.contentWarnings || '');
+      setStatus(event.status);
 
-      if (show.performances) {
-        setPerformances(show.performances);
+      if (event.performances) {
+        setPerformances(event.performances);
       }
 
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load show');
+      setError(err.response?.data?.error || 'Failed to load event');
     } finally {
     }
-  };
+  }, [id]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !isAdmin) {
+      navigate('/events');
+      return;
+    }
+
+    loadTheaters();
+    if (isEditMode) {
+      loadEvent();
+    }
+  }, [isAuthenticated, isAdmin, isEditMode, navigate, loadEvent]);
+  
   const addPerformance = () => {
     setPerformances([
       ...performances,
@@ -166,7 +166,7 @@ const ShowEdit: React.FC = () => {
       setSaving(true);
       setError('');
 
-      const showData: Partial<Show> = {
+      const eventData: Partial<Event> = {
         title,
         description,
         genre,
@@ -189,35 +189,35 @@ const ShowEdit: React.FC = () => {
         minimumAge,
         typicalStartTime,
         typicalEndTime,
-        showPosterUrl,
+        eventPosterUrl,
         trailerUrl,
         websiteUrl,
         contentWarnings,
         status
       };
 
-      let showId: string;
+      let eventId: string;
 
       if (isEditMode) {
-        await showApi.updateShow(id!, showData);
-        showId = id!;
-        alert('Show updated successfully!');
+        await eventApi.updateEvent(id!, eventData);
+        eventId = id!;
+        alert('Event updated successfully!');
       } else {
-        const response = await showApi.createShow(showData);
-        showId = response.data.id;
-        alert('Show created successfully!');
+        const response = await eventApi.createEvent(eventData);
+        eventId = response.data.id;
+        alert('Event created successfully!');
       }
 
       // Create new performances (only for new ones without id)
       for (const perf of performances) {
         if (!perf.id && perf.performanceDate && perf.startTime) {
-          await showApi.createPerformance(showId, perf);
+          await eventApi.createPerformance(eventId, perf);
         }
       }
 
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.error || `Failed to ${isEditMode ? 'update' : 'create'} show`);
+      setError(err.response?.data?.error || `Failed to ${isEditMode ? 'update' : 'create'} event`);
     } finally {
       setSaving(false);
     }
@@ -235,7 +235,7 @@ const ShowEdit: React.FC = () => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
-          {isEditMode ? 'Edit Show' : 'Create New Show'}
+          {isEditMode ? 'Edit Event' : 'Create New Event'}
         </Typography>
 
         {error && (
@@ -536,8 +536,8 @@ const ShowEdit: React.FC = () => {
             <TextField
               fullWidth
               label="Poster URL"
-              value={showPosterUrl}
-              onChange={(e) => setShowPosterUrl(e.target.value)}
+              value={eventPosterUrl}
+              onChange={(e) => setEventPosterUrl(e.target.value)}
             />
           </Grid>
 
@@ -662,7 +662,7 @@ const ShowEdit: React.FC = () => {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Show' : 'Create Show')}
+            {saving ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Event' : 'Create Event')}
           </Button>
         </Box>
       </Paper>
@@ -670,4 +670,4 @@ const ShowEdit: React.FC = () => {
   );
 };
 
-export default ShowEdit;
+export default EventEdit;

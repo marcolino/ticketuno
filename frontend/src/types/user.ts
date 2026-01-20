@@ -10,26 +10,35 @@ export interface User {
   updatedAt: string;
 }
 
-export type LoginSuccessResponse = {
+export interface LoginSuccessResponse {
   token: string;
   user: User;
+  requiresVerification?: never; // Explicitly exclude
 }
 
-export type LoginVerificationRequiredResponse = {
+export interface LoginVerificationRequiredResponse {
   requiresVerification: true;
   email: string;
 }
 
 export type LoginResponse =
   | LoginSuccessResponse
-  | LoginVerificationRequiredResponse
+  | LoginVerificationRequiredResponse;
 
-export interface LoginCredentials {
+export interface LoginEmailCredentials {
   email: string;
   password: string;
 }
 
-export type RegisterResponse = {
+export interface LoginOAuthCredentials {
+  token: string;
+}
+
+export type LoginCredentials =
+  | LoginEmailCredentials
+  | LoginOAuthCredentials;
+
+export interface RegisterResponse {
   message: string;
   email: string;
   verificationCode?: string;
@@ -48,12 +57,34 @@ export interface VerificationData {
   code: string;
 }
 
+export interface ResendVerificationResponse {
+  message: string;
+  verificationCode?: string;
+}
+
 export interface ForgotPasswordData {
   email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  resetPasswordCode?: string;
+  error?: string;
 }
 
 export interface ResetPasswordData {
   email: string;
   code: string;
   newPassword: string;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+  resetPasswordCode?: string;
+}
+
+export interface VerifyEmailResponse {
+  message?: string;
+  token: string;
+  user: User;
 }

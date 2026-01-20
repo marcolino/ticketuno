@@ -12,17 +12,17 @@ declare module 'axios' {
 
 // Store references to the loading control functions
 let loadingControls: {
-  showLoading: () => void;
+  eventLoading: () => void;
   hideLoading: () => void;
 } | null = null;
 
 // Initialize the interceptors with loading controls
 export const setupLoadingInterceptors = (
-  showLoadingFn: () => void,
+  eventLoadingFn: () => void,
   hideLoadingFn: () => void
 ) => {
   loadingControls = {
-    showLoading: showLoadingFn,
+    eventLoading: eventLoadingFn,
     hideLoading: hideLoadingFn
   };
 };
@@ -33,7 +33,7 @@ export const requestLoadingInterceptor = (config: InternalAxiosRequestConfig) =>
   const skipLoading = config.headers?.['X-Skip-Loading'] === 'true';
   
   if (!skipLoading && loadingControls) {
-    loadingControls.showLoading();
+    loadingControls.eventLoading();
   }
   
   // Mark that this request should trigger loading

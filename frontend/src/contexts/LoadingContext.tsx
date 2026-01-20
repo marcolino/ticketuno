@@ -4,7 +4,7 @@ import { setupLoadingInterceptors } from '../services/api';
 
 interface LoadingContextType {
   isLoading: boolean;
-  showLoading: () => void;
+  eventLoading: () => void;
   hideLoading: () => void;
 }
 
@@ -20,35 +20,35 @@ export const useLoading = () => {
 
 interface LoadingProviderProps {
   children: ReactNode;
-  minLoadingTime?: number; // Minimum time in milliseconds to show spinner
-  delayBeforeShow?: number; // The delay time in milliseconds before to show spinner
+  minLoadingTime?: number; // Minimum time in milliseconds to event spinner
+  delayBeforeEvent?: number; // The delay time in milliseconds before to event spinner
 }
 
 export const LoadingProvider: React.FC<LoadingProviderProps> = ({ 
   children, 
   minLoadingTime = 10, // Default 10ms to prevent flicker
-  delayBeforeShow = 200, // Delay before showing spinner
+  delayBeforeEvent = 200, // Delay before eventing spinner
 }) => {
   const [loadingCount, setLoadingCount] = useState(0);
   const [forceVisible, setForceVisible] = useState(false);
   const isLoading = loadingCount > 0 || forceVisible;
   
   // Track timers for cleanup
-  const showTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const eventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  const showLoading = useCallback(() => {
-    // Clear any existing show timeout
-    if (showTimeoutRef.current) {
-      clearTimeout(showTimeoutRef.current);
+  const eventLoading = useCallback(() => {
+    // Clear any existing event timeout
+    if (eventTimeoutRef.current) {
+      clearTimeout(eventTimeoutRef.current);
     }
 
-    // Set timeout to actually show loading after delay
-    showTimeoutRef.current = setTimeout(() => {
+    // Set timeout to actually event loading after delay
+    eventTimeoutRef.current = setTimeout(() => {
       setLoadingCount(prev => prev + 1);
       setForceVisible(false);
-      showTimeoutRef.current = null;
-    }, delayBeforeShow);
+      eventTimeoutRef.current = null;
+    }, delayBeforeEvent);
 
     // // Clear any pending hide timeout
     // if (hideTimeoutRef.current) {
@@ -59,14 +59,14 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({
     // setLoadingCount(prev => prev + 1);
     // setForceVisible(false); // Reset force visible when new loading starts
 
-  }, [delayBeforeShow]);
+  }, [delayBeforeEvent]);
   
   const hideLoading = useCallback(() => {
-    // Clear any pending show timeout (request finished fast)
-    if (showTimeoutRef.current) {
-      clearTimeout(showTimeoutRef.current);
-      showTimeoutRef.current = null;
-      return; // Spinner never shown, nothing to hide
+    // Clear any pending event timeout (request finished fast)
+    if (eventTimeoutRef.current) {
+      clearTimeout(eventTimeoutRef.current);
+      eventTimeoutRef.current = null;
+      return; // Spinner never eventn, nothing to hide
     }
     
     // Decrement the counter
@@ -89,14 +89,14 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (showTimeoutRef.current) clearTimeout(showTimeoutRef.current);
+      if (eventTimeoutRef.current) clearTimeout(eventTimeoutRef.current);
       if (hideTimeoutRef.current) clearTimeout(hideTimeoutRef.current);
     };
   }, []);
 
   // Initialize interceptors
   useEffect(() => {
-    setupLoadingInterceptors(showLoading, hideLoading);
+    setupLoadingInterceptors(eventLoading, hideLoading);
     //console.log(`✅ Loading interceptors initialized (minLoadingTime: ${minLoadingTime}ms)`);
     
     // Cleanup on unmount
@@ -105,10 +105,10 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({
         clearTimeout(hideTimeoutRef.current);
       }
     };
-  }, [showLoading, hideLoading, minLoadingTime]);
+  }, [eventLoading, hideLoading, minLoadingTime]);
 
   return (
-    <LoadingContext.Provider value={{ isLoading, showLoading, hideLoading }}>
+    <LoadingContext.Provider value={{ isLoading, eventLoading, hideLoading }}>
       {children}
     </LoadingContext.Provider>
   );

@@ -14,7 +14,7 @@ interface ToastConfig {
 }
 
 interface ToastContextType {
-  showToast: (config: Omit<ToastConfig, 'key' | 'open'> & { key?: string }) => void;
+  eventToast: (config: Omit<ToastConfig, 'key' | 'open'> & { key?: string }) => void;
 }
 
 // Slide transition for toasts
@@ -25,7 +25,7 @@ function SlideTransition(props: SlideProps) {
 // Create a global ref to store the toast function
 let toastRef: React.RefObject<ToastContextType> = { current: null };
 
-// Maximum number of toasts to show at once
+// Maximum number of toasts to event at once
 const MAX_VISIBLE_TOASTS = 4;
 // Vertical spacing between stacked toasts
 const TOAST_SPACING = 84; // pixels
@@ -34,7 +34,7 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
   const [toasts, setToasts] = useState<ToastConfig[]>([]);
   
   // Store the toast function in a ref so we can access it globally
-  const showToast = useCallback((config: Omit<ToastConfig, 'key' | 'open'> & { key?: string }) => {
+  const eventToast = useCallback((config: Omit<ToastConfig, 'key' | 'open'> & { key?: string }) => {
     const toastWithKey: ToastConfig = {
       ...config,
       key: config.key || Date.now().toString(),
@@ -51,8 +51,8 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
 
   // Store the function in the ref when component mounts
   useEffect(() => {
-    (toastRef as any).current = { showToast };
-  }, [showToast]);
+    (toastRef as any).current = { eventToast };
+  }, [eventToast]);
 
   const handleClose = (key: string) => {
     setToasts(prev => 
@@ -142,10 +142,10 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
 };
 
 // Direct function export (no hook usage)
-export const showToast = {
+export const eventToast = {
   success: (message: string, options?: { duration?: number; action?: ReactNode }) => {
     if (toastRef.current) {
-      toastRef.current.showToast({ message, type: 'success', ...options });
+      toastRef.current.eventToast({ message, type: 'success', ...options });
     } else {
       console.warn('ToastProvider not mounted yet');
     }
@@ -153,7 +153,7 @@ export const showToast = {
   
   error: (message: string, options?: { duration?: number; action?: ReactNode }) => {
     if (toastRef.current) {
-      toastRef.current.showToast({ message, type: 'error', ...options });
+      toastRef.current.eventToast({ message, type: 'error', ...options });
     } else {
       console.warn('ToastProvider not mounted yet');
     }
@@ -161,7 +161,7 @@ export const showToast = {
   
   warning: (message: string, options?: { duration?: number; action?: ReactNode }) => {
     if (toastRef.current) {
-      toastRef.current.showToast({ message, type: 'warning', ...options });
+      toastRef.current.eventToast({ message, type: 'warning', ...options });
     } else {
       console.warn('ToastProvider not mounted yet');
     }
@@ -169,7 +169,7 @@ export const showToast = {
   
   info: (message: string, options?: { duration?: number; action?: ReactNode }) => {
     if (toastRef.current) {
-      toastRef.current.showToast({ message, type: 'info', ...options });
+      toastRef.current.eventToast({ message, type: 'info', ...options });
     } else {
       console.warn('ToastProvider not mounted yet');
     }
@@ -205,7 +205,7 @@ export const showToast = {
     );
     
     if (toastRef.current) {
-      toastRef.current.showToast({ 
+      toastRef.current.eventToast({ 
         message, 
         type: 'info', 
         duration: undefined, // Manual close only

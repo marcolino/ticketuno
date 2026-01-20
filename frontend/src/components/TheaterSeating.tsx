@@ -22,27 +22,27 @@ import {
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles'; 
-import { showApi, theaterApi } from '../services/api';
+import { eventApi, theaterApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 //import { useToast } from '../contexts/ToastContext';
 import { useToast, toastSuccess, toastError, toastWithActions } from '../contexts/ToastContext';
 import { handleApiError } from '../utils/apiErrorHandler';
-//import { showToast } from '../utils/toast';
-//import { showToast } from '../utils/toast';
-//import { showToast } from '../utils/toast';
+//import { eventToast } from '../utils/toast';
+//import { eventToast } from '../utils/toast';
+//import { eventToast } from '../utils/toast';
 import { Theater, Seat } from '../types/theater';
-import { ShowPerformance } from '../types/show';
+import { EventPerformance } from '../types/event';
 
 const TheaterSeating: React.FC = () => {
   const { t } = useTranslation();    
-  const { id, showId, performanceId } = useParams<{ id?: string; showId?: string; performanceId?: string }>();
+  const { id, eventId, performanceId } = useParams<{ id?: string; eventId?: string; performanceId?: string }>();
   const { isAuthenticated } = useAuth();
   const toast = useToast();
   const theme = useTheme();
   const navigate = useNavigate();
 
   const [theater, setTheater] = useState<Theater | null>(null);
-  const [performance, setPerformance] = useState<ShowPerformance | null>(null);
+  const [performance, setPerformance] = useState<EventPerformance | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
   //const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,15 +51,15 @@ const TheaterSeating: React.FC = () => {
 
   const loadPerformance = useCallback(async () => {
     try {
-      const response = await showApi.getPerformance(showId!, performanceId!);
+      const response = await eventApi.getPerformance(eventId!, performanceId!);
       const perf = response.data;
       setPerformance(perf);
 
       // Parse seat data from performance
       const sections = JSON.parse(perf.seatData);
       setTheater({
-        id: showId!,
-        name: 'Theater', // Will be updated from show data if needed
+        id: eventId!,
+        name: 'Theater', // Will be updated from event data if needed
         sections: sections,
         createdAt: '',
         updatedAt: ''
@@ -71,7 +71,7 @@ const TheaterSeating: React.FC = () => {
       console.error(err);
     } finally {
     }
-  }, [showId, performanceId]);
+  }, [eventId, performanceId]);
   
   const loadTheater = useCallback(async (theaterId: string) => {
     try {
@@ -88,12 +88,12 @@ const TheaterSeating: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (showId && performanceId) {
+    if (eventId && performanceId) {
       loadPerformance();
     } else if (id) {
       loadTheater(id);
     }
-  }, [id, showId, performanceId, loadPerformance, loadTheater]);
+  }, [id, eventId, performanceId, loadPerformance, loadTheater]);
 
   const getSeatStatus = (seat: Seat): 'available' | 'selected' | 'booked' | 'none' => {
     if (!performance) return 'none';
@@ -104,14 +104,14 @@ const TheaterSeating: React.FC = () => {
 
   const toggleSeat = (seat: Seat) => {
     toast.success('Seat toggled successfully');
-    // showToast.success('Seat toggled successfully: ' + Math.floor(Math.random() * 5));
-    // showToast.error('Error message 2');
-    // // setTimeout(() => showToast.error('Error message 2'), 100);
-    // setTimeout(() => showToast.warning('Warning message 3'), 200);
-    // setTimeout(() => showToast.info('Info message 4'), 300);
-    // showToast.info('New message received');
-    // showToast.warning('Storage almost full (85%)');
-    // showToast.error('Failed to sync data');
+    // eventToast.success('Seat toggled successfully: ' + Math.floor(Math.random() * 5));
+    // eventToast.error('Error message 2');
+    // // setTimeout(() => eventToast.error('Error message 2'), 100);
+    // setTimeout(() => eventToast.warning('Warning message 3'), 200);
+    // setTimeout(() => eventToast.info('Info message 4'), 300);
+    // eventToast.info('New message received');
+    // eventToast.warning('Storage almost full (85%)');
+    // eventToast.error('Failed to sync data');
     // setTimeout(() => {
     //   toast.withActions('Download completed. What next?', [
     //     { label: 'Open', onClick: () => console.log('Opening file...') },
@@ -149,12 +149,12 @@ const TheaterSeating: React.FC = () => {
     // }
 
     try {
-      if (showId && performanceId) {
-        await showApi.bookPerformance(showId, performanceId, Array.from(selectedSeats));
+      if (eventId && performanceId) {
+        await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
       } else if (id) {
         await theaterApi.bookSeats(id, Array.from(selectedSeats));
       } else {
-        console.error('No show Id, performanceId, id!'); // TODO: can this happen?
+        console.error('No event Id, performanceId, id!'); // TODO: can this happen?
       }
       //await theaterApi.bookSeats(id, Array.from(selectedSeats));
 
@@ -163,7 +163,7 @@ const TheaterSeating: React.FC = () => {
       setConfirmOpen(false);
       //loadTheater(id);
       
-      if (showId && performanceId) {
+      if (eventId && performanceId) {
         loadPerformance();
       } else if (id) {
         loadTheater(id);
@@ -212,8 +212,8 @@ const TheaterSeating: React.FC = () => {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         <Alert severity="error">{error || 'Theater not found'}</Alert>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(performance ? '/shows' : '/theaters')} sx={{ mt: 2 }}>
-          {t('Back')}{/* TODO: navigate back to theaters if editing theatre, to shows if editing performance */}
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(performance ? '/events' : '/theaters')} sx={{ mt: 2 }}>
+          {t('Back')}{/* TODO: navigate back to theaters if editing theatre, to events if editing performance */}
         </Button>
       </Container>
     );

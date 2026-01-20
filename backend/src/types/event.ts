@@ -1,4 +1,4 @@
-export interface Show {
+export interface Event {
   id: string;
   title: string;
   description?: string;
@@ -13,6 +13,7 @@ export interface Show {
   choreographer?: string;
   musicalDirector?: string;
   theaterId: string;
+  showId: string;
   stageType?: string;
   openingDate?: string;
   closingDate?: string;
@@ -27,7 +28,7 @@ export interface Show {
   createdByUserId?: string;
   typicalStartTime?: string;
   typicalEndTime?: string;
-  showPosterUrl?: string;
+  eventPosterUrl?: string;
   trailerUrl?: string;
   websiteUrl?: string;
   socialMediaLinks?: string;
@@ -37,9 +38,9 @@ export interface Show {
   contentWarnings?: string;
 }
 
-export interface ShowPerformance {
+export interface EventPerformance {
   id: string;
-  showId: string;
+  eventId: string;
   performanceDate: string;
   startTime: string;
   endTime?: string;
@@ -51,12 +52,12 @@ export interface ShowPerformance {
   updatedAt: string;
 }
 
-export interface ShowWithTheater extends Show {
+export interface EventWithTheater extends Event {
   theaterName: string;
   totalSeats: number;
 }
 
-export interface ShowStats {
+export interface EventStats {
   id: string;
   title: string;
   theaterName: string;

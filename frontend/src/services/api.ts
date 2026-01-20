@@ -5,12 +5,15 @@ import {
   LoginCredentials,
   LoginResponse,
   RegisterData, 
+  RegisterResponse, 
   VerificationData,
   ForgotPasswordData,
+  ForgotPasswordResponse,
   ResetPasswordData
 } from '../types/user';
-import { Show, ShowStats, ShowPerformance, ShowWithDetails } from '../types/show';
-import i18n from '../i18n'; 
+import { Event, EventStats, EventPerformance, EventWithDetails } from '../types/event';
+import { Layout } from '../../../shared/types/layout';
+import { i18n }  from '../i18n'; 
 
 //const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
 const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH; // ?? '/api/'; // TODO: set default from config...
@@ -67,7 +70,7 @@ export const getCurrentLanguage = (): string => {
 export const changeLanguage = async (lng: string): Promise<void> => {
   await i18n.changeLanguage(lng);
   // Optionally, we could notify the backend about language change
-  // api.post('/api/users/language', { language: lng });
+  // api.post('/api/v1/users/language', { language: lng });
 };
 
 // ========== RESPONSE INTERCEPTOR FOR LANGUAGE SYNC ==========
@@ -89,17 +92,17 @@ api.interceptors.response.use(
 // ========== LOADING INTERCEPTORS SETUP ==========
 // Store loading control functions
 let loadingControls: {
-  showLoading: () => void;
+  eventLoading: () => void;
   hideLoading: () => void;
 } | null = null;
 
 // Initialize loading interceptors
 export const setupLoadingInterceptors = (
-  showLoadingFn: () => void,
+  eventLoadingFn: () => void,
   hideLoadingFn: () => void
 ) => {
   loadingControls = {
-    showLoading: showLoadingFn,
+    eventLoading: eventLoadingFn,
     hideLoading: hideLoadingFn
   };
 };
@@ -121,7 +124,7 @@ api.interceptors.request.use((config) => {
   const shouldTriggerLoading = !skipLoading && interceptorsEnabled && loadingControls;
 
   if (shouldTriggerLoading) {
-    loadingControls!.showLoading();
+    loadingControls!.eventLoading();
     (config as any).metadata = { triggerLoading: true };
   }
 
@@ -203,7 +206,8 @@ export const userApi = {
   
   // Registration with 2FA
   register: (data: RegisterData) =>
-    api.post<{ message: string; email: string, verificationCode: string }>('/users/register', data),
+    //api.post<{ message: string; email: string, verificationCode: string }>('/users/register', data),
+    api.post<RegisterResponse>('/users/register', data),
   
   // Verify email
   verifyEmail: (data: VerificationData) =>
@@ -211,11 +215,11 @@ export const userApi = {
   
   // Resend verification code
   resendVerification: (email: string) =>
-    api.post('/users/resend-verification', { email }),
+    api.post<{ message: string; verificationCode: string }>('/users/resend-verification', { email }),
   
   // Forgot password
   forgotPassword: (data: ForgotPasswordData) =>
-    api.post('/users/forgot-password', data),
+    api.post<ForgotPasswordResponse>('/users/forgot-password', data),
   
   // Password reset
   resetPassword: (data: ResetPasswordData) =>
@@ -229,7 +233,8 @@ export const userApi = {
     api.post<{ token: string; user: User }>('/users/auth/google/callback', { code }),
 
   // Get user profile
-  getProfile: () => api.get<User>('/users/profile'),
+  getProfile: () =>
+    api.get<User>('/users/profile'),
 
   // Update user profile
   updateProfile: (data: Partial<User>) => 
@@ -252,19 +257,27 @@ export const theaterApi = {
   }),
 };
 
-export const showApi = {
-  getAllShows: () => api.get<ShowStats[]>('/shows'),
-  getShowById: (id: string) => api.get<ShowWithDetails>(`/shows/${id}`),
-  createShow: (show: Partial<Show>) => api.post<Show>('/shows', show),
-  updateShow: (id: string, show: Partial<Show>) => api.put<Show>(`/shows/${id}`, show),
-  deleteShow: (id: string) => api.delete(`/shows/${id}`),
-  getPerformances: (showId: string) => api.get<ShowPerformance[]>(`/shows/${showId}/performances`),
-  getPerformance: (showId: string, performanceId: string) => 
-    api.get<ShowPerformance>(`/shows/${showId}/performances/${performanceId}`),
-  createPerformance: (showId: string, performance: Partial<ShowPerformance>) => 
-    api.post<ShowPerformance>(`/shows/${showId}/performances`, performance),
-  bookPerformance: (showId: string, performanceId: string, seatIds: string[]) =>
-    api.post(`/shows/${showId}/performances/${performanceId}/book`, { seatIds }),
+export const layoutApi = {
+  getAllLayouts: () => api.get<Layout[]>('/layouts'),
+  getLayoutById: (id: string) => api.get<Layout>(`/layouts/${id}`),
+  createLayout: (layout: Partial<Layout>) => api.post<Layout>('/layouts', layout),
+  updateLayout: (id: string, layout: Partial<Layout>) => api.put<Layout>(`/layouts/${id}`, layout),
+  deleteLayout: (id: string) => api.delete(`/layouts/${id}`),
+};
+
+export const eventApi = {
+  getAllEvents: () => api.get<EventStats[]>('/events'),
+  getEventById: (id: string) => api.get<EventWithDetails>(`/events/${id}`),
+  createEvent: (event: Partial<Event>) => api.post<Event>('/events', event),
+  updateEvent: (id: string, event: Partial<Event>) => api.put<Event>(`/events/${id}`, event),
+  deleteEvent: (id: string) => api.delete(`/events/${id}`),
+  getPerformances: (eventId: string) => api.get<EventPerformance[]>(`/events/${eventId}/performances`),
+  getPerformance: (eventId: string, performanceId: string) => 
+    api.get<EventPerformance>(`/events/${eventId}/performances/${performanceId}`),
+  createPerformance: (eventId: string, performance: Partial<EventPerformance>) => 
+    api.post<EventPerformance>(`/events/${eventId}/performances`, performance),
+  bookPerformance: (eventId: string, performanceId: string, seatIds: string[]) =>
+    api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
 };
 
 export default api;

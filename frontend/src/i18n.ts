@@ -46,4 +46,4 @@ i18n.on('languageChanged', (lng) => {
   // Optionally send language change to backend
 });
 
-export default i18n;
+export { i18n };

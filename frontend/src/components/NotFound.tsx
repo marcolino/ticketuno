@@ -75,11 +75,11 @@ const NotFound: React.FC = () => {
           </Button>
           {/* <Button
             component={RouterLink}
-            to="/shows"
+            to="/events"
             variant="outlined"
             size="large"
           >
-            Browse Shows
+            Browse Events
           </Button> */}
           <Button
             variant="outlined"

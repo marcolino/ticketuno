@@ -4,7 +4,7 @@ import { Alert, Button, Box } from '@mui/material';
 import type { ToastOptions } from 'react-hot-toast';
 
 // Base toast function with MUI Alert styling
-const showBaseToast = (
+const eventBaseToast = (
   message: string, 
   severity: 'success' | 'error' | 'warning' | 'info',
   options?: ToastOptions
@@ -43,18 +43,18 @@ const showBaseToast = (
   );
 };
 
-export const showToast = {
+export const eventToast = {
   success: (message: string, options?: ToastOptions) => 
-    showBaseToast(message, 'success', options),
+    eventBaseToast(message, 'success', options),
 
   error: (message: string, options?: ToastOptions) => 
-    showBaseToast(message, 'error', options),
+    eventBaseToast(message, 'error', options),
 
   warning: (message: string, options?: ToastOptions) => 
-    showBaseToast(message, 'warning', options),
+    eventBaseToast(message, 'warning', options),
 
   info: (message: string, options?: ToastOptions) => 
-    showBaseToast(message, 'info', options),
+    eventBaseToast(message, 'info', options),
 
   withActions: (
     message: string, 

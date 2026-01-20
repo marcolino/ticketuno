@@ -2,29 +2,30 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { userApi, setAuthToken } from '../services/api';
 import { 
   User, 
-  LoginCredentials, 
+  LoginCredentials,
   LoginResponse,
   RegisterData, 
   RegisterResponse,
   VerificationData,
+  VerifyEmailResponse,
+  ResendVerificationResponse,
   ForgotPasswordData,
-  ResetPasswordData
+  ForgotPasswordResponse,
+  ResetPasswordData,
+  ResetPasswordResponse,
 } from '../types/user';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  isLoading: boolean;
-  //login: (credentials: LoginCredentials) => Promise<{ requiresVerification?: true; email?: string } | void>;
+  loading: boolean;
   login: (credentials: LoginCredentials) => Promise<LoginResponse>;
-  //register: (data: RegisterData) => Promise<{ email: string }>;
   register: (data: RegisterData) => Promise<RegisterResponse>;
-  verifyEmail: (data: VerificationData) => Promise<void>;
-  resendVerification: (email: string) => Promise<void>;
-  forgotPassword: (data: ForgotPasswordData) => Promise<void>;
-  resetPassword: (data: ResetPasswordData) => Promise<void>;
-  googleLogin: (code: string) => Promise<void>;
+  verifyEmail: (data: VerificationData) => Promise<VerifyEmailResponse>;
+  resendVerification: (email: string) => Promise<ResendVerificationResponse>;
+  forgotPassword: (data: ForgotPasswordData) => Promise<ForgotPasswordResponse>;
+  resetPassword: (data: ResetPasswordData) => Promise<ResetPasswordResponse>;
   logout: () => void;
   updateUser: (user: User) => void;
 }
@@ -38,80 +39,103 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const loadProfile = useCallback(async () => {
     try {
       const response = await userApi.getProfile();
       setUser(response.data);
       setIsAuthenticated(true);
+      setLoading(false);
+      return response.data;
     } catch (error) {
       setAuthToken(null);
-      setUser(null); // TODO: do we need this?
-      setIsAuthenticated(false); // TODO: do we need this?
-    } finally {
-      setIsLoading(false); // Set loading to false when done
+      localStorage.removeItem('authToken');
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+      throw error;
     }
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials) => {
-    setIsLoading(true); // Start loading
     try {
-      const response = await userApi.login(credentials);
-      if ('requiresVerification' in response.data) {
+      setLoading(true);
+      
+      // Check if it's a token login (Google OAuth)
+      if ('token' in credentials) {
+        // Token-based login (for Google OAuth)
+        const token = credentials.token;
+        setAuthToken(token);
+        localStorage.setItem('authToken', token);
+        
+        // Load user profile with the new token
+        const userData = await loadProfile();
+        
         return {
-          requiresVerification: true,
-          email: response.data.email,
+          token,
+          user: userData,
         };
+      } else {
+        // Email/password login (existing logic)
+        const response = await userApi.login(credentials);
+        
+        if (response.data.requiresVerification) {
+          setLoading(false);
+          return response.data;
+        }
+        
+        setAuthToken(response.data.token);
+        localStorage.setItem('authToken', response.data.token);
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        setLoading(false);
+        return response.data;
       }
-      setAuthToken(response.data.token);
-      setUser(response.data.user);
-      setIsAuthenticated(true);
-    } finally {
-      setIsLoading(false); // Set loading to false when done
+    } catch (error: any) {
+      setAuthToken(null);
+      localStorage.removeItem('authToken');
+      setUser(null);
+      setIsAuthenticated(false);
+      setLoading(false);
+      throw error;
     }
-  }, []);
+  }, [loadProfile]);
 
   const register = useCallback(async (data: RegisterData) => {
     const response = await userApi.register(data);
-    return {
-      message: response.data.message,
-      email: response.data.email,
-      verificationCode: response.data.verificationCode,
-    };
+    return response.data;
   }, []);
 
-  const verifyEmail = async (data: VerificationData) => {
+  const verifyEmail = useCallback(async (data: VerificationData) => {
     const response = await userApi.verifyEmail(data);
     setAuthToken(response.data.token);
+    localStorage.setItem('authToken', response.data.token);
     setUser(response.data.user);
     setIsAuthenticated(true);
-  };
+    return response.data;
+  }, []);
 
-  const resendVerification = async (email: string) => {
-    await userApi.resendVerification(email);
-  };
+  const resendVerification = useCallback(async (email: string) => {
+    const response = await userApi.resendVerification(email);
+    return response.data;
+  }, []);
 
-  const forgotPassword = async (data: ForgotPasswordData) => {
-    await userApi.forgotPassword(data);
-  };
+  const forgotPassword = useCallback(async (data: ForgotPasswordData) => {
+    const response = await userApi.forgotPassword(data);
+    return response.data;
+  }, []);
 
-  const resetPassword = async (data: ResetPasswordData) => {
-    await userApi.resetPassword(data);
-  };
-
-  const googleLogin = async (code: string) => {
-    const response = await userApi.googleCallback(code);
-    setAuthToken(response.data.token);
-    setUser(response.data.user);
-    setIsAuthenticated(true);
-  };
+  const resetPassword = useCallback(async (data: ResetPasswordData) => {
+    const response = await userApi.resetPassword(data);
+    return response.data;
+  }, []);
 
   const logout = useCallback(() => {
     setAuthToken(null);
+    localStorage.removeItem('authToken');
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('authToken');
   }, []);
 
   const updateUser = useCallback((updatedUser: User) => {
@@ -124,30 +148,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthToken(token);
       loadProfile();
     } else {
-      setIsLoading(false); // No token, loading is complete
+      setLoading(false);
     }
   }, [loadProfile]);
 
-  // Memoize context value for stability
   const contextValue = useMemo(() => ({
     user,
     isAuthenticated,
     isAdmin: user?.role === 'admin',
-    isLoading,
+    loading,
     login,
     register,
     verifyEmail,
     resendVerification,
     forgotPassword,
     resetPassword,
-    googleLogin,
     logout,
     updateUser
-  }), [user, isAuthenticated, isLoading, login, register, logout, updateUser]);
-
-  // if (isLoading) { // TODO: is this sok ???
-  //   return null;
-  // }
+  }), [user, isAuthenticated, loading, login, register, verifyEmail, resendVerification, forgotPassword, resetPassword, logout, updateUser]);
 
   return (
     <AuthContext.Provider value={contextValue}>
@@ -156,7 +174,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-// Define hook AFTER provider
+// Hook MUST be AFTER provider
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {

@@ -33,7 +33,7 @@ const TheaterSeating = () => {
   ]));
 
   const [selectedSeats, setSelectedSeats] = useState(new Set());
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [eventConfirmation, setEventConfirmation] = useState(false);
 
   const toggleSeat = (seatId) => {
     if (bookedSeats.has(seatId)) return;
@@ -54,14 +54,14 @@ const TheaterSeating = () => {
   };
 
   const handleBooking = () => {
-    setShowConfirmation(true);
+    setEventConfirmation(true);
   };
 
   const confirmBooking = () => {
     // In production, send booking to backend
     alert(`Successfully booked ${selectedSeats.size} seat(s): ${Array.from(selectedSeats).join(', ')}`);
     setSelectedSeats(new Set());
-    setShowConfirmation(false);
+    setEventConfirmation(false);
   };
 
   const totalPrice = selectedSeats.size * 45; // $45 per seat
@@ -173,7 +173,7 @@ const TheaterSeating = () => {
       </div>
 
       {/* Confirmation Modal */}
-      {showConfirmation && (
+      {eventConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg p-8 max-w-md w-full shadow-2xl">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Confirm Booking</h2>
@@ -197,7 +197,7 @@ const TheaterSeating = () => {
                 Confirm
               </button>
               <button
-                onClick={() => setShowConfirmation(false)}
+                onClick={() => setEventConfirmation(false)}
                 className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-400 transition-colors flex items-center justify-center gap-2"
               >
                 <X size={20} />

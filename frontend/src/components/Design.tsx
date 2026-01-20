@@ -33,16 +33,17 @@ import {
   Brightness7 as LightModeIcon,
   Language as LanguageIcon,
   Person as PersonIcon,
+  ViewCompact as ViewCompactIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useThemeMode } from '../contexts/ThemeContext';
 import LoginDialog from './LoginDialog';
 
-interface LayoutProps {
+interface DesignProps {
   children: React.ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Design: React.FC<DesignProps> = ({ children }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   //const location = useLocation();
@@ -65,6 +66,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     logout();
     handleClose();
     navigate('/');
+  };
+
+  const handleLayoutEditor = () => {
+    handleClose();
+    navigate('/layout/new');
   };
 
   const handleProfile = () => {
@@ -107,7 +113,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             sx={{ mr: 2 }}
           >
             <img 
-              src="/images/theater.png" 
+              src="/images/masks.png" 
               alt="Theater" 
               style={{ 
                 width: 24, 
@@ -176,6 +182,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
                   <Typography variant="caption" color="text.primary">
                     {user?.email}
                   </Typography>
+                </MenuItem>
+                <Divider />
+                <MenuItem onClick={() => { handleClose(); handleLayoutEditor(); }}>
+                  <ListItemIcon>
+                    <ViewCompactIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>Layout editor</ListItemText>
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleProfile}>
@@ -282,4 +295,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default Layout;
+export default Design;

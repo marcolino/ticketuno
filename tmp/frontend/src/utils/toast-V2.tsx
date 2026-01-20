@@ -4,7 +4,7 @@ import { Alert, Button, Box } from '@mui/material';
 import type { ToastOptions } from 'react-hot-toast';
 
 // Simple wrapper that uses toast.success/error/etc directly
-export const showToast = {
+export const eventToast = {
   success: (message: string, options?: ToastOptions) => {
     toast.success(message, {
       duration: 7 * 1000,

@@ -10,7 +10,7 @@ Migrations are applied automatically on startup.
 
 ## Migration files
 
-- `00001_initial_schema.sql` - Initial tables (theaters, users, shows, performances)
+- `00001_initial_schema.sql` - Initial tables (theaters, users, events, performances)
 - `00002_add_indexes.sql` - Performance indexes
 
 ## Manual migration

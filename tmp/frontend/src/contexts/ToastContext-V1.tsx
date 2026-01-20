@@ -4,8 +4,8 @@ import toast, { Toaster, ToastOptions } from 'react-hot-toast';
 import { Alert, AlertColor, Button, Box } from '@mui/material';
 
 interface ToastContextType {
-  showToast: (message: string, severity: AlertColor, options?: ToastOptions) => string;
-  showToastWithActions: (
+  eventToast: (message: string, severity: AlertColor, options?: ToastOptions) => string;
+  eventToastWithActions: (
     message: string, 
     actions: Array<{label: string; onClick: () => void}>,
     severity?: AlertColor
@@ -27,8 +27,8 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     position: 'bottom-right',
   };
 
-  // Core function to show a toast using MUI Alert
-  const showToast = (
+  // Core function to event a toast using MUI Alert
+  const eventToast = (
     message: string, 
     severity: AlertColor = 'info', 
     options?: ToastOptions
@@ -73,7 +73,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   };
 
   // Function for toasts with custom action buttons
-  const showToastWithActions = (
+  const eventToastWithActions = (
     message: string, 
     actions: Array<{label: string; onClick: () => void}>,
     severity: AlertColor = 'info'
@@ -142,8 +142,8 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   };
 
   const contextValue: ToastContextType = {
-    showToast,
-    showToastWithActions,
+    eventToast,
+    eventToastWithActions,
     dismissToast,
     dismissAll,
   };

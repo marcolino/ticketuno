@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import {
   Container,
@@ -7,14 +8,23 @@ import {
   TextField,
   Button,
   Box,
-  Alert,
+  //Alert,
   Select,
   MenuItem,
   FormControl,
   InputLabel,
+  //IconButton,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
-import { Save as SaveIcon } from '@mui/icons-material';
+import {
+  Cancel,
+  Save,
+  AccountBox,
+} from '@mui/icons-material';
+import Title from "../components/Title";
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from '../contexts/ToastContext';
 import { userApi } from '../services/api';
 
 const Profile: React.FC = () => {
@@ -25,14 +35,16 @@ const Profile: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'admin' | 'user'>('user');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  //const [error, setError] = useState('');
+  //const [success, setSuccess] = useState('');
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down('sm')); // true for xs
 
-  console.log("PROFILE");
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/');
+      navigate(-1);
       return;
     }
     if (user) {
@@ -44,41 +56,56 @@ const Profile: React.FC = () => {
     }
   }, [user, isAuthenticated, navigate]);
 
+  const handleCancel = async () => {
+    toast.success(t('Profile updated successfully'));
+    navigate(-1);
+  }
+
   const handleSave = async () => {
     try {
-      setError('');
-      setSuccess('');
+      //setError('');
+      //setSuccess('');
       setLoading(true);
-
       const updates: any = {
         firstName,
         lastName,
         email,
         phone,
       };
-
       if (isAdmin) {
         updates.role = role;
       }
 
       const response = await userApi.updateProfile(updates);
       updateUser(response.data);
-      setSuccess('Profile updated successfully');
+      //setSuccess('Profile updated successfully');
+      toast.success(t('Profile updated successfully'));
+      navigate(-1);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to update profile');
+      //setError(err.response?.data?.error || 'Failed to update profile');
+      toast.error(err.response?.data?.error || t('Failed to update profile'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          Profile
-        </Typography>
+    <Container
+      maxWidth="sm"
+      sx={{
+        mx: 'auto',
+        mt: 4, mb: 4,
+      }}
+    >
+      <Paper elevation={3} sx={{
+        p: 4,
+        mx: { xs: 0, sm: 10 },
+      }}>
+        <Title icon={<AccountBox />}>
+          {t('Profile')}
+        </Title>
 
-        {error && (
+        {/* {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
@@ -88,7 +115,7 @@ const Profile: React.FC = () => {
           <Alert severity="success" sx={{ mb: 2 }}>
             {success}
           </Alert>
-        )}
+        )} */}
 
         <Box sx={{ mt: 3 }}>
           <TextField
@@ -135,16 +162,30 @@ const Profile: React.FC = () => {
             </FormControl>
           )}
 
-          <Button
-            fullWidth
-            variant="contained"
-            startIcon={<SaveIcon />}
-            onClick={handleSave}
-            disabled={loading}
-            size="large"
-          >
-            {loading ? 'Saving...' : 'Save Changes'}
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<Cancel />}
+              onClick={handleCancel}
+              size={isXs ? "small" : "medium"}
+              sx={isXs ? { px: 1 } : {}}
+            >
+              {t('Cancel')}
+            </Button>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<Save />}
+              onClick={handleSave}
+              disabled={loading}
+              size={isXs ? "small" : "medium"}
+              sx={isXs ? { px: 1 } : {}}
+            >
+              {loading ? t('Saving...') : t('Save Changes')}
+            </Button>
+          </Box>
+          
         </Box>
       </Paper>
     </Container>

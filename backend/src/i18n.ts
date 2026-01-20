@@ -1,9 +1,9 @@
-import i18next from 'i18next';
+import i18n/*ext*/ from 'i18next';
 import Backend from 'i18next-fs-backend';
 import middleware from 'i18next-http-middleware';
 import path from 'path';
 
-i18next
+i18n/*ext*/
   .use(Backend)
   .use(middleware.LanguageDetector)
   .init({
@@ -12,9 +12,15 @@ i18next
     ns: ['translation'],
     defaultNS: 'translation',
     
+    // backend: {
+    //   loadPath: path.join(__dirname, '../../../shared/locales/{{lng}}/{{ns}}.json'),
+    //   addPath: path.join(__dirname, '../../../shared/locales/{{lng}}/{{ns}}.missing.json')
+    // },
     backend: {
-      loadPath: path.join(__dirname, '../../../shared/locales/{{lng}}/{{ns}}.json'),
-      addPath: path.join(__dirname, '../../../shared/locales/{{lng}}/{{ns}}.missing.json')
+      // The __dirname in backend/src/i18n.ts is backend/src
+      // So we need to go up one level, then to shared/locales
+      loadPath: path.join(__dirname, '..', '..', 'shared', 'locales', '{{lng}}', '{{ns}}.json'),
+      addPath: path.join(__dirname, '..', '..', 'shared', 'locales', '{{lng}}', '{{ns}}.missing.json')
     },
     
     detection: {
@@ -29,4 +35,4 @@ i18next
     //saveMissingTo: 'all'
   });
 
-export { i18next, middleware };
+export { i18n/*ext*/, middleware };

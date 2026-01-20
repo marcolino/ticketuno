@@ -1,0 +1,38 @@
+export type SeatStatus = "available" | "reserved" | "sold";
+
+export interface Stage {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface RowDefinition {
+  rowId: string; // "A"
+  seats: number; // 20
+  spacing: number; // px
+  curve?: number; // 0 = straight
+}
+
+export interface SectionDefinition {
+  id: string;
+  label: string;
+  startX: number;
+  startY: number;
+  rowSpacing: number;
+  rows: RowDefinition[];
+}
+
+export interface LayoutDefinition {
+  stage: Stage;
+  sections: SectionDefinition[];
+}
+
+export interface Seat {
+  id: string;
+  sectionId: string;
+  rowId: string;
+  seatNumber: number;
+  x: number;
+  y: number;
+}

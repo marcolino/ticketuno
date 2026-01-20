@@ -1,50 +1,61 @@
+// components/ProtectedRoute.tsx
+import React, { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useLoading } from '../contexts/LoadingContext';
-import { useAuth } from '../contexts/AuthContext'; 
-import { useToast } from '../contexts/ToastContext';
-import { ReactNode, useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from '../contexts/ToastContext';
+import { CircularProgress, Box } from '@mui/material'; // Optional: for loading spinner
 
 interface ProtectedRouteProps {
-  children: ReactNode;
+  children: React.ReactNode;
   requireAdmin?: boolean;
 }
 
-export const ProtectedRoute = ({ children, requireAdmin = false }: ProtectedRouteProps) => {
-  const { user, isAdmin, isLoading: authLoading } = useAuth(); 
-  //const { isLoading } = useLoading();
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
+  children, 
+  requireAdmin = false 
+}) => {
+  // You need to expose loading from AuthContext
+  // For now, let's assume you can access it
+  const { isAuthenticated, user, loading } = useAuth();
   const { t } = useTranslation();
-  const toast = useToast();
-  const [shouldRedirect, setShouldRedirect] = useState(false);
-  //const [redirectReason, setRedirectReason] = useState<'unauthorized' | 'not-admin' | null>(null);
-
+  const hasShownToast = useRef(false);
+  
   useEffect(() => {
-    if (!authLoading && !user) {
-      console.log("user:", user);
-      toast.warning(t("You must be logged in to access this page"));
-      //setRedirectReason('unauthorized');
-      setShouldRedirect(true);
-      return;
+    if (!loading && !isAuthenticated && !hasShownToast.current) {
+      toast.error('You must be logged in to access this page');
+      hasShownToast.current = true;
     }
-    if (!authLoading && requireAdmin && !isAdmin) {
-      toast.warning(t("To access this route you need administrator access"));
-      //setRedirectReason('not-admin');
-      setShouldRedirect(true);
-      return;
+    if (!loading && !requireAdmin && user?.role !== 'admin' && !hasShownToast.current) {
+      toast.error(t("Admin privileges required to access this page"));
     }
-  }, [authLoading, user, isAdmin, requireAdmin, toast, t]);
-  
-  if (shouldRedirect) {
-    return <Navigate to="/" replace />; // TODO: navigate to login route (currently it's a dialog...)
+  }, [loading, isAuthenticated, requireAdmin, user, t]);
+
+  // Show loading spinner while checking auth
+  if (loading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <CircularProgress />
+      </Box>
+    );
   }
   
-  // These conditions handle initial render before useEffect runs
-  if (!user) { // If user is required but user is not logged in
-    return null;
+  if (!isAuthenticated) {
+    // You might want to redirect to login or show a message
+    //toast.error(t('You must be logged in to access this page')); // TODO: better toast here or move it to the caller, reading `message` ?
+    return <Navigate to="/" replace state={{ 
+      message: 'You must be logged in to access this page' 
+    }} />;
   }
-  if (requireAdmin && !isAdmin) { // If admin is required but user is not admin
-    return null;
+
+  if (requireAdmin && user?.role !== 'admin') {
+    //toast.error(t("Admin privileges required to access this page"));
+    return <Navigate to="/" replace state={{ 
+      message: t("Admin privileges required to access this page")
+    }} />;
   }
-  
+
   return <>{children}</>;
 };
+
+export { ProtectedRoute };

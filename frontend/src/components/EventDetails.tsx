@@ -28,29 +28,29 @@ import {
   EventSeat as SeatIcon,
   Warning as WarningIcon,
 } from '@mui/icons-material';
-import { showApi } from '../services/api';
-import { ShowWithDetails, ShowPerformance } from '../types/show';
+import { eventApi } from '../services/api';
+import { EventWithDetails, EventPerformance } from '../types/event';
 import { useAuth } from '../contexts/AuthContext';
 
-const ShowDetails: React.FC = () => {
+const EventDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAdmin, isAuthenticated } = useAuth();
   
-  const [show, setShow] = useState<ShowWithDetails | null>(null);
-  const [performances, setPerformances] = useState<ShowPerformance[]>([]);
+  const [event, setEvent] = useState<EventWithDetails | null>(null);
+  const [performances, setPerformances] = useState<EventPerformance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  //const loadShow = async () => {
-  const loadShow = useCallback(async () => {
+  //const loadEvent = async () => {
+  const loadEvent = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await showApi.getShowById(id!);
-      setShow(response.data);
+      const response = await eventApi.getEventById(id!);
+      setEvent(response.data);
       
-      const perfResponse = await showApi.getPerformances(id!);
-      // Filter to show only upcoming performances for non-admin users
+      const perfResponse = await eventApi.getPerformances(id!);
+      // Filter to event only upcoming performances for non-admin users
       const filteredPerfs = isAdmin 
         ? perfResponse.data 
         : perfResponse.data.filter(p => 
@@ -60,7 +60,7 @@ const ShowDetails: React.FC = () => {
       
       setError(null);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load show details');
+      setError(err.response?.data?.error || 'Failed to load event details');
     } finally {
       setLoading(false);
     }
@@ -68,20 +68,20 @@ const ShowDetails: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      loadShow();
+      loadEvent();
     }
-  }, [id, loadShow]);
+  }, [id, loadEvent]);
 
   const handleBookPerformance = (performanceId: string) => {
     if (!isAuthenticated) {
-      // This will be handled by the Layout's login dialog
+      // This will be handled by the Design's login dialog
       //return; // not authenticated users will be asked to authenticate when they want to book
     }
     navigate(`/performance/${id}/${performanceId}`);
   };
 
-  const handleEditShow = () => {
-    navigate(`/show/edit/${id}`);
+  const handleEditEvent = () => {
+    navigate(`/event/edit/${id}`);
   };
 
   const formatDate = (dateString: string) => {
@@ -120,12 +120,12 @@ const ShowDetails: React.FC = () => {
     );
   }
 
-  if (error || !show) {
+  if (error || !event) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error">{error || 'Show not found'}</Alert>
+        <Alert severity="error">{error || 'Event not found'}</Alert>
         <Button onClick={() => navigate('/')} sx={{ mt: 2 }}>
-          Back to Shows
+          Back to Events
         </Button>
       </Container>
     );
@@ -139,69 +139,69 @@ const ShowDetails: React.FC = () => {
           <Box sx={{ flex: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Typography variant="h3" component="h1">
-                {show.title}
+                {event.title}
               </Typography>
               <Chip
-                label={show.status}
-                color={getStatusColor(show.status)}
+                label={event.status}
+                color={getStatusColor(event.status)}
               />
             </Box>
-            {show.genre && (
-              <Chip label={show.genre} sx={{ mr: 1 }} />
+            {event.genre && (
+              <Chip label={event.genre} sx={{ mr: 1 }} />
             )}
-            {show.rating && (
-              <Chip label={show.rating} variant="outlined" />
+            {event.rating && (
+              <Chip label={event.rating} variant="outlined" />
             )}
           </Box>
           {isAdmin && (
             <Button
               variant="outlined"
               startIcon={<EditIcon />}
-              onClick={handleEditShow}
+              onClick={handleEditEvent}
             >
-              Edit Show
+              Edit Event
             </Button>
           )}
         </Box>
 
-        {show.description && (
+        {event.description && (
           <Typography variant="body1" paragraph sx={{ mt: 3 }}>
-            {show.description}
+            {event.description}
           </Typography>
         )}
 
         <Divider sx={{ my: 3 }} />
 
-        {/* Show Information Grid */}
+        {/* Event Information Grid */}
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <List dense>
-              {show.theater && (
+              {event.theater && (
                 <ListItem>
                   <TheaterIcon sx={{ mr: 2, color: 'text.secondary' }} />
                   <ListItemText
                     primary="Venue"
-                    secondary={show.theater.name}
+                    secondary={event.theater.name}
                   />
                 </ListItem>
               )}
               
-              {show.durationMinutes && (
+              {event.durationMinutes && (
                 <ListItem>
                   <TimeIcon sx={{ mr: 2, color: 'text.secondary' }} />
                   <ListItemText
                     primary="Duration"
-                    secondary={`${show.durationMinutes} minutes${show.intermissionCount ? ` (${show.intermissionCount} intermission${show.intermissionCount > 1 ? 's' : ''})` : ''}`}
+                    secondary={`${event.durationMinutes} minutes${event.intermissionCount ? ` (${event.intermissionCount} intermission${event.intermissionCount > 1 ? 's' : ''})` : ''}`}
                   />
                 </ListItem>
               )}
 
-              {(show.openingDate || show.closingDate) && (
+              {(event.openingDate || event.closingDate) && (
                 <ListItem>
                   <CalendarIcon sx={{ mr: 2, color: 'text.secondary' }} />
                   <ListItemText
                     primary="Run"
-                    secondary={`${show.openingDate ? formatDate(show.openingDate) : 'TBA'} - ${show.closingDate ? formatDate(show.closingDate) : 'TBA'}`}
+                    secondary={`${event.openingDate ? formatDate(event.openingDate) : 'TBA'} - ${event.closingDate ? formatDate(event.closingDate) : 'TBA'}`}
                   />
                 </ListItem>
               )}
@@ -210,7 +210,7 @@ const ShowDetails: React.FC = () => {
                 <MoneyIcon sx={{ mr: 2, color: 'text.secondary' }} />
                 <ListItemText
                   primary="Ticket Price"
-                  secondary={`From ${show.currency} ${show.baseTicketPrice.toFixed(2)}`}
+                  secondary={`From ${event.currency} ${event.baseTicketPrice.toFixed(2)}`}
                 />
               </ListItem>
             </List>
@@ -218,41 +218,41 @@ const ShowDetails: React.FC = () => {
 
           <Grid item xs={12} md={6}>
             <List dense>
-              {show.director && (
+              {event.director && (
                 <ListItem>
                   <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
                   <ListItemText
                     primary="Director"
-                    secondary={show.director}
+                    secondary={event.director}
                   />
                 </ListItem>
               )}
 
-              {show.playwright && (
+              {event.playwright && (
                 <ListItem>
                   <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
                   <ListItemText
                     primary="Playwright"
-                    secondary={show.playwright}
+                    secondary={event.playwright}
                   />
                 </ListItem>
               )}
 
-              {show.musicalDirector && (
+              {event.musicalDirector && (
                 <ListItem>
                   <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
                   <ListItemText
                     primary="Musical Director"
-                    secondary={show.musicalDirector}
+                    secondary={event.musicalDirector}
                   />
                 </ListItem>
               )}
 
-              {show.language && (
+              {event.language && (
                 <ListItem>
                   <ListItemText
                     primary="Language"
-                    secondary={show.language}
+                    secondary={event.language}
                   />
                 </ListItem>
               )}
@@ -261,23 +261,23 @@ const ShowDetails: React.FC = () => {
         </Grid>
 
         {/* Warnings and Requirements */}
-        {(show.contentWarnings || show.minimumAge || show.specialRequirements) && (
+        {(event.contentWarnings || event.minimumAge || event.specialRequirements) && (
           <>
             <Divider sx={{ my: 3 }} />
             <Box>
-              {show.minimumAge && show.minimumAge > 0 && (
+              {event.minimumAge && event.minimumAge > 0 && (
                 <Alert severity="info" sx={{ mb: 2 }}>
-                  Minimum age: {show.minimumAge} years
+                  Minimum age: {event.minimumAge} years
                 </Alert>
               )}
-              {show.contentWarnings && (
+              {event.contentWarnings && (
                 <Alert severity="warning" icon={<WarningIcon />} sx={{ mb: 2 }}>
-                  <strong>Content Warning:</strong> {show.contentWarnings}
+                  <strong>Content Warning:</strong> {event.contentWarnings}
                 </Alert>
               )}
-              {show.specialRequirements && (
+              {event.specialRequirements && (
                 <Alert severity="info">
-                  <strong>Special Requirements:</strong> {show.specialRequirements}
+                  <strong>Special Requirements:</strong> {event.specialRequirements}
                 </Alert>
               )}
             </Box>
@@ -367,26 +367,26 @@ const ShowDetails: React.FC = () => {
       )}
 
       {/* Additional Information */}
-      {(show.websiteUrl || show.trailerUrl) && (
+      {(event.websiteUrl || event.trailerUrl) && (
         <Paper elevation={1} sx={{ p: 3, mt: 4 }}>
           <Typography variant="h6" gutterBottom>
             More Information
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            {show.websiteUrl && (
+            {event.websiteUrl && (
               <Button
                 variant="outlined"
-                href={show.websiteUrl}
+                href={event.websiteUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 Official Website
               </Button>
             )}
-            {show.trailerUrl && (
+            {event.trailerUrl && (
               <Button
                 variant="outlined"
-                href={show.trailerUrl}
+                href={event.trailerUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -400,4 +400,4 @@ const ShowDetails: React.FC = () => {
   );
 };
 
-export default ShowDetails;
+export default EventDetails;

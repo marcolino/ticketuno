@@ -38,7 +38,7 @@ const NewTheater: React.FC = () => {
   // const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('authToken'));
   // const [password, setPassword] = useState('');
   // const [loginError, setLoginError] = useState('');
-  // const [showLoginDialog, setShowLoginDialog] = useState(!isAuthenticated);
+  // const [eventLoginDialog, setEventLoginDialog] = useState(!isAuthenticated);
   
   const [theaterName, setTheaterName] = useState('');
   const [theaterDescription, setTheaterDescription] = useState('');
@@ -59,7 +59,7 @@ const NewTheater: React.FC = () => {
   //     const response = await userApi.login(password);
   //     setAuthToken(response.data.token);
   //     setIsAuthenticated(true);
-  //     setShowLoginDialog(false);
+  //     setEventLoginDialog(false);
   //   } catch (err) {
   //     setLoginError('Invalid password');
   //   }
@@ -143,9 +143,9 @@ const NewTheater: React.FC = () => {
     }
   };
 
-  // if (showLoginDialog) {
+  // if (eventLoginDialog) {
   //   return (
-  //     <Dialog open={showLoginDialog} onClose={() => navigate('/')}>
+  //     <Dialog open={eventLoginDialog} onClose={() => navigate('/')}>
   //       <DialogTitle>Admin Login</DialogTitle>
   //       <DialogContent>
   //         <Typography gutterBottom>

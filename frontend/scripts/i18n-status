@@ -1,5 +1,5 @@
 # Navigate to your locales directory
-cd public/locales
+cd dist/locales
 
 # Compare keys between English and Italian
 echo "=== Keys missing in Italian (it) ==="

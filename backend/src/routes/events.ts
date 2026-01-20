@@ -1,19 +1,19 @@
-import express from 'express';
+import { Router } from "express";
 import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth';
-import { Show, ShowPerformance, ShowStats } from '../types/show';
+import { Event, EventPerformance, EventStats } from '../types/event';
 
-const router = express.Router();
+const router = Router();
 
-// Public: Get all shows with stats
+// Public: Get all events with stats
 router.get('/', async (req, res) => {
   try {
-    const shows = await database.getAllShows();
-    const stats: ShowStats[] = await Promise.all(
-      shows.map(async (show) => {
-        const theater = await database.getTheaterById(show.theaterId);
-        const performances = await database.getPerformancesByShowId(show.id);
+    const events = await database.getAllEvents();
+    const stats: EventStats[] = await Promise.all(
+      events.map(async (event) => {
+        const theater = await database.getTheaterById(event.theaterId);
+        const performances = await database.getPerformancesByEventId(event.id);
         
         const upcomingPerformances = performances.filter(p => 
           new Date(p.performanceDate) >= new Date() && p.status === 'scheduled'
@@ -29,56 +29,56 @@ router.get('/', async (req, res) => {
         }
 
         return {
-          id: show.id,
-          title: show.title,
+          id: event.id,
+          title: event.title,
           theaterName: theater?.name || 'Unknown',
-          genre: show.genre,
-          openingDate: show.openingDate,
-          closingDate: show.closingDate,
-          baseTicketPrice: show.baseTicketPrice,
-          currency: show.currency,
+          genre: event.genre,
+          openingDate: event.openingDate,
+          closingDate: event.closingDate,
+          baseTicketPrice: event.baseTicketPrice,
+          currency: event.currency,
           nextPerformanceDate: upcomingPerformances[0]?.performanceDate,
           availablePerformances: upcomingPerformances.length,
-          status: show.status
+          status: event.status
         };
       })
     );
 
     res.json(stats);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch shows' });
+    res.status(500).json({ error: 'Failed to fetch events' });
   }
 });
 
-// Public: Get show by ID with theater and performances
+// Public: Get event by ID with theater and performances
 router.get('/:id', async (req, res) => {
   try {
-    const show = await database.getShowById(req.params.id);
-    if (!show) {
-      return res.status(404).json({ error: 'Show not found' });
+    const event = await database.getEventById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
     }
 
-    const theater = await database.getTheaterById(show.theaterId);
-    const performances = await database.getPerformancesByShowId(show.id);
+    const theater = await database.getTheaterById(event.theaterId);
+    const performances = await database.getPerformancesByEventId(event.id);
 
     res.json({
-      ...show,
+      ...event,
       theater,
       performances
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch show' });
+    res.status(500).json({ error: 'Failed to fetch event' });
   }
 });
 
-// Protected: Create new show (admin only)
+// Protected: Create new event (admin only)
 router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
   try {
     const {
       title, description, genre, durationMinutes, intermissionCount, rating, language,
-      director, playwright, producer, choreographer, musicalDirector, theaterId, stageType,
+      director, playwright, producer, choreographer, musicalDirector, theaterId, showId, stageType,
       openingDate, closingDate, baseTicketPrice, currency, specialRequirements, minimumAge,
-      typicalStartTime, typicalEndTime, showPosterUrl, trailerUrl, websiteUrl,
+      typicalStartTime, typicalEndTime, eventPosterUrl, trailerUrl, websiteUrl,
       socialMediaLinks, maxCapacity, contentWarnings
     } = req.body;
 
@@ -91,7 +91,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       return res.status(404).json({ error: 'Theater not found' });
     }
 
-    const show: Show = {
+    const event: Event = {
       id: uuidv4(),
       title,
       description,
@@ -106,6 +106,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       choreographer,
       musicalDirector,
       theaterId,
+      showId,
       stageType,
       openingDate,
       closingDate,
@@ -120,7 +121,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       createdByUserId: req.userId,
       typicalStartTime,
       typicalEndTime,
-      showPosterUrl,
+      eventPosterUrl,
       trailerUrl,
       websiteUrl,
       socialMediaLinks,
@@ -129,48 +130,48 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       contentWarnings
     };
 
-    await database.createShow(show);
-    res.status(201).json(show);
+    await database.createEvent(event);
+    res.status(201).json(event);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create show' });
+    res.status(500).json({ error: 'Failed to create event' });
   }
 });
 
-// Protected: Update show (admin only)
+// Protected: Update event (admin only)
 router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const show = await database.getShowById(req.params.id);
-    if (!show) {
-      return res.status(404).json({ error: 'Show not found' });
+    const event = await database.getEventById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
     }
 
-    await database.updateShow(req.params.id, req.body);
-    const updatedShow = await database.getShowById(req.params.id);
-    res.json(updatedShow);
+    await database.updateEvent(req.params.id, req.body);
+    const updatedEvent = await database.getEventById(req.params.id);
+    res.json(updatedEvent);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update show' });
+    res.status(500).json({ error: 'Failed to update event' });
   }
 });
 
-// Protected: Delete show (admin only)
+// Protected: Delete event (admin only)
 router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const show = await database.getShowById(req.params.id);
-    if (!show) {
-      return res.status(404).json({ error: 'Show not found' });
+    const event = await database.getEventById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
     }
 
-    await database.deleteShow(req.params.id);
-    res.json({ message: 'Show deleted successfully' });
+    await database.deleteEvent(req.params.id);
+    res.json({ message: 'Event deleted successfully' });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete show' });
+    res.status(500).json({ error: 'Failed to delete event' });
   }
 });
 
-// Get performances for a show
+// Get performances for a event
 router.get('/:id/performances', async (req, res) => {
   try {
-    const performances = await database.getPerformancesByShowId(req.params.id);
+    const performances = await database.getPerformancesByEventId(req.params.id);
     res.json(performances);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch performances' });
@@ -181,13 +182,13 @@ router.get('/:id/performances', async (req, res) => {
 router.post('/:id/performances', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { performanceDate, startTime, endTime } = req.body;
-    const show = await database.getShowById(req.params.id);
+    const event = await database.getEventById(req.params.id);
 
-    if (!show) {
-      return res.status(404).json({ error: 'Show not found' });
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
     }
 
-    const theater = await database.getTheaterById(show.theaterId);
+    const theater = await database.getTheaterById(event.theaterId);
     if (!theater) {
       return res.status(404).json({ error: 'Theater not found' });
     }
@@ -203,9 +204,9 @@ router.post('/:id/performances', authenticateToken, requireAdmin, async (req, re
     // Initialize seat data from theater
     const seatData = JSON.stringify(theater.sections);
 
-    const performance: ShowPerformance = {
+    const performance: EventPerformance = {
       id: uuidv4(),
-      showId: req.params.id,
+      eventId: req.params.id,
       performanceDate,
       startTime,
       endTime,
@@ -225,11 +226,11 @@ router.post('/:id/performances', authenticateToken, requireAdmin, async (req, re
 });
 
 // Get specific performance
-router.get('/:showId/performances/:performanceId', async (req, res) => {
+router.get('/:eventId/performances/:performanceId', async (req, res) => {
   try {
     const performance = await database.getPerformanceById(req.params.performanceId);
     if (!performance) {
-      return res.status(404).json({ error: 'Show performance not found' });
+      return res.status(404).json({ error: 'Event performance not found' });
     }
     res.json(performance);
   } catch (error) {
@@ -238,13 +239,13 @@ router.get('/:showId/performances/:performanceId', async (req, res) => {
 });
 
 // Protected: Book seats for a performance
-router.post('/:showId/performances/:performanceId/book', authenticateToken, async (req, res) => {
+router.post('/:eventId/performances/:performanceId/book', authenticateToken, async (req, res) => {
   try {
     const { seatIds } = req.body;
     const performance = await database.getPerformanceById(req.params.performanceId);
 
     if (!performance) {
-      return res.status(404).json({ error: 'Show performance not found' });
+      return res.status(404).json({ error: 'Event performance not found' });
     }
 
     const sections = JSON.parse(performance.seatData);

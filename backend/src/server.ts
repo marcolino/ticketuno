@@ -1,12 +1,14 @@
+import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
-import { i18next, middleware as i18nextMiddleware } from './i18n';
+import { i18n, middleware as i18nextMiddleware } from './i18n';
 import { database } from './db/database';
 import userRoutes from './routes/users';
 import theaterRoutes from './routes/theaters';
-import showRoutes from './routes/shows';
+import eventRoutes from './routes/events';
+import layoutRoutes from './routes/layouts';
 import config from './config';
 
 if (process.env.NODE_ENV !== 'production') {
@@ -22,7 +24,19 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize i18n middleware
-app.use(i18nextMiddleware.handle(i18next));
+app.use(i18nextMiddleware.handle(i18n));
+
+// Add middleware to add language to response locals - MOVED HERE, BEFORE ROUTES!
+app.use((req: any, res: any, next) => {
+  // Make current language available in response locals
+  console.log("=====================================");
+  console.log("Request URL:", req.url);
+  console.log("req.language:", req.language);
+  console.log("req.i18n?.language:", req.i18n?.language);
+  console.log("=====================================");
+  res.locals.language = req.language;
+  next();
+});
 
 const apiPrefix = 'api';
 const apiVersion = 'v1';
@@ -30,29 +44,61 @@ const prefix = `/${apiPrefix}/${apiVersion}`;
 
 app.use(`${prefix}/users`, userRoutes);
 app.use(`${prefix}/theaters`, theaterRoutes);
-app.use(`${prefix}/shows`, showRoutes);
+app.use(`${prefix}/layouts`, layoutRoutes);
+app.use(`${prefix}/events`, eventRoutes);
 
-// Serve translation files from shared folder
-app.use(`${prefix}/locales`, express.static(
-  path.join(__dirname, '../../shared/locales')
-));
-
-// Make i18n available in all routes
-declare global {
-  namespace Express {
-    interface Request {
-      t: any;
-      language: string;
+// Serve translation files from shared folder (/shared/locales/{lng}/{ns}.json)
+const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
+console.log('Current dir:', __dirname); // TODO: debug logging, REMOVEME
+console.log('Locales dir:', localesDir); // TODO: debug logging, REMOVEME
+app.get(`${prefix}/locales/:lng/:ns.json`, (req: any, res: any) => {
+  const { lng, ns } = req.params;
+  const filePath = path.join(localesDir, lng, `${ns}.json`);
+  
+  console.log(`Serving locale file: ${lng}/${ns}.json`);
+  console.log(`File path: ${filePath}`);
+  
+  // Check if file exists
+  fs.access(filePath, fs.constants.F_OK, (err) => {
+    if (err) {
+      console.error(`Translation file not found: ${filePath}`);
+      return res.status(404).json({ error: 'Translation file not found' });
     }
-  }
-}
-
-// Add middleware to add language to response locals
-app.use((req: any, res: any, next) => {
-  // Make current language available in response locals
-  res.locals.language = req.language;
-  next();
+    
+    // Set proper content-type
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    
+    // Send the file
+    res.sendFile(filePath, (sendErr: any) => {
+      if (sendErr) {
+        console.error(`Error sending translation file ${filePath}:`, sendErr);
+        res.status(500).json({ error: 'Internal server error' });
+      }
+    });
+  });
 });
+
+// app.use(`${prefix}/locales`, express.static(
+//   path.join(__dirname, '../../shared/locales')
+// ));
+
+// // Make i18n available in all routes
+// declare global {
+//   namespace Express {
+//     interface Request {
+//       t: any;
+//       language: string;
+//     }
+//   }
+// }
+
+// // Add middleware to add language to response locals
+// app.use((req: any, res: any, next) => {
+//   // Make current language available in response locals
+//   console.log("*************************************");
+//   res.locals.language = req.language;
+//   next();
+// });
 
 app.get(`${prefix}/health`, (req, res) => {
   res.json({
