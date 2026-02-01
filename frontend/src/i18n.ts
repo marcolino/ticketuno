@@ -14,6 +14,11 @@ i18n
     //debug: process.env.NODE_ENV === 'development', // TODO: how to detect dev/prod on frontend ??
     debug: import.meta.env.MODE === 'development',
 
+    // Behavior for empty/missing:
+    returnEmptyString: false, // "" → use key as fallback
+    returnNull: false, // null → use key as fallback
+    returnObjects: true, // Handle nested objects
+  
     // Load from shared folder via API
     backend: {
       loadPath: '/api/v1/locales/{{lng}}/{{ns}}.json', // TODO: /api/v1 ???

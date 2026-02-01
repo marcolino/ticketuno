@@ -1,5 +1,6 @@
+// LayoutEdit.tsx (adapted with React Router State)
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import {
   Button,
   TextField,
@@ -23,51 +24,45 @@ import {
 } from "@mui/icons-material";
 import LayoutPreviewSVG from "./LayoutPreviewSVG";
 import { useTranslation } from 'react-i18next';
-import { layoutApi } from '../services/api';
-import { Layout, LayoutJSON, SectionJSON, RowJSON } from "../../../shared/types/layout";
-//import { showToast } from "../utils/toast";
+import { layoutApi, theaterApi } from '../services/api';
+import { LayoutJSON, SectionJSON, RowJSON } from "../../../shared/types/layout";
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../contexts/ToastContext';
 
-const LayoutEditor: React.FC = () => {
+// Define location state interface
+interface LocationState {
+  theaterData?: {
+    name: string;
+    location: string;
+    selectedLayoutId: string;
+    // other theater fields
+  };
+  returnTo?: string;
+  theaterId?: string; // You can also pass theaterId directly
+}
+
+const LayoutEdit: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id: string }>();
+  
+  // Get theater data and return path from location state
+  const { theaterData, returnTo, theaterId: theaterIdFromState } = location.state as LocationState || {};
+  
+  // Use theaterId from state or params (state takes precedence)
+  const [theaterId, setTheaterId] = useState<string | undefined>(
+    theaterIdFromState || undefined
+  );
+  
   const { isAuthenticated, isAdmin } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const { t } = useTranslation();
 
   // Layout fields
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-
-  const loadLayout = useCallback(async () => {
-    if (id) { // if new event, id is undefined
-      try {
-        const response = await layoutApi.getLayoutById(id!);
-        const layout = response.data;
-        
-        setName(layout.name);
-        setDescription(layout.description || '');
-        setLayoutJSON(JSON.parse(layout.json));
-
-        setError('');
-      } catch (err: any) {
-        setError(err.response?.data?.error || t('Failed to load layout'));
-      } finally {
-      }
-    }
-  }, [id, t]);
-  
-   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
-      navigate('/layouts');
-      return;
-    }
-    loadLayout();
-   }, [isAuthenticated, isAdmin, navigate, loadLayout]);
-  
-  const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>({
+  const [layoutName, setLayoutName] = useState('');
+  const [layoutDescription, setLayoutDescription] = useState('');
+  const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>({ // TODO: to config
     version: 1,
     stage: { x: 300, y: 40, width: 400, height: 50, label: t('Stage') },
     sections: [
@@ -85,6 +80,60 @@ const LayoutEditor: React.FC = () => {
       }
     ]
   });
+
+  // Theater fields from location state
+  const [theaterName, setTheaterName] = useState(theaterData?.name || '');
+  const [theaterDescription, setTheaterDescription] = useState('');
+
+  const loadTheater = useCallback(async (theaterIdToLoad: string) => {
+    try {
+      const response = await theaterApi.getTheaterById(theaterIdToLoad);
+      const theater = response.data;
+      
+      setTheaterName(theater.name);
+      setTheaterDescription(theater.description || '');
+      setError('');
+    } catch (err: any) {
+      setError(err.response?.data?.error || t('Failed to load theater'));
+    }
+  }, [t]);
+
+  const loadLayout = useCallback(async () => {
+    if (id) {
+      try {
+        const response = await layoutApi.getLayoutById(id!);
+        const layout = response.data;
+        
+        setLayoutName(layout.name);
+        setLayoutDescription(layout.description || '');
+        setLayoutJSON(JSON.parse(layout.json));
+        setTheaterId(layout.theaterId);
+        
+        // If we have theaterId from the layout, load theater details
+        if (layout.theaterId) {
+          loadTheater(layout.theaterId);
+        }
+        
+        setError('');
+      } catch (err: any) {
+        setError(err.response?.data?.error || t('Failed to load layout'));
+      }
+    }
+  }, [id, t, loadTheater]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isAdmin) {
+      navigate('/layouts');
+      return;
+    }
+    
+    // If we have theaterData from location state, use it
+    if (theaterData?.name) {
+      setTheaterName(theaterData.name);
+    }
+    
+    loadLayout();
+  }, [isAuthenticated, isAdmin, navigate, loadLayout, theaterData]);
 
   // Update stage
   const updateStage = (field: string, value: number | string) => {
@@ -171,13 +220,8 @@ const LayoutEditor: React.FC = () => {
   // Update row
   const updateRow = (sectionIndex: number, rowIndex: number, field: keyof RowJSON, value: string | number) => {
     const newSections = [...layoutJSON.sections];
-    // Special handling for curve field
     if (field === 'curve') {
-      // If value is a string, parse it to number
       const numValue = typeof value === 'string' ? parseFloat(value) || 0 : value;
-      
-      // Invert the value: display 2 becomes -2, etc.
-      // Clamp to range [-40, 40]
       const invertedValue = -numValue;
       const clampedValue = Math.max(-40, Math.min(40, invertedValue));
       
@@ -186,47 +230,61 @@ const LayoutEditor: React.FC = () => {
         [field]: clampedValue
       };
     } else {
-      // For other fields, keep existing logic
       newSections[sectionIndex].rows[rowIndex] = {
         ...newSections[sectionIndex].rows[rowIndex],
         [field]: value
       };
     }
-    // newSections[sectionIndex].rows[rowIndex] = {
-    //   ...newSections[sectionIndex].rows[rowIndex],
-    //   [field]: value
-    // };
     setLayoutJSON({ ...layoutJSON, sections: newSections });
   };
 
-  // Save layout
+  // Save layout - KEY CHANGE HERE
   const save = async () => {
     try {
       setSaving(true);
-      // const layout: Layout = {
-      //   id: id ?? `layout-${Date.now()}`, // or generate proper ID
-      //   name: name,
-      //   description: description,
-      //   theaterId: '', // TODO ...
-      //   json: JSON.stringify(layoutJSON) // store LayoutJSON as string
-      // };
       const layoutData = {
-        id: id ?? `layout-${Date.now()}`,
-        name: name,
-        description: description,
-        theaterId: '', // TODO
-        json: JSON.stringify(layoutJSON) // Only stringify the layoutJSON
+        name: layoutName,
+        description: layoutDescription,
+        theaterId,
+        json: JSON.stringify(layoutJSON)
       };
-      if (!id) { // TODO: if new
-        await layoutApi.createLayout(layoutData);
+      
+      let savedLayout;
+      if (!id) {
+        const response = await layoutApi.createLayout(layoutData);
+        savedLayout = response.data;
         toast.success("Layout created successfully!");
       } else {
-        await layoutApi.updateLayout(id, layoutData);
+        const response = await layoutApi.updateLayout(id, layoutData);
+        savedLayout = response.data;
         toast.success("Layout saved successfully!");
       }
-      navigate('/layouts'); 
-    } catch (error) {
-      toast.error("Failed to save layout");
+      
+      // Navigate back with updated theater data
+      // navigate(((returnTo || -1) as any), {
+      //   state: {
+      //     theaterData: {
+      //       ...theaterData,
+      //       selectedLayoutId: savedLayout.id
+      //     }
+      //   }
+      // });
+
+       // Navigate back with selectedLayoutId
+      if (returnTo) {
+        navigate(returnTo, {
+          state: {
+            theaterData: {
+              ...theaterData,
+              selectedLayoutId: savedLayout.id
+            }
+          }
+        });
+      } else {
+        navigate(-1);
+      }
+    } catch (error: any) {
+      toast.error(t("Failed to save layout: {{err}}", { err: error.response?.data?.error }));
     } finally {
       setSaving(false);
     }
@@ -234,7 +292,11 @@ const LayoutEditor: React.FC = () => {
 
   // Cancel layout
   const cancel = async () => {
-    navigate('/layouts');
+    // Navigate back with original theater data
+    navigate(returnTo || '/layouts', {
+      state: { theaterData }
+    });
+    //navigate(returnTo || '/layouts');
   };
   
   return (
@@ -272,22 +334,36 @@ const LayoutEditor: React.FC = () => {
               </Box>
             </Box>
 
+            {/* Theater info */}
+            {theaterName && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                <TextField
+                  fullWidth
+                  label={t('Theater')}
+                  type="text"
+                  value={`${theaterName} ${theaterDescription ? '(' + theaterDescription + ')' : ''}`}
+                  disabled
+                />
+              </Box>
+            )}
+
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <TextField
                 fullWidth
-                label={t('Name')}
+                label={t('Layout name')}
                 type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={layoutName}
+                onChange={(e) => setLayoutName(e.target.value)}
+                required
               />
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                <TextField
                 fullWidth
-                label={t('Description')}
+                label={t('Layout description')}
                 type="text"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                value={layoutDescription}
+                onChange={(e) => setLayoutDescription(e.target.value)}
               />
             </Box>
 
@@ -521,18 +597,16 @@ const LayoutEditor: React.FC = () => {
               flexDirection: 'column' 
             }}
           >
-            <Typography variant="h5" gutterBottom sx={{ flexShrink: 0 }}>
-              {t('Preview of layout "{{layoutName}}"', {layoutName: name})}
+            <Typography variant="h6" gutterBottom sx={{ flexShrink: 0 }}>
+              {/* {t('Preview of layout "{{layoutName}}"', {layoutName})} */}
+              {t('Preview')}
             </Typography>
             
-            {/* Scrollable SVG container - flex grow to fill space */}
             <Box
               sx={{
-                flex: 1,  // ✅ Fill remaining height
+                flex: 1,
                 width: '100%',
                 overflow: 'auto',
-                //scrollbarWidth: 'thin',
-                //scrollbarColor: '#ccc transparent',
                 '&::-webkit-scrollbar': {
                   width: '8px',
                   height: '8px',
@@ -561,4 +635,4 @@ const LayoutEditor: React.FC = () => {
   );
 };
 
-export default LayoutEditor;
+export default LayoutEdit;

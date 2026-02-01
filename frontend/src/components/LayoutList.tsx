@@ -32,13 +32,13 @@ const LayoutList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const { isAdmin } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const [layouts, setLayouts] = useState<Layout[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadLayouts();
-  }, [isAdmin]);
+  }, [isAuthenticated, isAdmin]);
 
   const loadLayouts = async () => {
     try {

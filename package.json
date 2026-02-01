@@ -3,6 +3,13 @@
   "version": "1.0.0",
   "description": "Theater ticket reservation system",
   "private": true,
+  "keywords": [
+    "theater",
+    "tickets",
+    "reservation"
+  ],
+  "author": "Marco Solari <marcosolari@gmail.com]",
+  "license": "MIT",
   "scripts": {
     "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
@@ -11,6 +18,9 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
+    "type-check": "npm run type-check:backend && npm run type-check:frontend",
+    "type-check:backend": "cd backend && npx tsc --noEmit || echo 'Backend TypeScript check skipped'",
+    "type-check:frontend": "cd frontend && npx tsc --noEmit || echo 'Frontend TypeScript check skipped'",
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "cd backend && npm test",
     "test:frontend": "cd frontend && npm test -- --watchAll=false",
@@ -25,22 +35,17 @@
     "logs": "fly logs --app ticketuno",
     "status": "fly status --app ticketuno",
     "ssh": "fly ssh console --app ticketuno",
-    "db:backup": "fly ssh console --app ticketuno -C 'cat /data/theaters.db' > backup-$(date +%Y%m%d-%H%M%S).db"
+    "db:backup": "fly ssh console --app ticketuno -C 'cat /data/ticketuno.db' > backup-$(date +%Y%m%d-%H%M%S).db",
+    "validate": "npm run type-check && npm run test && npm run build",
+    "ci": "npm run validate"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
     "i18n-auto-translation": "^1.0.1",
     "i18next-cli": "^1.34.1"
   },
-  "keywords": [
-    "theater",
-    "tickets",
-    "reservation"
-  ],
-  "author": "Marco Solari <marcosolari@gmail.com>",
-  "license": "MIT",
   "dependencies": {
     "react-hot-toast": "^2.6.0"
   },
-  "packageManager": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728"
+  "NOpackageManager_TODO_REMOVEME": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728"
 }

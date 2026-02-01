@@ -29,7 +29,7 @@ NODE_ENV=production
 PORT=8080
 JWT_SECRET=your-super-secret-jwt-key-change-this
 ADMIN_PASSWORD=your-admin-password-change-this
-DB_PATH=/data/theaters.db
+DB_PATH=/data/ticketuno.db
 REACT_APP_API_URL=https://ticketuno.fly.dev/api
 ```
 
@@ -82,13 +82,13 @@ fly logs --app ticketuno
 ```bash
 fly ssh console --app ticketuno
 ls -la /data/
-sqlite3 /data/theaters.db ".tables"
+sqlite3 /data/ticketuno.db ".tables"
 ```
 
 **Reset database:**
 ```bash
 fly ssh console --app ticketuno
-rm /data/theaters.db
+rm /data/ticketuno.db
 # Restart app
 fly apps restart ticketuno
 ```

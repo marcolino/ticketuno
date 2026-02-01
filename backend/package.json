@@ -1,25 +1,31 @@
 {
   "name": "ticketuno-backend",
   "version": "1.0.0",
+  "description": "Theater ticket reservation system, backend",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn src/server.ts",
+    "ORIG_build": "tsc",
+    "prebuild": "rm -rf src/shared && mkdir -p src/shared && cp -r ../shared/types src/shared/ && cp -r ../shared/locales src/shared/ 2>/dev/null || true",
     "build": "tsc",
+    "postbuild": "rm -rf src/shared",
     "start": "node dist/server.js",
-    "lint": "echo 'Add eslint later'",
-    "test": "echo 'Add tests later' && exit 0"
+    "lint": "echo 'Add eslint later' && exit 0",
+    "test": "echo 'Add tests later' && exit 0",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
+    "cors": "^2.8.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
     "google-auth-library": "^10.5.0",
     "i18next": "^25.7.4",
     "i18next-fs-backend": "^2.6.1",
     "i18next-http-middleware": "^3.9.2",
     "jsonwebtoken": "^9.0.2",
-    "sqlite3": "^5.1.6",
+    "multer": "^2.0.2",
+    "sqlite3": "^5.1.7",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
@@ -27,10 +33,10 @@
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.5",
-    "@types/node": "^20.10.0",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^20.19.30",
     "@types/uuid": "^9.0.7",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
-  },
-  "NO_packageManager": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728"
+  }
 }

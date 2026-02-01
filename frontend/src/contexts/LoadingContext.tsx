@@ -34,8 +34,9 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({
   const isLoading = loadingCount > 0 || forceVisible;
   
   // Track timers for cleanup
-  const eventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  //const eventTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const eventTimeoutRef = useRef<number | null>(null);
+  const hideTimeoutRef = useRef<number| null>(null);
   
   const eventLoading = useCallback(() => {
     // Clear any existing event timeout

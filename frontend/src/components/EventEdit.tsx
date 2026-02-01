@@ -9,22 +9,31 @@ import {
   TextField,
   Grid,
   Alert,
-  //CircularProgress,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   InputAdornment,
+  Stack,
 } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import {
   Save as SaveIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { eventApi, theaterApi } from '../services/api';
-import { Event, EventPerformance } from '../types/event';
-import { TheaterStats } from '../types/theater';
+import { Event, EventPerformance } from '../../../shared/types/event';
+import { TheaterStats } from '../../../shared/types/theater';
+import { ImageType, UploadedImage } from '../../../shared/types/image';
 import { useAuth } from '../contexts/AuthContext';
+import { toast } from '../contexts/ToastContext';
+import ImageUploadSection from './ImageUploadSection';
+import ImageUploadEditPopup from './ImageUploadEditPopup';
+import dayjs, { Dayjs } from 'dayjs';
+import { t } from 'i18next';
+import config from '../config';
 
 const EventEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -51,30 +60,45 @@ const EventEdit: React.FC = () => {
   const [choreographer, setChoreographer] = useState('');
   const [musicalDirector, setMusicalDirector] = useState('');
   const [theaterId, setTheaterId] = useState('');
-  const [stageType, setStageType] = useState('');
-  const [openingDate, setOpeningDate] = useState('');
-  const [closingDate, setClosingDate] = useState('');
+
+  const [openingDate, setOpeningDate] = useState<Dayjs | null>(null);
+  const [closingDate, setClosingDate] = useState<Dayjs | null>(null);
+  const [typicalStartTime, setTypicalStartTime] = useState<Dayjs | null>(null);
+  const [typicalEndTime, setTypicalEndTime] = useState<Dayjs | null>(null);
+
   const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50);
-  const [currency, setCurrency] = useState('USD');
+  const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
+  
+  const [currency, setCurrency] = useState(
+    Object.values(config.currencies).find(c => c.code === config.defaultCurrencyCode)?.code || ''
+  );
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [minimumAge, setMinimumAge] = useState<number>(0);
-  const [typicalStartTime, setTypicalStartTime] = useState('19:30');
-  const [typicalEndTime, setTypicalEndTime] = useState('');
+
   const [eventPosterUrl, setEventPosterUrl] = useState('');
-  const [trailerUrl, setTrailerUrl] = useState('');
-  const [websiteUrl, setWebsiteUrl] = useState('');
   const [contentWarnings, setContentWarnings] = useState('');
   const [status, setStatus] = useState<'scheduled' | 'in_progress' | 'completed' | 'cancelled'>('scheduled');
 
   // Performances
   const [performances, setPerformances] = useState<Partial<EventPerformance>[]>([]);
 
+  // Image upload state
+  const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
+  const [activeImageType, setActiveImageType] = useState<ImageType | null>(null);
+
+  const [uploadedImages, setUploadedImages] = useState<Record<ImageType, UploadedImage | null>>({
+    poster: null,
+    website: null,
+    banner: null,
+    thumbnail: null
+  });
+  
   const loadTheaters = async () => {
     try {
       const response = await theaterApi.getAllTheaters();
       setTheaters(response.data);
-    } catch (err) {
-      console.error('Failed to load theaters', err);
+    } catch (error: any) {
+      console.error(t('Failed to load theaters: {{err}}', { err: error.response?.data?.error }));
     }
   };
 
@@ -96,20 +120,33 @@ const EventEdit: React.FC = () => {
       setChoreographer(event.choreographer || '');
       setMusicalDirector(event.musicalDirector || '');
       setTheaterId(event.theaterId);
-      setStageType(event.stageType || '');
-      setOpeningDate(event.openingDate || '');
-      setClosingDate(event.closingDate || '');
+      
+      if (event.openingDate) setOpeningDate(dayjs(event.openingDate));
+      if (event.closingDate) setClosingDate(dayjs(event.closingDate));
+      if (event.typicalStartTime) setTypicalStartTime(dayjs(event.typicalStartTime, 'HH:mm'));
+      if (event.typicalEndTime) setTypicalEndTime(dayjs(event.typicalEndTime, 'HH:mm'));
+      
       setBaseTicketPrice(event.baseTicketPrice);
+      setBaseTicketPriceDisplay(event.baseTicketPrice.toFixed(2));
       setCurrency(event.currency);
       setSpecialRequirements(event.specialRequirements || '');
       setMinimumAge(event.minimumAge || 0);
-      setTypicalStartTime(event.typicalStartTime || '19:30');
-      setTypicalEndTime(event.typicalEndTime || '');
       setEventPosterUrl(event.eventPosterUrl || '');
-      setTrailerUrl(event.trailerUrl || '');
-      setWebsiteUrl(event.websiteUrl || '');
       setContentWarnings(event.contentWarnings || '');
       setStatus(event.status);
+
+      if (event.eventPosterUrl) {
+        const posterUrl = event.eventPosterUrl; // TypeScript now knows this is string
+        setUploadedImages(prev => ({
+          ...prev,
+          poster: {
+            url: posterUrl, // Now TypeScript knows this is string, not string | undefined
+            size: 0,
+            timestamp: new Date(),
+            type: 'poster' as const
+          }
+        }));
+      }
 
       if (event.performances) {
         setPerformances(event.performances);
@@ -117,14 +154,13 @@ const EventEdit: React.FC = () => {
 
       setError('');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load event');
-    } finally {
+      setError(t('Failed to load event: {{err}}', { err: err.response?.data?.error }));
     }
   }, [id]);
 
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) {
-      navigate('/events');
+      navigate(-1);
       return;
     }
 
@@ -139,8 +175,8 @@ const EventEdit: React.FC = () => {
       ...performances,
       {
         performanceDate: '',
-        startTime: typicalStartTime || '19:30',
-        endTime: typicalEndTime || '',
+        startTime: typicalStartTime ? typicalStartTime.format('HH:mm') : '',
+        endTime: typicalEndTime ? typicalEndTime.format('HH:mm') : '',
         status: 'scheduled'
       }
     ]);
@@ -158,7 +194,7 @@ const EventEdit: React.FC = () => {
 
   const handleSave = async () => {
     if (!title.trim() || !theaterId || !baseTicketPrice) {
-      setError('Title, theater, and base ticket price are required');
+      setError(t('Title, theater, and base ticket price are required'));
       return;
     }
 
@@ -180,18 +216,15 @@ const EventEdit: React.FC = () => {
         choreographer,
         musicalDirector,
         theaterId,
-        stageType,
-        openingDate,
-        closingDate,
+        openingDate: openingDate?.format('YYYY-MM-DD'),
+        closingDate: closingDate?.format('YYYY-MM-DD'),
+        typicalStartTime: typicalStartTime?.format('HH:mm'),
+        typicalEndTime: typicalEndTime?.format('HH:mm'),
         baseTicketPrice,
         currency,
         specialRequirements,
         minimumAge,
-        typicalStartTime,
-        typicalEndTime,
-        eventPosterUrl,
-        trailerUrl,
-        websiteUrl,
+        eventPosterUrl: uploadedImages.poster?.url || eventPosterUrl,
         contentWarnings,
         status
       };
@@ -201,11 +234,11 @@ const EventEdit: React.FC = () => {
       if (isEditMode) {
         await eventApi.updateEvent(id!, eventData);
         eventId = id!;
-        alert('Event updated successfully!');
+        toast.success('Event updated successfully!');
       } else {
         const response = await eventApi.createEvent(eventData);
         eventId = response.data.id;
-        alert('Event created successfully!');
+        toast.success('Event created successfully!');
       }
 
       // Create new performances (only for new ones without id)
@@ -215,27 +248,63 @@ const EventEdit: React.FC = () => {
         }
       }
 
-      navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.error || `Failed to ${isEditMode ? 'update' : 'create'} event`);
+      navigate(-1);
+    } catch (error: any) {
+      setError(error.response?.data?.error ||
+        t('Failed to {{what}} event: {{err}}', { what: isEditMode ? t('update') : t('create'), err: error.message})
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  // if (loading) {
-  //   return (
-  //     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-  //       <CircularProgress />
-  //     </Box>
-  //   );
-  // }
+  // Handle image upload callback from popup
+  const handleUploadImage = (imageUrl: string, imageData: any) => {
+    if (!activeImageType) return;
+    
+    console.log('Image uploaded:', { imageUrl, imageData });
+    
+    setUploadedImages(prev => ({
+      ...prev,
+      [activeImageType]: {
+        url: imageUrl,
+        size: imageData.fileData?.size || 0,
+        timestamp: new Date(),
+        type: activeImageType
+      }
+    }));
 
+    // Update the poster URL if it's a poster image
+    if (activeImageType === 'poster') {
+      setEventPosterUrl(imageUrl);
+    }
+    
+    toast.success(t('Image uploaded successfully'));
+  };
+
+  const handleOpenPreview = (imageType: ImageType) => {
+    const image = uploadedImages[imageType];
+    if (image?.url) {
+      window.open(image.url, '_blank');
+    }
+  };
+
+  const handleClearImage = (imageType: ImageType) => {
+    setUploadedImages(prev => ({
+      ...prev,
+      [imageType]: null
+    }));
+    
+    if (imageType === 'poster') {
+      setEventPosterUrl('');
+    }
+  };
+  
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
-          {isEditMode ? 'Edit Event' : 'Create New Event'}
+          {isEditMode ? t('Edit Event') : t('Create New Event')}
         </Typography>
 
         {error && (
@@ -248,14 +317,14 @@ const EventEdit: React.FC = () => {
           {/* Basic Information */}
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom>
-              Basic Information
+              {t('Basic Information')}
             </Typography>
           </Grid>
 
           <Grid item xs={12} md={8}>
             <TextField
               fullWidth
-              label="Title"
+              label={t("Title")}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
@@ -264,16 +333,16 @@ const EventEdit: React.FC = () => {
 
           <Grid item xs={12} md={4}>
             <FormControl fullWidth required>
-              <InputLabel>Status</InputLabel>
+              <InputLabel>{t('Status')}</InputLabel>
               <Select
                 value={status}
-                label="Status"
+                label={t('Status')}
                 onChange={(e) => setStatus(e.target.value as any)}
               >
-                <MenuItem value="scheduled">Scheduled</MenuItem>
-                <MenuItem value="in_progress">In Progress</MenuItem>
-                <MenuItem value="completed">Completed</MenuItem>
-                <MenuItem value="cancelled">Cancelled</MenuItem>
+                <MenuItem value="scheduled">{t('Scheduled')}</MenuItem>
+                <MenuItem value="in_progress">{t('In Progress')}</MenuItem>
+                <MenuItem value="completed">{t('Completed')}</MenuItem>
+                <MenuItem value="cancelled">{t('Cancelled')}</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -281,7 +350,7 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Description"
+              label={t('Description')}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               multiline
@@ -292,17 +361,17 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Genre"
+              label={t('Genre')}
               value={genre}
               onChange={(e) => setGenre(e.target.value)}
-              placeholder="Drama, Comedy, Musical, etc."
+              placeholder={t('Drama, Comedy, Musical, etc.')}
             />
           </Grid>
 
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Language"
+              label={t('Language')}
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
             />
@@ -311,7 +380,7 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="Duration (minutes)"
+              label={t('Duration (minutes)')}
               type="number"
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 0)}
@@ -322,7 +391,7 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="Intermissions"
+              label={t('Intermissions')}
               type="number"
               value={intermissionCount}
               onChange={(e) => setIntermissionCount(parseInt(e.target.value) || 0)}
@@ -333,24 +402,42 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="Rating"
+              label={t('Rating')}
               value={rating}
               onChange={(e) => setRating(e.target.value)}
-              placeholder="PG, PG-13, R, etc."
+              placeholder={t('PG, PG-13, R, etc.')}
             />
+          </Grid>
+
+          {/* Venue Information */}
+          <Grid item xs={12}>
+            <FormControl fullWidth required>
+              <InputLabel>{t("Theater")}</InputLabel>
+              <Select
+                value={theaterId}
+                label={t("Theater")}
+                onChange={(e) => setTheaterId(e.target.value)}
+              >
+                {theaters.map((theater) => (
+                  <MenuItem key={theater.id} value={theater.id}>
+                    {theater.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
           {/* Production Details */}
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-              Production Details
+              {t('Production Details')}
             </Typography>
           </Grid>
 
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Director"
+              label={t('Director')}
               value={director}
               onChange={(e) => setDirector(e.target.value)}
             />
@@ -359,7 +446,7 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
-              label="Playwright"
+              label={t('Playwright')}
               value={playwright}
               onChange={(e) => setPlaywright(e.target.value)}
             />
@@ -368,7 +455,7 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="Producer"
+              label={t('Producer')}
               value={producer}
               onChange={(e) => setProducer(e.target.value)}
             />
@@ -377,7 +464,7 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="Choreographer"
+              label={t('Choreographer')}
               value={choreographer}
               onChange={(e) => setChoreographer(e.target.value)}
             />
@@ -386,145 +473,115 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="Musical Director"
+              label={t('Musical Director')}
               value={musicalDirector}
               onChange={(e) => setMusicalDirector(e.target.value)}
-            />
-          </Grid>
-
-          {/* Venue Information */}
-          <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-              Venue Information
-            </Typography>
-          </Grid>
-
-          <Grid item xs={12} md={8}>
-            <FormControl fullWidth required>
-              <InputLabel>Theater</InputLabel>
-              <Select
-                value={theaterId}
-                label="Theater"
-                onChange={(e) => setTheaterId(e.target.value)}
-              >
-                {theaters.map((theater) => (
-                  <MenuItem key={theater.id} value={theater.id}>
-                    {theater.name} ({theater.totalSeats} seats)
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              label="Stage Type"
-              value={stageType}
-              onChange={(e) => setStageType(e.target.value)}
-              placeholder="Proscenium, Thrust, etc."
             />
           </Grid>
 
           {/* Schedule */}
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-              Schedule
+              {t('Schedule')}
             </Typography>
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Opening Date"
-              type="date"
-              value={openingDate}
-              onChange={(e) => setOpeningDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
+            <Stack direction="row" spacing={2}>
+              <DatePicker
+                label={t('Start Date')}
+                value={openingDate}
+                onChange={(newValue) => setOpeningDate(newValue)}
+                maxDate={closingDate || undefined}
+                sx={{ width: '100%' }}
+              />
+              <DatePicker
+                label={t('End Date')}
+                value={closingDate}
+                onChange={(newValue) => setClosingDate(newValue)}
+                minDate={openingDate || undefined}
+                sx={{ width: '100%' }}
+              />
+            </Stack>
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Closing Date"
-              type="date"
-              value={closingDate}
-              onChange={(e) => setClosingDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Typical Start Time"
-              type="time"
-              value={typicalStartTime}
-              onChange={(e) => setTypicalStartTime(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Typical End Time"
-              type="time"
-              value={typicalEndTime}
-              onChange={(e) => setTypicalEndTime(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-            />
+            <Stack direction="row" spacing={2}>
+              <TimePicker
+                label={t('Typical Start Time')}
+                value={typicalStartTime}
+                onChange={(newValue) => setTypicalStartTime(newValue)}
+                sx={{ width: '100%' }}
+              />
+              <TimePicker
+                label={t('Typical End Time')}
+                value={typicalEndTime}
+                onChange={(newValue) => setTypicalEndTime(newValue)}
+                sx={{ width: '100%' }}
+              />
+            </Stack>
           </Grid>
 
           {/* Pricing */}
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-              Pricing
+              {t('Pricing')}
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={8}>
-            <TextField
-              fullWidth
-              label="Base Ticket Price"
-              type="number"
-              value={baseTicketPrice}
-              onChange={(e) => setBaseTicketPrice(parseFloat(e.target.value) || 0)}
-              required
-              InputProps={{
-                startAdornment: <InputAdornment position="start">{currency}</InputAdornment>,
-              }}
-              inputProps={{ min: 0, step: 0.01 }}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={2}>
             <FormControl fullWidth>
-              <InputLabel>Currency</InputLabel>
+              <InputLabel>{t('Currency')}</InputLabel>
               <Select
                 value={currency}
-                label="Currency"
+                label={t('Currency')}
                 onChange={(e) => setCurrency(e.target.value)}
               >
-                <MenuItem value="USD">USD</MenuItem>
-                <MenuItem value="EUR">EUR</MenuItem>
-                <MenuItem value="GBP">GBP</MenuItem>
+                {Object.values(config.currencies).map((currency) => (
+                  <MenuItem key={currency.code} value={currency.code}>
+                    {currency.code} ({currency.symbol})
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={10}>
+            <TextField
+              fullWidth
+              label={t('Base Ticket Price')}
+              type="number"
+              value={baseTicketPriceDisplay}
+              onChange={(e) => {
+                setBaseTicketPriceDisplay(e.target.value);
+                setBaseTicketPrice(parseFloat(e.target.value) || 0)
+              }}
+              onFocus={() => setBaseTicketPriceDisplay(baseTicketPrice.toString())}
+              onBlur={() => setBaseTicketPriceDisplay(baseTicketPrice.toFixed(2))}
+              required
+              InputProps={{
+                startAdornment: (
+                  //<InputAdornment position="start">{config.currencies[currency].symbol}</InputAdornment>,
+                  <InputAdornment position="start">
+                    {config.currencies[currency as keyof typeof config.currencies].symbol}
+                  </InputAdornment>
+                )
+              }}
+              inputProps={{ min: 0, step: 1 }}
+            />
           </Grid>
 
           {/* Additional Information */}
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-              Additional Information
+              {t('Additional Information')}
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={3}>
             <TextField
               fullWidth
-              label="Minimum Age"
+              label={t('Minimum Age')}
               type="number"
               value={minimumAge}
               onChange={(e) => setMinimumAge(parseInt(e.target.value) || 0)}
@@ -532,37 +589,26 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Poster URL"
-              value={eventPosterUrl}
-              onChange={(e) => setEventPosterUrl(e.target.value)}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Trailer URL"
-              value={trailerUrl}
-              onChange={(e) => setTrailerUrl(e.target.value)}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              label="Website URL"
-              value={websiteUrl}
-              onChange={(e) => setWebsiteUrl(e.target.value)}
+          {/* Poster Image Upload */}
+          <Grid item xs={12} md={9}>
+            <ImageUploadSection
+              type="poster"
+              label={t('Poster Image')}
+              aspectRatio={9/16}
+              uploadedImage={uploadedImages.poster}
+              onUploadClick={() => {
+                setActiveImageType('poster');
+                setIsImageUploadPopupOpen(true);
+              }}
+              onPreviewClick={() => handleOpenPreview('poster')}
+              onClearClick={() => handleClearImage('poster')}
             />
           </Grid>
 
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Special Requirements"
+              label={t('Special Requirements')}
               value={specialRequirements}
               onChange={(e) => setSpecialRequirements(e.target.value)}
               multiline
@@ -573,7 +619,7 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label="Content Warnings"
+              label={t('Content Warnings')}
               value={contentWarnings}
               onChange={(e) => setContentWarnings(e.target.value)}
               multiline
@@ -585,14 +631,14 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 2 }}>
               <Typography variant="h6">
-                Performances
+                {t('Performances')}
               </Typography>
               <Button
                 startIcon={<AddIcon />}
                 onClick={addPerformance}
                 variant="outlined"
               >
-                Add Performance
+                {t('Add Performance')}
               </Button>
             </Box>
           </Grid>
@@ -604,7 +650,7 @@ const EventEdit: React.FC = () => {
                   <Grid item xs={12} md={4}>
                     <TextField
                       fullWidth
-                      label="Performance Date"
+                      label={t('Performance Date')}
                       type="date"
                       value={perf.performanceDate || ''}
                       onChange={(e) => updatePerformance(index, 'performanceDate', e.target.value)}
@@ -614,7 +660,7 @@ const EventEdit: React.FC = () => {
                   <Grid item xs={12} md={3}>
                     <TextField
                       fullWidth
-                      label="Start Time"
+                      label={t('Start Time')}
                       type="time"
                       value={perf.startTime || ''}
                       onChange={(e) => updatePerformance(index, 'startTime', e.target.value)}
@@ -624,7 +670,7 @@ const EventEdit: React.FC = () => {
                   <Grid item xs={12} md={3}>
                     <TextField
                       fullWidth
-                      label="End Time"
+                      label={t('End Time')}
                       type="time"
                       value={perf.endTime || ''}
                       onChange={(e) => updatePerformance(index, 'endTime', e.target.value)}
@@ -638,7 +684,7 @@ const EventEdit: React.FC = () => {
                       startIcon={<DeleteIcon />}
                       onClick={() => removePerformance(index)}
                     >
-                      Remove
+                      {t('Remove')}
                     </Button>
                   </Grid>
                 </Grid>
@@ -651,10 +697,10 @@ const EventEdit: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 4 }}>
           <Button
             variant="outlined"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(-1)}
             disabled={saving}
           >
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             variant="contained"
@@ -662,10 +708,31 @@ const EventEdit: React.FC = () => {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Event' : 'Create Event')}
+            {saving ?
+              (isEditMode ? t('Updating...') : t('Creating...')) :
+              (isEditMode ? t('Update Event') : t('Create Event'))
+            }
           </Button>
         </Box>
       </Paper>
+
+      {/* Image Upload Popup */}
+      <ImageUploadEditPopup
+        open={isImageUploadPopupOpen}
+        onClose={() => {
+          setIsImageUploadPopupOpen(false);
+          setActiveImageType(null);
+        }}
+        onSave={handleUploadImage}
+        imageType={activeImageType || 'poster'}
+        fixedAspectRatio={
+          activeImageType === 'poster' ? 9/16 :
+          activeImageType === 'website' ? 16/9 : 
+          activeImageType === 'banner' ? 16/9 : undefined
+        }
+        maxSizeMB={10}
+        title={t(`Upload ${activeImageType || 'image'}`)}
+      />
     </Container>
   );
 };

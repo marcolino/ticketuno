@@ -13,7 +13,7 @@ if (process.env.NODE_ENV !== 'production') {
       throw new Error(i18n.t('An unexpected error occurred: {err}}', {err: result.error.message}));
     }
   } else {
-    console.info('Environment variables loaded successfully:', result.parsed);
+    //console.info('Environment variables loaded successfully:', result.parsed);
   }
 }
 
@@ -35,7 +35,7 @@ interface Config {
   port: number;
   jwtSecret: string;
   dbPath: string;
-  adminUser: string;
+  adminUserEmail: string;
   adminPassword: string;
 }
 
@@ -64,7 +64,7 @@ const config = {
   port: parseInt(process.env.PORT || '3001'),
   jwtSecret: process.env.JWT_SECRET || '',
   dbPath: process.env.DB_PATH || '',
-  adminUser: process.env.ADMIN_USER || '',
+  adminUserEmail: process.env.ADMIN_USER_EMAIL || '',
   adminPassword: process.env.ADMIN_PASSWORD || '',
 };
 

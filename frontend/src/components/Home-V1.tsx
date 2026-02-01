@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Toolbar,
@@ -34,16 +34,19 @@ import {
   Language as LanguageIcon,
   Person as PersonIcon,
   ViewCompact as ViewCompactIcon,
+  Curtains as CurtainsIcon,
+  TheaterComedy as TheaterComedyIcon,
+  Theaters as TheatersIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { useThemeMode } from '../contexts/ThemeContext';
 import LoginDialog from './LoginDialog';
 
-interface DesignProps {
+interface HomeProps {
   children: React.ReactNode;
 }
 
-const Design: React.FC<DesignProps> = ({ children }) => {
+const Home: React.FC<HomeProps> = ({ children }) => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   //const location = useLocation();
@@ -68,9 +71,24 @@ const Design: React.FC<DesignProps> = ({ children }) => {
     navigate('/');
   };
 
-  const handleLayoutEditor = () => {
+  const handleTheaters = () => {
     handleClose();
-    navigate('/layout/new');
+    navigate('/theaters');
+  };
+
+  const handleLayouts = () => {
+    handleClose();
+    navigate('/layouts');
+  };
+
+  const handleEvents = () => {
+    handleClose();
+    navigate('/events');
+  };
+
+  const handleShows = () => {
+    handleClose();
+    navigate('/shows');
   };
 
   const handleProfile = () => {
@@ -131,9 +149,10 @@ const Design: React.FC<DesignProps> = ({ children }) => {
             <EventSeatIcon />
           </IconButton> */}
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            {t('TicketUno')}
+            {t('TicketUno')} {/* TODO: from config */}
           </Typography>
-{/* 
+
+          {/* 
           {!isHomePage && (
             <Button
               color="inherit"
@@ -170,27 +189,53 @@ const Design: React.FC<DesignProps> = ({ children }) => {
                 anchorEl={anchorEl}
                 open={menuOpen}
                 onClose={handleClose}
-                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                // transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                // anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
               >
                 <MenuItem disabled sx={{ my: 1, py: 0, }}>
                   <Typography variant="body2">
                     {user?.firstName} {user?.lastName} ({user?.role})
                   </Typography>
                 </MenuItem>
+
                 <MenuItem disabled sx={{ my: 1, py: 0, }}>
                   <Typography variant="caption" color="text.primary">
                     {user?.email}
                   </Typography>
                 </MenuItem>
+
                 <Divider />
-                <MenuItem onClick={() => { handleClose(); handleLayoutEditor(); }}>
+
+                <MenuItem onClick={() => { handleClose(); handleTheaters(); }}>
+                  <ListItemIcon>
+                    <CurtainsIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{t('Theaters')}</ListItemText>
+                </MenuItem>
+
+                <MenuItem onClick={() => { handleClose(); handleLayouts(); }}>
                   <ListItemIcon>
                     <ViewCompactIcon fontSize="small" />
                   </ListItemIcon>
-                  <ListItemText>Layout editor</ListItemText>
+                  <ListItemText>{t('Layouts')}</ListItemText>
                 </MenuItem>
+
+                <MenuItem onClick={() => { handleClose(); handleEvents(); }}>
+                  <ListItemIcon>
+                    <TheaterComedyIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{t('Events')}</ListItemText>
+                </MenuItem>
+
+                <MenuItem onClick={() => { handleClose(); handleShows(); }}>
+                  <ListItemIcon>
+                    <TheatersIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{t('Shows')}</ListItemText>
+                </MenuItem>
+
                 <Divider />
+
                 <MenuItem onClick={handleProfile}>
                   <ListItemIcon>
                     <PersonIcon fontSize="small" />
@@ -244,7 +289,7 @@ const Design: React.FC<DesignProps> = ({ children }) => {
       <Box
         component="footer"
         sx={{
-          py: 3,
+          py: 2,
           px: 2,
           mt: 'auto',
           backgroundColor: (theme) =>
@@ -255,11 +300,11 @@ const Design: React.FC<DesignProps> = ({ children }) => {
       >
         <Container maxWidth="lg">
           <Typography variant="body2" color="text.secondary" align="center">
-            © {new Date().getFullYear()} TicketUno. All rights reserved.
+            © {new Date().getFullYear()} TicketUno. All rights reserved. {/* TODO: from config */}
           </Typography>
-          <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
+          {/* <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
             Built with React, TypeScript, Material-UI & Node.js
-          </Typography>
+          </Typography> */}
         </Container>
       </Box>
 
@@ -295,4 +340,4 @@ const Design: React.FC<DesignProps> = ({ children }) => {
   );
 };
 
-export default Design;
+export default Home;

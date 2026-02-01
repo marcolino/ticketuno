@@ -24,14 +24,10 @@ import {
 import { useTheme } from '@mui/material/styles'; 
 import { eventApi, theaterApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-//import { useToast } from '../contexts/ToastContext';
-import { useToast, toastSuccess, toastError, toastWithActions } from '../contexts/ToastContext';
+import { useToast } from '../contexts/ToastContext';
 import { handleApiError } from '../utils/apiErrorHandler';
-//import { eventToast } from '../utils/toast';
-//import { eventToast } from '../utils/toast';
-//import { eventToast } from '../utils/toast';
-import { Theater, Seat } from '../types/theater';
-import { EventPerformance } from '../types/event';
+import { Theater, Seat } from '../../../shared/types/theater';
+import { EventPerformance } from '../../../shared/types/event';
 
 const TheaterSeating: React.FC = () => {
   const { t } = useTranslation();    

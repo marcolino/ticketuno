@@ -15,4 +15,4 @@ Migrations are applied automatically on startup.
 
 ## Manual migration
 
-If needed: `sqlite3 /data/theaters.db < migrations/XXXXX_name.sql`
+If needed: `sqlite3 /data/ticketuno.db < migrations/XXXXX_name.sql`

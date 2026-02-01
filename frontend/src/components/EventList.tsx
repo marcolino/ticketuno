@@ -18,13 +18,16 @@ import {
 import {
   Add as AddIcon,
   Edit as EditIcon,
+  Event as EventIcon,
   CalendarToday as CalendarIcon,
   TheaterComedy as TheaterIcon,
-  AttachMoney as MoneyIcon,
+  //AttachMoney as MoneyIcon,
+  ConfirmationNumber as ConfirmationNumberIcon,
 } from '@mui/icons-material';
 import { eventApi } from '../services/api';
-import { EventStats } from '../types/event';
+import { EventStats } from '../../../shared/types/event';
 import { useAuth } from '../contexts/AuthContext';
+import config from '../config';
 
 const EventList: React.FC = () => {
   const { t } = useTranslation();
@@ -76,7 +79,7 @@ const EventList: React.FC = () => {
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Current Events
+        {t('Current Events')}
       </Typography>
 
       {error && (
@@ -98,7 +101,7 @@ const EventList: React.FC = () => {
             onClick={() => navigate('/event/new')}
             sx={{ mt: 2, mr: 2 }}
           >
-            Add Event
+            {t('Add Event')}
           </Button>
         </Box>
       )}
@@ -150,15 +153,17 @@ const EventList: React.FC = () => {
                 </Box>
               </CardMedia>
               <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                  <Typography variant="h5" component="div">
-                    {event.title}
-                  </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
                   <Chip
-                    label={event.status}
+                    label={t(event.status)}
                     color={getStatusColor(event.status)}
                     size="small"
                   />
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+                  <Typography variant="h5" component="div">
+                    {event.title}
+                  </Typography>
                 </Box>
 
                 {event.genre && (
@@ -177,42 +182,60 @@ const EventList: React.FC = () => {
                     <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                     <Typography variant="body2" color="text.secondary">
                       {event.nextPerformanceDate 
-                        ? `Next: ${formatDate(event.nextPerformanceDate)}`
-                        : 'No upcoming performances'}
+                        ? t('Next performance') + ':' + formatDate(event.nextPerformanceDate)
+                        : t('No upcoming performances')
+                    }
                     </Typography>
                   </Box>
 
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <MoneyIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                    <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                     <Typography variant="body2" color="text.secondary">
-                      From {event.currency} {event.baseTicketPrice}
+                      {t('From')} {config.currencies[event.currency].symbol} {event.baseTicketPrice}
                     </Typography>
                   </Box>
 
-                  <Typography variant="body2" color="success.main">
-                    {event.availablePerformances} performance{event.availablePerformances !== 1 ? 's' : ''} available
-                  </Typography>
+                  {(event.availablePerformances > 0) && (
+                    <Typography variant="body2" color="success.main">
+                      {t('{{count}} performances available', { count: event.availablePerformances })}
+                    </Typography>
+                  )}
                 </Box>
               </CardContent>
-              <CardActions sx={{ p: 2, pt: 0 }}>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={() => handleViewEvent(event.id)}
-                  disabled={event.availablePerformances === 0}
-                >
-                  View Performances
-                </Button>
+              <CardActions sx={{ 
+                p: 2, 
+                pt: 0, 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'flex-end', // Align buttons to right
+                gap: 1,
+                width: '100%'
+              }}>
                 {(true || isAdmin) && (
                   <Button
-                    variant="outlined"
+                    variant="contained"
                     startIcon={<EditIcon />}
                     onClick={(e) => handleEditEvent(event.id, e)}
-                    sx={{ ml: 1 }}
+                    sx={{ 
+                      width: { xs: '100%', sm: 'auto' },
+                      m_inWidth: 200
+                    }}
                   >
-                    Edit
+                    {t('Edit')}
                   </Button>
                 )}
+                <Button
+                  variant="contained"
+                  startIcon={<EventIcon />}
+                  onClick={() => handleViewEvent(event.id)}
+                  disabled={event.availablePerformances === 0}
+                  sx={{ 
+                    width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
+                    minWidth: 200 // Minimum width for better appearance
+                  }}
+                >
+                  {t('Performances')}
+                </Button>
               </CardActions>
             </Card>
           </Grid>

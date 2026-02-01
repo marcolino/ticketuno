@@ -3,12 +3,14 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
+import multer from 'multer';
 import { i18n, middleware as i18nextMiddleware } from './i18n';
 import { database } from './db/database';
 import userRoutes from './routes/users';
 import theaterRoutes from './routes/theaters';
 import eventRoutes from './routes/events';
 import layoutRoutes from './routes/layouts';
+import imageRoutes from './routes/images';
 import config from './config';
 
 if (process.env.NODE_ENV !== 'production') {
@@ -26,14 +28,9 @@ app.use(express.json());
 // Initialize i18n middleware
 app.use(i18nextMiddleware.handle(i18n));
 
-// Add middleware to add language to response locals - MOVED HERE, BEFORE ROUTES!
+// Add middleware to add language to response locals - Must be before routes
 app.use((req: any, res: any, next) => {
   // Make current language available in response locals
-  console.log("=====================================");
-  console.log("Request URL:", req.url);
-  console.log("req.language:", req.language);
-  console.log("req.i18n?.language:", req.i18n?.language);
-  console.log("=====================================");
   res.locals.language = req.language;
   next();
 });
@@ -46,17 +43,18 @@ app.use(`${prefix}/users`, userRoutes);
 app.use(`${prefix}/theaters`, theaterRoutes);
 app.use(`${prefix}/layouts`, layoutRoutes);
 app.use(`${prefix}/events`, eventRoutes);
+app.use(`${prefix}/images`, imageRoutes);
 
 // Serve translation files from shared folder (/shared/locales/{lng}/{ns}.json)
 const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
-console.log('Current dir:', __dirname); // TODO: debug logging, REMOVEME
-console.log('Locales dir:', localesDir); // TODO: debug logging, REMOVEME
+// console.log('Current dir:', __dirname); // TODO: debug logging, REMOVEME
+// console.log('Locales dir:', localesDir); // TODO: debug logging, REMOVEME
 app.get(`${prefix}/locales/:lng/:ns.json`, (req: any, res: any) => {
   const { lng, ns } = req.params;
   const filePath = path.join(localesDir, lng, `${ns}.json`);
   
-  console.log(`Serving locale file: ${lng}/${ns}.json`);
-  console.log(`File path: ${filePath}`);
+  //console.log(`Serving locale file: ${lng}/${ns}.json`);
+  //console.log(`File path: ${filePath}`);
   
   // Check if file exists
   fs.access(filePath, fs.constants.F_OK, (err) => {
@@ -79,7 +77,7 @@ app.get(`${prefix}/locales/:lng/:ns.json`, (req: any, res: any) => {
 });
 
 // app.use(`${prefix}/locales`, express.static(
-//   path.join(__dirname, '../../shared/locales')
+//   path.join(__dirname, '../../shared//locales')
 // ));
 
 // // Make i18n available in all routes
@@ -121,6 +119,14 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Global error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Error:', err);
+
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'File too large. Maximum size is 10MB.' });
+    }
+    return res.status(400).json({ error: err.message || 'Internal server upload error'});
+  }
+
   res.status(err.status || 500).json({
     error: err.message || 'Internal server error'
   });

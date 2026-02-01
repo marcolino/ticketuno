@@ -5,7 +5,6 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "allowImportingTsExtensions": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -17,10 +16,15 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "types": ["vite/client"],
-    "typeRoots": [
-      "./node_modules/@types",
-      "../shared/types"
-    ]
+    // "typeRoots": [
+    //   "./node_modules/@types",
+    //   "../shared/types"
+    // ]
+    "baseUrl": "./src",
+    "paths": {
+      "@shared/*": ["../../shared/*"]
+    }
   },
   //"include": ["src", "src/global.d.ts", "../shared/types/**/*"],
+  "include": ["src"]
 }

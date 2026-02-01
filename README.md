@@ -51,7 +51,7 @@ npm start
 PORT=3001
 JWT_SECRET=your-secret-key
 ADMIN_PASSWORD=your-admin-password
-DB_PATH=./data/theaters.db
+DB_PATH=./data/ticketuno.db
 ```
 
 ### Frontend (.env)

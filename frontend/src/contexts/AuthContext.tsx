@@ -13,7 +13,7 @@ import {
   ForgotPasswordResponse,
   ResetPasswordData,
   ResetPasswordResponse,
-} from '../types/user';
+} from '../../../shared/types/user';
 
 interface AuthContextType {
   user: User | null;

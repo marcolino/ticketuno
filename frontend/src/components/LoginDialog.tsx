@@ -450,22 +450,25 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         {tab === 'login' && (
           <Box sx={{ pt: 2 }}>
             <TextField
-              fullWidth
-              label="Email"
+              name="Email"
+              label={t('Email')}
               type="email"
               value={loginEmail}
               onChange={(e) => setLoginEmail(e.target.value)}
               sx={{ mb: 2 }}
+              fullWidth
               autoFocus
+              required
             />
             <TextField
-              fullWidth
-              label="Password"
+              name="Password"
+              label={t('Password')}
               type={eventPassword ? 'text' : 'password'}
               value={loginPassword}
               onChange={(e) => setLoginPassword(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+              // onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
               sx={{ mb: 2 }}
+              fullWidth
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -484,7 +487,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
                 onClick={() => setTab('forgot')}
                 sx={{ cursor: 'pointer' }}
               >
-                Forgot password?
+                {t('Forgot password?')}
               </Link>
               <Link
                 component="button"
@@ -492,7 +495,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
                 onClick={() => setTab('register')}
                 sx={{ cursor: 'pointer' }}
               >
-                Create account
+                {t('Create account')}
               </Link>
             </Box>
 
@@ -504,10 +507,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               size="large"
               sx={{ mb: 2 }}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? t('Logging in...') : t('Login') }
             </Button>
 
-            <Divider sx={{ my: 2 }}>OR</Divider>
+            <Divider sx={{ my: 2 }}>{t('OR')}</Divider>
 
             <Button
               fullWidth
@@ -526,42 +529,47 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         {tab === 'register' && (
           <Box sx={{ pt: 2 }}>
             <TextField
-              fullWidth
-              label="First Name"
+              name="First Name"
+              label={t('First Name')}
               value={registerFirstName}
               onChange={(e) => setRegisterFirstName(e.target.value)}
               sx={{ mb: 2 }}
+              fullWidth
               autoFocus
             />
             <TextField
-              fullWidth
-              label="Last Name"
+              name="Last Name"
+              label={t('Last Name')}
               value={registerLastName}
               onChange={(e) => setRegisterLastName(e.target.value)}
               sx={{ mb: 2 }}
+              fullWidth
             />
             <TextField
-              fullWidth
-              label="Email"
+              name="Email"
+              label={t('Email')}
               type="email"
               value={registerEmail}
               onChange={(e) => setRegisterEmail(e.target.value)}
               sx={{ mb: 2 }}
+              fullWidth
             />
             <TextField
-              fullWidth
-              label="Phone (Optional)"
+              name="Phone"
+              label={t('Phone (optional)')}
               value={registerPhone}
               onChange={(e) => setRegisterPhone(e.target.value)}
               sx={{ mb: 2 }}
+              fullWidth
             />
             <TextField
-              fullWidth
-              label="Password"
+              name="Password"
+              label={t('Password')}
               type={eventPassword ? 'text' : 'password'}
               value={registerPassword}
               onChange={(e) => setRegisterPassword(e.target.value)}
               sx={{ mb: 2 }}
+              fullWidth
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -574,18 +582,18 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
             />
 
             <Typography variant="caption" color="text.secondary" sx={{ mb: 2/*, display: 'block' TODO: WHY???*/ }}>
-              A verification code will be sent to your email
+              {t('A verification code will be sent to your email')}
             </Typography>
 
             <Button
-              fullWidth
               variant="contained"
               onClick={handleRegister}
               disabled={loading || !registerEmail || !registerPassword || !registerFirstName || !registerLastName}
               size="large"
               sx={{ mb: 2 }}
+              fullWidth
             >
-              {loading ? 'Registering...' : 'Register'}
+              {loading ? t('Registering...') : t('Register')}
             </Button>
 
             <Link
@@ -594,7 +602,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               onClick={() => setTab('login')}
               sx={{ cursor: 'pointer' }}
             >
-              Already have an account? Login
+              {t('Already have an account? Login')}
             </Link>
           </Box>
         )}
@@ -603,34 +611,35 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         {tab === 'verify' && (
           <Box sx={{ pt: 2 }}>
             <Alert severity="info" sx={{ mb: 2 }}>
-              A 6-digit verification code has been sent to <strong>{verifyEmailAddress}</strong>
+              {t('A 6-digit verification code has been sent to')} <strong>{verifyEmailAddress}</strong>
             </Alert>
             
             <TextField
-              fullWidth
-              label="Verification Code"
+              name="Verification Code"
+              label={t('Verification Code')}
               value={verifyCode}
               onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               onKeyPress={(e) => e.key === 'Enter' && handleVerifyEmail()}
               sx={{ mb: 2 }}
+              fullWidth
               autoFocus
               inputProps={{ maxLength: 6, style: { fontSize: '24px', textAlign: 'center', letterSpacing: '8px' } }}
             />
 
             <Button
-              fullWidth
               variant="contained"
               onClick={handleVerifyEmail}
               disabled={loading || verifyCode.length !== 6}
               size="large"
               sx={{ mb: 2 }}
+              fullWidth
             >
-              {loading ? 'Verifying...' : 'Verify Email'}
+              {loading ? t('Verifying...') : t('Verify Email')}
             </Button>
 
             <Box sx={{ textAlign: 'center' }}>
               <Typography variant="body2" color="text.secondary">
-                Didn't receive the code?
+                {t('Didn\'t receive the code?')}
               </Typography>
               <Link
                 component="button"
@@ -639,7 +648,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
                 disabled={loading}
                 sx={{ cursor: 'pointer' }}
               >
-                Resend Code
+                {t('Resend Code')}
               </Link>
             </Box>
           </Box>
@@ -649,29 +658,30 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         {tab === 'forgot' && (
           <Box sx={{ pt: 2 }}>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Enter your email address and we'll send you a code to reset your password.
+              {t('Enter your email address and we\'ll send you a code to reset your password')}
             </Typography>
             
             <TextField
-              fullWidth
-              label="Email"
+              name="Email"
+              label={t('Email')}
               type="email"
               value={forgotEmail}
               onChange={(e) => setForgotEmail(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleForgotPassword()}
+              // onKeyPress={(e) => e.key === 'Enter' && handleForgotPassword()}
               sx={{ mb: 2 }}
+              fullWidth
               autoFocus
             />
 
             <Button
-              fullWidth
               variant="contained"
               onClick={handleForgotPassword}
               disabled={loading || !forgotEmail}
               size="large"
               sx={{ mb: 2 }}
+              fullWidth
             >
-              {loading ? 'Sending...' : 'Send Reset Code'}
+              {loading ? t('Sending...') : t('Send Reset Code')}
             </Button>
 
             <Link
@@ -680,7 +690,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               onClick={() => setTab('login')}
               sx={{ cursor: 'pointer' }}
             >
-              Back to Login
+              {t('Back to Login')}
             </Link>
           </Box>
         )}
@@ -689,27 +699,29 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         {tab === 'reset' && (
           <Box sx={{ pt: 2 }}>
             <Alert severity="info" sx={{ mb: 2 }}>
-              A reset code has been sent to <strong>{resetEmail}</strong>
+              {t('A reset code has been sent to')} <strong>{resetEmail}</strong>
             </Alert>
             
             <TextField
-              fullWidth
-              label="Reset Code"
+              name="Reset Code"
+              label={t('Reset Code')}
               value={resetCode}
               onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
               sx={{ mb: 2 }}
+              fullWidth
               autoFocus
               inputProps={{ maxLength: 6 }}
             />
             
             <TextField
-              fullWidth
-              label="New Password"
+              name="New Password"
+              label={t('New Password')}
               type={eventPassword ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleResetPassword()}
+              // onKeyPress={(e) => e.key === 'Enter' && handleResetPassword()}
               sx={{ mb: 2 }}
+              fullWidth
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -722,14 +734,14 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
             />
 
             <Button
-              fullWidth
               variant="contained"
               onClick={handleResetPassword}
               disabled={loading || resetCode.length !== 6 || !newPassword}
               size="large"
               sx={{ mb: 2 }}
+              fullWidth
             >
-              {loading ? 'Resetting...' : 'Reset Password'}
+              {loading ? t('Resetting...') : t('Reset Password')}
             </Button>
 
             <Link
@@ -738,7 +750,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               onClick={() => setTab('login')}
               sx={{ cursor: 'pointer' }}
             >
-              Back to Login
+              {t('Back to Login')}
             </Link>
           </Box>
         )}

@@ -13,7 +13,6 @@ export interface Event {
   choreographer?: string;
   musicalDirector?: string;
   theaterId: string;
-  showId: string;
   stageType?: string;
   openingDate?: string;
   closingDate?: string;
@@ -69,4 +68,9 @@ export interface EventStats {
   nextPerformanceDate?: string;
   availablePerformances: number;
   status: string;
+}
+
+export interface EventWithDetails extends Event {
+  theater?: any;
+  performances?: EventPerformance[];
 }

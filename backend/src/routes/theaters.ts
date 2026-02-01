@@ -2,91 +2,145 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth';
-import { Theater, TheaterStats, Section } from '../types/theater';
+import { Theater, TheaterStats/*, Section*/ } from '../shared/types/theater';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const router = express.Router();
 
 // Public: Get all theaters with stats
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const theaters = await database.getAllTheaters();
-    const stats: TheaterStats[] = theaters.map(theater => {
-      let totalSeats = 0;
-      let freeSeats = 0;
+    if (!theaters) {
+      res.json([]);
+    } else {
+      const stats: TheaterStats[] = theaters.map(theater => {
+        // let totalSeats = 0;
+        // let freeSeats = 0;
 
-      theater.sections.forEach(section => {
-        section.rows.forEach(row => {
-          totalSeats += row.seats;
-          if (row.seatStatuses) {
-            freeSeats += row.seatStatuses.filter(s => s.status === 'available').length;
-          } else {
-            freeSeats += row.seats;
-          }
-        });
+        // theater.sections.forEach(section => {
+        //   section.rows.forEach(row => {
+        //     totalSeats += row.seats;
+        //     if (row.seatStatuses) {
+        //       freeSeats += row.seatStatuses.filter(s => s.status === 'available').length;
+        //     } else {
+        //       freeSeats += row.seats;
+        //     }
+        //   });
+        // });
+
+        return {
+          id: theater.id,
+          name: theater.name,
+          description: theater.description,
+          stageType: theater.stageType,
+          address: theater.address,
+          websiteUrl: theater.websiteUrl,
+          status: theater.status,
+          currentLayoutId: theater.currentLayoutId,
+          // totalSeats,
+          // freeSeats
+        };
       });
-
-      return {
-        id: theater.id,
-        name: theater.name,
-        totalSeats,
-        freeSeats
-      };
-    });
-
-    res.json(stats);
+      res.json(stats);
+    }
   } catch (error) {
-    res.status(500).json({ error: req.t('Failed to fetch theaters') });
+    res.status(500).json({ error: req.t('Failed to get theaters: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 
-// Public: Get theater by ID
+// Public: Get theater by id
 router.get('/:id', async (req, res) => {
   try {
     const theaterId = req.params.id;
     const theater = await database.getTheaterById(theaterId);
     if (!theater) {
-      return res.status(404).json({ error: 'Theater not found' });
+      return res.status(404).json({ error: req.t('Theater not found') });
     }
     res.json(theater);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch theater' });
+    res.status(500).json({ error: req.t('Failed to get theater: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 
 // Protected, Admin: Create new theater
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { name, description, sections } = req.body;
-
-    if (!name || !sections) {
-      return res.status(400).json({ error: 'Name and sections are required' });
+    const { name, description, stageType, address, websiteUrl, status } = req.body;
+    if (!name) {
+      return res.status(400).json({ error: req.t('Name is required') });
     }
 
     const theater: Theater = {
       id: uuidv4(),
       name,
       description,
-      sections: sections.map((section: Section) => ({
-        ...section,
-        rows: section.rows.map(row => ({
-          ...row,
-          seatStatuses: Array.from({ length: row.seats }, (_, i) => ({
-            id: `${row.id}-${row.startNumber + i}`,
-            number: row.startNumber + i,
-            status: 'available' as const
-          }))
-        }))
-      })),
+      stageType,
+      address,
+      websiteUrl,
+      status,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
-    await database.createTheater(theater);
-    res.status(201).json(theater);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create theater' });
+    const id = await database.createTheater(theater);
+    res.status(201).json(id);
+  } catch (error: any) {
+    res.status(500).json({ error: req.t('Failed to create theater: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
+
+// Protected: update theater by id (admin only)
+router.put("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    await database.updateTheaterFull(req.params.id, req.body/*JSON.stringify(req.body)*/); // TODO: and name and des ?
+    res.sendStatus(204);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to update theater: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
+// Public: get theater current layout by id
+router.get("/:id/layout/", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const theaterId = req.params.id;
+    const layout = await database.getTheaterLayoutCurrent(theaterId);
+    res.json(layout);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to get theater current layout: {{err}}: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
+// Protected: update theater current layout by id (admin only)
+router.put("/:id/layout/:layoutId?", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    await database.setTheaterLayoutCurrent(req.params.id, req.params.layoutId);
+    res.sendStatus(204);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to update theater current layout: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
+// Protected: clear theater current layout by id (admin only)
+router.delete("/:id/layout/", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    await database.clearTheaterLayoutCurrent(req.params.id);
+    res.sendStatus(204);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to clear theater current layout: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
+// Protected: delete theater by id (admin only)
+router.delete("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    await database.deleteTheater(req.params.id);
+    res.json({ message: 'Theater deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to delete theater: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
 
 // // Protected: Update theater reservations
 // router.put('/:id/reservations', authenticateToken, async (req, res) => {
@@ -106,11 +160,12 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 //   }
 // });
 
+/*
 // Protected: Book seats
 router.post('/:id/book', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const theaterId = req.params.id;
-    const { seatIds } = req.body;
+    //const { seatIds } = req.body;
     const theater = await database.getTheaterById(theaterId);
 
     if (!theater) {
@@ -129,35 +184,36 @@ router.post('/:id/book', authenticateToken, async (req: AuthRequest, res) => {
     //   }))
     // }));
 
-    let canBookAll = true;
-    const failedSeats: string[] = [];
-
-    // Create updated sections while checking
-    const updatedSections = theater.sections.map(section => ({
-      ...section,
-      rows: section.rows.map(row => ({
-        ...row,
-        seatStatuses: row.seatStatuses?.map(seat => {
-          if (seatIds.includes(seat.id)) {
-            // Check before deciding new status
-            if (seat.status === 'booked') {
-              canBookAll = false;
-              failedSeats.push(seat.id);
-              return seat; // Return unchanged seat
-            }
-            return { ...seat, status: 'booked' as const };
-          }
-          return seat;
-        })
-      }))
-    }));
-
-    if (!canBookAll) {
-      return res.status(409).json({ 
-        error: 'Some seats already booked', 
-        seats: failedSeats 
-      });
-    }
+    // TODO !!!
+    // let canBookAll = true;
+    // const failedSeats: string[] = [];
+    // // Create updated sections while checking
+    // const updatedSections = theater.sections.map(section => ({
+    //   ...section,
+    //   rows: section.rows.map(row => ({
+    //     ...row,
+    //     seatStatuses: row.seatStatuses?.map(seat => {
+    //       if (seatIds.includes(seat.id)) {
+    //         // Check before deciding new status
+    //         if (seat.status === 'booked') {
+    //           canBookAll = false;
+    //           failedSeats.push(seat.id);
+    //           return seat; // Return unchanged seat
+    //         }
+    //         return { ...seat, status: 'booked' as const };
+    //       }
+    //       return seat;
+    //     })
+    //   }))
+    // }));
+    //
+    // if (!canBookAll) {
+    //   return res.status(409).json({ 
+    //     error: 'Some seats already booked', 
+    //     seats: failedSeats 
+    //   });
+    // }
+    const updatedSections: Section[] = []; // TODO ...
 
     await database.updateTheater(theaterId, updatedSections);
     res.json({ message: 'Seats booked successfully' });
@@ -165,16 +221,17 @@ router.post('/:id/book', authenticateToken, async (req: AuthRequest, res) => {
     res.status(500).json({ error: 'Failed to book seats' });
   }
 });
+*/
 
 // Protected, Admin: Update theater
 router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const theaterId = req.params.id;
-    const { name, description, sections } = req.body;
+    const { name, description, /*sections*/ stageType, address, websiteUrl, status} = req.body;
     const theater = await database.getTheaterById(theaterId);
 
     if (!theater) {
-      return res.status(404).json({ error: 'Theater not found' });
+      return res.status(404).json({ error: req.t('Theater not found') });
     }
 
     // Update theater details
@@ -182,7 +239,11 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
       ...theater,
       name: name || theater.name,
       description: description !== undefined ? description : theater.description,
-      sections: sections || theater.sections,
+      stageType: stageType !== undefined ? stageType : theater.stageType,
+      address: address !== undefined ? address : theater.address,
+      websiteUrl: websiteUrl !== undefined ? websiteUrl : theater.websiteUrl,
+      status: status !== undefined ? status : theater.status,
+      // sections: sections || theater.sections,
       updatedAt: new Date().toISOString()
     };
 
@@ -190,7 +251,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
     await database.updateTheaterFull(theaterId, updatedTheater);
     res.json(updatedTheater);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update theater' });
+    res.status(500).json({ error: req.t('Failed to update theater: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 

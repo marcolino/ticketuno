@@ -6,7 +6,7 @@ primary_region = "fra"
 [env]
   NODE_ENV = "production"
   PORT = "8080"
-  DB_PATH = "/data/theaters.db"
+  DB_PATH = "/data/ticketuno.db"
 
 [http_service]
   internal_port = 8080

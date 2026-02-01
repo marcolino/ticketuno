@@ -1,4 +1,5 @@
 import { LayoutJSON } from './layout';
+
 export interface GeneratedSeat {
   id: string;
   sectionId: string;

@@ -1,17 +1,28 @@
 // SeatMapSVG.tsx
 import { generateSeats } from "../../../shared/types/layoutToSeats";
+import { Layout, LayoutJSON } from "../../../shared/types/layout";
+import { Seat } from "../../../shared/types/theater";
 
-export function SeatMapSVG({ layout, seatStates, selected, onToggle }) {
+interface SeatMapSVGProps {
+  layout: Layout;
+  seatStates: Record<string, Seat>;
+  selected: string[];
+  onToggle: (seatId: string) => void;
+}
+
+export function SeatMapSVG({ layout, seatStates, selected, onToggle }: SeatMapSVGProps) {
   if (!layout) return null;
 
-  const seats = generateSeats(layout);
+  const layoutData: LayoutJSON = JSON.parse(layout.json);
+  const seats = generateSeats(layoutData);
 
   return (
     <svg viewBox="0 0 1000 800" width="100%" height="600">
       {seats.map(seat => {
-        const status = seatStates[seat.id];
+        const seatState = seatStates[seat.id]; // Seat | undefined
+        const status = seatState?.status ?? 'none'; // string (e.g., 'sold' | 'available' | ...)
         const fill =
-          status === "sold"
+          status === 'booked'
             ? "#999"
             : selected.includes(seat.id)
             ? "#1976d2"

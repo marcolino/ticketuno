@@ -29,7 +29,7 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import { eventApi } from '../services/api';
-import { EventWithDetails, EventPerformance } from '../types/event';
+import { EventWithDetails, EventPerformance } from '../../../shared/types/event';
 import { useAuth } from '../contexts/AuthContext';
 
 const EventDetails: React.FC = () => {
@@ -74,7 +74,7 @@ const EventDetails: React.FC = () => {
 
   const handleBookPerformance = (performanceId: string) => {
     if (!isAuthenticated) {
-      // This will be handled by the Design's login dialog
+      // This will be handled by the Home's login dialog
       //return; // not authenticated users will be asked to authenticate when they want to book
     }
     navigate(`/performance/${id}/${performanceId}`);

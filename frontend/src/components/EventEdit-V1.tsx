@@ -1,0 +1,940 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Container,
+  Box,
+  Typography,
+  Button,
+  Paper,
+  TextField,
+  Grid,
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  InputAdornment,
+  Stack,
+  // Avatar,
+} from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import {
+  Save as SaveIcon,
+  Add as AddIcon,
+  Delete as DeleteIcon,
+  // CloudUpload as CloudUploadIcon,
+  // PhotoCamera as PhotoCameraIcon,
+} from '@mui/icons-material';
+import { eventApi, theaterApi } from '../services/api';
+import { Event, EventPerformance } from '../../../shared/types/event';
+import { TheaterStats } from '../../../shared/types/theater';
+import { ImageType, UploadedImage } from '../../../shared/types/image';
+import { useAuth } from '../contexts/AuthContext';
+import { toast } from '../contexts/ToastContext';
+import ImageUploadSection from './ImageUploadSection';
+import ImageUploadEditPopup from './ImageUploadEditPopup';
+import dayjs, { Dayjs } from 'dayjs';
+import { t } from 'i18next';
+import config from '../config';
+
+const EventEdit: React.FC = () => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const { isAuthenticated, isAdmin } = useAuth();
+
+  const isEditMode = id && id !== 'new';
+
+  const [theaters, setTheaters] = useState<TheaterStats[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // Event fields
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [genre, setGenre] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState<number>(120);
+  const [intermissionCount, setIntermissionCount] = useState<number>(1);
+  const [rating, setRating] = useState('');
+  const [language, setLanguage] = useState('English');
+  const [director, setDirector] = useState('');
+  const [playwright, setPlaywright] = useState('');
+  const [producer, setProducer] = useState('');
+  const [choreographer, setChoreographer] = useState('');
+  const [musicalDirector, setMusicalDirector] = useState('');
+  const [theaterId, setTheaterId] = useState('');
+  //const [stageType, setStageType] = useState('');
+
+  // const [openingDate, setOpeningDate] = useState('');
+  // const [closingDate, setClosingDate] = useState('');
+
+  // const [openingDate, setOpeningDate] = useState<Dayjs | null>(null);
+  // const [closingDate, setClosingDate] = useState<Dayjs | null>(null);
+  // const [typicalStartTime, setTypicalStartTime] = useState<Dayjs | null>('19:30');
+  // const [typicalEndTime, setTypicalEndTime] = useState<Dayjs | null>(null);
+
+  const [openingDate, setOpeningDate] = useState<Dayjs | null>(null);
+  const [closingDate, setClosingDate] = useState<Dayjs | null>(null);
+  const [typicalStartTime, setTypicalStartTime] = useState<Dayjs | null>(null);
+  const [typicalEndTime, setTypicalEndTime] = useState<Dayjs | null>(null);
+
+  //const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState<number>(50);
+  const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50); // TODO: to config
+  const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
+  
+  //const [currency, setCurrency] = useState(config.currencies[config.defaultCurrencyCode].symbol);
+  //const [currency, setCurrency] = useState(config.currencies[config.defaultCurrencyCode as any].symbol);
+  const [currency, setCurrency] = useState(
+    Object.values(config.currencies).find(c => c.code === config.defaultCurrencyCode)?.code || ''
+  );
+  const [specialRequirements, setSpecialRequirements] = useState('');
+  const [minimumAge, setMinimumAge] = useState<number>(0);
+
+  // const [typicalStartTime, setTypicalStartTime] = useState('19:30');
+  // const [typicalEndTime, setTypicalEndTime] = useState('');
+
+  const [eventPosterUrl, setEventPosterUrl] = useState('');
+  // const [trailerUrl, setTrailerUrl] = useState('');
+  // const [websiteUrl, setWebsiteUrl] = useState('');
+  const [contentWarnings, setContentWarnings] = useState('');
+  const [status, setStatus] = useState<'scheduled' | 'in_progress' | 'completed' | 'cancelled'>('scheduled');
+
+  // Performances
+  const [performances, setPerformances] = useState<Partial<EventPerformance>[]>([]);
+
+  // // Image upload and edit
+  const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
+  const [activeImageType, setActiveImageType] = useState<ImageType | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [lastSavedImage, setLastSavedImage] = useState<string | null>(null);
+
+  const [uploadedImages, setUploadedImages] = useState<Record<ImageType, UploadedImage | null>>({
+    poster: null,
+    website: null,
+    banner: null,
+    thumbnail: null
+  });
+  
+  const loadTheaters = async () => {
+    try {
+      const response = await theaterApi.getAllTheaters();
+      setTheaters(response.data);
+    } catch (error: any) {
+      console.error(t('Failed to load theaters: {{err}}', { err: error.response?.data?.error }));
+    }
+  };
+
+  const loadEvent = useCallback(async () => {
+    try {
+      const response = await eventApi.getEventById(id!);
+      const event = response.data;
+      
+      setTitle(event.title);
+      setDescription(event.description || '');
+      setGenre(event.genre || '');
+      setDurationMinutes(event.durationMinutes || 120);
+      setIntermissionCount(event.intermissionCount || 1);
+      setRating(event.rating || '');
+      setLanguage(event.language || 'English');
+      setDirector(event.director || '');
+      setPlaywright(event.playwright || '');
+      setProducer(event.producer || '');
+      setChoreographer(event.choreographer || '');
+      setMusicalDirector(event.musicalDirector || '');
+      setTheaterId(event.theaterId);
+      //setStageType(event.stageType || '');
+      if (event.openingDate) setOpeningDate(dayjs(event.openingDate));
+      if (event.closingDate) setClosingDate(dayjs(event.closingDate));
+      if (event.typicalStartTime) setTypicalStartTime(dayjs(event.typicalStartTime, 'HH:mm'));
+      if (event.typicalEndTime) setTypicalEndTime(dayjs(event.typicalEndTime, 'HH:mm'));
+      // setOpeningDate(event.openingDate ? dayjs(event.openingDate) : null);
+      // setClosingDate(event.closingDate ? dayjs(event.closingDate) : null);
+      // setTypicalStartTime(event.typicalStartTime ? dayjs(event.typicalStartTime, 'HH:mm') : dayjs('19:30', 'HH:mm'));
+      // setTypicalEndTime(event.typicalEndTime ? dayjs(event.typicalEndTime, 'HH:mm') : dayjs('', 'HH:mm'));
+      setBaseTicketPrice(event.baseTicketPrice);
+      setCurrency(event.currency);
+      setSpecialRequirements(event.specialRequirements || '');
+      setMinimumAge(event.minimumAge || 0);
+      setEventPosterUrl(event.eventPosterUrl || '');
+      // setTrailerUrl(event.trailerUrl || '');
+      // setWebsiteUrl(event.websiteUrl || '');
+      setContentWarnings(event.contentWarnings || '');
+      setStatus(event.status);
+
+      if (event.performances) {
+        setPerformances(event.performances);
+      }
+
+      setError('');
+    } catch (err: any) {
+      setError(t('Failed to load event: {{err}}', { err: err.response?.data?.error }));
+    } finally {
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !isAdmin) {
+      navigate(-1);
+      return;
+    }
+
+    loadTheaters();
+    if (isEditMode) {
+      loadEvent();
+    }
+  }, [isAuthenticated, isAdmin, isEditMode, navigate, loadEvent]);
+  
+  const addPerformance = () => {
+    setPerformances([
+      ...performances,
+      { // TODO: to config...
+        performanceDate: '',
+        startTime: typicalStartTime ? typicalStartTime.format('HH:mm') : '',
+        endTime: typicalEndTime ? typicalEndTime.format('HH:mm') : '',
+        status: 'scheduled'
+      }
+    ]);
+  };
+
+  const removePerformance = (index: number) => {
+    setPerformances(performances.filter((_, i) => i !== index));
+  };
+
+  const updatePerformance = (index: number, field: string, value: string) => {
+    const updated = [...performances];
+    updated[index] = { ...updated[index], [field]: value };
+    setPerformances(updated);
+  };
+
+  const handleSave = async () => {
+    if (!title.trim() || !theaterId || !baseTicketPrice) {
+      setError(t('Title, theater, and base ticket price are required'));
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setError('');
+
+      const eventData: Partial<Event> = {
+        title,
+        description,
+        genre,
+        durationMinutes,
+        intermissionCount,
+        rating,
+        language,
+        director,
+        playwright,
+        producer,
+        choreographer,
+        musicalDirector,
+        theaterId,
+        // stageType,
+        // openingDate,
+        // closingDate,
+        // typicalStartTime,
+        // typicalEndTime,
+        openingDate: openingDate?.format('YYYY-MM-DD'),
+        closingDate: closingDate?.format('YYYY-MM-DD'),
+        typicalStartTime: typicalStartTime?.format('HH:mm'),
+        typicalEndTime: typicalEndTime?.format('HH:mm'),
+        baseTicketPrice,
+        currency,
+        specialRequirements,
+        minimumAge,
+        eventPosterUrl,
+        //trailerUrl,
+        //websiteUrl,
+        contentWarnings,
+        status
+      };
+
+      let eventId: string;
+
+      if (isEditMode) {
+        await eventApi.updateEvent(id!, eventData);
+        eventId = id!;
+        toast.success('Event updated successfully!');
+      } else {
+        const response = await eventApi.createEvent(eventData);
+        eventId = response.data.id;
+        toast.success('Event created successfully!');
+      }
+
+      // Create new performances (only for new ones without id)
+      for (const perf of performances) {
+        if (!perf.id && perf.performanceDate && perf.startTime) {
+          await eventApi.createPerformance(eventId, perf);
+        }
+      }
+
+      navigate(-1);
+    } catch (error: any) {
+      setError(error.response?.data?.error ||
+        t('Failed to {{what}} event: {{err}}', { what: isEditMode ? t('update') : t('create'), err: error.message})
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // if (loading) {
+  //   return (
+  //     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+  //       <CircularProgress />
+  //     </Box>
+  //   );
+  // }
+
+  const handleUploadImage = (imageUrl: string, imageData: any) => {
+    if (!activeImageType) return;
+    
+    console.log('Server response:', imageData);
+    
+    // imageData contains what your backend returns
+    // Example: { imageUrl: '/api/images/abc123', imageId: 'abc123', fileData: { size: 12345 } }
+    
+    setUploadedImages(prev => ({
+      ...prev,
+      [activeImageType]: {
+        url: imageUrl, // The URL from server
+        size: imageData.fileData?.size || 0,
+        timestamp: new Date(),
+        type: activeImageType
+      }
+    }));
+    
+    // Also save the image ID for your form
+    // formData.set(`${activeImageType}ImageId`, imageData.imageId);
+    // formData.set(`${activeImageType}ImageUrl`, imageUrl);
+  };
+  
+  const handleUploadImageOLD = (imageBlob: Blob) => {
+    // Handle the final image blob
+    console.log('Image uploaded:', imageBlob);
+    
+     try {
+      // TODO: Upload to server, and display it in a little stamp
+      
+      // Example: Convert to data URL for preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        setLastSavedImage(reader.result as string);
+        toast.info(t('Image saved successfully'));
+      };
+      reader.readAsDataURL(imageBlob);
+      
+      console.log('Image saved successfully:', {
+        size: `${(imageBlob.size / 1024 / 1024).toFixed(2)} MB`,
+        type: imageBlob.type,
+      });
+      
+      // Example: Upload to server
+      // await uploadToServer(imageBlob);
+      
+    } catch (error) {
+      console.error('Error handling saved image:', error);
+    }
+  };
+
+  const handleOpenPreview = (imageType: ImageType) => {
+    const image = uploadedImages[imageType];
+    if (image) {
+      setActiveImageType(imageType);
+      setPreviewOpen(true);
+    }
+  };
+
+  const handleClearImage = (imageType: ImageType) => {
+    setUploadedImages(prev => ({
+      ...prev,
+      [imageType]: null
+    }));
+  };
+  
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h4" gutterBottom>
+          {isEditMode ? t('Edit Event') : t('Create New Event')}
+        </Typography>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
+
+        <Grid container spacing={3}>
+          {/* Basic Information */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              {t('Basic Information')}
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} md={8}>
+            <TextField
+              fullWidth
+              label={t("Title")}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth required>
+              <InputLabel>{t('Status')}</InputLabel>
+              <Select
+                value={status}
+                label={t('Status')}
+                onChange={(e) => setStatus(e.target.value as any)}
+              >
+                <MenuItem value="scheduled">{t('Scheduled')}</MenuItem>
+                <MenuItem value="in_progress">{t('In Progress')}</MenuItem>
+                <MenuItem value="completed">{t('Completed')}</MenuItem>
+                <MenuItem value="cancelled">{t('Cancelled')}</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label={t('Description')}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              multiline
+              rows={3}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label={t('Genre')}
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              placeholder={t('Drama, Comedy, Musical, etc.')}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label={t('Language')}
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label={t('Duration (minutes)')}
+              type="number"
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(parseInt(e.target.value) || 0)}
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label={t('Intermissions')}
+              type="number"
+              value={intermissionCount}
+              onChange={(e) => setIntermissionCount(parseInt(e.target.value) || 0)}
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label={t('Rating')}
+              value={rating}
+              onChange={(e) => setRating(e.target.value)}
+              placeholder={t('PG, PG-13, R, etc.')}
+            />
+          </Grid>
+
+          {/* Venue Information */}
+          <Grid item xs={12}>
+            <FormControl fullWidth required>
+              <InputLabel>{t("Theater")}</InputLabel>
+              <Select
+                value={theaterId}
+                label={t("Theater")}
+                onChange={(e) => setTheaterId(e.target.value)}
+              >
+                {theaters.map((theater) => (
+                  <MenuItem key={theater.id} value={theater.id}>
+                    {theater.name} {/*({theater.totalSeats} seats)*/}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {/* Production Details */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              {t('Production Details')}
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label={t('Director')}
+              value={director}
+              onChange={(e) => setDirector(e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label={t('Playwright')}
+              value={playwright}
+              onChange={(e) => setPlaywright(e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label={t('Producer')}
+              value={producer}
+              onChange={(e) => setProducer(e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label={t('Choreographer')}
+              value={choreographer}
+              onChange={(e) => setChoreographer(e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label={t('Musical Director')}
+              value={musicalDirector}
+              onChange={(e) => setMusicalDirector(e.target.value)}
+            />
+          </Grid>
+
+          {/* Venue Information */}
+          {/* <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              {t('Venue Information')}
+            </Typography>
+          </Grid> */}
+
+          {/* <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              label={t('Stage Type')}
+              value={stageType}
+              onChange={(e) => setStageType(e.target.value)}
+              placeholder="Proscenium, Thrust, etc."
+            />
+          </Grid> */}
+
+          {/* Schedule */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              {t('Schedule')}
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Stack direction="row" spacing={2}>
+              <DatePicker
+                label={t('Start Date')}
+                value={openingDate}
+                onChange={(newValue) => setOpeningDate(newValue)}
+                maxDate={closingDate || undefined}
+                sx={{ width: '100%' }}
+              />
+              <DatePicker
+                label={t('End Date')}
+                value={closingDate}
+                onChange={(newValue) => setClosingDate(newValue)}
+                minDate={openingDate || undefined}
+                sx={{ width: '100%' }}
+              />
+            </Stack>
+          </Grid>
+
+          {/* <Grid item xs={12} md={6}>
+            <TextField
+              label={t('Opening Date')}
+              type="date"
+              value={openingDate}
+              onChange={(e) => setOpeningDate(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid>
+          
+          <Grid item xs={12} md={6}>
+            <TextField
+              label={t('Closing Date')}
+              type="date"
+              value={closingDate}
+              onChange={(e) => setClosingDate(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+            />
+          </Grid> */}
+
+          <Grid item xs={12} md={6}>
+            <Stack direction="row" spacing={2}>
+              <TimePicker
+                label={t('Typical Start Time')}
+                value={typicalStartTime}
+                onChange={(newValue) => setTypicalStartTime(newValue)}
+                sx={{ width: '100%' }}
+              />
+              <TimePicker
+                label={t('Typical End Time')}
+                value={typicalEndTime}
+                onChange={(newValue) => setTypicalEndTime(newValue)}
+                sx={{ width: '100%' }}
+              />
+            </Stack>
+          </Grid>
+
+          {/* Pricing */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              {t('Pricing')}
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>{t('Currency')}</InputLabel>
+              <Select
+                value={currency}
+                label={t('Currency')}
+                onChange={(e) => setCurrency(e.target.value)}
+              > {/* TODO: currencies array to config */}
+                {/* {Object.values(config.currencies).map((currency) => (
+                  <div key={currency.code}>{currency.symbol}</div>
+                ))} */}
+                {Object.values(config.currencies).map((currency) => (
+                  <MenuItem key={currency.code} value={currency.code}>
+                    {currency.code} ({currency.symbol})
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={10}>
+            <TextField
+              fullWidth
+              label={t('Base Ticket Price')}
+              type="number"
+              value={baseTicketPriceDisplay}
+              onChange={(e) => {
+                setBaseTicketPriceDisplay(e.target.value);
+                setBaseTicketPrice(parseFloat(e.target.value) || 0)
+              }}
+              onFocus={() => setBaseTicketPriceDisplay(baseTicketPrice.toString())}
+              onBlur={() => setBaseTicketPriceDisplay(baseTicketPrice.toFixed(2))}
+              required
+              InputProps={{
+                startAdornment: <InputAdornment position="start">{config.currencies[currency].symbol}</InputAdornment>,
+              }}
+              inputProps={{ min: 0, step: 1 }}
+            />
+          </Grid>
+
+          {/* Additional Information */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              {t('Additional Information')}
+            </Typography>
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              label={t('Minimum Age')}
+              type="number"
+              value={minimumAge}
+              onChange={(e) => setMinimumAge(parseInt(e.target.value) || 0)}
+              inputProps={{ min: 0 }}
+            />
+          </Grid>
+
+          {/*
+          <Grid item xs={12} md={6}>
+            <Box>
+              <Button
+                variant="contained"
+                onClick={() => setIsImageUploadPopupOpen(true)}
+                startIcon={<CloudUploadIcon />}
+              >
+                {t('Poster Image')}
+              </Button>
+              <ImageUploadEditPopup
+                open={isImageUploadPopupOpen}
+                onClose={() => setIsImageUploadPopupOpen(false)}
+                onSave={handleUploadImage}
+                // Optional: force a fixed aspect ratio (hides aspect selector from user)
+                /*
+                  { label: 'Free', value: 'free' },
+                  { label: 'Square (1:1)', value: 1 },
+                  { label: 'Landscape (16:9)', value: 16/9 },
+                  { label: 'Portrait (9:16)', value: 9/16 },
+                  { label: 'Instagram (4:5)', value: 4/5 },
+                  { label: 'Facebook (1.91:1)', value: 1.91 },
+                * /
+                fixedAspectRatio={9/16} // Portrait
+                maxSizeMB={10} // TODO: to config
+                title={t('Poster image')}
+              />
+            </Box>
+          </Grid> */}
+
+          {/* Poster Image Upload */}
+          <Grid item xs={12} md={12}>
+            <ImageUploadSection
+              type="poster"
+              label={t('Poster Image')}
+              aspectRatio={9/16}
+              uploadedImage={uploadedImages.poster}
+              onUploadClick={() => {
+                setActiveImageType('poster');
+                setIsImageUploadPopupOpen(true);
+              }}
+              onPreviewClick={() => handleOpenPreview('poster')}
+              onClearClick={() => handleClearImage('poster')}
+            />
+            {/* Upload Popup */}
+            <ImageUploadEditPopup
+              open={isImageUploadPopupOpen}
+              onClose={() => {
+                setIsImageUploadPopupOpen(false);
+                setActiveImageType(null);
+              }}
+              onSave={(imageUrl, imageData) => handleUploadImage(activeImageType!, imageUrl, imageData)}
+              // Optional: force a fixed aspect ratio (hides aspect selector from user)
+              /*
+                { label: 'Free', value: 'free' },
+                { label: 'Square (1:1)', value: 1 },
+                { label: 'Landscape (16:9)', value: 16/9 },
+                { label: 'Portrait (9:16)', value: 9/16 },
+                { label: 'Instagram (4:5)', value: 4/5 },
+                { label: 'Facebook (1.91:1)', value: 1.91 },
+              */
+              //fixedAspectRatio={9/16} // Portrait
+              fixedAspectRatio={
+                activeImageType === 'poster' ? 9/16 :
+                activeImageType === 'website' ? 16/9 : undefined
+              }
+              maxSizeMB={10} // TODO: to config
+              title={t('Poster image')}
+            />
+          </Grid>
+
+          {/*
+          <Grid item xs={12} md={3}>
+            <Stack direction="row" spacing={2} alignItems="center">
+              {/* Upload Button * /}
+              <Button
+                variant="contained"
+                onClick={() => setIsImageUploadPopupOpen(true)}
+                startIcon={<CloudUploadIcon />}
+                size="large"
+              >
+                {t('Poster Image')}
+              </Button>
+
+              {/* Image Preview * /}
+              <Box sx={{ position: 'relative' }}>
+                {/* TODO: to config, and set placeholder image... * /}
+                <Avatar uploadedImageUrl
+                  src={uploadedImageUrl || '/images/placeholder.jpg'}
+                  sx={{
+                    width: 42,
+                    height: 42,
+                    border: '2px solid',
+                    borderColor: uploadedImageUrl ? 'primary.main' : 'divider',
+                    bgcolor: uploadedImageUrl ? 'transparent' : 'action.hover',
+                    cursor: uploadedImageUrl ? 'pointer' : 'default'
+                  }}
+                  variant="rounded"
+                  onClick={uploadedImageUrl && setPreviewOpen(true)}
+                >
+                  {!uploadedImageUrl && <PhotoCameraIcon fontSize="small" />}
+                </Avatar>
+              </Box>
+            </Stack>
+
+            {/* Upload Popup * /}
+            <ImageUploadEditPopup
+              open={prev}
+              onClose={() => setIsImageUploadPopupOpen(false)}
+              onSave={handleUploadImage}
+              // Optional: force a fixed aspect ratio (hides aspect selector from user)
+              /*
+                { label: 'Free', value: 'free' },
+                { label: 'Square (1:1)', value: 1 },
+                { label: 'Landscape (16:9)', value: 16/9 },
+                { label: 'Portrait (9:16)', value: 9/16 },
+                { label: 'Instagram (4:5)', value: 4/5 },
+                { label: 'Facebook (1.91:1)', value: 1.91 },
+              * /
+              //fixedAspectRatio={9/16} // Portrait
+              maxSizeMB={10} // TODO: to config
+              title={t('Poster image')}
+            />
+          </Grid>
+          */}
+          
+          {/* <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              label={t('Trailer URL')}
+              value={trailerUrl}
+              onChange={(e) => setTrailerUrl(e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              label={t('Website URL')}
+              value={websiteUrl}
+              onChange={(e) => setWebsiteUrl(e.target.value)}
+            />
+          </Grid> */}
+
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label={t('Special Requirements')}
+              value={specialRequirements}
+              onChange={(e) => setSpecialRequirements(e.target.value)}
+              multiline
+              rows={2}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <TextField
+              fullWidth
+              label={t('Content Warnings')}
+              value={contentWarnings}
+              onChange={(e) => setContentWarnings(e.target.value)}
+              multiline
+              rows={2}
+            />
+          </Grid>
+
+          {/* Performances */}
+          <Grid item xs={12}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 2 }}>
+              <Typography variant="h6">
+                {t('Performances')}
+              </Typography>
+              <Button
+                startIcon={<AddIcon />}
+                onClick={addPerformance}
+                variant="outlined"
+              >
+                {t('Add Performance')}
+              </Button>
+            </Box>
+          </Grid>
+
+          {performances.map((perf, index) => (
+            <Grid item xs={12} key={index}>
+              <Paper variant="outlined" sx={{ p: 2 }}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} md={4}>
+                    <TextField
+                      fullWidth
+                      label={t('Performance Date')}
+                      type="date"
+                      value={perf.performanceDate || ''}
+                      onChange={(e) => updatePerformance(index, 'performanceDate', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <TextField
+                      fullWidth
+                      label={t('Start Time')}
+                      type="time"
+                      value={perf.startTime || ''}
+                      onChange={(e) => updatePerformance(index, 'startTime', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={3}>
+                    <TextField
+                      fullWidth
+                      label={t('End Time')}
+                      type="time"
+                      value={perf.endTime || ''}
+                      onChange={(e) => updatePerformance(index, 'endTime', e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} md={2}>
+                    <Button
+                      fullWidth
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                      onClick={() => removePerformance(index)}
+                    >
+                      {t('Remove')}
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+
+        {/* Action Buttons */}
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 4 }}>
+          <Button
+            variant="outlined"
+            onClick={() => navigate(-1)}
+            disabled={saving}
+          >
+            {t('Cancel')}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<SaveIcon />}
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ?
+              (isEditMode ? t('Updating...') : t('Creating...')) :
+              (isEditMode ? t('Update Event') : t('Create Event'))
+            }
+          </Button>
+        </Box>
+      </Paper>
+    </Container>
+  );
+};
+
+export default EventEdit;

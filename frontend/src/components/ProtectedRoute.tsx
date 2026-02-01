@@ -17,7 +17,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   // You need to expose loading from AuthContext
   // For now, let's assume you can access it
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, isAdmin, loading } = useAuth();
   const { t } = useTranslation();
   const hasShownToast = useRef(false);
   
@@ -26,10 +26,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       toast.error('You must be logged in to access this page');
       hasShownToast.current = true;
     }
-    if (!loading && !requireAdmin && user?.role !== 'admin' && !hasShownToast.current) {
+    if (!loading && !requireAdmin && !isAdmin && !hasShownToast.current) {
       toast.error(t("Admin privileges required to access this page"));
     }
-  }, [loading, isAuthenticated, requireAdmin, user, t]);
+  }, [loading, isAuthenticated, requireAdmin, isAdmin, t]);
 
   // Show loading spinner while checking auth
   if (loading) {
@@ -48,7 +48,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }} />;
   }
 
-  if (requireAdmin && user?.role !== 'admin') {
+  if (requireAdmin && !isAdmin) {
     //toast.error(t("Admin privileges required to access this page"));
     return <Navigate to="/" replace state={{ 
       message: t("Admin privileges required to access this page")

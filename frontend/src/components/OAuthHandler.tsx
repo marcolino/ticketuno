@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useLocation  } from 'react-router-dom';
 import { setAuthToken } from '../services/api';
 import { toast } from '../contexts/ToastContext';
-import { i18n } from '../i18n';
+//import { i18n } from '../i18n';
 
 // Component to handle OAuth callback
 const OAuthHandler: React.FC = () => {

@@ -2,7 +2,7 @@
 export interface Layout {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
   theaterId: string;
   json: string;
 }

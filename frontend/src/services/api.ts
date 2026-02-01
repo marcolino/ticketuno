@@ -1,5 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
-import { Theater, TheaterStats } from '../types/theater';
+import axios, { AxiosInstance, /*AxiosResponse, */InternalAxiosRequestConfig } from 'axios';
 import { 
   User, 
   LoginCredentials,
@@ -10,8 +9,9 @@ import {
   ForgotPasswordData,
   ForgotPasswordResponse,
   ResetPasswordData
-} from '../types/user';
-import { Event, EventStats, EventPerformance, EventWithDetails } from '../types/event';
+} from '../../../shared/types/user';
+import { Theater } from '../../../shared/types/theater';
+import { Event, EventStats, EventPerformance, EventWithDetails } from '../../../shared/types/event';
 import { Layout } from '../../../shared/types/layout';
 import { i18n }  from '../i18n'; 
 
@@ -194,90 +194,197 @@ api.interceptors.response.use(
 );
 // ========== END AUTH MANAGEMENT ==========
 
+// ========== ERRORS MANAGEMENT ==========
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    let message = i18n.t('An unexpected error occurred'); // TODO: check if this translates correctly
+    /*
+    if (error.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error.response?.data?.message) {
+      message = error.response.data.message;
+    } else if (error.response?.status) {
+      // Status-specific default messages
+      const statusMessages: Record<number, string> = {
+        400: i18n.t('Invalid request. Please check your input.'),
+        401: i18n.t('You must be logged in to perform this action.'),
+        403: i18n.t('You do not have permission to perform this action.'),
+        404: i18n.t('The requested resource was not found.'),
+        409: i18n.t('This operation conflicts with existing data.'),
+        422: i18n.t('Validation failed. Please check your input.'),
+        500: i18n.t('Server error. Please try again later.'),
+        502: i18n.t('Bad gateway. Server is temporarily unavailable.'),
+        503: i18n.t('Service unavailable. Please try again later.'),
+      };
+      message = statusMessages[error.response.status] || error.response.statusText || message;
+    } else if (error.message) {
+      message = error.message;
+    } else if (error.request) {
+      message = i18n.t('No response from server. Please check your connection.');
+    }
+    */
+    const normalizedError = {
+      ...error,
+      message,
+      statusCode: error.response?.status,
+      originalError: error.response?.data,
+    };
+
+    return Promise.reject(normalizedError);
+  }
+);
+// ========== END ERRORS MANAGEMENT ==========
+
 // ========== API ENDPOINTS ==========
 export const userApi = {
-  // Login
-  login: (credentials: LoginCredentials) => 
-    //api.post<{ token: string; user: User }>('/users/login', credentials),
-    api.post<LoginResponse>('/users/login', credentials),
-  // Direct registration
-  // register: (data: RegisterData) =>
-  //   api.post<{ token: string; user: User }>('/users/register', data),
   
-  // Registration with 2FA
-  register: (data: RegisterData) =>
-    //api.post<{ message: string; email: string, verificationCode: string }>('/users/register', data),
+  login: (credentials: LoginCredentials) => // Login
+    api.post<LoginResponse>('/users/login', credentials),
+  
+  register: (data: RegisterData) => // Registration with 2FA
     api.post<RegisterResponse>('/users/register', data),
   
-  // Verify email
-  verifyEmail: (data: VerificationData) =>
+  verifyEmail: (data: VerificationData) => // Verify email
     api.post<{ token: string; user: User; message: string }>('/users/verify-email', data),
   
-  // Resend verification code
-  resendVerification: (email: string) =>
+  resendVerification: (email: string) => // Resend verification code
     api.post<{ message: string; verificationCode: string }>('/users/resend-verification', { email }),
   
-  // Forgot password
-  forgotPassword: (data: ForgotPasswordData) =>
+  forgotPassword: (data: ForgotPasswordData) => // Forgot password
     api.post<ForgotPasswordResponse>('/users/forgot-password', data),
   
-  // Password reset
-  resetPassword: (data: ResetPasswordData) =>
+  resetPassword: (data: ResetPasswordData) => // Password reset
     api.post('/users/reset-password', data),
   
-  // Google OAuth
-  getGoogleAuthUrl: () =>
+  getGoogleAuthUrl: () => // Google OAuth
     api.get<{ authUrl: string }>('/users/auth/google'),
   
   googleCallback: (code: string) =>
     api.post<{ token: string; user: User }>('/users/auth/google/callback', { code }),
 
-  // Get user profile
-  getProfile: () =>
+  getProfile: () => // Get user profile
     api.get<User>('/users/profile'),
-
-  // Update user profile
-  updateProfile: (data: Partial<User>) => 
+  
+  updateProfile: (data: Partial<User>) => // Update user profile
     api.put<User>('/users/profile', data),
 };
 
 export const theaterApi = {
-  getAllTheaters: () => api.get<TheaterStats[]>('/theaters'),
-  getTheaterById: (id: string) => api.get<Theater>(`/theaters/${id}`),
+  getAllTheaters: () =>
+    api.get<Theater[]>('/theaters'),
+
+  getTheaterById: (id: string) =>
+    api.get<Theater>(`/theaters/${id}`),
+
   createTheater: (theater: Partial<Theater>) => 
-    api.post<Theater>('/theaters', theater),
-  updateTheater: (id: string, theater: Partial<Theater>) => 
+    api.post<string>('/theaters', theater),
+
+  // updateTheater: (id: string, theater: Partial<Theater>) => 
+  //   api.put<Theater>(`/theaters/${id}`, theater),
+
+  updateTheaterFull: (id: string, theater: Partial<Theater>) =>
     api.put<Theater>(`/theaters/${id}`, theater),
-  bookSeats: (theaterId: string, seatIds: string[]) => 
+
+  getTheaterLayoutCurrent: (id: string) =>
+    api.get<Theater>(`/theaters/${id}/layout`),
+
+  setTheaterLayoutCurrent: (id: string, layoutId: string) =>
+    api.put<Theater>(`/theaters/${id}/layout/${layoutId}`),
+
+  clearTheaterLayoutCurrent: (id: string) =>
+    api.delete<Theater>(`/theaters/${id}/layout`),
+
+  deleteTheater: (id: string) =>
+    api.delete(`/theaters/${id}`),
+
+  bookSeats: (theaterId: string, seatIds: string[]) =>
     api.post(`/theaters/${theaterId}/book`, { seatIds }),
-  
-  // Refresh theaters in background with skip-loading header (currently unused)
-  refreshTheaters: () => api.get('/theaters/refresh', {
+
+  refreshTheaters: () => api.get('/theaters/refresh', { // Refresh theaters in background with skip-loading header (currently unused)
     headers: { 'X-Skip-Loading': 'true' }
   }),
 };
 
 export const layoutApi = {
-  getAllLayouts: () => api.get<Layout[]>('/layouts'),
-  getLayoutById: (id: string) => api.get<Layout>(`/layouts/${id}`),
-  createLayout: (layout: Partial<Layout>) => api.post<Layout>('/layouts', layout),
-  updateLayout: (id: string, layout: Partial<Layout>) => api.put<Layout>(`/layouts/${id}`, layout),
-  deleteLayout: (id: string) => api.delete(`/layouts/${id}`),
+  getAllLayouts: () =>
+    api.get<Layout[]>('/layouts'),
+
+  getLayoutById: (id: string) =>
+    api.get<Layout>(`/layouts/${id}`),
+
+  getLayoutsByTheaterId: (theaterId: string) =>
+    api.get<Layout[]>(`/layouts/${theaterId}`),
+
+  createLayout: (layout: Partial<Layout>) =>
+    api.post<Layout>('/layouts', layout),
+
+  updateLayout: (id: string, layout: Partial<Layout>) =>
+    api.put<Layout>(`/layouts/${id}`, layout),
+
+  deleteLayout: (id: string) =>
+    api.delete(`/layouts/${id}`),
 };
 
 export const eventApi = {
-  getAllEvents: () => api.get<EventStats[]>('/events'),
-  getEventById: (id: string) => api.get<EventWithDetails>(`/events/${id}`),
-  createEvent: (event: Partial<Event>) => api.post<Event>('/events', event),
-  updateEvent: (id: string, event: Partial<Event>) => api.put<Event>(`/events/${id}`, event),
-  deleteEvent: (id: string) => api.delete(`/events/${id}`),
-  getPerformances: (eventId: string) => api.get<EventPerformance[]>(`/events/${eventId}/performances`),
+  getAllEvents: () =>
+    api.get<EventStats[]>('/events'),
+
+  getEventById: (id: string) =>
+    api.get<EventWithDetails>(`/events/${id}`),
+
+  createEvent: (event: Partial<Event>) =>
+    api.post<Event>('/events', event),
+
+  updateEvent: (id: string, event: Partial<Event>) =>
+    api.put<Event>(`/events/${id}`, event),
+
+  deleteEvent: (id: string) =>
+    api.delete(`/events/${id}`),
+
+  getPerformances: (eventId: string) =>
+    api.get<EventPerformance[]>(`/events/${eventId}/performances`),
+
   getPerformance: (eventId: string, performanceId: string) => 
     api.get<EventPerformance>(`/events/${eventId}/performances/${performanceId}`),
+
   createPerformance: (eventId: string, performance: Partial<EventPerformance>) => 
     api.post<EventPerformance>(`/events/${eventId}/performances`, performance),
+
   bookPerformance: (eventId: string, performanceId: string, seatIds: string[]) =>
     api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
+};
+
+// Image API
+export const imageApi = {
+  /**
+   * Upload an image to the server
+   * @param formData FormData object containing the image file
+   * @returns Promise with the uploaded image data including URL
+   */
+  uploadImage: async (formData: FormData) => {
+    return api.post('/images/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+
+  /**
+   * Delete an image from the server
+   * @param imageId The ID of the image to delete
+   */
+  deleteImage: async (imageId: string) => {
+    return api.delete(`/images/${imageId}`);
+  },
+
+  /**
+   * Get image metadata
+   * @param imageId The ID of the image
+   */
+  getImageMetadata: async (imageId: string) => {
+    return api.get(`/images/${imageId}/metadata`);
+  },
 };
 
 export default api;

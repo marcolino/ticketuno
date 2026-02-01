@@ -4,9 +4,9 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
-import { i18n } from '../i18n';
-import { authenticateToken, generateToken, requireAdmin, AuthRequest } from '../middleware/auth';
-import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../types/user';
+//import { i18n } from '../i18n';
+import { authenticateToken, generateToken, /*requireAdmin, */AuthRequest } from '../middleware/auth';
+import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
 import { 
   generateVerificationCode, 
   isCodeValid, 
@@ -45,7 +45,7 @@ router.post('/register', async (req, res) => {
 
     const existingUser = await database.getUserByEmail(email);
     if (existingUser) {
-      return res.status(400).json({ error: 'Email already registered' });
+      return res.status(400).json({ error: req.t('This email is already registered') });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -153,7 +153,6 @@ router.post('/verify-email', async (req, res) => {
       user: profile 
     });
   } catch (error) {
-    console.error('Verify email error:', error);
     res.status(500).json({ error: req.t('Failed to verify email: {{err}}', req.t(getErrorMessage(error))) });
   }
 });
@@ -191,35 +190,12 @@ router.post('/resend-verification', async (req, res) => {
       ...(config.nodeEnv !== 'production' && { verificationCode }),
     });
   } catch (error) {
-    console.error('Resend verification error:', error);
     res.status(500).json({ error: req.t('Failed to resend verification code: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
 // Login
 router.post('/login', async (req: AuthRequest, res) => {
-  console.log('\n======= LOGIN ROUTE DEBUG =======');
-  console.log('req.language:', req.language);
-  
-  // Test the translation
-  const translation = req.t('Invalid credentials');
-  console.log('req.t("Invalid credentials"):', translation);
-  console.log('Type of translation:', typeof translation);
-  
-  // Also test with explicit language
-  const translationEn = req.t('Invalid credentials', { lng: 'en' });
-  const translationIt = req.t('Invalid credentials', { lng: 'it' });
-  const translationFr = req.t('Invalid credentials', { lng: 'fr' });
-  
-  console.log('Translation EN:', translationEn);
-  console.log('Translation IT:', translationIt);
-  console.log('Translation FR:', translationFr);
-  
-  // Check if it's returning the key (no translation found)
-  if (translation === 'Invalid credentials') {
-    console.log('WARNING: Translation not found, returning key!');
-  }
-  
   try {
     const { email, password } = req.body;
     let token = req.body.token;
@@ -283,7 +259,6 @@ router.post('/login', async (req: AuthRequest, res) => {
 
     res.json({ token, user: profile });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(500).json({ error: req.t('Failed to login: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -302,7 +277,7 @@ router.post('/forgot-password', async (req, res) => {
       // Don't reveal if user exists
       return res.json({
         message: req.t('A reset code has been be sent to the requested email, if it exists'),
-        ...(config.nodeEnv !== 'production' && { error: "User not found" }),
+        ...(config.nodeEnv !== 'production' && { error: req.t('User not found') }),
       });
     }
 
@@ -321,8 +296,7 @@ router.post('/forgot-password', async (req, res) => {
       ...(config.nodeEnv !== 'production' && { resetPasswordCode }),
     });
   } catch (error) {
-    console.error('Forgot password error:', error);
-    res.status(500).json({ error: 'Failed to process password reset request' });
+    res.status(500).json({ error: req.t('Failed to process password reset request: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -368,24 +342,27 @@ router.post('/reset-password', async (req, res) => {
 
     res.json({ message: req.t('Password reset successful') });
   } catch (error) {
-    console.error('Reset password error:', error);
     res.status(500).json({ error: req.t('Failed to reset password: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
 // Google OAuth - Get auth URL
 router.get('/auth/google', (req, res) => {
-  const authUrl = googleClient.generateAuthUrl({ // TODO: to config
-    access_type: 'offline',
-    scope: [
-      'https://www.googleapis.com/auth/userinfo.profile',
-      'https://www.googleapis.com/auth/userinfo.email'
-    ],
-    prompt: 'consent',
-    redirect_uri: process.env.GOOGLE_REDIRECT_URI
-  });
-  
-  res.json({ authUrl });
+  try {
+    const authUrl = googleClient.generateAuthUrl({ // TODO: to config
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/userinfo.email'
+      ],
+      prompt: 'consent',
+      redirect_uri: process.env.GOOGLE_REDIRECT_URI
+    });
+    
+    res.json({ authUrl });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed generating auth url for google login: {{err}}', {err: getErrorMessage(error)}) });
+  }
 });
 
 // Google OAuth - Callback (handles browser redirect)
@@ -395,7 +372,7 @@ router.get('/auth/google/callback', async (req, res) => {
 
     if (!code || typeof code !== 'string') {
       //return res.redirect('http://localhost:3000//?error=google_auth_failed'); // TODO: from config
-      return sendPopupError(res, 'Missing code');
+      return sendPopupError(res, req.t('Missing code in google response'));
     }
 
     // Exchange code for tokens with Google
@@ -427,7 +404,7 @@ router.get('/auth/google/callback', async (req, res) => {
         await database.updateUser(user.id, { googleId });
       } else {
         user = {
-          id: uuidv4(),
+          id: '',
           email,
           password: '',
           firstName: given_name || 'Google',
@@ -464,9 +441,8 @@ router.get('/auth/google/callback', async (req, res) => {
       </html>
     `);
   } catch (error) {
-    console.error('Google OAuth error:', error);
     //res.redirect('http://localhost:3000/?error=google_auth_failed');// TODO: from config
-    sendPopupError(res, req.t('Authentication failed: {{err}}', {err: error || 'Google OAuth error' }));
+    sendPopupError(res, req.t('Authentication failed: {{err}}', { err: getErrorMessage(error) || req.t('Google authentication error')} ));
   }
 
   function sendPopupError(res: any, error: string) {
@@ -506,7 +482,7 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
 
     res.json(profile);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch profile' });
+    res.status(500).json({ error: req.t('Failed to fetch profile: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -543,7 +519,6 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
 
     res.json(profile);
   } catch (error) {
-    console.error('Failed to update profile:', error);
     res.status(500).json({ error: req.t('Failed to update profile', { err: getErrorMessage(error) }) });
   }
 });

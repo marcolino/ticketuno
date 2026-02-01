@@ -1,5 +1,5 @@
 import { createTheme, Theme } from '@mui/material/styles';
-import { BasePaletteMode, CustomPaletteMode, PaletteMode, PaletteModeRecord } from '../types/theme';
+import { BasePaletteMode, CustomPaletteMode, PaletteMode, PaletteModeRecord } from './types/theme';
 
 // Declare custom palette types
 declare module '@mui/material/styles' {
@@ -53,7 +53,7 @@ const muiDefaultPalette: PaletteModeRecord<BasePaletteMode> = {
     },
     background: {
       default: '#fafafa',
-      paper: '#fff',
+      paper: '#eef2fdff',
     },
     divider: 'rgba(0, 0, 0, 0.12)',
     action: {

@@ -2,7 +2,8 @@ import { Router } from "express";
 import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth';
-import { Event, EventPerformance, EventStats } from '../types/event';
+import { Event, EventPerformance, EventStats } from '../shared/types/event';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const router = Router();
 
@@ -10,23 +11,25 @@ const router = Router();
 router.get('/', async (req, res) => {
   try {
     const events = await database.getAllEvents();
+    if (!events) {
+      return res.json([]);
+    }
     const stats: EventStats[] = await Promise.all(
       events.map(async (event) => {
         const theater = await database.getTheaterById(event.theaterId);
         const performances = await database.getPerformancesByEventId(event.id);
-        
-        const upcomingPerformances = performances.filter(p => 
+        const upcomingPerformances = performances ? performances.filter(p =>
           new Date(p.performanceDate) >= new Date() && p.status === 'scheduled'
-        );
+        ) : [];
 
-        let totalSeats = 0;
-        if (theater) {
-          theater.sections.forEach(section => {
-            section.rows.forEach(row => {
-              totalSeats += row.seats;
-            });
-          });
-        }
+        // let totalSeats = 0;
+        // if (theater) {
+        //   theater.sections.forEach(section => {
+        //     section.rows.forEach(row => {
+        //       totalSeats += row.seats;
+        //     });
+        //   });
+        // }
 
         return {
           id: event.id,
@@ -45,8 +48,8 @@ router.get('/', async (req, res) => {
     );
 
     res.json(stats);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch events' });
+  } catch (error:any) { // TODO: error: req.t(...) everywhere...
+    res.status(500).json({ error: req.t('Failed to fetch events: {{err}}', { err: getErrorMessage(error) })});
   }
 });
 
@@ -67,7 +70,7 @@ router.get('/:id', async (req, res) => {
       performances
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch event' });
+    res.status(500).json({ error: req.t('Failed to fetch event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -76,19 +79,20 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
   try {
     const {
       title, description, genre, durationMinutes, intermissionCount, rating, language,
-      director, playwright, producer, choreographer, musicalDirector, theaterId, showId, stageType,
+      director, playwright, producer, choreographer, musicalDirector, theaterId, stageType,
       openingDate, closingDate, baseTicketPrice, currency, specialRequirements, minimumAge,
       typicalStartTime, typicalEndTime, eventPosterUrl, trailerUrl, websiteUrl,
       socialMediaLinks, maxCapacity, contentWarnings
     } = req.body;
 
     if (!title || !theaterId || !baseTicketPrice) {
-      return res.status(400).json({ error: 'Title, theater, and base ticket price are required' });
+      return res.status(400).json({ error: req.t('Title, theater, and base ticket price are required') });
     }
 
+    // Debug: Check if all foreign keys exist
     const theater = await database.getTheaterById(theaterId);
     if (!theater) {
-      return res.status(404).json({ error: 'Theater not found' });
+      return res.status(404).json({ error: req.t('Theater with id {{theaterId}} not found', { theaterId }) });
     }
 
     const event: Event = {
@@ -106,7 +110,6 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       choreographer,
       musicalDirector,
       theaterId,
-      showId,
       stageType,
       openingDate,
       closingDate,
@@ -132,8 +135,8 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
 
     await database.createEvent(event);
     res.status(201).json(event);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to create event' });
+  } catch (error: any) {
+    res.status(500).json({ error: req.t('Failed to create event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -142,14 +145,14 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const event = await database.getEventById(req.params.id);
     if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
+      return res.status(404).json({ error: req.t('Event not found') });
     }
 
     await database.updateEvent(req.params.id, req.body);
     const updatedEvent = await database.getEventById(req.params.id);
     res.json(updatedEvent);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update event' });
+    res.status(500).json({ error: req.t('Failed to update event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -158,13 +161,13 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const event = await database.getEventById(req.params.id);
     if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
+      return res.status(404).json({ error: req.t('Event not found') });
     }
 
     await database.deleteEvent(req.params.id);
     res.json({ message: 'Event deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to delete event' });
+  } catch (error: any) {
+    res.status(500).json({ error: req.t('Failed to delete event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -173,8 +176,8 @@ router.get('/:id/performances', async (req, res) => {
   try {
     const performances = await database.getPerformancesByEventId(req.params.id);
     res.json(performances);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch performances' });
+  } catch (error: any) {
+    res.status(500).json({ error: req.t('Failed to fetch performances: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 
@@ -185,25 +188,28 @@ router.post('/:id/performances', authenticateToken, requireAdmin, async (req, re
     const event = await database.getEventById(req.params.id);
 
     if (!event) {
-      return res.status(404).json({ error: 'Event not found' });
+      return res.status(404).json({ error: req.t('Event not found') });
     }
 
     const theater = await database.getTheaterById(event.theaterId);
     if (!theater) {
-      return res.status(404).json({ error: 'Theater not found' });
+      return res.status(404).json({ error: req.t('Theater not found') });
     }
 
+    // TODO: ...
     // Calculate total seats
+    // let totalSeats = 0;
+    // theater.sections.forEach(section => {
+    //   section.rows.forEach(row => {
+    //     totalSeats += row.seats;
+    //   });
+    // });
+
+    // // Initialize seat data from theater
+    // const seatData = JSON.stringify(theater.sections);
     let totalSeats = 0;
-    theater.sections.forEach(section => {
-      section.rows.forEach(row => {
-        totalSeats += row.seats;
-      });
-    });
-
-    // Initialize seat data from theater
-    const seatData = JSON.stringify(theater.sections);
-
+    const seatData = JSON.stringify([]);
+    
     const performance: EventPerformance = {
       id: uuidv4(),
       eventId: req.params.id,
@@ -221,7 +227,7 @@ router.post('/:id/performances', authenticateToken, requireAdmin, async (req, re
     await database.createPerformance(performance);
     res.status(201).json(performance);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create performance' });
+    res.status(500).json({ error: req.t('Failed to create performance: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -230,11 +236,11 @@ router.get('/:eventId/performances/:performanceId', async (req, res) => {
   try {
     const performance = await database.getPerformanceById(req.params.performanceId);
     if (!performance) {
-      return res.status(404).json({ error: 'Event performance not found' });
+      return res.status(404).json({ error: req.t('Event performance not found') });
     }
     res.json(performance);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch performance' });
+    res.status(500).json({ error: req.t('Failed to fetch performance: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
@@ -245,7 +251,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     const performance = await database.getPerformanceById(req.params.performanceId);
 
     if (!performance) {
-      return res.status(404).json({ error: 'Event performance not found' });
+      return res.status(404).json({ error: req.t('Event performance not found') });
     }
 
     const sections = JSON.parse(performance.seatData);
@@ -272,9 +278,9 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       availableSeats: performance.availableSeats - seatsBooked
     });
 
-    res.json({ message: 'Seats booked successfully', seatsBooked });
+    res.json({ message: req.t('{{count}} seats booked successfully', { count: seatsBooked }) });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to book seats' });
+    res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 

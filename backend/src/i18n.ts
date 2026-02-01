@@ -12,9 +12,13 @@ i18n/*ext*/
     ns: ['translation'],
     defaultNS: 'translation',
     
+    // Critical for key fallback:
+    returnEmptyString: false,
+    returnNull: false,
+  
     // backend: {
-    //   loadPath: path.join(__dirname, '../../../shared/locales/{{lng}}/{{ns}}.json'),
-    //   addPath: path.join(__dirname, '../../../shared/locales/{{lng}}/{{ns}}.missing.json')
+    //   loadPath: path.join(__dirname, '../shared//locales/{{lng}}/{{ns}}.json'),
+    //   addPath: path.join(__dirname, '../shared//locales/{{lng}}/{{ns}}.missing.json')
     // },
     backend: {
       // The __dirname in backend/src/i18n.ts is backend/src

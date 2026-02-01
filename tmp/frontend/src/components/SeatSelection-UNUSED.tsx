@@ -1,16 +1,21 @@
 // SeatSelection.tsx
 import { useEffect, useState } from "react";
+import { Layout } from '../../../shared/types/layout';
 import { SeatMapSVG } from "./SeatMapSVG";
 
-export function SeatSelection({ eventId }) {
-  const [layout, setLayout] = useState(null);
+interface SeatSelectionProps {
+  eventId: string;
+}
+
+export function SeatSelection({ eventId }: SeatSelectionProps) {
+  const [layout, setLayout] = useState<Layout | null>(null);
   const [seatStates, setSeatStates] = useState({});
   const [selected, setSelected] = useState<string[]>([]);
 
   useEffect(() => {
     fetch(`/api/events/${eventId}/layout`).then(r => r.json()).then(setLayout);
     fetch(`/api/seats/${eventId}`).then(r => r.json()).then(setSeatStates);
-  }, []);
+  }, [eventId]);
 
   async function reserve() {
     const res = await fetch(`/api/seats/${eventId}/lock`, {
@@ -23,6 +28,8 @@ export function SeatSelection({ eventId }) {
       alert("Some seats were just taken");
     }
   }
+
+  if (!layout) return <div>Loading...</div>; // TODO: return null ...
 
   return (
     <>

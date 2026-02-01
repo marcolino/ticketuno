@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback} from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation, useParams  } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -8,126 +8,216 @@ import {
   Button,
   Paper,
   TextField,
-  Card,
-  CardContent,
   Grid,
   Alert,
-  //CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
-import { theaterApi } from '../services/api';
-import { Section, Row,/* Theater*/ } from '../types/theater';
+import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
+import { theaterApi, layoutApi } from '../services/api';
+import { Layout } from '../../../shared/types/layout';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 
 const TheaterEdit: React.FC = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { t } = useTranslation();
+  const toast = useToast();
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated, isAdmin } = useAuth();
 
   const isEditMode = id && id !== 'new';
 
-  //const [loading, setLoading] = useState(isEditMode);
-  const [theaterName, setTheaterName] = useState('');
-  const [theaterDescription, setTheaterDescription] = useState('');
-  const [sections, setSections] = useState<Section[]>([
-    {
-      name: 'Orchestra',
-      rows: [
-        { id: 'A', seats: 12, startNumber: 1 },
-      ]
-    }
-  ]);
+  //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  // Theater fields
+  const [theaterData, setTheaterData] = useState<TheaterData>(() => {
+    // Check if we have state passed from caller
+    if (location.state?.theaterData) {
+      return location.state.theaterData;
+    }
+    return {
+      name: '',
+      description: '',
+      stageType: '',
+      address: '',
+      websiteUrl: '',
+      status: 'active',
+      selectedLayoutId: '',
+      //selectedLayoutId: '',
+    };
+  });
+
+  const [layouts, setLayouts] = useState<Layout[]>([]);
+  const [selectedLayoutId, setSelectedLayoutId] = useState<string>('');
+  
+  useEffect(() => {
+    if (location.state?.theaterData?.selectedLayoutId) {
+      // Update the selected layout state when returning from LayoutEdit
+      setSelectedLayoutId(location.state?.theaterData?.selectedLayoutId);
+    }
+  }, [navigate, location.state, location.pathname]);
+
+  // const loadTheater1 = useCallback(async () => {
+  //   try {
+  //     const response = await theaterApi.getTheaterById(id!);
+  //     const theater = response.data;
+  //     console.log("getTheaterById theater:", theater);
+
+  //     // Load current layout for this theater
+  //     const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
+  //     setSelectedLayoutId(layoutResponse.data?.id || '');
+      
+  //     setTheaterData(theater);
+  //     setError('');
+  //   } catch (err: any) {
+  //     setError(err.response?.data?.error || 'Failed to load theater');
+  //   }
+  // }, [id]);
   const loadTheater = useCallback(async () => {
     try {
-      //setLoading(true);
       const response = await theaterApi.getTheaterById(id!);
       const theater = response.data;
-      setTheaterName(theater.name);
-      setTheaterDescription(theater.description || '');
-      setSections(theater.sections);
+      console.log("getTheaterById theater:", theater);
+
+      // Load current layout for this theater
+      const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
+      setTheaterData({
+        ...theater,
+        selectedLayoutId: layoutResponse.data?.id || ''
+      });
       setError('');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load theater');
-    } finally {
-      //setLoading(false);
     }
   }, [id]);
 
+  // useEffect(() => {
+  //   loadLayouts();
+  // }, [isAuthenticated, isAdmin]);
+
+  const loadLayouts = async () => {
+    try {
+      const response = await layoutApi.getAllLayouts();
+      const layouts = response.data;
+      console.log("getAllLayouts layouts:", layouts);
+      setLayouts(layouts);
+      setError('');
+    } catch (err: any) {
+      // Show the actual server error message
+      setError(err.response?.data?.error || 'Failed to load layouts');
+      console.error(err.response?.data || err);
+    }
+  };
+
+  // useEffect(() => { // DEBUG ONLY
+  //   if (theaterData.selectedLayoutId && layouts.length > 0) {
+  //     const selectedLayoutExists = layouts.some(layout => layout.id === theaterData.selectedLayoutId);
+  //     console.log('xxx Selected layout exists in layouts array:', selectedLayoutExists);
+  //     if (!selectedLayoutExists) {
+  //       console.log('xxx Selected layout ID:', theaterData.selectedLayoutId, 'not found in layouts');
+  //     }
+  //   }
+  // }, [theaterData.selectedLayoutId, layouts]);
+
+  // useEffect(() => { // DEBUG ONLY
+  //   console.log("Current layouts:", layouts);
+  //   console.log("Selected layout ID:", selectedLayoutId);
+    
+  //   if (selectedLayoutId && layouts.length > 0) {
+  //     const isLayoutInList = layouts.some(layout => layout.id === selectedLayoutId);
+  //     console.log("Is selected layout in the list?", isLayoutInList);
+  //   }
+  // }, [layouts, selectedLayoutId]);
+
+  // useEffect(() => {
+  //   if (!isAuthenticated || !isAdmin) {
+  //     navigate('/theaters');
+  //     return;
+  //   }
+  //   loadLayouts();
+  //   if (isEditMode) {
+  //     loadTheater();
+  //   }
+  // }, [isAuthenticated, isAdmin, isEditMode, navigate, loadTheater]);
+
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) {
-      navigate('/');
+      navigate('/theaters');
       return;
     }
 
-    if (isEditMode) {
-      loadTheater();
-    }
-  }, [isAuthenticated, isAdmin, isEditMode, navigate, loadTheater]);
-
-  const addSection = () => {
-    setSections([
-      ...sections,
-      {
-        name: `Section ${sections.length + 1}`,
-        rows: [{ id: 'A', seats: 10, startNumber: 1 }]
+    const initialize = async () => {
+      // Check if returning from layout creation FIRST
+      if (location.state?.theaterData?.selectedLayoutId) {
+        setTheaterData((prev: any) => ({
+          ...prev,
+          ...location.state.theaterData,  // Merge new layout ID
+          selectedLayoutId: location.state.theaterData.selectedLayoutId
+        }));
+        
+        // Load layouts AFTER setting state (so new layout appears)
+        await loadLayouts();
+        return;  // Skip theater load - we're editing existing
       }
-    ]);
-  };
 
-  const removeSection = (sectionIndex: number) => {
-    setSections(sections.filter((_, i) => i !== sectionIndex));
-  };
-
-  const updateSectionName = (sectionIndex: number, name: string) => {
-    const newSections = [...sections];
-    newSections[sectionIndex].name = name;
-    setSections(newSections);
-  };
-
-  const addRow = (sectionIndex: number) => {
-    const newSections = [...sections];
-    const lastRow = newSections[sectionIndex].rows[newSections[sectionIndex].rows.length - 1];
-    const nextRowId = lastRow ? String.fromCharCode(lastRow.id.charCodeAt(0) + 1) : 'A';
-
-    newSections[sectionIndex].rows.push({
-      id: nextRowId,
-      seats: 10,
-      startNumber: 1
-    });
-    setSections(newSections);
-  };
-
-  const removeRow = (sectionIndex: number, rowIndex: number) => {
-    const newSections = [...sections];
-    newSections[sectionIndex].rows = newSections[sectionIndex].rows.filter((_, i) => i !== rowIndex);
-    setSections(newSections);
-  };
-
-  const updateRow = (sectionIndex: number, rowIndex: number, field: keyof Row, value: string | number) => {
-    const newSections = [...sections];
-    newSections[sectionIndex].rows[rowIndex] = {
-      ...newSections[sectionIndex].rows[rowIndex],
-      [field]: value
+      await Promise.all([
+        loadLayouts(),
+        isEditMode ? loadTheater() : Promise.resolve()
+      ]);
+      // // Normal edit mode - load theater first
+      // if (isEditMode) {
+      //   await loadTheater();
+      //   await loadLayouts();
+      // } else {
+      //   // New theater - just load layouts
+      //   await loadLayouts();
+      // }
     };
-    setSections(newSections);
+
+    initialize();
+  }, []); // runs ONCE on mount
+
+  const handleInputChange = (e: any) => {
+    setTheaterData({
+      ...theaterData,
+      [e.target.name]: e.target.value
+    });
   };
+
+  // const setCurrentLayout = async (e: any) => {
+  //   const layoutId = e.target.value;
+  //   if (layoutId === '<new>') { // create new layout
+  //     // create new layout for this theater, or without a theater if it is not yet saved
+  //     navigate('/layout/new', {
+  //       state: {
+  //         theaterData,
+  //         returnTo: `/theater/edit/${id || 'new'}`,
+  //         theaterId: id // Optional: if we have theaterId
+  //       }
+  //     });
+  //   } else {
+  //     // // Update directly in theaterData
+  //     // setTheaterData({
+  //     //   ...theaterData,
+  //     //   selectedLayoutId: layoutId
+  //     // });
+  //     setSelectedLayoutId(layoutId);
+  //   }
+  //   //setSelectedLayoutId(layoutId);
+  // };
 
   const handleSave = async () => {
-    if (!theaterName.trim()) {
-      setError('Theater name is required');
-      return;
-    }
-
-    if (sections.length === 0 || sections.some(s => s.rows.length === 0)) {
-      setError('Please add at least one section with rows');
+    if (!theaterData.name.trim()) {
+      setError(t('Name is required'));
       return;
     }
 
@@ -135,41 +225,36 @@ const TheaterEdit: React.FC = () => {
       setSaving(true);
       setError('');
 
-      const theaterData = {
-        name: theaterName,
-        description: theaterDescription,
-        sections: sections
-      };
-
       if (isEditMode) {
-        await theaterApi.updateTheater(id!, theaterData);
-        alert('Theater updated successfully!');
+        await theaterApi.updateTheaterFull(id, theaterData);
+        //await theaterApi.setTheaterLayoutCurrent(id, theaterData.selectedLayoutId);
+        if (selectedLayoutId) {
+          await theaterApi.setTheaterLayoutCurrent(id, selectedLayoutId);
+        }
+        toast.success(t('Theater updated successfully!'));
       } else {
-        await theaterApi.createTheater(theaterData);
-        alert('Theater created successfully!');
+        const response = await theaterApi.createTheater(theaterData);
+        const newTheaterId = response.data;
+        //if (theaterData.selectedLayoutId) {
+        if (selectedLayoutId) {
+          const res = await theaterApi.setTheaterLayoutCurrent(newTheaterId, selectedLayoutId);
+          console.log("RES:", res);
+        }
+        toast.success(t('Theater created successfully!'));
       }
-
-      navigate('/');
+      navigate('/theaters');
     } catch (err: any) {
       setError(err.response?.data?.error || `Failed to ${isEditMode ? 'update' : 'create'} theater`);
     } finally {
       setSaving(false);
     }
   };
-
-  // if (loading) {
-  //   return (
-  //     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-  //       <CircularProgress />
-  //     </Box>
-  //   );
-  // }
-
+  
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
         <Typography variant="h4" gutterBottom>
-          {isEditMode ? 'Edit Theater' : 'Create New Theater'}
+          {isEditMode ? t('Edit Theater') : t('Create New Theater')}
         </Typography>
 
         {error && (
@@ -178,131 +263,130 @@ const TheaterEdit: React.FC = () => {
           </Alert>
         )}
 
-        <Box sx={{ mb: 4 }}>
-          <TextField
-            fullWidth
-            label="Theater Name"
-            value={theaterName}
-            onChange={(e) => setTheaterName(e.target.value)}
-            required
-            sx={{ mb: 2 }}
-          />
-          <TextField
-            fullWidth
-            label="Description (Optional)"
-            value={theaterDescription}
-            onChange={(e) => setTheaterDescription(e.target.value)}
-            multiline
-            rows={2}
-          />
-        </Box>
+        <Grid container spacing={3}>
+          {/* Basic Information */}
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom>
+              Basic Information
+            </Typography>
+          </Grid>
 
-        {/* Sections */}
-        <Typography variant="h5" gutterBottom>
-          Sections
-        </Typography>
+          <Grid item xs={12} md={8}>
+            <TextField
+              name="name"
+              label={t('Name')}
+              value={theaterData.name}
+              onChange={handleInputChange}
+              fullWidth
+              required
+            />
+          </Grid>
 
-        {sections.map((section, sectionIndex) => (
-          <Card key={sectionIndex} sx={{ mb: 3 }}>
-            <CardContent>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <TextField
-                  label="Section Name"
-                  value={section.name}
-                  onChange={(e) => updateSectionName(sectionIndex, e.target.value)}
-                  sx={{ flexGrow: 1, mr: 2 }}
-                />
-                <Button
-                  color="error"
-                  startIcon={<DeleteIcon />}
-                  onClick={() => removeSection(sectionIndex)}
-                  disabled={sections.length === 1}
-                >
-                  Remove Section
-                </Button>
-              </Box>
+          <Grid item xs={12}>
+            <TextField
+              name="description"
+              label={t('Description')}
+              value={theaterData.description}
+              onChange={handleInputChange}
+              multiline
+              rows={3}
+              fullWidth
+            />
+          </Grid>
 
-              <Typography variant="h6" gutterBottom>
-                Rows
-              </Typography>
+          <Grid item xs={12} md={4}>
+            <TextField
+              name="stageType"
+              label={t('Stage Type')}
+              value={theaterData.stageType}
+              onChange={handleInputChange}
+              placeholder={t('Proscenium, Proscenium with Apron, Arena, Thrust, Black Box, ...')}
+              fullWidth
+              /*
+                - Proscenio (Proscenium): All'Italiana, il più tradizionale, con un'area rialzata separata dalla platea da un "boccascena" (arco) e un "golfo mistico" (fossa dell'orchestra) per i musicisti, con il pubblico che guarda frontalmente.
+                - Proscenio/Ribalta (Proscenium with Apron): Un'estensione del palcoscenico oltre il boccascena, dove il palco "sporge" verso la platea.
+                - Arena: Circolare o semicircolare, circondato dal pubblico su più lati, creando maggiore vicinanza.
+                - A Spinta (Thrust): Una piattaforma che si estende nel pubblico, che circonda il palco su tre lati, unendo attori e spettatori.
+                - Scatola Nera (Black Box): Uno spazio scenico versatile, solitamente cubico e dipinto di nero, con il pubblico posizionato in modo flessibile. 
+              */
+            />
+          </Grid>
 
-              {/* Rows */}
-              {section.rows.map((row, rowIndex) => (
-                <Grid container spacing={2} key={rowIndex} sx={{ mb: 2 }}>
-                  <Grid item xs={12} sm={3}>
-                    <TextField
-                      fullWidth
-                      label="Row ID"
-                      value={row.id}
-                      onChange={(e) => updateRow(sectionIndex, rowIndex, 'id', e.target.value.toUpperCase())}
-                      inputProps={{ maxLength: 2 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={3}>
-                    <TextField
-                      fullWidth
-                      label="Number of Seats"
-                      type="number"
-                      value={row.seats}
-                      onChange={(e) => updateRow(sectionIndex, rowIndex, 'seats', parseInt(e.target.value) || 0)}
-                      inputProps={{ min: 1, max: 50 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={3}>
-                    <TextField
-                      fullWidth
-                      label="Start Number"
-                      type="number"
-                      value={row.startNumber}
-                      onChange={(e) => updateRow(sectionIndex, rowIndex, 'startNumber', parseInt(e.target.value) || 1)}
-                      inputProps={{ min: 1 }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={3} sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Button
-                      fullWidth
-                      color="error"
-                      startIcon={<DeleteIcon />}
-                      onClick={() => removeRow(sectionIndex, rowIndex)}
-                      disabled={section.rows.length === 1}
-                    >
-                      Remove
-                    </Button>
-                  </Grid>
-                </Grid>
-              ))}
+          <Grid item xs={12} md={8}>
+            <OpenStreetMapAutocomplete
+              name="address"
+              value={theaterData.address}
+              onChange={handleInputChange}
+              placeholder={t('Indirizzo stradale')}
+            />
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              name="websiteUrl"
+              label="Website URL"
+              value={theaterData.websiteUrl}
+              onChange={handleInputChange}
+              fullWidth
+            />
+          </Grid>
 
-              <Button
-                startIcon={<AddIcon />}
-                onClick={() => addRow(sectionIndex)}
-                variant="outlined"
-                size="small"
+          <Grid item xs={12} md={2}>
+            <FormControl fullWidth required>
+              <InputLabel>{t('Status')}</InputLabel>
+              <Select
+                name="status"
+                value={theaterData.status}
+                label="Status"
+                onChange={handleInputChange}
               >
-                Add Row
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+                <MenuItem key="1" value="active">{t('Active')}</MenuItem>
+                <MenuItem key="0" value="inactive">{t('Inactive')}</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
 
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-          <Button
-            startIcon={<AddIcon />}
-            onClick={addSection}
-            variant="outlined"
-            fullWidth
-          >
-            Add Section
-          </Button>
-        </Box>
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth required>
+              <InputLabel>{t('Layout')}</InputLabel>
+              <Select
+                name="selectedLayoutId"
+                // value={theaterData.selectedLayoutId || ''}
+                value={
+                  theaterData.selectedLayoutId && 
+                  layouts.some(layout => layout.id === theaterData.selectedLayoutId)
+                    ? theaterData.selectedLayoutId 
+                    : ''
+                }
+                label="Layouts"
+                onChange={(e) => {
+                  const layoutId = e.target.value;
+                  if (layoutId === '<new>') {
+                    navigate('/layout/new', {
+                      state: { theaterData, returnTo: `/theater/edit/${id || 'new'}` }
+                    });
+                  } else {
+                    setTheaterData((prev: any) => ({ ...prev, selectedLayoutId: layoutId }));
+                  }
+                }}
+              >
+                <MenuItem value={"<new>"}>&lt;{t('New Layout')}&gt;</MenuItem>
+                {layouts.map((layout, index) => (
+                  <MenuItem key={index} value={layout.id}>{layout.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+        </Grid>
 
         {/* Action Buttons */}
-        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 4 }}>
           <Button
             variant="outlined"
-            onClick={() => navigate('/')}
+            onClick={() => navigate(-1)}
             disabled={saving}
           >
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             variant="contained"
@@ -310,7 +394,10 @@ const TheaterEdit: React.FC = () => {
             onClick={handleSave}
             disabled={saving}
           >
-            {saving ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Theater' : 'Create Theater')}
+            {saving ?
+              (isEditMode ? t('Updating...') : t('Creating...')) :
+              (isEditMode ? t('Update Theater') : t('Create Theater'))
+            }
           </Button>
         </Box>
       </Paper>

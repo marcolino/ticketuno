@@ -2,6 +2,13 @@ import React, { createContext, useContext, ReactNode } from 'react';
 import hotToast, { Toaster, ToastOptions } from 'react-hot-toast';
 import { Alert, AlertColor, Button, Box } from '@mui/material';
 
+// HTML entity decoder
+function decodeHtmlEntities(str: string): string {
+  const parser = new DOMParser();
+  const decoded = parser.parseFromString(str, 'text/html').documentElement.textContent;
+  return decoded || str; // Fallback to original if decoding fails
+}
+
 interface ToastContextType {
   success: (message: string, options?: ToastOptions) => string;
   error: (message: string, options?: ToastOptions) => string;
@@ -37,6 +44,9 @@ const ToastAlert = ({
   actions?: Array<{label: string; onClick: () => void}>;
   onClose?: () => void;
 }) => {
+  // Decode HTML entities in the message
+  const decodedMessage = decodeHtmlEntities(message);
+
   return (
     <Alert 
       severity={severity}
@@ -87,7 +97,7 @@ const ToastAlert = ({
         transition: 'all 0.3s ease',
       }}
     >
-      {message}
+      {decodedMessage}
     </Alert>
   );
 };
@@ -191,7 +201,6 @@ export const useToast = () => {
 };
 
 // Direct function exports (can be imported without hook)
-// These are perfect for your request: toastSuccess(), toastError(), etc.
 export const toastSuccess = (message: string, options?: ToastOptions) => {
   return hotToast.custom(
     (t) => (
