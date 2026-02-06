@@ -31,7 +31,7 @@ export interface Event {
   trailerUrl?: string;
   websiteUrl?: string;
   socialMediaLinks?: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
   cancellationReason?: string;
   maxCapacity?: number;
   contentWarnings?: string;
@@ -46,7 +46,7 @@ export interface EventPerformance {
   availableSeats: number;
   bookedSeats: number;
   seatData: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
   createdAt: string;
   updatedAt: string;
 }

@@ -1,59 +1,32 @@
+// ImageUploadEditPopup.tsx
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Stepper,
-  Step,
-  StepLabel,
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  LinearProgress,
-  Alert,
-  Card,
-  CardContent,
-  CardMedia,
-  Chip,
-  Stack,
-  Slider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  Tooltip,
-  CircularProgress,
+  Dialog, DialogTitle, DialogContent, DialogActions,
+  Stepper, Step, StepLabel,
+  Box, Typography, Button, IconButton,
+  LinearProgress, Alert,
+  Card, CardContent, CardMedia,
+  Chip, Stack, Slider,
+  FormControl, InputLabel, Select, MenuItem,
+  TextField, Tooltip, CircularProgress,
 } from '@mui/material';
 import {
-  Close,
-  CloudUpload,
-  InsertPhoto,
-  CheckCircle,
-  RestartAlt,
-  Undo,
-  Redo,
-  RotateLeft,
-  RotateRight,
-  ZoomIn,
-  ZoomOut,
-  Flip,
-  Brightness5,
-  Contrast,
-  Save,
-  History,
-  Download,
+  Close, CloudUpload, InsertPhoto, CheckCircle,
+  RestartAlt, Undo, Redo,
+  RotateLeft, RotateRight, ZoomIn, ZoomOut, Flip,
+  Brightness5, Save, History,
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
+import { useTranslation } from 'react-i18next';
 import Cropper from 'react-easy-crop';
 import imageCompression from 'browser-image-compression';
 import { getCroppedImg } from '../utils/canvasUtils';
 import { imageApi } from '../services/api';
 import { ImageType } from '../../../shared/types/image';
 
-// TypeScript Interfaces
+// ─── Interfaces ──────────────────────────────────────────────────────────────
+
 interface ImageData {
   file: File;
   preview: string;
@@ -62,21 +35,8 @@ interface ImageData {
   originalSize?: number;
 }
 
-interface CropState {
-  x: number;
-  y: number;
-}
-
-interface FlipState {
-  horizontal: boolean;
-  vertical: boolean;
-}
-
-interface FilterState {
-  brightness: number;
-  contrast: number;
-  saturation: number;
-}
+interface CropState { x: number; y: number; }
+interface FlipState { horizontal: boolean; vertical: boolean; }
 
 interface HistoryState {
   crop: CropState;
@@ -104,21 +64,28 @@ interface AspectRatioOption {
 interface ImageUploadEditPopupProps {
   open: boolean;
   onClose: () => void;
-  onSave: (imageUrl: string, imageData: any) => void;
+  onSave: (filename: string) => void;          // ← changed: just the filename
   imageType?: ImageType;
   fixedAspectRatio?: number;
   maxSizeMB?: number;
   title?: string;
+  simpleMode?: boolean;                         // ← NEW
 }
 
+type StepName = 'upload' | 'confirm' | 'success' | 'edit' | 'preview';
+// simple mode uses:  upload → confirm → success
+// full mode uses:    upload → edit → preview
+
 const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
-  { label: 'Free', value: 'free' },
-  { label: 'Square (1:1)', value: 1 },
-  { label: 'Landscape (16:9)', value: 16/9 },
-  { label: 'Portrait (9:16)', value: 9/16 },
-  { label: 'Instagram (4:5)', value: 4/5 },
+  { label: 'Free',              value: 'free' },
+  { label: 'Square (1:1)',      value: 1 },
+  { label: 'Landscape (16:9)', value: 16 / 9 },
+  { label: 'Portrait (9:16)',  value: 9 / 16 },
+  { label: 'Instagram (4:5)',  value: 4 / 5 },
   { label: 'Facebook (1.91:1)', value: 1.91 },
 ];
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   open,
@@ -128,63 +95,56 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   fixedAspectRatio,
   maxSizeMB = 5,
   title = 'Upload & Edit Image',
+  simpleMode = false,                           // ← NEW, defaults to full mode
 }) => {
-  // Steps: 'upload' | 'edit' | 'preview'
-  const [activeStep, setActiveStep] = useState<'upload' | 'edit' | 'preview'>('upload');
-  const [uploadedImage, setUploadedImage] = useState<ImageData | null>(null);
-  const [editedImage, setEditedImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const { t } = useTranslation();
+
+  const [activeStep, setActiveStep] = useState<StepName>('upload');
+  const [uploadedImage, setUploadedImage]       = useState<ImageData | null>(null);
+  const [editedImage,   setEditedImage]         = useState<string | null>(null);
+  const [isLoading,     setIsLoading]           = useState(false);
+  const [error,         setError]               = useState<string>('');
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [compressedInfo, setCompressedInfo] = useState<{
-    originalSize: string;
-    compressedSize: string;
-    reduction: string;
+    originalSize: string; compressedSize: string; reduction: string;
   } | null>(null);
 
-  // Edit state
-  const [crop, setCrop] = useState<CropState>({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState<number>(1);
+  // ── Edit state (full mode only) ──────────────────────────────────────────
+  const [crop,     setCrop]     = useState<CropState>({ x: 0, y: 0 });
+  const [zoom,     setZoom]     = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
-  const [flip, setFlip] = useState<FlipState>({ horizontal: false, vertical: false });
-  const [aspect, setAspect] = useState<number | 'free'>(fixedAspectRatio || 'free');
+  const [flip,     setFlip]     = useState<FlipState>({ horizontal: false, vertical: false });
+  const [aspect,   setAspect]   = useState<number | 'free'>(fixedAspectRatio || 'free');
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
-  
-  // Filter state
-  const [brightness, setBrightness] = useState<number>(100);
-  const [contrast, setContrast] = useState<number>(100);
-  const [saturation, setSaturation] = useState<number>(100);
-  
-  // History state
-  const historyRef = useRef<HistoryState[]>([]);
+
+  const [brightness,  setBrightness]  = useState<number>(100);
+  const [contrast,    setContrast]    = useState<number>(100);
+  const [saturation,  setSaturation]  = useState<number>(100);
+
+  const historyRef   = useRef<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
-  
-  // Presets state
-  const [presets, setPresets] = useState<Preset[]>([]);
+
+  const [presets,    setPresets]    = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState<string>('');
 
-  // Load presets from localStorage
+  // ── Effects ──────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    const savedPresets = localStorage.getItem('imageEditorPresets');
-    if (savedPresets) {
-      try {
-        setPresets(JSON.parse(savedPresets));
-      } catch (e) {
-        console.error('Failed to parse saved presets:', e);
+    if (!simpleMode) {
+      const saved = localStorage.getItem('imageEditorPresets');
+      if (saved) {
+        try { setPresets(JSON.parse(saved)); }
+        catch (e) { console.error('Failed to parse saved presets:', e); }
       }
     }
-  }, []);
+  }, [simpleMode]);
 
-  // Initialize aspect ratio from props
   useEffect(() => {
-    if (fixedAspectRatio !== undefined) {
-      setAspect(fixedAspectRatio);
-    } else {
-      setAspect('free');
-    }
+    setAspect(fixedAspectRatio !== undefined ? fixedAspectRatio : 'free');
   }, [fixedAspectRatio]);
 
-  // Save state to history
+  // ── History (full mode) ──────────────────────────────────────────────────
+
   const saveToHistory = useCallback((state: HistoryState) => {
     const newHistory = historyRef.current.slice(0, historyIndex + 1);
     newHistory.push(state);
@@ -192,364 +152,269 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
     setHistoryIndex(newHistory.length - 1);
   }, [historyIndex]);
 
-  // Apply state from history
   const applyState = useCallback((state: HistoryState) => {
-    setCrop(state.crop);
-    setZoom(state.zoom);
-    setRotation(state.rotation);
-    setBrightness(state.brightness);
-    setContrast(state.contrast);
-    setSaturation(state.saturation);
+    setCrop(state.crop); setZoom(state.zoom); setRotation(state.rotation);
+    setBrightness(state.brightness); setContrast(state.contrast); setSaturation(state.saturation);
   }, []);
-  
-  // Handle undo
+
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      const state = historyRef.current[newIndex];
-      applyState(state);
-      setHistoryIndex(newIndex);
+      const i = historyIndex - 1;
+      applyState(historyRef.current[i]);
+      setHistoryIndex(i);
     }
   }, [historyIndex, applyState]);
 
-  // Handle redo
   const handleRedo = useCallback(() => {
     if (historyIndex < historyRef.current.length - 1) {
-      const newIndex = historyIndex + 1;
-      const state = historyRef.current[newIndex];
-      applyState(state);
-      setHistoryIndex(newIndex);
+      const i = historyIndex + 1;
+      applyState(historyRef.current[i]);
+      setHistoryIndex(i);
     }
   }, [historyIndex, applyState]);
 
-  // Save current state to history on changes
   useEffect(() => {
-    if (activeStep === 'edit' && uploadedImage) {
-      const currentState: HistoryState = {
-        crop,
-        zoom,
-        rotation,
-        brightness,
-        contrast,
-        saturation,
-      };
-
-      // Debounce history saving
+    if (!simpleMode && activeStep === 'edit' && uploadedImage) {
+      const current: HistoryState = { crop, zoom, rotation, brightness, contrast, saturation };
       const timer = setTimeout(() => {
-        if (historyRef.current.length === 0 || 
-            JSON.stringify(historyRef.current[historyIndex]) !== JSON.stringify(currentState)) {
-          saveToHistory(currentState);
+        if (!historyRef.current.length ||
+            JSON.stringify(historyRef.current[historyIndex]) !== JSON.stringify(current)) {
+          saveToHistory(current);
         }
       }, 500);
-
       return () => clearTimeout(timer);
     }
-  }, [crop, zoom, rotation, brightness, contrast, saturation, activeStep, uploadedImage, historyIndex, saveToHistory]);
+  }, [crop, zoom, rotation, brightness, contrast, saturation,
+      activeStep, uploadedImage, historyIndex, saveToHistory, simpleMode]);
 
-  // Image compression
+  // ── Compression ──────────────────────────────────────────────────────────
+
   const compressImage = useCallback(async (file: File): Promise<File> => {
-    const options = {
-      maxSizeMB: maxSizeMB,
-      maxWidthOrHeight: 1920,
-      useWebWorker: true,
-      onProgress: (progress: number) => {
-        setCompressionProgress(Math.round(progress));
-      },
-    };
-
     try {
-      const compressedFile = await imageCompression(file, options);
-      const beforeSize = (file.size / 1024 / 1024).toFixed(2);
-      const afterSize = (compressedFile.size / 1024 / 1024).toFixed(2);
-      
-      setCompressedInfo({
-        originalSize: beforeSize,
-        compressedSize: afterSize,
-        reduction: ((1 - compressedFile.size / file.size) * 100).toFixed(1),
+      const compressed = await imageCompression(file, {
+        maxSizeMB: maxSizeMB,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        onProgress: (p: number) => setCompressionProgress(Math.round(p)),
       });
-
-      return compressedFile;
-    } catch (error) {
-      console.error('Compression error:', error);
-      return file; // Return original if compression fails
+      setCompressedInfo({
+        originalSize:   (file.size     / 1024 / 1024).toFixed(2),
+        compressedSize: (compressed.size / 1024 / 1024).toFixed(2),
+        reduction:      ((1 - compressed.size / file.size) * 100).toFixed(1),
+      });
+      return compressed;
+    } catch {
+      return file;
     }
   }, [maxSizeMB]);
 
-  // Handle image upload
+  // ── Drop handler ─────────────────────────────────────────────────────────
+
   const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
-    setError('');
-    setCompressionProgress(0);
-    setCompressedInfo(null);
+    setError(''); setCompressionProgress(0); setCompressedInfo(null);
 
     if (rejectedFiles.length > 0) {
-      const error = rejectedFiles[0].errors[0];
-      if (error.code === 'file-too-large') {
-        setError(`File is too large. Maximum size is ${maxSizeMB}MB`);
-      } else if (error.code === 'file-invalid-type') {
-        setError('Please upload a valid image (JPEG, PNG, WebP, GIF)');
-      }
+      const code = rejectedFiles[0].errors[0].code;
+      setError(code === 'file-too-large'
+        ? t('File is too large. Maximum size is {{max}}MB', { max: maxSizeMB })
+        : t('Please upload a valid image (JPEG, PNG, WebP, GIF)'));
       return;
     }
 
-    if (acceptedFiles.length > 0) {
-      setIsLoading(true);
-      try {
-        const file = acceptedFiles[0];
-        
-        // Compress image
-        const compressedFile = await compressImage(file);
-        
-        const reader = new FileReader();
-        reader.onload = () => {
-          const imageData: ImageData = {
-            file: compressedFile,
-            preview: reader.result as string,
-            name: compressedFile.name,
-            size: compressedFile.size,
-            originalSize: file.size,
-          };
-          
-          setUploadedImage(imageData);
-          setActiveStep('edit');
-          setIsLoading(false);
-          
-          // Initialize history
-          const initialState: HistoryState = {
-            crop: { x: 0, y: 0 },
-            zoom: 1,
-            rotation: 0,
-            brightness: 100,
-            contrast: 100,
-            saturation: 100,
-          };
-          historyRef.current = [initialState];
+    if (acceptedFiles.length === 0) return;
+
+    setIsLoading(true);
+    try {
+      const file      = acceptedFiles[0];
+      const compressed = await compressImage(file);
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        setUploadedImage({
+          file: compressed,
+          preview: reader.result as string,
+          name: compressed.name,
+          size: compressed.size,
+          originalSize: file.size,
+        });
+
+        if (simpleMode) {
+          setActiveStep('confirm');       // ← simple: skip editor
+        } else {
+          setActiveStep('edit');          // ← full: open editor
+          historyRef.current = [{
+            crop: { x: 0, y: 0 }, zoom: 1, rotation: 0,
+            brightness: 100, contrast: 100, saturation: 100,
+          }];
           setHistoryIndex(0);
-        };
-        reader.readAsDataURL(compressedFile);
-      } catch (err) {
-        setError('Failed to process image');
+        }
         setIsLoading(false);
-      }
+      };
+      reader.readAsDataURL(compressed);
+    } catch {
+      setError(t('Failed to process image'));
+      setIsLoading(false);
     }
-  }, [maxSizeMB, compressImage]);
+  }, [maxSizeMB, compressImage, simpleMode, t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.gif'],
-    },
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.gif'] },
     maxSize: maxSizeMB * 1024 * 1024,
     multiple: false,
   });
 
-  // Handle crop complete
-  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
-    setCroppedAreaPixels(croppedAreaPixels);
+  const onCropComplete = useCallback((_area: any, pixels: any) => {
+    setCroppedAreaPixels(pixels);
   }, []);
 
-  // Handle save preset
+  // ── Presets (full mode) ──────────────────────────────────────────────────
+
   const savePreset = () => {
     if (!presetName.trim()) return;
-    
-    const preset: Preset = {
+    const updated = [...presets, {
       name: presetName,
       aspect: aspect === 'free' ? undefined : aspect,
-      brightness,
-      contrast,
-      saturation,
+      brightness, contrast, saturation,
       timestamp: new Date().toISOString(),
-    };
-    
-    const updatedPresets = [...presets, preset];
-    setPresets(updatedPresets);
-    localStorage.setItem('imageEditorPresets', JSON.stringify(updatedPresets));
+    }];
+    setPresets(updated);
+    localStorage.setItem('imageEditorPresets', JSON.stringify(updated));
     setPresetName('');
   };
 
-  // Load preset
-  const loadPreset = (preset: Preset) => {
-    if (preset.aspect !== undefined && fixedAspectRatio === undefined) {
-      setAspect(preset.aspect);
+  const loadPreset = (p: Preset) => {
+    if (p.aspect !== undefined && fixedAspectRatio === undefined) setAspect(p.aspect);
+    if (p.brightness  !== undefined) setBrightness(p.brightness);
+    if (p.contrast    !== undefined) setContrast(p.contrast);
+    if (p.saturation  !== undefined) setSaturation(p.saturation);
+  };
+
+  const deletePreset = (i: number) => {
+    const updated = presets.filter((_, idx) => idx !== i);
+    setPresets(updated);
+    localStorage.setItem('imageEditorPresets', JSON.stringify(updated));
+  };
+
+  // ── Upload actions ───────────────────────────────────────────────────────
+
+  /** Simple mode: upload the compressed file directly, no editing */
+  const handleSimpleUpload = async () => {
+    if (!uploadedImage) {
+      return;
     }
-    if (preset.brightness !== undefined) setBrightness(preset.brightness);
-    if (preset.contrast !== undefined) setContrast(preset.contrast);
-    if (preset.saturation !== undefined) setSaturation(preset.saturation);
-  };
-
-  // Delete preset
-  const deletePreset = (index: number) => {
-    const updatedPresets = presets.filter((_, i) => i !== index);
-    setPresets(updatedPresets);
-    localStorage.setItem('imageEditorPresets', JSON.stringify(updatedPresets));
-  };
-
-  // Handle final save - process image and upload to server
-  const handleFinalSave = async () => {
-    if (!uploadedImage || !croppedAreaPixels) return;
-    
     setIsLoading(true);
     setError('');
-    
     try {
-      // Step 1: Create the edited image blob
-      const filters = { brightness, contrast, saturation };
-      const croppedBlob = await getCroppedImg(
-        uploadedImage.preview,
-        croppedAreaPixels,
-        rotation,
-        flip,
-        filters
-      );
-      
-      // Step 2: Upload to server
-      const formData = new FormData();
-      formData.append('image', croppedBlob, `${imageType}-${Date.now()}.jpg`);
-      formData.append('imageType', imageType);
-      
-      const response = await imageApi.uploadImage(formData);
-      
-      // Step 3: Show preview with uploaded image
-      const imageUrl = URL.createObjectURL(croppedBlob);
-      setEditedImage(imageUrl);
-      setActiveStep('preview');
-      
-      // Step 4: Call parent callback with server response
-      onSave(response.data.imageUrl, response.data);
-      
-    } catch (e: any) {
-      console.error('Error processing/uploading image:', e);
-      setError(e.response?.data?.error || 'Failed to save image. Please try again.');
+      const { data } = await imageApi.upload(uploadedImage.file, imageType);
+      onSave(data.filename);
+      setActiveStep('success'); // don't close yet - show success state
+    } catch (err: any) {
+      setError(err.response?.data?.error || t('Failed to upload image: {{err}}', { err: err.message }));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle download
-  const handleDownload = () => {
-    if (!editedImage) return;
-    
-    const link = document.createElement('a');
-    link.href = editedImage;
-    link.download = `edited-${imageType}-${Date.now()}.jpg`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Reset all
-  const handleReset = () => {
-    setUploadedImage(null);
-    setEditedImage(null);
-    setActiveStep('upload');
+  /** Full mode: crop/edit → upload the result */
+  const handleFinalSave = async () => {
+    if (!uploadedImage || !croppedAreaPixels) return;
+    setIsLoading(true);
     setError('');
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setRotation(0);
-    setBrightness(100);
-    setContrast(100);
-    setSaturation(100);
+    try {
+      const croppedBlob = await getCroppedImg(
+        uploadedImage.preview, croppedAreaPixels, rotation, flip,
+        { brightness, contrast, saturation }
+      );
+
+      const { data } = await imageApi.upload(croppedBlob, imageType);
+
+      setEditedImage(URL.createObjectURL(croppedBlob));
+      setActiveStep('preview');
+      onSave(data.filename); // parent stores filename
+    } catch (err: any) {
+      setError(err.response?.data?.error || t('Failed to save image: {{err}}', { err: err.message }));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Reset / Close ────────────────────────────────────────────────────────
+
+  const handleReset = () => {
+    setUploadedImage(null); setEditedImage(null);
+    setActiveStep('upload'); setError('');
+    setCrop({ x: 0, y: 0 }); setZoom(1); setRotation(0);
+    setBrightness(100); setContrast(100); setSaturation(100);
     setFlip({ horizontal: false, vertical: false });
-    setCompressionProgress(0);
-    setCompressedInfo(null);
-    historyRef.current = [];
-    setHistoryIndex(-1);
+    setCompressionProgress(0); setCompressedInfo(null);
+    historyRef.current = []; setHistoryIndex(-1);
   };
 
-  // Close handler
-  const handleClose = () => {
-    handleReset();
-    onClose();
-  };
+  const handleClose = () => { handleReset(); onClose(); };
 
-  // Filter style for preview
+  // ── Helpers ──────────────────────────────────────────────────────────────
+
   const filterStyle = {
-    filter: `
-      brightness(${brightness}%) 
-      contrast(${contrast}%) 
-      saturate(${saturation}%)
-    `,
+    filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
   };
+  const getCropperAspect = () => (aspect === 'free' ? undefined : aspect);
 
-  // Get cropper aspect value (undefined for 'free')
-  const getCropperAspect = () => {
-    return aspect === 'free' ? undefined : aspect;
-  };
+  // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <Dialog 
-      open={open} 
+    <Dialog
+      open={open}
       onClose={handleClose}
-      maxWidth="lg"
+      maxWidth={simpleMode ? 'sm' : 'lg'}      // ← smaller dialog in simple mode
       fullWidth
-      PaperProps={{
-        sx: { height: '90vh', maxHeight: '800px' }
-      }}
+      PaperProps={{ sx: { height: '90vh', maxHeight: '800px' } }}
     >
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h5" component="div">
-          {title}
-        </Typography>
-        <IconButton onClick={handleClose}>
-          <Close />
-        </IconButton>
+        <Typography variant="h5" component="div">{title}</Typography>
+        <IconButton onClick={handleClose}><Close /></IconButton>
       </DialogTitle>
 
       <DialogContent dividers sx={{ overflow: 'hidden' }}>
+
+        {/* Loading overlay */}
         {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column' }}>
             <CircularProgress />
             <Typography variant="body2" sx={{ mt: 2 }}>
-              {activeStep === 'edit' ? 'Processing and uploading image...' : 'Processing image...'}
+              {activeStep === 'edit' ? t('Processing and uploading...') : t('Processing image...')}
             </Typography>
           </Box>
         )}
 
         {!isLoading && (
           <>
-            {/* Stepper */}
-            <Stepper activeStep={activeStep === 'upload' ? 0 : activeStep === 'edit' ? 1 : 2} sx={{ mb: 3 }}>
-              <Step>
-                <StepLabel>Upload</StepLabel>
-              </Step>
-              <Step>
-                <StepLabel>Edit</StepLabel>
-              </Step>
-              <Step>
-                <StepLabel>Preview</StepLabel>
-              </Step>
-            </Stepper>
-
-            {/* Error Display */}
-            {error && (
-              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
-                {error}
-              </Alert>
+            {/* Stepper ── full mode only */}
+            {!simpleMode && (
+              <Stepper activeStep={activeStep === 'upload' ? 0 : activeStep === 'edit' ? 1 : 2} sx={{ mb: 3 }}>
+                <Step><StepLabel>{t('Upload')}</StepLabel></Step>
+                <Step><StepLabel>{t('Edit')}</StepLabel></Step>
+                <Step><StepLabel>{t('Preview')}</StepLabel></Step>
+              </Stepper>
             )}
 
-            {/* Upload Step */}
+            {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
+
+            {/* ──────────── UPLOAD (both modes) ──────────── */}
             {activeStep === 'upload' && (
               <Box>
                 {compressionProgress > 0 && compressionProgress < 100 && (
                   <Box sx={{ mb: 2 }}>
                     <Typography variant="body2" gutterBottom>
-                      Compressing image... {compressionProgress}%
+                      {t('Compressing image...')} {compressionProgress}%
                     </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={compressionProgress} 
-                      sx={{ height: 8, borderRadius: 4 }}
-                    />
+                    <LinearProgress variant="determinate" value={compressionProgress} sx={{ height: 8, borderRadius: 4 }} />
                   </Box>
                 )}
-
                 {compressedInfo && (
-                  <Alert 
-                    severity="success" 
-                    icon={<CheckCircle />}
-                    sx={{ mb: 2 }}
-                  >
-                    Image compressed: {compressedInfo.originalSize}MB → {compressedInfo.compressedSize}MB 
-                    ({compressedInfo.reduction}% reduction)
+                  <Alert severity="success" icon={<CheckCircle />} sx={{ mb: 2 }}>
+                    {t('Compressed: {{before}}MB → {{after}}MB ({{r}}% reduction)',
+                      { before: compressedInfo.originalSize, after: compressedInfo.compressedSize, r: compressedInfo.reduction })}
                   </Alert>
                 )}
 
@@ -559,37 +424,24 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
                     border: '2px dashed',
                     borderColor: isDragActive ? 'primary.main' : 'divider',
                     backgroundColor: isDragActive ? 'action.hover' : 'background.paper',
-                    p: 4,
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      borderColor: 'primary.main',
-                      backgroundColor: 'action.hover',
-                    },
+                    p: 4, textAlign: 'center', cursor: 'pointer', transition: 'all 0.3s ease',
+                    '&:hover': { borderColor: 'primary.main', backgroundColor: 'action.hover' },
                   }}
                 >
                   <input {...getInputProps()} />
-                  
                   <Box sx={{ py: 3 }}>
                     {isDragActive ? (
                       <>
                         <CloudUpload sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-                        <Typography variant="h6" color="primary">
-                          Drop the image here
-                        </Typography>
+                        <Typography variant="h6" color="primary">{t('Drop the image here')}</Typography>
                       </>
                     ) : (
                       <>
                         <InsertPhoto sx={{ fontSize: 60, color: 'action.active', mb: 2 }} />
-                        <Typography variant="h6" gutterBottom>
-                          Drag & drop an image here
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" paragraph>
-                          or click to browse files
-                        </Typography>
+                        <Typography variant="h6" gutterBottom>{t('Drag & drop an image here')}</Typography>
+                        <Typography variant="body2" color="text.secondary" paragraph>{t('or click to browse files')}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          Supports: JPEG, PNG, WebP, GIF • Max: {maxSizeMB}MB
+                          {t('Supports: JPEG, PNG, WebP, GIF • Max: {{max}}MB', { max: maxSizeMB })}
                         </Typography>
                       </>
                     )}
@@ -598,259 +450,150 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
               </Box>
             )}
 
-            {/* Edit Step */}
-            {activeStep === 'edit' && uploadedImage && (
+            {/* ──────────── CONFIRM (simple mode only) ──────────── */}
+            {simpleMode && activeStep === 'confirm' && uploadedImage && (
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <Card sx={{ maxWidth: 480, width: '100%' }}>
+                  <CardMedia
+                    component="img"
+                    image={uploadedImage.preview}
+                    alt={t('Preview')}
+                    sx={{ maxHeight: 400, objectFit: 'contain' }}
+                  />
+                </Card>
+                <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                  <Chip label={`${(uploadedImage.size / 1024 / 1024).toFixed(2)} MB`} size="small" variant="outlined" />
+                  {compressedInfo && (
+                    <Chip
+                      label={t('Compressed {{r}}%', { r: compressedInfo.reduction })}
+                      size="small" color="success" variant="outlined"
+                    />
+                  )}
+                </Stack>
+              </Box>
+            )}
+
+            {/* ──────────── SUCCESS (simple mode only) ──────────── */}
+            {simpleMode && activeStep === 'success' && (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <CheckCircle sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
+                <Typography variant="h6" gutterBottom>
+                  {t('Upload Successful!')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t('Theimage has been uploaded and saved')}
+                </Typography>
+              </Box>
+            )}
+
+            {/* ──────────── EDIT (full mode only) ──────────── */}
+            {!simpleMode && activeStep === 'edit' && uploadedImage && (
               <Box sx={{ height: '60vh', display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ flex: 1, display: 'flex', gap: 2, overflow: 'hidden' }}>
-                  {/* Cropper */}
+
+                  {/* Cropper panel */}
                   <Card sx={{ flex: 3 }}>
                     <CardContent sx={{ position: 'relative', height: '100%', minHeight: '400px' }}>
                       <Cropper
                         image={uploadedImage.preview}
-                        crop={crop}
-                        zoom={zoom}
-                        rotation={rotation}
+                        crop={crop} zoom={zoom} rotation={rotation}
                         aspect={getCropperAspect()}
                         onCropChange={setCrop}
                         onZoomChange={setZoom}
                         onCropComplete={onCropComplete}
-                        style={{
-                          containerStyle: { 
-                            backgroundColor: '#f5f5f5',
-                            ...filterStyle 
-                          },
-                        }}
+                        style={{ containerStyle: { backgroundColor: '#f5f5f5', ...filterStyle } }}
                       />
                     </CardContent>
                   </Card>
 
-                  {/* Controls */}
+                  {/* Controls panel */}
                   <Card sx={{ flex: 1, overflow: 'auto' }}>
                     <CardContent>
                       {/* Toolbar */}
                       <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap' }}>
-                        <Tooltip title="Undo">
-                          <span>
-                            <IconButton 
-                              onClick={handleUndo} 
-                              disabled={historyIndex <= 0}
-                              size="small"
-                            >
-                              <Undo />
-                            </IconButton>
-                          </span>
+                        <Tooltip title={t('Undo')}><span>
+                          <IconButton onClick={handleUndo} disabled={historyIndex <= 0} size="small"><Undo /></IconButton>
+                        </span></Tooltip>
+                        <Tooltip title={t('Redo')}><span>
+                          <IconButton onClick={handleRedo} disabled={historyIndex >= historyRef.current.length - 1} size="small"><Redo /></IconButton>
+                        </span></Tooltip>
+                        <Tooltip title={t('Rotate Left')}>
+                          <IconButton onClick={() => setRotation(r => r - 90)} size="small"><RotateLeft /></IconButton>
                         </Tooltip>
-                        
-                        <Tooltip title="Redo">
-                          <span>
-                            <IconButton 
-                              onClick={handleRedo} 
-                              disabled={historyIndex >= historyRef.current.length - 1}
-                              size="small"
-                            >
-                              <Redo />
-                            </IconButton>
-                          </span>
+                        <Tooltip title={t('Rotate Right')}>
+                          <IconButton onClick={() => setRotation(r => r + 90)} size="small"><RotateRight /></IconButton>
                         </Tooltip>
-                        
-                        <Tooltip title="Rotate Left">
-                          <IconButton 
-                            onClick={() => setRotation(rotation - 90)}
-                            size="small"
-                          >
-                            <RotateLeft />
-                          </IconButton>
-                        </Tooltip>
-                        
-                        <Tooltip title="Rotate Right">
-                          <IconButton 
-                            onClick={() => setRotation(rotation + 90)}
-                            size="small"
-                          >
-                            <RotateRight />
-                          </IconButton>
-                        </Tooltip>
-                        
-                        <Tooltip title="Flip Horizontal">
-                          <IconButton 
-                            onClick={() => setFlip({ ...flip, horizontal: !flip.horizontal })}
-                            size="small"
-                          >
+                        <Tooltip title={t('Flip Horizontal')}>
+                          <IconButton onClick={() => setFlip(f => ({ ...f, horizontal: !f.horizontal }))} size="small">
                             <Flip sx={{ transform: 'scaleX(-1)' }} />
                           </IconButton>
                         </Tooltip>
-                        
-                        <Tooltip title="Zoom Out">
-                          <IconButton 
-                            onClick={() => setZoom(Math.max(0.1, zoom - 0.1))}
-                            size="small"
-                          >
-                            <ZoomOut />
-                          </IconButton>
+                        <Tooltip title={t('Zoom Out')}>
+                          <IconButton onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} size="small"><ZoomOut /></IconButton>
                         </Tooltip>
-                        
-                        <Tooltip title="Zoom In">
-                          <IconButton 
-                            onClick={() => setZoom(Math.min(3, zoom + 0.1))}
-                            size="small"
-                          >
-                            <ZoomIn />
-                          </IconButton>
+                        <Tooltip title={t('Zoom In')}>
+                          <IconButton onClick={() => setZoom(z => Math.min(3, z + 0.1))} size="small"><ZoomIn /></IconButton>
                         </Tooltip>
                       </Stack>
 
-                      {/* Aspect Ratio (hidden if fixedAspectRatio is provided) */}
+                      {/* Aspect ratio */}
                       {fixedAspectRatio === undefined && (
                         <FormControl fullWidth size="small" sx={{ mb: 3 }}>
-                          <InputLabel>Aspect Ratio</InputLabel>
-                          <Select
-                            value={aspect}
-                            label="Aspect Ratio"
-                            onChange={(e) => setAspect(e.target.value as number | 'free')}
-                          >
-                            {ASPECT_RATIO_OPTIONS.map((option) => (
-                              <MenuItem key={option.label} value={option.value}>
-                                {option.label}
-                              </MenuItem>
+                          <InputLabel>{t('Aspect Ratio')}</InputLabel>
+                          <Select value={aspect} label={t('Aspect Ratio')} onChange={e => setAspect(e.target.value as number | 'free')}>
+                            {ASPECT_RATIO_OPTIONS.map(o => (
+                              <MenuItem key={o.label} value={o.value}>{o.label}</MenuItem>
                             ))}
                           </Select>
                         </FormControl>
                       )}
 
-                      {/* Zoom Slider */}
+                      {/* Zoom */}
                       <Box sx={{ mb: 3 }}>
-                        <Typography variant="body2" gutterBottom>
-                          Zoom: {zoom.toFixed(1)}x
-                        </Typography>
-                        <Slider
-                          value={zoom}
-                          min={0.1}
-                          max={3}
-                          step={0.1}
-                          onChange={(_, value) => setZoom(value as number)}
-                          valueLabelDisplay="auto"
-                        />
+                        <Typography variant="body2" gutterBottom>{t('Zoom: {{z}}x', { z: zoom.toFixed(1) })}</Typography>
+                        <Slider value={zoom} min={0.1} max={3} step={0.1} onChange={(_, v) => setZoom(v as number)} valueLabelDisplay="auto" />
                       </Box>
 
-                      {/* Rotation Slider */}
+                      {/* Rotation */}
                       <Box sx={{ mb: 3 }}>
-                        <Typography variant="body2" gutterBottom>
-                          Rotation: {rotation}°
-                        </Typography>
-                        <Slider
-                          value={rotation}
-                          min={0}
-                          max={360}
-                          onChange={(_, value) => setRotation(value as number)}
-                          valueLabelDisplay="auto"
-                        />
+                        <Typography variant="body2" gutterBottom>{t('Rotation: {{d}}°', { d: rotation })}</Typography>
+                        <Slider value={rotation} min={0} max={360} onChange={(_, v) => setRotation(v as number)} valueLabelDisplay="auto" />
                       </Box>
 
                       {/* Filters */}
-                      <Typography variant="subtitle2" gutterBottom fontWeight="bold">
-                        Filters
-                      </Typography>
-                      
-                      <Box sx={{ mb: 2 }}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Brightness5 fontSize="small" />
-                          <Typography variant="body2" sx={{ flex: 1 }}>
-                            Brightness
-                          </Typography>
-                          <Typography variant="caption">
-                            {brightness}%
-                          </Typography>
-                        </Stack>
-                        <Slider
-                          value={brightness}
-                          min={0}
-                          max={200}
-                          onChange={(_, value) => setBrightness(value as number)}
-                          valueLabelDisplay="auto"
-                        />
-                      </Box>
-                      
-                      <Box sx={{ mb: 2 }}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Contrast fontSize="small" />
-                          <Typography variant="body2" sx={{ flex: 1 }}>
-                            Contrast
-                          </Typography>
-                          <Typography variant="caption">
-                            {contrast}%
-                          </Typography>
-                        </Stack>
-                        <Slider
-                          value={contrast}
-                          min={0}
-                          max={200}
-                          onChange={(_, value) => setContrast(value as number)}
-                          valueLabelDisplay="auto"
-                        />
-                      </Box>
-                      
-                      <Box sx={{ mb: 3 }}>
-                        <Stack direction="row" spacing={1} alignItems="center">
-                          <Brightness5 fontSize="small" />
-                          <Typography variant="body2" sx={{ flex: 1 }}>
-                            Saturation
-                          </Typography>
-                          <Typography variant="caption">
-                            {saturation}%
-                          </Typography>
-                        </Stack>
-                        <Slider
-                          value={saturation}
-                          min={0}
-                          max={200}
-                          onChange={(_, value) => setSaturation(value as number)}
-                          valueLabelDisplay="auto"
-                        />
-                      </Box>
+                      <Typography variant="subtitle2" gutterBottom fontWeight="bold">{t('Filters')}</Typography>
+
+                      {[
+                        { label: t('Brightness'),  value: brightness,  set: setBrightness  },
+                        { label: t('Contrast'),    value: contrast,    set: setContrast    },
+                        { label: t('Saturation'),  value: saturation,  set: setSaturation  },
+                      ].map(({ label, value, set }) => (
+                        <Box key={label} sx={{ mb: 2 }}>
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Brightness5 fontSize="small" />
+                            <Typography variant="body2" sx={{ flex: 1 }}>{label}</Typography>
+                            <Typography variant="caption">{value}%</Typography>
+                          </Stack>
+                          <Slider value={value} min={0} max={200} onChange={(_, v) => set(v as number)} valueLabelDisplay="auto" />
+                        </Box>
+                      ))}
 
                       {/* Presets */}
-                      <Typography variant="subtitle2" gutterBottom fontWeight="bold">
-                        Presets
-                      </Typography>
-                      
+                      <Typography variant="subtitle2" gutterBottom fontWeight="bold" sx={{ mt: 1 }}>{t('Presets')}</Typography>
                       <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                         <TextField
-                          size="small"
-                          label="Preset Name"
-                          value={presetName}
-                          onChange={(e) => setPresetName(e.target.value)}
-                          sx={{ flex: 1 }}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && presetName.trim()) {
-                              savePreset();
-                            }
-                          }}
+                          size="small" label={t('Preset Name')} value={presetName} sx={{ flex: 1 }}
+                          onChange={e => setPresetName(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter' && presetName.trim()) savePreset(); }}
                         />
-                        <Button 
-                          variant="outlined" 
-                          onClick={savePreset}
-                          disabled={!presetName.trim()}
-                          size="small"
-                        >
-                          Save
-                        </Button>
+                        <Button variant="outlined" onClick={savePreset} disabled={!presetName.trim()} size="small">{t('Save')}</Button>
                       </Stack>
-                      
                       <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-                        {presets.map((preset, index) => (
-                          <Chip
-                            key={index}
-                            label={preset.name}
-                            onClick={() => loadPreset(preset)}
-                            onDelete={() => deletePreset(index)}
-                            icon={<History />}
-                            size="small"
-                          />
+                        {presets.map((p, i) => (
+                          <Chip key={i} label={p.name} onClick={() => loadPreset(p)} onDelete={() => deletePreset(i)} icon={<History />} size="small" />
                         ))}
                         {presets.length === 0 && (
-                          <Typography variant="caption" color="text.secondary">
-                            No saved presets yet
-                          </Typography>
+                          <Typography variant="caption" color="text.secondary">{t('No saved presets yet')}</Typography>
                         )}
                       </Stack>
                     </CardContent>
@@ -859,64 +602,30 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
               </Box>
             )}
 
-            {/* Preview Step */}
-            {activeStep === 'preview' && editedImage && uploadedImage && (
+            {/* ──────────── PREVIEW (full mode only) ──────────── */}
+            {!simpleMode && activeStep === 'preview' && editedImage && uploadedImage && (
               <Box>
-                <Typography variant="h6" gutterBottom>
-                  Final Result
-                </Typography>
+                <Typography variant="h6" gutterBottom>{t('Final Result')}</Typography>
                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
                   <Card sx={{ flex: 1 }}>
                     <CardContent>
-                      <Typography variant="subtitle1" gutterBottom>
-                        Original
-                      </Typography>
-                      <CardMedia
-                        component="img"
-                        image={uploadedImage.preview}
-                        alt="Original"
-                        sx={{ borderRadius: 1, maxHeight: 300, objectFit: 'contain' }}
-                      />
+                      <Typography variant="subtitle1" gutterBottom>{t('Original')}</Typography>
+                      <CardMedia component="img" image={uploadedImage.preview} alt={t('Original')}
+                        sx={{ borderRadius: 1, maxHeight: 300, objectFit: 'contain' }} />
                       <Box sx={{ mt: 2 }}>
-                        <Chip 
-                          label={`${(uploadedImage.size / 1024 / 1024).toFixed(2)} MB`} 
-                          size="small" 
-                          variant="outlined" 
-                          sx={{ mr: 1 }}
-                        />
-                        <Chip 
-                          label="Original" 
-                          color="default" 
-                          size="small" 
-                        />
+                        <Chip label={`${(uploadedImage.size / 1024 / 1024).toFixed(2)} MB`} size="small" variant="outlined" sx={{ mr: 1 }} />
+                        <Chip label={t('Original')} size="small" />
                       </Box>
                     </CardContent>
                   </Card>
-
                   <Card sx={{ flex: 1 }}>
                     <CardContent>
-                      <Typography variant="subtitle1" gutterBottom>
-                        Edited & Uploaded
-                      </Typography>
-                      <CardMedia
-                        component="img"
-                        image={editedImage}
-                        alt="Edited"
-                        sx={{ borderRadius: 1, maxHeight: 300, objectFit: 'contain' }}
-                      />
+                      <Typography variant="subtitle1" gutterBottom>{t('Edited & Uploaded')}</Typography>
+                      <CardMedia component="img" image={editedImage} alt={t('Edited')}
+                        sx={{ borderRadius: 1, maxHeight: 300, objectFit: 'contain' }} />
                       <Box sx={{ mt: 2 }}>
-                        <Chip 
-                          label="Uploaded" 
-                          color="success" 
-                          size="small"
-                          icon={<CheckCircle />}
-                          sx={{ mr: 1 }}
-                        />
-                        <Chip 
-                          label="Ready to use" 
-                          variant="outlined" 
-                          size="small" 
-                        />
+                        <Chip label={t('Uploaded')} color="success" size="small" icon={<CheckCircle />} sx={{ mr: 1 }} />
+                        <Chip label={t('Ready to use')} variant="outlined" size="small" />
                       </Box>
                     </CardContent>
                   </Card>
@@ -927,62 +636,54 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
         )}
       </DialogContent>
 
+      {/* ──────────── ACTIONS ──────────── */}
       <DialogActions sx={{ justifyContent: 'space-between', px: 3, py: 2 }}>
         <Box>
-          {activeStep === 'edit' && (
-            <Button
-              variant="outlined"
-              onClick={() => setActiveStep('upload')}
-              startIcon={<RestartAlt />}
-              size="small"
-              disabled={isLoading}
-            >
-              Upload Different
+          {(activeStep === 'edit' || activeStep === 'confirm') && (
+            <Button variant="outlined" onClick={() => setActiveStep('upload')}
+              startIcon={<RestartAlt />} size="small" disabled={isLoading}>
+              {simpleMode ? t('Change Image') : t('Upload Different')}
             </Button>
           )}
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 2 }}>
-          {activeStep === 'preview' && (
-            <>
-              <Button
-                variant="outlined"
-                onClick={handleDownload}
-                startIcon={<Download />}
-                size="small"
-              >
-                Download
-              </Button>
-              <Button
-                variant="outlined"
-                onClick={handleReset}
-                startIcon={<RestartAlt />}
-                size="small"
-              >
-                Start Over
-              </Button>
-            </>
-          )}
-          
-          {activeStep === 'edit' && (
-            <Button
-              variant="contained"
-              onClick={handleFinalSave}
-              startIcon={<Save />}
-              disabled={isLoading}
-              size="small"
-            >
-              {isLoading ? 'Saving...' : 'Save & Upload'}
+          {/* Simple mode: Upload button on confirm */}
+          {simpleMode && activeStep === 'confirm' && (
+            <Button variant="contained" onClick={handleSimpleUpload}
+              startIcon={<CloudUpload />} disabled={isLoading} size="small">
+              {isLoading ? t('Uploading...') : t('Upload')}
             </Button>
           )}
-          
+
+          {/* Simple mode: success step - just close */}
+          {simpleMode && activeStep === 'success' && (
+            <Button variant="contained" onClick={handleClose} size="small">
+              {t('Done')}
+            </Button>
+          )}
+
+          {/* Full mode: Save & Upload on edit */}
+          {!simpleMode && activeStep === 'edit' && (
+            <Button variant="contained" onClick={handleFinalSave}
+              startIcon={<Save />} disabled={isLoading} size="small">
+              {isLoading ? t('Saving...') : t('Save & Upload')}
+            </Button>
+          )}
+
+          {/* Full mode: Start Over on preview */}
+          {!simpleMode && activeStep === 'preview' && (
+            <Button variant="outlined" onClick={handleReset} startIcon={<RestartAlt />} size="small">
+              {t('Start Over')}
+            </Button>
+          )}
+
+          {/* Cancel / Done */}
           <Button
             variant={activeStep === 'preview' ? 'contained' : 'outlined'}
-            onClick={handleClose}
-            size="small"
-            disabled={isLoading}
+            onClick={handleClose} size="small" disabled={isLoading}
           >
-            {activeStep === 'preview' ? 'Done' : 'Cancel'}
+            {activeStep === 'preview' ? t('Done') : t('Cancel')}
           </Button>
         </Box>
       </DialogActions>

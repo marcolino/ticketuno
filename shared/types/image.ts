@@ -1,37 +1,9 @@
-// Type definitions
-export type ImageType = 'poster' | 'website' | 'banner' | 'thumbnail';
+export type ImageType = 'poster' | 'website' | 'profile' | 'banner' | 'thumbnail';
 
-export interface ImageMetadata {
-  filename: string;
-  filepath: string;
-  mimetype: string;
-  size: number;
-  imageType: string;
-}
-
-export interface StoredImage {
-  id: string;
-  filename: string;
-  filepath: string;
-  mimetype: string;
-  size: number;
-  imageType: string;
-  uploadedAt: string;
-}
-
-export interface UploadedImage {
-  url: string;
-  size: number;
-  timestamp: Date;
-  type: ImageType;
-}
-
+// This is all you need for the frontend components now
 export interface ImageUploadSectionProps {
-  type: ImageType;
   label: string;
-  aspectRatio?: number;
-  uploadedImage: UploadedImage | null;
+  imageFilename: string | null;   // just the filename, e.g. "poster-abc123.jpg"
   onUploadClick: () => void;
-  onPreviewClick: () => void;
   onClearClick: () => void;
 }

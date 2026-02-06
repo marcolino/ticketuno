@@ -23,7 +23,7 @@ function SlideTransition(props: SlideProps) {
 }
 
 // Create a global ref to store the toast function
-let toastRef: React.RefObject<ToastContextType> = { current: null };
+let toastRef: React.RefObject<ToastContextType> = { current: null as any };
 
 // Maximum number of toasts to event at once
 const MAX_VISIBLE_TOASTS = 4;

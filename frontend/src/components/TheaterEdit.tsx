@@ -39,7 +39,7 @@ const TheaterEdit: React.FC = () => {
   const [error, setError] = useState('');
 
   // Theater fields
-  const [theaterData, setTheaterData] = useState<TheaterData>(() => {
+  const [theaterData, setTheaterData] = useState(() => {
     // Check if we have state passed from caller
     if (location.state?.theaterData) {
       return location.state.theaterData;
@@ -51,20 +51,20 @@ const TheaterEdit: React.FC = () => {
       address: '',
       websiteUrl: '',
       status: 'active',
-      selectedLayoutId: '',
+      currentLayoutId: '',
       //selectedLayoutId: '',
     };
   });
 
   const [layouts, setLayouts] = useState<Layout[]>([]);
-  const [selectedLayoutId, setSelectedLayoutId] = useState<string>('');
+  //const [selectedLayoutId, setSelectedLayoutId] = useState<string>('');
   
-  useEffect(() => {
-    if (location.state?.theaterData?.selectedLayoutId) {
-      // Update the selected layout state when returning from LayoutEdit
-      setSelectedLayoutId(location.state?.theaterData?.selectedLayoutId);
-    }
-  }, [navigate, location.state, location.pathname]);
+  // useEffect(() => {
+  //   if (location.state?.theaterData?.selectedLayoutId) {
+  //     // Update the selected layout state when returning from LayoutEdit
+  //     setSelectedLayoutId(location.state?.theaterData?.selectedLayoutId);
+  //   }
+  // }, [navigate, location.state, location.pathname]);
 
   // const loadTheater1 = useCallback(async () => {
   //   try {
@@ -88,12 +88,16 @@ const TheaterEdit: React.FC = () => {
       const theater = response.data;
       console.log("getTheaterById theater:", theater);
 
-      // Load current layout for this theater
-      const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
       setTheaterData({
         ...theater,
-        selectedLayoutId: layoutResponse.data?.id || ''
+        currentLayoutId: theater.currentLayoutId || '' // Ensure currentLayoutId is set
       });
+      // // Load current layout for this theater
+      // const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
+      // setTheaterData({
+      //   ...theater,
+      //   selectedLayoutId: layoutResponse.data?.id || ''
+      // });
       setError('');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to load theater');
@@ -186,6 +190,18 @@ const TheaterEdit: React.FC = () => {
     initialize();
   }, []); // runs ONCE on mount
 
+  useEffect(() => {
+    const state = location.state as { theaterData?: { selectedLayoutId?: string } };
+    if (state?.theaterData?.selectedLayoutId) {
+      // When returning from LayoutEdit with a newly created/edited layout
+      //setSelectedLayoutId(state.theaterData.selectedLayoutId);
+      setTheaterData((prev: any) => ({
+        ...prev,
+        currentLayoutId: state.theaterData?.selectedLayoutId
+      }));
+    }
+  }, [location.state]);
+  
   const handleInputChange = (e: any) => {
     setTheaterData({
       ...theaterData,
@@ -215,6 +231,37 @@ const TheaterEdit: React.FC = () => {
   //   //setSelectedLayoutId(layoutId);
   // };
 
+  // const handleLayoutSelectORIGINAL = (layoutId: string) => {
+  //   if (layoutId === '<new>') {
+  //     navigate('/layout/new', {
+  //       state: {
+  //         theaterData,
+  //         returnTo: `/theater/edit/${id || 'new'}`,
+  //         theaterId: id // Pass the theater ID if editing existing theater
+  //       }
+  //     });
+  //   } else {
+  //     setTheaterData((prev: any) => ({ ...prev, selectedLayoutId: layoutId }));
+  //   }
+  // }
+  const handleLayoutSelect = (layoutId: string) => {
+    if (layoutId === '<new>') {
+      navigate('/layout/new', {
+        state: { 
+          theaterData, 
+          returnTo: `/theater/edit/${id || 'new'}`,
+          theaterId: id  // pass the theater ID if editing existing theater
+        }
+      });
+    } else {
+      //setSelectedLayoutId(layoutId);
+      setTheaterData((prev: any) => ({ 
+        ...prev, 
+        currentLayoutId: layoutId
+      }));
+    }
+  };
+  
   const handleSave = async () => {
     if (!theaterData.name.trim()) {
       setError(t('Name is required'));
@@ -227,24 +274,17 @@ const TheaterEdit: React.FC = () => {
 
       if (isEditMode) {
         await theaterApi.updateTheaterFull(id, theaterData);
-        //await theaterApi.setTheaterLayoutCurrent(id, theaterData.selectedLayoutId);
-        if (selectedLayoutId) {
-          await theaterApi.setTheaterLayoutCurrent(id, selectedLayoutId);
-        }
         toast.success(t('Theater updated successfully!'));
       } else {
-        const response = await theaterApi.createTheater(theaterData);
-        const newTheaterId = response.data;
-        //if (theaterData.selectedLayoutId) {
-        if (selectedLayoutId) {
-          const res = await theaterApi.setTheaterLayoutCurrent(newTheaterId, selectedLayoutId);
-          console.log("RES:", res);
-        }
+        await theaterApi.createTheater(theaterData);
         toast.success(t('Theater created successfully!'));
       }
+      
       navigate('/theaters');
     } catch (err: any) {
-      setError(err.response?.data?.error || `Failed to ${isEditMode ? 'update' : 'create'} theater`);
+      setError(err.response?.data?.error || t('Failed to {{action}} theater', { 
+        action: isEditMode ? t('update') : t('create')
+      }));
     } finally {
       setSaving(false);
     }
@@ -347,27 +387,20 @@ const TheaterEdit: React.FC = () => {
 
           <Grid item xs={12} md={6}>
             <FormControl fullWidth required>
-              <InputLabel>{t('Layout')}</InputLabel>
+              <InputLabel>
+                {t('Layout')}
+              </InputLabel>
               <Select
                 name="selectedLayoutId"
-                // value={theaterData.selectedLayoutId || ''}
-                value={
-                  theaterData.selectedLayoutId && 
-                  layouts.some(layout => layout.id === theaterData.selectedLayoutId)
-                    ? theaterData.selectedLayoutId 
-                    : ''
-                }
+                value={theaterData.currentLayoutId || ''}
+                // value={
+                //   theaterData.selectedLayoutId &&
+                //     layouts.some(layout => layout.id === theaterData.selectedLayoutId)
+                //     ? theaterData.selectedLayoutId
+                //     : ''
+                // }
                 label="Layouts"
-                onChange={(e) => {
-                  const layoutId = e.target.value;
-                  if (layoutId === '<new>') {
-                    navigate('/layout/new', {
-                      state: { theaterData, returnTo: `/theater/edit/${id || 'new'}` }
-                    });
-                  } else {
-                    setTheaterData((prev: any) => ({ ...prev, selectedLayoutId: layoutId }));
-                  }
-                }}
+                onChange={(e) => handleLayoutSelect(e.target.value)}
               >
                 <MenuItem value={"<new>"}>&lt;{t('New Layout')}&gt;</MenuItem>
                 {layouts.map((layout, index) => (

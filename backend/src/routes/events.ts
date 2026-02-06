@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
         return {
           id: event.id,
           title: event.title,
-          theaterName: theater?.name || 'Unknown',
+          theaterName: theater?.name || req.t('Unknown'),
           genre: event.genre,
           openingDate: event.openingDate,
           closingDate: event.closingDate,
@@ -42,7 +42,8 @@ router.get('/', async (req, res) => {
           currency: event.currency,
           nextPerformanceDate: upcomingPerformances[0]?.performanceDate,
           availablePerformances: upcomingPerformances.length,
-          status: event.status
+          status: event.status,
+          posterImage: event.posterImage,
         };
       })
     );
@@ -81,7 +82,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       title, description, genre, durationMinutes, intermissionCount, rating, language,
       director, playwright, producer, choreographer, musicalDirector, theaterId, stageType,
       openingDate, closingDate, baseTicketPrice, currency, specialRequirements, minimumAge,
-      typicalStartTime, typicalEndTime, eventPosterUrl, trailerUrl, websiteUrl,
+      typicalStartTime, typicalEndTime, posterImage, trailerUrl, websiteUrl,
       socialMediaLinks, maxCapacity, contentWarnings
     } = req.body;
 
@@ -124,7 +125,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       createdByUserId: req.userId,
       typicalStartTime,
       typicalEndTime,
-      eventPosterUrl,
+      posterImage,
       trailerUrl,
       websiteUrl,
       socialMediaLinks,
@@ -147,7 +148,6 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
     if (!event) {
       return res.status(404).json({ error: req.t('Event not found') });
     }
-
     await database.updateEvent(req.params.id, req.body);
     const updatedEvent = await database.getEventById(req.params.id);
     res.json(updatedEvent);
@@ -171,7 +171,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Get performances for a event
+// Get performances for an event
 router.get('/:id/performances', async (req, res) => {
   try {
     const performances = await database.getPerformancesByEventId(req.params.id);
@@ -181,7 +181,7 @@ router.get('/:id/performances', async (req, res) => {
   }
 });
 
-// Protected: Create performance (admin only)
+// Protected: Create performance for an event (admin only)
 router.post('/:id/performances', authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { performanceDate, startTime, endTime } = req.body;
@@ -231,8 +231,8 @@ router.post('/:id/performances', authenticateToken, requireAdmin, async (req, re
   }
 });
 
-// Get specific performance
-router.get('/:eventId/performances/:performanceId', async (req, res) => {
+// Get specific performance for an event
+router.get('/performances/:performanceId', async (req, res) => {
   try {
     const performance = await database.getPerformanceById(req.params.performanceId);
     if (!performance) {
@@ -244,8 +244,37 @@ router.get('/:eventId/performances/:performanceId', async (req, res) => {
   }
 });
 
+// Protected: Update performance (admin only)
+router.put('/performances/:performanceId', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    // const event = await database.getEventById(req.params.id);
+    // if (!event) {
+    //   return res.status(404).json({ error: req.t('Event not found') });
+    // }
+    await database.updatePerformance(req.params.performanceId, req.body);
+    const updatedPerformance = await database.getEventById(req.params.id);
+    res.json(updatedPerformance);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to update event: {{err}}', {err: getErrorMessage(error)}) });
+  }
+});
+
+// Delete specific performance for an event
+router.delete('/performances/:performanceId', async (req, res) => {
+  try {
+    const performance = await database.deletePerformanceById(req.params.performanceId);
+    if (!performance) {
+      return res.status(404).json({ error: req.t('Event performance not found') });
+    }
+    await database.deletePerformanceById(req.params.performanceId);
+    res.json({ message: 'Performance deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to delete performance: {{err}}', {err: getErrorMessage(error)}) });
+  }
+});
+
 // Protected: Book seats for a performance
-router.post('/:eventId/performances/:performanceId/book', authenticateToken, async (req, res) => {
+router.post('/performances/:performanceId/book', authenticateToken, async (req, res) => {
   try {
     const { seatIds } = req.body;
     const performance = await database.getPerformanceById(req.params.performanceId);

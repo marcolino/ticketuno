@@ -8,7 +8,7 @@ import {
   Alert,
   Stack,
   Card,
-  CardContent
+  //CardContent
 } from '@mui/material';
 import {
   CloudUpload,
@@ -17,10 +17,17 @@ import {
 } from '@mui/icons-material';
 import imageCompression from 'browser-image-compression';
 
+interface CompressedInfo {
+  originalSize: string;
+  compressedSize: string;
+  reduction: string;
+}
+
 const ImageUploader = ({ onImageSelected, setIsLoading}) => {
   const [error, setError] = useState('');
   const [compressionProgress, setCompressionProgress] = useState(0);
-  const [compressedInfo, setCompressedInfo] = useState(null);
+  const [compressedInfo, setCompressedInfo] = useState<CompressedInfo | null>(null);
+  //const [compressedInfo, setCompressedInfo] = useState(null);
 
   const compressImage = async (file) => {
     const options = {
@@ -37,11 +44,11 @@ const ImageUploader = ({ onImageSelected, setIsLoading}) => {
       const beforeSize = (file.size / 1024 / 1024).toFixed(2);
       const afterSize = (compressedFile.size / 1024 / 1024).toFixed(2);
       
-      setCompressedInfo({
-        originalSize: beforeSize,
-        compressedSize: afterSize,
-        reduction: ((1 - compressedFile.size / file.size) * 100).toFixed(1)
-      });
+        setCompressedInfo({
+          originalSize: beforeSize,
+          compressedSize: afterSize,
+          reduction: ((1 - compressedFile.size / file.size) * 100).toFixed(1)
+        });
 
       return compressedFile;
     } catch (error) {

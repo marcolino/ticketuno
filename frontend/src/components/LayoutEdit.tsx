@@ -45,7 +45,8 @@ const LayoutEdit: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { id } = useParams<{ id: string }>();
-  
+  const { t } = useTranslation();
+
   // Get theater data and return path from location state
   const { theaterData, returnTo, theaterId: theaterIdFromState } = location.state as LocationState || {};
   
@@ -57,7 +58,6 @@ const LayoutEdit: React.FC = () => {
   const { isAuthenticated, isAdmin } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const { t } = useTranslation();
 
   // Layout fields
   const [layoutName, setLayoutName] = useState('');

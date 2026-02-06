@@ -15,6 +15,7 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
+    "noImplicitAny": false,
     "types": ["vite/client"],
     // "typeRoots": [
     //   "./node_modules/@types",
@@ -26,5 +27,6 @@
     }
   },
   //"include": ["src", "src/global.d.ts", "../shared/types/**/*"],
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["node_modules"]
 }

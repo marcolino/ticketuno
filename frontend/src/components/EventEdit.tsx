@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { /*useNavigate, */ useParams } from 'react-router-dom';
+import useNavigate from '../hooks/useNavigate';
+import { useMediaQuery, useTheme } from '@mui/material';
 import {
   Container,
   Box,
@@ -16,32 +18,36 @@ import {
   InputAdornment,
   Stack,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import {
   Save as SaveIcon,
-  Add as AddIcon,
-  Delete as DeleteIcon,
+  //Add as AddIcon,
+  //Delete as DeleteIcon,
+  TheaterComedy as TheaterComedyIcon,
 } from '@mui/icons-material';
-import { eventApi, theaterApi } from '../services/api';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import dayjs, { Dayjs } from 'dayjs';
+import { eventApi, theaterApi, imageApi } from '../services/api';
 import { Event, EventPerformance } from '../../../shared/types/event';
 import { TheaterStats } from '../../../shared/types/theater';
-import { ImageType, UploadedImage } from '../../../shared/types/image';
+//import { ImageType, UploadedImage } from '../../../shared/types/image';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../contexts/ToastContext';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
-import dayjs, { Dayjs } from 'dayjs';
 import { t } from 'i18next';
-import config from '../config';
+import config, { CurrencyCode } from '../config';
 
 const EventEdit: React.FC = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated, isAdmin } = useAuth();
 
   const isEditMode = id && id !== 'new';
 
+  const isAtLeastMd = useMediaQuery(theme.breakpoints.up('md'));
+  
   const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -69,35 +75,35 @@ const EventEdit: React.FC = () => {
   const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50);
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
   
-  const [currency, setCurrency] = useState(
-    Object.values(config.currencies).find(c => c.code === config.defaultCurrencyCode)?.code || ''
-  );
+  const [currency, setCurrency] = useState(config.defaultCurrency);
+  //   Object.values(config.currencies).find(c => c.code === config.defaultCurrency)?.code || ''
+  // );
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [minimumAge, setMinimumAge] = useState<number>(0);
 
-  const [eventPosterUrl, setEventPosterUrl] = useState('');
+  //const [eventPosterUrl, setEventPosterUrl] = useState('');
   const [contentWarnings, setContentWarnings] = useState('');
-  const [status, setStatus] = useState<'scheduled' | 'in_progress' | 'completed' | 'cancelled'>('scheduled');
+  const [status, setStatus] = useState<'scheduled' | 'in progress' | 'completed' | 'cancelled'>('scheduled');
 
   // Performances
   const [performances, setPerformances] = useState<Partial<EventPerformance>[]>([]);
 
   // Image upload state
   const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
-  const [activeImageType, setActiveImageType] = useState<ImageType | null>(null);
-
-  const [uploadedImages, setUploadedImages] = useState<Record<ImageType, UploadedImage | null>>({
-    poster: null,
-    website: null,
-    banner: null,
-    thumbnail: null
-  });
+  const [posterImage, setPosterImage] = useState<string | null>(null);
+  //const [activeImageType, setActiveImageType] = useState<ImageType | null>(null);
+  // const [uploadedImages, setUploadedImages] = useState<Record<ImageType, UploadedImage | null>>({
+  //   poster: null,
+  //   website: null,
+  //   banner: null,
+  //   thumbnail: null
+  // });
   
   const loadTheaters = async () => {
     try {
       const response = await theaterApi.getAllTheaters();
       setTheaters(response.data);
-    } catch (error: any) {
+    } catch (error: any) { // TODO: comnsole.error ???
       console.error(t('Failed to load theaters: {{err}}', { err: error.response?.data?.error }));
     }
   };
@@ -128,25 +134,25 @@ const EventEdit: React.FC = () => {
       
       setBaseTicketPrice(event.baseTicketPrice);
       setBaseTicketPriceDisplay(event.baseTicketPrice.toFixed(2));
-      setCurrency(event.currency);
+      setCurrency(event.currency as any);
       setSpecialRequirements(event.specialRequirements || '');
       setMinimumAge(event.minimumAge || 0);
-      setEventPosterUrl(event.eventPosterUrl || '');
+      setPosterImage(event.posterImage || null);
       setContentWarnings(event.contentWarnings || '');
       setStatus(event.status);
 
-      if (event.eventPosterUrl) {
-        const posterUrl = event.eventPosterUrl; // TypeScript now knows this is string
-        setUploadedImages(prev => ({
-          ...prev,
-          poster: {
-            url: posterUrl, // Now TypeScript knows this is string, not string | undefined
-            size: 0,
-            timestamp: new Date(),
-            type: 'poster' as const
-          }
-        }));
-      }
+      // if (event.eventPosterUrl) {
+      //   const posterUrl = event.eventPosterUrl; // TypeScript now knows this is string
+      //   setUploadedImages(prev => ({
+      //     ...prev,
+      //     poster: {
+      //       url: posterUrl,
+      //       size: 0,
+      //       timestamp: new Date(),
+      //       type: 'poster' as const
+      //     }
+      //   }));
+      // }
 
       if (event.performances) {
         setPerformances(event.performances);
@@ -170,27 +176,27 @@ const EventEdit: React.FC = () => {
     }
   }, [isAuthenticated, isAdmin, isEditMode, navigate, loadEvent]);
   
-  const addPerformance = () => {
-    setPerformances([
-      ...performances,
-      {
-        performanceDate: '',
-        startTime: typicalStartTime ? typicalStartTime.format('HH:mm') : '',
-        endTime: typicalEndTime ? typicalEndTime.format('HH:mm') : '',
-        status: 'scheduled'
-      }
-    ]);
-  };
+  // const addPerformance = () => {
+  //   setPerformances([
+  //     ...performances,
+  //     {
+  //       performanceDate: '',
+  //       startTime: typicalStartTime ? typicalStartTime.format('HH:mm') : '',
+  //       endTime: typicalEndTime ? typicalEndTime.format('HH:mm') : '',
+  //       status: 'scheduled'
+  //     }
+  //   ]);
+  // };
 
-  const removePerformance = (index: number) => {
-    setPerformances(performances.filter((_, i) => i !== index));
-  };
+  // const removePerformance = (index: number) => {
+  //   setPerformances(performances.filter((_, i) => i !== index));
+  // };
 
-  const updatePerformance = (index: number, field: string, value: string) => {
-    const updated = [...performances];
-    updated[index] = { ...updated[index], [field]: value };
-    setPerformances(updated);
-  };
+  // const updatePerformance = (index: number, field: string, value: string) => {
+  //   const updated = [...performances];
+  //   updated[index] = { ...updated[index], [field]: value };
+  //   setPerformances(updated);
+  // };
 
   const handleSave = async () => {
     if (!title.trim() || !theaterId || !baseTicketPrice) {
@@ -224,7 +230,7 @@ const EventEdit: React.FC = () => {
         currency,
         specialRequirements,
         minimumAge,
-        eventPosterUrl: uploadedImages.poster?.url || eventPosterUrl,
+        posterImage: posterImage ?? undefined,
         contentWarnings,
         status
       };
@@ -249,6 +255,7 @@ const EventEdit: React.FC = () => {
       }
 
       navigate(-1);
+      //goBack();
     } catch (error: any) {
       setError(error.response?.data?.error ||
         t('Failed to {{what}} event: {{err}}', { what: isEditMode ? t('update') : t('create'), err: error.message})
@@ -258,47 +265,47 @@ const EventEdit: React.FC = () => {
     }
   };
 
-  // Handle image upload callback from popup
-  const handleUploadImage = (imageUrl: string, imageData: any) => {
-    if (!activeImageType) return;
+  // // Handle image upload callback from popup
+  // const handleUploadImage = (imageUrl: string, imageData: any) => {
+  //   if (!activeImageType) return;
     
-    console.log('Image uploaded:', { imageUrl, imageData });
+  //   console.log('Image uploaded:', { imageUrl, imageData });
     
-    setUploadedImages(prev => ({
-      ...prev,
-      [activeImageType]: {
-        url: imageUrl,
-        size: imageData.fileData?.size || 0,
-        timestamp: new Date(),
-        type: activeImageType
-      }
-    }));
+  //   setUploadedImages(prev => ({
+  //     ...prev,
+  //     [activeImageType]: {
+  //       url: imageUrl,
+  //       size: imageData.fileData?.size || 0,
+  //       timestamp: new Date(),
+  //       type: activeImageType
+  //     }
+  //   }));
 
-    // Update the poster URL if it's a poster image
-    if (activeImageType === 'poster') {
-      setEventPosterUrl(imageUrl);
-    }
+  //   // Update the poster URL if it's a poster image
+  //   if (activeImageType === 'poster') {
+  //     setEventPosterUrl(imageUrl);
+  //   }
     
-    toast.success(t('Image uploaded successfully'));
-  };
+  //   toast.success(t('Image uploaded successfully'));
+  // };
 
-  const handleOpenPreview = (imageType: ImageType) => {
-    const image = uploadedImages[imageType];
-    if (image?.url) {
-      window.open(image.url, '_blank');
-    }
-  };
+  // const handleOpenPreview = (imageType: ImageType) => {
+  //   const image = uploadedImages[imageType];
+  //   if (image?.url) {
+  //     window.open(image.url, '_blank');
+  //   }
+  // };
 
-  const handleClearImage = (imageType: ImageType) => {
-    setUploadedImages(prev => ({
-      ...prev,
-      [imageType]: null
-    }));
+  // const handleClearImage = (imageType: ImageType) => {
+  //   setUploadedImages(prev => ({
+  //     ...prev,
+  //     [imageType]: null
+  //   }));
     
-    if (imageType === 'poster') {
-      setEventPosterUrl('');
-    }
-  };
+  //   if (imageType === 'poster') {
+  //     setEventPosterUrl('');
+  //   }
+  // };
   
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -340,7 +347,7 @@ const EventEdit: React.FC = () => {
                 onChange={(e) => setStatus(e.target.value as any)}
               >
                 <MenuItem value="scheduled">{t('Scheduled')}</MenuItem>
-                <MenuItem value="in_progress">{t('In Progress')}</MenuItem>
+                <MenuItem value="in progress">{t('In Progress')}</MenuItem>
                 <MenuItem value="completed">{t('Completed')}</MenuItem>
                 <MenuItem value="cancelled">{t('Cancelled')}</MenuItem>
               </Select>
@@ -491,14 +498,14 @@ const EventEdit: React.FC = () => {
               <DatePicker
                 label={t('Start Date')}
                 value={openingDate}
-                onChange={(newValue) => setOpeningDate(newValue)}
+                onChange={(newValue) => setOpeningDate(newValue as any)}
                 maxDate={closingDate || undefined}
                 sx={{ width: '100%' }}
               />
               <DatePicker
                 label={t('End Date')}
                 value={closingDate}
-                onChange={(newValue) => setClosingDate(newValue)}
+                onChange={(newValue) => setClosingDate(newValue as any)}
                 minDate={openingDate || undefined}
                 sx={{ width: '100%' }}
               />
@@ -510,13 +517,13 @@ const EventEdit: React.FC = () => {
               <TimePicker
                 label={t('Typical Start Time')}
                 value={typicalStartTime}
-                onChange={(newValue) => setTypicalStartTime(newValue)}
+                onChange={(newValue) => setTypicalStartTime(newValue as any)}
                 sx={{ width: '100%' }}
               />
               <TimePicker
                 label={t('Typical End Time')}
                 value={typicalEndTime}
-                onChange={(newValue) => setTypicalEndTime(newValue)}
+                onChange={(newValue) => setTypicalEndTime(newValue as any)}
                 sx={{ width: '100%' }}
               />
             </Stack>
@@ -535,11 +542,16 @@ const EventEdit: React.FC = () => {
               <Select
                 value={currency}
                 label={t('Currency')}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={(e) => setCurrency(e.target.value as any)}
               >
-                {Object.values(config.currencies).map((currency) => (
+                {/* {Object.values(config.currencies).map((currency) => (
                   <MenuItem key={currency.code} value={currency.code}>
                     {currency.code} ({currency.symbol})
+                  </MenuItem>
+                ))} */}
+                {Object.entries(config.currencies).map(([code, currency]) => (
+                  <MenuItem key={code} value={code}>
+                    {code} ({currency.symbol})
                   </MenuItem>
                 ))}
               </Select>
@@ -563,7 +575,7 @@ const EventEdit: React.FC = () => {
                 startAdornment: (
                   //<InputAdornment position="start">{config.currencies[currency].symbol}</InputAdornment>,
                   <InputAdornment position="start">
-                    {config.currencies[currency as keyof typeof config.currencies].symbol}
+                    {config.currencies[currency as CurrencyCode]?.symbol}
                   </InputAdornment>
                 )
               }}
@@ -588,22 +600,38 @@ const EventEdit: React.FC = () => {
               inputProps={{ min: 0 }}
             />
           </Grid>
+          {isAtLeastMd && (
+            <Grid item xs={12} md={9}>
+            </Grid>
+          )}
 
           {/* Poster Image Upload */}
           <Grid item xs={12} md={9}>
             <ImageUploadSection
-              type="poster"
+              //type="poster"
               label={t('Poster Image')}
-              aspectRatio={9/16}
-              uploadedImage={uploadedImages.poster}
-              onUploadClick={() => {
-                setActiveImageType('poster');
-                setIsImageUploadPopupOpen(true);
+              // aspectRatio={9 / 16} // TODO: we need it...
+              imageFilename={posterImage}
+              onUploadClick={() => setIsImageUploadPopupOpen(true)}
+              onClearClick={() => {
+                if (posterImage) {
+                  imageApi.delete(posterImage).catch(() => { });
+                }
+                setPosterImage(null);
               }}
-              onPreviewClick={() => handleOpenPreview('poster')}
-              onClearClick={() => handleClearImage('poster')}
+              // uploadedImage={uploadedImages.poster}
+              // onUploadClick={() => {
+              //   setActiveImageType('poster');
+              //   setIsImageUploadPopupOpen(true);
+              // }}
+              // onPreviewClick={() => handleOpenPreview('poster')}
+              // onClearClick={() => handleClearImage('poster')}
             />
           </Grid>
+          {isAtLeastMd && (
+            <Grid item xs={12} md={9}>
+            </Grid>
+          )}
 
           <Grid item xs={12}>
             <TextField
@@ -630,20 +658,17 @@ const EventEdit: React.FC = () => {
           {/* Performances */}
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 2 }}>
-              <Typography variant="h6">
-                {t('Performances')}
-              </Typography>
               <Button
-                startIcon={<AddIcon />}
-                onClick={addPerformance}
+                startIcon={<TheaterComedyIcon />}
+                onClick={() => navigate(`/event/${id}`)}
                 variant="outlined"
               >
-                {t('Add Performance')}
+                {t('Performances')}
               </Button>
             </Box>
           </Grid>
 
-          {performances.map((perf, index) => (
+          {/*performances.map((perf, index) => (
             <Grid item xs={12} key={index}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Grid container spacing={2} alignItems="center">
@@ -690,7 +715,7 @@ const EventEdit: React.FC = () => {
                 </Grid>
               </Paper>
             </Grid>
-          ))}
+          ))*/}
         </Grid>
 
         {/* Action Buttons */}
@@ -721,17 +746,16 @@ const EventEdit: React.FC = () => {
         open={isImageUploadPopupOpen}
         onClose={() => {
           setIsImageUploadPopupOpen(false);
-          setActiveImageType(null);
         }}
-        onSave={handleUploadImage}
-        imageType={activeImageType || 'poster'}
-        fixedAspectRatio={
-          activeImageType === 'poster' ? 9/16 :
-          activeImageType === 'website' ? 16/9 : 
-          activeImageType === 'banner' ? 16/9 : undefined
-        }
+        onSave={(filename) => {
+          setPosterImage(filename);
+          //setIsImageUploadPopupOpen(false); // Do not close Dialog: it shows success, user clicks Done
+        }}
+        imageType={'poster'}
+        simpleMode={true}
+        fixedAspectRatio={16/9}
         maxSizeMB={10}
-        title={t(`Upload ${activeImageType || 'image'}`)}
+        title={t('Upload poster image')}
       />
     </Container>
   );

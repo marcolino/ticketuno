@@ -8,7 +8,6 @@ import { User } from '../shared/types/user';
 import { Theater/*, Section*/, Seat } from '../shared/types/theater';
 import { Layout } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
-import { ImageMetadata, StoredImage } from '../shared/types/image';
 import config from '../config';
 
 class Database {
@@ -28,13 +27,6 @@ class Database {
             await this.initSchema();
             await this.runMigrations();
             await this.createDefaultAdminUser();
-            // // Run all initialization tasks in parallel
-            // await Promise.all([
-            //   //this.createTables(), // Returns string, but we ignore it
-            //   this.initSchema(),
-            //   this.createDefaultAdminUser(), // Returns string, but we ignore it
-            //   this.runMigrations()
-            // ]);
             resolve(); // Single resolve call after ALL tasks complete
           } catch (error) {
             reject(error);
@@ -50,36 +42,6 @@ class Database {
     const migrator = new Migrator(this.db!, migrationsPath);
     await migrator.migrate();
   }
-
-  // async initialize() {
-  //   const dir = path.dirname(config.dbPath);
-  //   await fs.mkdir(dir, { recursive: true });
-
-  //   return new Promise<void>((resolve, reject) => {
-  //     this.db = new sqlite3.Database(config.dbPath, async (err) => {
-  //       if (err) {
-  //         reject(err);
-  //       } else {
-  //         try {
-  //           // Create tables, if needed
-  //           this.createTables().then(resolve).catch(reject);
-
-  //           // Create default admin user, if needed
-  //           this.createDefaultAdminUser().then(resolve).catch(reject);
-
-  //           // Run migrations, if needed
-  //           const migrationsPath = path.join(__dirname, 'migrations');
-  //           const migrator = new Migrator(this.db!, migrationsPath);
-  //           await migrator.migrate();
-
-  //           resolve();
-  //         } catch (error) {
-  //           reject(error);
-  //         }
-  //       }
-  //     });
-  //   });
-  // }
 
   private async initSchema(): Promise<void> {
     try {
@@ -166,7 +128,7 @@ class Database {
           created_by_user_id TEXT,
           typical_start_time TEXT,
           typical_end_time TEXT,
-          event_poster_url TEXT,
+          poster_image TEXT,
           trailer_url TEXT,
           website_url TEXT,
           social_media_links TEXT,
@@ -189,6 +151,9 @@ class Database {
           start_time TEXT NOT NULL,
           end_time TEXT,
           status TEXT DEFAULT 'scheduled',
+          available_seats INTEGER,
+          booked_seats INTEGER,
+          seat_data TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (event_id) REFERENCES events(id)
@@ -201,24 +166,12 @@ class Database {
           seat_id TEXT NOT NULL,
           status TEXT NOT NULL DEFAULT 'available',
           reserved_until TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (performance_id, seat_id),
           FOREIGN KEY (performance_id) REFERENCES performances(id)
         );
       `, 'CREATE seats');
-
-      await execQuery(this.db!, `
-        CREATE TABLE IF NOT EXISTS images (
-          id TEXT PRIMARY KEY,
-          filename TEXT NOT NULL,
-          filepath TEXT NOT NULL,
-          mimetype TEXT NOT NULL,
-          size INTEGER NOT NULL,
-          imageType TEXT NOT NULL,
-          uploadedAt TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-      `, 'CREATE images');
 
       await execQuery(this.db!, `
         CREATE INDEX IF NOT EXISTS idx_layouts_active
@@ -226,160 +179,10 @@ class Database {
         WHERE deleted_at IS NULL;
       `, 'INDEX layouts_active');
 
-      await execQuery(this.db!, `
-        CREATE INDEX IF NOT EXISTS idx_images_imageType
-        ON images(imageType);
-      `, 'INDEX images_imageType');
-
-      await execQuery(this.db!, `
-        CREATE INDEX IF NOT EXISTS idx_images_uploadedAt
-        ON images(uploadedAt);
-      `, 'INDEX images_uploadedAt');
-
     } catch (err) {
       throw err;
     }
   }
-
-  /*
-  private createTables(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const sql = `
-        PRAGMA foreign_keys = ON;
-        PRAGMA foreign_key_check;
-        CREATE TABLE IF NOT EXISTS users (
-          id TEXT PRIMARY KEY,
-          email TEXT UNIQUE NOT NULL,
-          password TEXT NOT NULL,
-          first_name TEXT NOT NULL,
-          last_name TEXT NOT NULL,
-          phone TEXT,
-          role TEXT NOT NULL,
-          is_verified INTEGER DEFAULT 0,
-          verification_code TEXT,
-          verification_code_expiry TEXT,
-          reset_password_code TEXT,
-          reset_password_code_expiry TEXT,
-          google_id TEXT UNIQUE,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        );
-
-        CREATE TABLE IF NOT EXISTS theaters (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          description TEXT,
-          stage_type TEXT,
-          address TEXT,
-          website_url TEXT,
-          status TEXT NOT NULL,
-          current_layout_id TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (current_layout_id) REFERENCES layouts(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS layouts (
-          id TEXT PRIMARY KEY,
-          theater_id TEXT,
-          name TEXT,
-          description TEXT,
-          json TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (theater_id) REFERENCES theaters(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS events (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT,
-          genre TEXT,
-          duration_minutes INTEGER,
-          intermission_count INTEGER DEFAULT 1,
-          rating TEXT,
-          language TEXT,
-          director TEXT,
-          playwright TEXT,
-          producer TEXT,
-          choreographer TEXT,
-          musical_director TEXT,
-          theater_id TEXT,
-          stage_type TEXT,
-          opening_date TEXT,
-          closing_date TEXT,
-          is_active INTEGER DEFAULT 1,
-          base_ticket_price REAL NOT NULL,
-          currency TEXT DEFAULT 'USD',
-          is_sold_out INTEGER DEFAULT 0,
-          special_requirements TEXT,
-          minimum_age INTEGER,
-          created_by_user_id TEXT,
-          typical_start_time TEXT,
-          typical_end_time TEXT,
-          event_poster_url TEXT,
-          trailer_url TEXT,
-          website_url TEXT,
-          social_media_links TEXT,
-          status TEXT DEFAULT 'scheduled',
-          cancellation_reason TEXT,
-          max_capacity INTEGER,
-          content_warnings TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (theater_id) REFERENCES theaters(id),
-          FOREIGN KEY (created_by_user_id) REFERENCES users(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS performances (
-          id TEXT PRIMARY KEY,
-          event_id TEXT NOT NULL,
-          performance_date TEXT NOT NULL,
-          start_time TEXT NOT NULL,
-          end_time TEXT,
-          status TEXT DEFAULT 'scheduled',
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (event_id) REFERENCES events(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS seats (
-          performance_id TEXT NOT NULL,
-          seat_id TEXT NOT NULL,
-          status TEXT NOT NULL DEFAULT 'available',
-          reserved_until TEXT,
-          PRIMARY KEY (performance_id, seat_id),
-          FOREIGN KEY (performance_id) REFERENCES performances(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS images (
-          id TEXT PRIMARY KEY,
-          filename TEXT NOT NULL,
-          filepath TEXT NOT NULL,
-          mimetype TEXT NOT NULL,
-          size INTEGER NOT NULL,
-          imageType TEXT NOT NULL,
-          uploadedAt TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_layouts_active
-          ON layouts(theater_id)
-          WHERE deleted_at IS NULL;
-
-        CREATE INDEX IF NOT EXISTS idx_images_imageType
-          ON images(imageType);
-        CREATE INDEX IF NOT EXISTS idx_images_uploadedAt
-          ON images(uploadedAt);
-      `;
-        // CREATE INDEX IF NOT EXISTS idx_theaters_layout_id
-        //   ON theaters(current_layout_id);
-
-      this.db!.exec(sql, err => err ? reject(err) : resolve());
-    });
-  }
-*/
   
   // User methods //////////////////////////////////////////////////////////////////////
   async getAllUsers(): Promise<User[] | null> {
@@ -387,15 +190,6 @@ class Database {
     const params:any = [];
     const rows = await allQuery(this.db!, sql, params, 'get all users');
     return rows ? this.mapRowsToUsers(rows) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.all('SELECT * FROM theaters', [], (err, rows: any[]) => {
-    //     if (err) reject(err);
-    //     else {
-    //       const theaters = rows.map(row => this.mapRowToTheater(row));
-    //       resolve(theaters);
-    //     }
-    //   });
-    // });
   }
   
   async createUser(user: User): Promise<string> {
@@ -480,15 +274,6 @@ class Database {
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get('SELECT * FROM users WHERE email = ?', [email], (err, row: any) => {
-    //     if (err) reject(err);
-    //     else if (!row) resolve(null);
-    //     else {
-    //       resolve(this.mapRowToUser(row));
-    //     }
-    //   });
-    // });
     const sql = `SELECT * FROM users WHERE email = ?`;
     const params = [email];
     const row = await getQuery(this.db!, sql, params, 'get user by email');
@@ -496,15 +281,6 @@ class Database {
   }
 
   async getUserById(id: string): Promise<User | null> {
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get('SELECT * FROM users WHERE id = ?', [id], (err, row: any) => {
-    //     if (err) reject(err);
-    //     else if (!row) resolve(null);
-    //     else {
-    //       resolve(this.mapRowToUser(row));
-    //     }
-    //   });
-    // });
     const sql = `SELECT * FROM users WHERE id = ?`;
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get user by id');
@@ -512,16 +288,6 @@ class Database {
   }
 
   async getUsersByRole(role: string): Promise<User[] | null> {
-    // return new Promise((resolve, reject) => {
-    //   this.db!.all('SELECT * FROM users WHERE role = ?', [role], (err, rows: any[]) => {
-    //     if (err) {
-    //       reject(err);
-    //     } else {
-    //       const users: User[] = rows.map(row => this.mapRowToUser(row));
-    //       resolve(users);
-    //     }
-    //   });
-    // });
     const sql = `SELECT * FROM users WHERE role = ?`;
     const params = [role];
     const rows = await allQuery(this.db!, sql, params, 'get user by id');
@@ -584,9 +350,6 @@ class Database {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       currentLayoutId: row.current_layout_id,
-      // sections: JSON.parse(row.sections),
-      // createdAt: row.created_at,
-      // updatedAt: row.updated_at
     };
   }
 
@@ -600,15 +363,6 @@ class Database {
     const params:any = [];
     const rows = await allQuery(this.db!, sql, params, 'get all theaters');
     return rows ? this.mapRowsToTheaters(rows) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.all('SELECT * FROM theaters', [], (err, rows: any[]) => {
-    //     if (err) reject(err);
-    //     else {
-    //       const theaters = rows.map(row => this.mapRowToTheater(row));
-    //       resolve(theaters);
-    //     }
-    //   });
-    // });
   }
 
   async getTheaterById(id: string): Promise<Theater | null> {
@@ -616,15 +370,6 @@ class Database {
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get theater by id');
     return row ? this.mapRowToTheater(row) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get('SELECT * FROM theaters WHERE id = ?', [id], (err, row: any) => {
-    //     if (err) reject(err);
-    //     else if (!row) resolve(null);
-    //     else {
-    //       resolve(this.mapRowToTheater(row));
-    //     }
-    //   });
-    // });
   }
 
   async createTheater(theater: Theater): Promise<string> {
@@ -640,40 +385,7 @@ class Database {
     ];
     const result = await runQuery(this.db!, sql, params, 'create theater');
     return id;
-    // return new Promise((resolve, reject) => {
-    //   const id = uuidv4();
-    //   const sql = `
-    //     INSERT INTO theaters (
-    //       id, name, description, stage_type, address, website_url, status, created_at, updated_at
-    //     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    //   `;
-    //   this.db!.run(
-    //     sql,
-    //     [id, theater.name, theater.description, /*JSON.stringify(theater.sections),*/
-    //     theater.stageType, theater.address, theater.websiteUrl, theater.status,
-    //     theater.createdAt, theater.updatedAt],
-    //     (err) => {
-    //       if (err) reject(err);
-    //       //else resolve(id);
-    //       else {
-    //         console.log("ID:", id);
-    //         resolve(id);
-    //       }
-    //     }
-    //   );
-    // }); 
   }
-
-  // async updateTheater(id: string, sections: Section[]): Promise<void> {
-  //   return new Promise((resolve, reject) => {
-  //     const sql = `UPDATE theaters SET sections = ?, updated_at = ? WHERE id = ?`;
-  //     const updated_at = new Date().toISOString();
-  //     this.db!.run(sql, [JSON.stringify(sections), updated_at, id], (err) => {
-  //       if (err) reject(err);
-  //       else resolve();
-  //     });
-  //   });
-  // }
 
   async updateTheaterFull(id: string, updates: Partial<Theater>): Promise<boolean> {
     const fields: string[] = [];
@@ -686,6 +398,7 @@ class Database {
       address: 'address',
       websiteUrl: 'website_url',
       status: 'status',
+      currentLayoutId: 'current_layout_id',
     };
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -699,8 +412,8 @@ class Database {
       return false;
     }
 
-    fields.push('updated_at = ?');
-    values.push(new Date().toISOString());
+    // fields.push('updated_at = ?');
+    // values.push(new Date().toISOString());
     values.push(id);
 
     const sql = `
@@ -710,80 +423,6 @@ class Database {
     `;
     const result = await runQuery(this.db!, sql, values, 'update theater full');
     return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   const sql = `UPDATE theaters SET name = ?, description = ?, stage_type = ?, address = ?,
-    //     website_url = ?, status = ?, updated_at = ? WHERE id = ?`;
-    //   this.db!.run(
-    //     sql,
-    //     [theater.name, theater.description,
-    //     theater.stageType, theater.address, theater.websiteUrl, theater.status,
-    //     new Date().toISOString(), id],
-    //     (err) => {
-    //       if (err) reject(err);
-    //       else resolve();
-    //     }
-    //   );
-    // });
-  }
-
-  async getTheaterLayoutCurrent(theaterId: string): Promise<Layout | null> {
-    const sql = `
-      SELECT l.*
-      FROM theaters t
-      JOIN layouts l ON l.id = t.current_layout_id
-      WHERE t.id = ?
-    `;
-    const params = [theaterId];
-    // TODO: always use get/run/all/exec/Query<CorrectType>(...), not get/run/all/exec/Query<any>
-    const row = await getQuery<Layout>(this.db!, sql, params, 'get theater layout current');
-    return row ? this.mapRowToLayout(row) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get(
-    //     `
-    //     SELECT l.*
-    //     FROM theaters t
-    //     JOIN layouts l ON l.id = t.current_layout_id
-    //     WHERE t.id = ?
-    //     `,
-    //     [theaterId],
-    //     (err, row) =>
-    //       err ? reject(err) : resolve(row ? this.mapRowToLayout(row) : null)
-    //   );
-    // });
-  }
-
-  async setTheaterLayoutCurrent(theaterId: string, layoutId: string): Promise<boolean> {
-    //const now = new Date().toISOString();
-    const sql = `
-      UPDATE theaters
-      SET current_layout_id = ?
-      WHERE id = ?
-    `;
-    const values = [layoutId, theaterId];
-    const result = await runQuery(this.db!, sql, values, 'set theater layout current');
-    return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   const sql = `
-    //     UPDATE theaters
-    //     SET current_layout_id = ?, updated_at = ?
-    //     WHERE id = ?
-    //   `;
-    //   this.db!.run(sql, [layoutId, now, theaterId], err =>
-    //     err ? reject(err) : resolve()
-    //   );
-    // });
-  }
-
-  async clearTheaterLayoutCurrent(theaterId: string): Promise<boolean> {
-    const sql = `
-      UPDATE theaters
-      SET current_layout_id = NULL
-      WHERE id = ?
-    `;
-    const values = [new Date().toISOString(), theaterId];
-    const result = await runQuery(this.db!, sql, values, 'clear theater layout current');
-    
-    return result.changes > 0;
   }
 
   async deleteTheater(id: string): Promise<boolean> {
@@ -791,12 +430,6 @@ class Database {
     const params = [id];
     const result = await runQuery(this.db!, sql, params, 'delete theater');
     return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.run('DELETE FROM theaters WHERE id = ?', [id], (err) => {
-    //     if (err) reject(err);
-    //     else resolve();
-    //   });
-    // });
   }
 
   // Layout methods (IMMUTABLE) //////////////////////////////////////////////////////////////////
@@ -845,19 +478,6 @@ class Database {
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get layout by id');
     return row ? this.mapRowToLayout(row) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get(`
-    //     SELECT id, name, description, json
-    //     FROM layouts
-    //     WHERE id = ?
-    //   `,
-    //     [id],
-    //     (err, row: any) => {
-    //     if (err) reject(err);
-    //     else if (!row) resolve(null);
-    //     else resolve(row);
-    //   });
-    // });
   }
 
   async getLayoutsByTheaterId(theaterId: string): Promise<Layout | null> {
@@ -869,19 +489,6 @@ class Database {
     const params = [theaterId];
     const row = await getQuery(this.db!, sql, params, 'get layout by theater id');
     return row ? this.mapRowToLayout(row) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.all(`
-    //     SELECT *
-    //     FROM layouts
-    //     WHERE theater_id = ?
-    //       AND deleted_at IS NULL
-    //     ORDER BY created_at DESC
-    //   `,
-    //   [theaterId],
-    //   (err, rows) =>
-    //     err ? reject(err) : resolve(rows.map(this.mapRowToLayout))
-    //   );
-    // });
   }
 
   async getAllLayouts(): Promise<Array<{ id: string; json: string }> | null> {
@@ -893,16 +500,6 @@ class Database {
     const params:any = [];
     const rows = await allQuery(this.db!, sql, params, 'get all layouts');
     return rows ? this.mapRowsToLayouts(rows) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.all(`
-    //     SELECT id, name, description, json
-    //     FROM layouts
-    //     WHERE deleted_at is NULL
-    //   `, [],
-    //   (err, rows: any[]) => err ? reject(err) :
-    //     resolve(rows.map(row => this.mapRowToLayout(row)))
-    //   );
-    // });
   }
 
   async updateLayout(id: string, updates: Partial<Layout>): Promise<boolean> {
@@ -936,17 +533,6 @@ class Database {
       WHERE id = ?`;
     const result = await runQuery(this.db!, sql, values, 'update layout');
     return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   const sql = `
-    //     UPDATE layouts
-    //     SET name = ?, description = ?, json = ? WHERE id = ?
-    //   `;
-    //   this.db!.run(
-    //     sql,
-    //     [name, description, json, id],
-    //     err => err ? reject(err) : resolve()
-    //   );
-    // });
   }
 
   async deleteLayoutSoft(id: string): Promise<boolean> {
@@ -959,32 +545,8 @@ class Database {
     const params = [id];
     const result = await runQuery(this.db!, sql, params, 'soft delete layout');
     return result.changes > 0;
-    // const now = new Date().toISOString();
-    // return new Promise((resolve, reject) => {
-    //   const sql = `
-    //     UPDATE layouts
-    //     SET deleted_at = ?
-    //     WHERE id = ?
-    //       AND id NOT IN (SELECT layout_id FROM theaters)
-    //   `;
-    //   this.db!.run(sql, [now, id],
-    //     err => err ? reject(err) : resolve()
-    //   );
-    // });
   }
 
-  /* Never hard-delete layouts, they are immutable, because some booking could depend on it */
-  /*
-  async deleteLayout(id: string): Promise<boolean> {
-   const sql = `
-      DELETE FROM layouts WHERE id = ?
-    `;
-    const params = [id];
-    const result = await runQuery(this.db!, sql, params, 'hard delete layout');
-    return result.changes > 0;
-  }
-  */
-  
   // Event methods //////////////////////////////////////////////////////////////////////
   private mapRowToEvent(row: any): Event {
     return {
@@ -1016,7 +578,7 @@ class Database {
       createdByUserId: row.created_by_user_id,
       typicalStartTime: row.typical_start_time,
       typicalEndTime: row.typical_end_time,
-      eventPosterUrl: row.event_poster_url,
+      posterImage: row.poster_image,
       trailerUrl: row.trailer_url,
       websiteUrl: row.website_url,
       socialMediaLinks: row.social_media_links,
@@ -1041,22 +603,6 @@ class Database {
     const params:any = [];
     const rows = await allQuery(this.db!, sql, params, 'get all events');
     return rows ? this.mapRowsToEvents(rows) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.all(`
-    //     SELECT *
-    //     FROM events
-    //     ORDER BY opening_date DESC
-    //   `,
-    //     [],
-    //     (err, rows: any[]) => {
-    //       if (err) reject(err);
-    //       else {
-    //         const events = rows.map(row => this.mapRowToEvent(row));
-    //         resolve(events);
-    //       }
-    //     }
-    //   );
-    // });
   }
 
   async getEventById(id: string): Promise<Event | null> {
@@ -1068,20 +614,6 @@ class Database {
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get event by id');
     return row ? this.mapRowToEvent(row) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get(`
-    //     SELECT *
-    //     FROM events
-    //     WHERE id = ?
-    //   `,
-    //     [id],
-    //     (err, row: any) => {
-    //       if (err) reject(err);
-    //       else if (!row) resolve(null);
-    //       else resolve(this.mapRowToEvent(row));
-    //     }
-    //   );
-    // });
   }
 
   async createEvent(event: Event): Promise<string> {
@@ -1092,7 +624,7 @@ class Database {
         director, playwright, producer, choreographer, musical_director, theater_id, stage_type,
         opening_date, closing_date, is_active, base_ticket_price, currency, is_sold_out,
         special_requirements, minimum_age, created_at, updated_at, created_by_user_id,
-        typical_start_time, typical_end_time, event_poster_url, trailer_url, website_url,
+        typical_start_time, typical_end_time, poster_image, trailer_url, website_url,
         social_media_links, status, cancellation_reason, max_capacity, content_warnings
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
@@ -1102,34 +634,11 @@ class Database {
         event.musicalDirector, event.theaterId, event.stageType, event.openingDate, event.closingDate,
         event.isActive ? 1 : 0, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
         event.specialRequirements, event.minimumAge, event.createdAt, event.updatedAt, event.createdByUserId,
-        event.typicalStartTime, event.typicalEndTime, event.eventPosterUrl, event.trailerUrl, event.websiteUrl,
+        event.typicalStartTime, event.typicalEndTime, event.posterImage, event.trailerUrl, event.websiteUrl,
         event.socialMediaLinks, event.status, event.cancellationReason, event.maxCapacity, event.contentWarnings
     ];
     const result = await runQuery(this.db!, sql, params, 'create event');
     return id;
-    // return new Promise((resolve, reject) => {
-    //   const sql = `
-    //     INSERT INTO events (
-    //       id, title, description, genre, duration_minutes, intermission_count, rating, language,
-    //       director, playwright, producer, choreographer, musical_director, theater_id, stage_type,
-    //       opening_date, closing_date, is_active, base_ticket_price, currency, is_sold_out,
-    //       special_requirements, minimum_age, created_at, updated_at, created_by_user_id,
-    //       typical_start_time, typical_end_time, event_poster_url, trailer_url, website_url,
-    //       social_media_links, status, cancellation_reason, max_capacity, content_warnings
-    //     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    //   `;
-    //   this.db!.run(sql, [
-    //     event.id, event.title, event.description, event.genre, event.durationMinutes, event.intermissionCount,
-    //     event.rating, event.language, event.director, event.playwright, event.producer, event.choreographer,
-    //     event.musicalDirector, event.theaterId, event.stageType, event.openingDate, event.closingDate,
-    //     event.isActive ? 1 : 0, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
-    //     event.specialRequirements, event.minimumAge, event.createdAt, event.updatedAt, event.createdByUserId,
-    //     event.typicalStartTime, event.typicalEndTime, event.eventPosterUrl, event.trailerUrl, event.websiteUrl,
-    //     event.socialMediaLinks, event.status, event.cancellationReason, event.maxCapacity, event.contentWarnings
-    //   ],
-    //     err => err ? reject(err) : resolve()
-    //   );
-    // });
   }
 
   async updateEvent(id: string, updates: Partial<Event>): Promise<boolean> {
@@ -1161,7 +670,7 @@ class Database {
       minimumAge: 'minimum_age',
       typicalStartTime: 'typical_start_time',
       typicalEndTime: 'typical_end_time',
-      eventPosterUrl: 'event_poster_url',
+      posterImage: 'poster_image',
       trailerUrl: 'trailer_url',
       websiteUrl: 'website_url',
       socialMediaLinks: 'social_media_links',
@@ -1174,7 +683,7 @@ class Database {
     Object.entries(updates).forEach(([key, value]) => {
       if (fieldMap[key] && value !== undefined) {
         fields.push(`${fieldMap[key]} = ?`);
-        if ((key === 'isActive') || ('isSoldOut')) {
+        if ((key === 'isActive') || (key === 'isSoldOut')) {
           values.push(value ? 1 : 0);
         } else {
           values.push(value);
@@ -1186,8 +695,6 @@ class Database {
       return false;
     }
 
-    fields.push('updated_at = ?');
-    values.push(new Date().toISOString());
     values.push(id);
 
     const sql = `
@@ -1197,34 +704,6 @@ class Database {
     `;
     const result = await runQuery(this.db!, sql, values, 'update event');
     return result.changes > 0;
-    
-    // return new Promise((resolve, reject) => {
-    //   const fields: string[] = [];
-    //   const values: any[] = [];
-    //   Object.entries(event).forEach(([key, value]) => {
-    //     if (key !== 'id' && value !== undefined) {
-    //       const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    //       fields.push(`${snakeKey} = ?`);
-    //       if (typeof value === 'boolean') {
-    //         values.push(value ? 1 : 0);
-    //       } else {
-    //         values.push(value);
-    //       }
-    //     }
-    //   });
-    //   fields.push('updated_at = ?');
-    //   values.push(new Date().toISOString());
-    //   values.push(id);
-    //   const sql = `
-    //     UPDATE events
-    //     SET ${ fields.join(', ')}
-    //     WHERE id = ?
-    //   `;
-    //   this.db!.run(
-    //     sql, values,
-    //     err => err ? reject(err) : resolve()
-    //   );
-    // });
   }
 
   async deleteEvent(id: string): Promise<boolean> {
@@ -1232,16 +711,6 @@ class Database {
     const params = [id];
     const result = await runQuery(this.db!, sql, params, 'delete event');
     return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.run(`
-    //     DELETE
-    //     FROM events
-    //     WHERE id = ?
-    //   `,
-    //     [id],
-    //     err => err ? reject(err) : resolve()
-    //   );
-    // });
   }
 
   // Performance methods //////////////////////////////////////////////////////////////////////
@@ -1267,28 +736,10 @@ class Database {
   }
 
   async getPerformancesByEventId(eventId: string): Promise<EventPerformance[] | null> {
-    const sql = `SELECT * FROM theaters WHERE id = ?`;
+    const sql = `SELECT * FROM performances WHERE event_id = ?`;
     const params = [eventId];
-    // const row = await getQuery(this.db!, sql, params, 'get theater by id');
-    // return row ? this.mapRowToTheater(row) : null;
     const rows = await allQuery(this.db!, sql, params, 'get performances by event id');
     return rows ? this.mapRowsToPerformances(rows) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.all(`
-    //     SELECT *
-    //     FROM performances
-    //     WHERE event_id = ?
-    //     ORDER BY performance_date, start_time
-    //   `,
-    //   [eventId],
-    //     (err, rows: any[]) => {
-    //       if (err) reject(err);
-    //       else {
-    //         resolve(rows.map(row => this.mapRowToPerformance(row)));
-    //       }
-    //     }
-    //   );
-    // });
   }
 
   async getPerformanceById(id: string): Promise<EventPerformance | null> {
@@ -1296,19 +747,6 @@ class Database {
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get performance by id');
     return row ? this.mapRowToPerformance(row) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get(`
-    //     SELECT *
-    //     FROM performances
-    //     WHERE id = ?
-    //   `,
-    //     [id], (err, row: any) => {
-    //       if (err) reject(err);
-    //       else if (!row) resolve(null);
-    //       else resolve(this.mapRowToPerformance(row));
-    //     }
-    //   );
-    // });
   }
 
   async createPerformance(performance: EventPerformance): Promise<string> {
@@ -1326,22 +764,6 @@ class Database {
     ];
     const result = await runQuery(this.db!, sql, params, 'create performance');
     return id;
-    // return new Promise((resolve, reject) => {
-    //   const id = uuidv4();
-    //   const sql = `
-    //     INSERT INTO performances (
-    //       id, event_id, performance_date, start_time, end_time,
-    //       available_seats, booked_seats, seat_data, status, created_at, updated_at
-    //     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    //   `;
-    //   this.db!.run(sql, [
-    //     id, performance.eventId, performance.performanceDate, performance.startTime,
-    //     performance.endTime, performance.availableSeats, performance.bookedSeats,
-    //     performance.seatData, performance.status, performance.createdAt, performance.updatedAt
-    //   ],
-    //     err => err ? reject(err) : resolve()
-    //   );
-    // });
   }
 
   async updatePerformance(id: string, updates: Partial<EventPerformance>): Promise<boolean> {
@@ -1353,7 +775,7 @@ class Database {
       startTime: 'start_time',
       endTime: 'end_time',
       availableSeats: 'available_seats',
-      bookedSeats: 'booked_eats',
+      bookedSeats: 'booked_seats',
       seatData: 'seat_data',
       status: 'status',
     };
@@ -1380,27 +802,13 @@ class Database {
     `;
     const result = await runQuery(this.db!, sql, values, 'update performance');
     return result.changes > 0;
+  }
 
-    // return new Promise((resolve, reject) => {
-    //   const fields: string[] = [];
-    //   const values: any[] = [];
-    //   Object.entries(performance).forEach(([key, value]) => {
-    //     if (key !== 'id' && value !== undefined) {
-    //       const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    //       fields.push(`${snakeKey} = ?`);
-    //       values.push(value);
-    //     }
-    //   });
-    //   fields.push('updated_at = ?');
-    //   values.push(new Date().toISOString());
-    //   values.push(id);
-    //   const sql = `
-    //     UPDATE performances SET ${fields.join(', ')} WHERE id = ?`;
-    //   this.db!.run(sql, values, (err) => {
-    //     if (err) reject(err);
-    //     else resolve();
-    //   });
-    // });
+  async deletePerformanceById(performanceId: string): Promise<boolean> {
+    const sql = `DELETE FROM performances WHERE id = ?`;
+    const params = [performanceId];
+    const result = await runQuery(this.db!, sql, params, 'delete performance for event');
+    return result.changes > 0;
   }
 
   // Seat management methods //////////////////////////////////////////////////////////////////////
@@ -1423,12 +831,6 @@ class Database {
     const params = [eventId];
     const rows = await getQuery(this.db!, sql, params, 'get seats by event id');
     return rows ? this.mapRowsToSeats(rows) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.all('SELECT * FROM seats WHERE event_id = ?', [eventId], (err, rows: any[]) => {
-    //     if (err) reject(err);
-    //     else resolve(rows.map(row => this.mapRowToSeat(row)));
-    //   });
-    // });
   }
 
   async getSeat(eventId: string, seatId: string): Promise<{ eventId: string; seatId: string; status: string; reservedUntil?: string } | null> {
@@ -1436,13 +838,6 @@ class Database {
     const params = [eventId, seatId];
     const row = await getQuery(this.db!, sql, params, 'get seat');
     return row ? this.mapRowToSeat(row) : null;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get('SELECT * FROM seats WHERE event_id = ? AND seat_id = ?', [eventId, seatId], (err, row: any) => {
-    //     if (err) reject(err);
-    //     else if (!row) resolve(null);
-    //     else resolve(this.mapRowToSeat(row));
-    //   });
-    // });
   }
 
   async createOrUpdateSeat(eventId: string, seatId: string, status: string, reservedUntil?: string): Promise<void> {
@@ -1460,19 +855,7 @@ class Database {
       status,
       reservedUntil
     ];
-    const result = await runQuery(this.db!, sql, params, 'create or update seat');
-    // return new Promise((resolve, reject) => {
-    //   const sql = `
-    //     INSERT INTO seats (event_id, seat_id, status, reserved_until)
-    //     VALUES (?, ?, ?, ?)
-    //     ON CONFLICT(event_id, seat_id) 
-    //     DO UPDATE SET status = ?, reserved_until = ?
-    //   `;
-    //   this.db!.run(sql, [eventId, seatId, status, reservedUntil, status, reservedUntil], (err) => {
-    //     if (err) reject(err);
-    //     else resolve();
-    //   });
-    // });
+    await runQuery(this.db!, sql, params, 'create or update seat');
   }
 
   async updateSeatStatus(eventId: string, seatId: string, status: string, reservedUntil?: string): Promise<boolean> {
@@ -1495,8 +878,6 @@ class Database {
       return false;
     }
 
-    fields.push('updated_at = ?');
-    values.push(new Date().toISOString());
     values.push(eventId);
     values.push(seatId);
 
@@ -1507,14 +888,6 @@ class Database {
     `;
     const result = await runQuery(this.db!, sql, values, 'update seat status');
     return result.changes > 0;
-
-    // return new Promise((resolve, reject) => {
-    //   const sql = 'UPDATE seats SET status = ?, reserved_until = ? WHERE event_id = ? AND seat_id = ?';
-    //   this.db!.run(sql, [status, reservedUntil, eventId, seatId], (err) => {
-    //     if (err) reject(err);
-    //     else resolve();
-    //   });
-    // });
   }
 
   async releaseExpiredReservations(): Promise<boolean> {
@@ -1525,18 +898,6 @@ class Database {
     `;
     const result = await runQuery(this.db!, sql, [], 'release expired seat reservations');
     return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   const now = new Date().toISOString();
-    //   const sql = `
-    //     UPDATE seats 
-    //     SET status = 'available', reserved_until = NULL 
-    //     WHERE status = 'reserved' AND reserved_until < ?
-    //   `;
-    //   this.db!.run(sql, [now], (err) => {
-    //     if (err) reject(err);
-    //     else resolve();
-    //   });
-    // });
   }
 
   async deleteSeatsForEvent(eventId: string): Promise<boolean> {
@@ -1544,12 +905,6 @@ class Database {
     const params = [eventId];
     const result = await runQuery(this.db!, sql, params, 'delete seats for event');
     return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.run('DELETE FROM seats WHERE event_id = ?', [eventId], (err) => {
-    //     if (err) reject(err);
-    //     else resolve();
-    //   });
-    // });
   }
 
   async getAvailableSeatsCount(eventId: string): Promise<number> {
@@ -1557,16 +912,6 @@ class Database {
     const params = [eventId];
     const row = await getQuery(this.db!, sql, params, 'get available seats count');
     return row ? row.count : 0;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.get(
-    //     'SELECT COUNT(*) as count FROM seats WHERE event_id = ? AND status = ?',
-    //     [eventId, 'available'],
-    //     (err, row: any) => {
-    //       if (err) reject(err);
-    //       else resolve(row.count);
-    //     }
-    //   );
-    // });
   }
 
   async bulkCreateSeats(eventId: string, seatIds: string[]): Promise<boolean> {
@@ -1583,80 +928,8 @@ class Database {
     `;
     const result = await runQuery(this.db!, sql, values, 'bulk create seats');
     return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   const placeholders = seatIds.map(() => '(?, ?, ?)').join(', ');
-    //   const values: any[] = [];
-    //   seatIds.forEach(seatId => {
-    //     values.push(eventId, seatId, 'available');
-    //   });
-
-    //   const sql = `INSERT OR IGNORE INTO seats (event_id, seat_id, status) VALUES ${placeholders}`;
-    //   this.db!.run(sql, values, (err) => {
-    //     if (err) reject(err);
-    //     else resolve();
-    //   });
-    // });
   }
 
-  async getImageMetadata(id: string): Promise<StoredImage | null> {
-    const sql = `
-      SELECT
-        id,
-        filename, 
-        filepath, 
-        mimetype, 
-        size, 
-        imageType, 
-        uploadedAt 
-      FROM images 
-      WHERE id = ?
-    `;
-    const row = await getQuery(this.db!, sql, [id], 'get image metadata');
-    if (!row) {
-      return null;
-    }
-    return {
-      id:  row.id,
-      filename: row.filename,
-      filepath: row.filepath,
-      mimetype: row.mimetype,
-      size: row.size,
-      imageType: row.imageType,
-      uploadedAt: row.uploadedAt
-    };
-  }
-  
-  async saveImageMetadata(imageData: ImageMetadata): Promise<string> {
-    const id = uuidv4();
-    //const now = new Date().toISOString();
-    const values: any[] = [
-      id,
-      imageData.filename,
-      imageData.filepath,
-      imageData.mimetype,
-      imageData.size,
-      imageData.imageType,
-    ];
-    const sql = `
-      INSERT INTO images (id, filename, filepath, mimetype, size, imageType)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-    const result = await runQuery(this.db!, sql, values, 'save image metadata');
-    return id;
-  }
-
-  async deleteImageMetadata(imageId: string): Promise<boolean> {
-    const sql = `DELETE FROM images WHERE image_id = ?`;
-    const params = [imageId];
-    const result = await runQuery(this.db!, sql, params, 'delete image metadata');
-    return result.changes > 0;
-    // return new Promise((resolve, reject) => {
-    //   this.db!.run('DELETE FROM seats WHERE event_id = ?', [eventId], (err) => {
-    //     if (err) reject(err);
-    //     else resolve();
-    //   });
-    // });
-  }
 }
 
 /**
@@ -1747,7 +1020,7 @@ const allQuery = <T = any>(
 ;
 
 // release expired reservations, continuously
-setInterval(async () => {
+setInterval(async () => { // TODO: move to /backend/src/scheduled/jobs.ts
   await database.releaseExpiredReservations();
 }, 60 * 1000); // TODO: to config
  

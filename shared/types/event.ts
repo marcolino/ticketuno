@@ -27,11 +27,11 @@ export interface Event {
   createdByUserId?: string;
   typicalStartTime?: string;
   typicalEndTime?: string;
-  eventPosterUrl?: string;
+  posterImage?: string;
   trailerUrl?: string;
   websiteUrl?: string;
   socialMediaLinks?: string;
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
   cancellationReason?: string;
   maxCapacity?: number;
   contentWarnings?: string;
@@ -46,9 +46,9 @@ export interface EventPerformance {
   availableSeats: number;
   bookedSeats: number;
   seatData: string; // JSON string of seat statuses
-  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
-  createdAt: string;
-  updatedAt: string;
+  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface EventWithTheater extends Event {
@@ -68,6 +68,7 @@ export interface EventStats {
   nextPerformanceDate?: string;
   availablePerformances: number;
   status: string;
+  posterImage?: string;
 }
 
 export interface EventWithDetails extends Event {

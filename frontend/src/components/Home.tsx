@@ -44,6 +44,7 @@ import Footer from './Footer';
 import { useAuth } from '../contexts/AuthContext';
 import { useThemeMode } from '../contexts/ThemeContext';
 import LoginDialog from './LoginDialog';
+import config from '../config';
 
 interface HomeProps {
   children: React.ReactNode;
@@ -54,17 +55,22 @@ const Home: React.FC<HomeProps> = ({ children }) => {
   const navigate = useNavigate();
   //const location = useLocation();
   const { user, isAuthenticated, /*isAdmin, */logout } = useAuth();
-  const { mode, toggleTheme } = useThemeMode();
-  
+  const { mode, toggleMode } = useThemeMode();
+  //const { themeType, setThemeType, platform } = useThemeMode();
+
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [langDialogOpen, setLangDialogOpen] = useState(false);
 
-  const languages = [ // TODO: to config
-    { code: 'en', name: 'English', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-    { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-    { code: 'fr', name: 'Français', flag: '🇫🇷' }
-  ];
+  // const languages = [ // TODO: to config
+  //   { code: 'en', name: 'English', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
+  //   { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+  //   { code: 'fr', name: 'Français', flag: '🇫🇷' }
+  // ];
+
+  // const toggleTheme = () => {
+  //   setThemeType(themeType === 'custom' ? 'native' : 'custom');
+  // }
 
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -140,7 +146,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
         >
           <img 
             src="/images/masks.png" 
-            alt="Theater" 
+            alt={t('Theater')}
             style={{ 
               width: 48, 
               height: 48,
@@ -213,7 +219,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
                 </ListItemIcon>
                 <ListItemText>Profile</ListItemText>
               </MenuItem>
-              <MenuItem onClick={toggleTheme}>
+              <MenuItem onClick={toggleMode}>
                 <ListItemIcon>
                   {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
                 </ListItemIcon>
@@ -223,14 +229,14 @@ const Home: React.FC<HomeProps> = ({ children }) => {
                 <ListItemIcon>
                   <LanguageIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>Language</ListItemText>
+                <ListItemText>{t('Language')}</ListItemText>
               </MenuItem>
               <Divider />
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>Logout</ListItemText>
+                <ListItemText>{t('Logout')}</ListItemText>
               </MenuItem>
             </Menu>
           </>
@@ -258,7 +264,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
       {/* Footer */}
       <Footer>
         <Typography variant="body2" color="text.secondary" align="center">
-          © {new Date().getFullYear()} TicketUno. All rights reserved. {/* TODO: from config */}
+          © {new Date().getFullYear()} TicketUno. {t('All rights reserved')}. {/* TODO: from config */}
         </Typography>
       </Footer>
 
@@ -272,7 +278,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
         <DialogTitle>{t('Select Language')}</DialogTitle>
         <DialogContent>
           <List>
-            {languages.map(({ code, name, flag }) => (
+            {Object.entries(config.languages).map(([code, { name, flag }]) => (
               <ListItem key={code} disablePadding>
                 <ListItemButton 
                   onClick={() => handleLanguageChange(code)}

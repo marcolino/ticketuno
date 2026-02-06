@@ -14,10 +14,12 @@ import {
   Alert,
   Chip,
   CardActions,
+  //Avatar,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
+  Delete as DeleteIcon,
   Event as EventIcon,
   CalendarToday as CalendarIcon,
   TheaterComedy as TheaterIcon,
@@ -27,7 +29,7 @@ import {
 import { eventApi } from '../services/api';
 import { EventStats } from '../../../shared/types/event';
 import { useAuth } from '../contexts/AuthContext';
-import config from '../config';
+import config, { CurrencyCode } from '../config';
 
 const EventList: React.FC = () => {
   const { t } = useTranslation();
@@ -61,6 +63,12 @@ const EventList: React.FC = () => {
     navigate(`/event/edit/${id}`);
   };
 
+  const handleDeleteEvent = (id: string, e: React.MouseEvent) => {
+    // TODO: ask for confirmation...
+    e.stopPropagation();
+    navigate(`/event/delete/${id}`);
+  };
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString();
@@ -69,7 +77,7 @@ const EventList: React.FC = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled': return 'primary';
-      case 'in_progress': return 'success';
+      case 'in progress': return 'success';
       case 'completed': return 'default';
       case 'cancelled': return 'error';
       default: return 'default';
@@ -115,131 +123,202 @@ const EventList: React.FC = () => {
       ) : ( */}
 
       <Grid container spacing={3}>
-        {events.map((event) => (
-          <Grid item xs={12} sm={6} md={4} key={event.id}>
-            <Card
-              sx={{
-                height: '100%',
-                display: 'flex',
-                flexDirection: 'column',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: 4,
-                },
-              }}
-            >
-              <CardMedia
-                component="div"
+        {events.map(event => {
+          const posterImageUrl = event.posterImage ? `/uploads/${event.posterImage}` : null; // TODO: '/uploads' to config
+
+          return (
+            <Grid item xs={12} sm={6} md={4} key={event.id}>
+              <Card
                 sx={{
-                  pt: '56.25%',
-                  bgcolor: 'primary.main',
-                  position: 'relative',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 4,
+                  },
                 }}
               >
-                <Box
+                <CardMedia
+                  component="div"
                   sx={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
+                    // Change to a more squared aspect ratio (e.g., 1:1 or 4:3)
+                    pt: '100%', // For 1:1 (square) - use 100%, or for 4:3 aspect ratio: pt: '75%' (3/4 = 0.75)
+                    bgcolor: 'primary.main',
+                    position: 'relative',
                   }}
                 >
-                  <TheaterIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
-                </Box>
-              </CardMedia>
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
-                  <Chip
-                    label={t(event.status)}
-                    color={getStatusColor(event.status)}
-                    size="small"
-                  />
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
-                  <Typography variant="h5" component="div">
-                    {event.title}
-                  </Typography>
-                </Box>
-
-                {event.genre && (
-                  <Chip label={event.genre} size="small" sx={{ mb: 1 }} />
-                )}
-
-                <Box sx={{ mt: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <TheaterIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {event.theaterName}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {event.nextPerformanceDate 
-                        ? t('Next performance') + ':' + formatDate(event.nextPerformanceDate)
-                        : t('No upcoming performances')
-                    }
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                    <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                    <Typography variant="body2" color="text.secondary">
-                      {t('From')} {config.currencies[event.currency].symbol} {event.baseTicketPrice}
-                    </Typography>
-                  </Box>
-
-                  {(event.availablePerformances > 0) && (
-                    <Typography variant="body2" color="success.main">
-                      {t('{{count}} performances available', { count: event.availablePerformances })}
-                    </Typography>
-                  )}
-                </Box>
-              </CardContent>
-              <CardActions sx={{ 
-                p: 2, 
-                pt: 0, 
-                display: 'flex', 
-                flexDirection: 'column',
-                alignItems: 'flex-end', // Align buttons to right
-                gap: 1,
-                width: '100%'
-              }}>
-                {(true || isAdmin) && (
-                  <Button
-                    variant="contained"
-                    startIcon={<EditIcon />}
-                    onClick={(e) => handleEditEvent(event.id, e)}
-                    sx={{ 
-                      width: { xs: '100%', sm: 'auto' },
-                      m_inWidth: 200
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      p: 4, // padding inside
                     }}
                   >
-                    {t('Edit')}
-                  </Button>
-                )}
-                <Button
-                  variant="contained"
-                  startIcon={<EventIcon />}
-                  onClick={() => handleViewEvent(event.id)}
-                  disabled={event.availablePerformances === 0}
-                  sx={{ 
-                    width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
-                    minWidth: 200 // Minimum width for better appearance
+                    {posterImageUrl ? (
+                      <Box
+                        component="img"
+                        src={posterImageUrl}
+                        alt="Poster"
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain', // Show entire image without cropping
+                          maxWidth: '100%',
+                          maxHeight: '100%',
+                          //backgroundColor: 'transparent',
+                        }}
+                      />
+                    ) : (
+                      <TheaterIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
+                    )}
+                  </Box>
+                </CardMedia>
+                {/* <CardMedia
+                  component="div"
+                  sx={{
+                    pt: '56.25%',
+                    bgcolor: 'primary.main',
+                    position: 'relative',
                   }}
                 >
-                  {t('Performances')}
-                </Button>
-              </CardActions>
-            </Card>
-          </Grid>
-        ))}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {posterImageUrl &&
+                      <Avatar
+                        src={posterImageUrl}
+                        variant="square"
+                        //onClick={() => previewUrl && setPreviewOpen(true)}
+                        sx={{
+                          // width: textFieldHeight,
+                          // height: textFieldHeight,
+                          // bgcolor: 'transparent',
+                        }}
+                      >
+                      </Avatar>
+                    }
+                    {!posterImageUrl &&
+                      <TheaterIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
+                    }
+                  </Box>
+                </CardMedia> */}
+                <CardContent sx={{ flexGrow: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                    <Chip
+                      label={t(event.status)}
+                      color={getStatusColor(event.status)}
+                      size="small"
+                    />
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+                    <Typography variant="h5" component="div">
+                      {event.title}
+                    </Typography>
+                  </Box>
+
+                  {event.genre && (
+                    <Chip label={event.genre} size="small" sx={{ mb: 1 }} />
+                  )}
+
+                  <Box sx={{ mt: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <TheaterIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {event.theaterName}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {event.nextPerformanceDate
+                          ? t('Next performance') + ':' + formatDate(event.nextPerformanceDate)
+                          : t('No upcoming performances')
+                        }
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary">
+                        {t('From')} {config.currencies[event.currency as CurrencyCode]?.symbol} {event.baseTicketPrice}
+                      </Typography>
+                    </Box>
+
+                    {(event.availablePerformances > 0) && (
+                      <Typography variant="body2" color="success.main">
+                        {t('{{count}} performances available', { count: event.availablePerformances })}
+                      </Typography>
+                    )}
+                  </Box>
+                </CardContent>
+                <CardActions sx={{
+                  p: 2,
+                  pt: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-end', // Align buttons to right
+                  gap: 1,
+                  width: '100%'
+                }}>
+                  {isAdmin && (
+                    <Button
+                      variant="outlined"
+                      startIcon={<DeleteIcon />}
+                      onClick={(e) => handleDeleteEvent(event.id, e)}
+                      sx={{
+                        width: { xs: '100%', sm: 'auto' },
+                      }}
+                    >
+                      {t('Delete')}
+                    </Button>
+                  )}
+                  {isAdmin && (
+                    <Button
+                      variant="contained"
+                      startIcon={<EditIcon />}
+                      onClick={(e) => handleEditEvent(event.id, e)}
+                      sx={{
+                        width: { xs: '100%', sm: 'auto' },
+                      }}
+                    >
+                      {t('Edit')}
+                    </Button>
+                  )}
+                  <Button
+                    variant="contained"
+                    startIcon={<EventIcon />}
+                    onClick={() => handleViewEvent(event.id)}
+                    disabled={!isAdmin && event.availablePerformances === 0}
+                    sx={{
+                      width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
+                      minWidth: 200 // Minimum width for better appearance
+                    }}
+                  >
+                    {t('Performances')}
+                  </Button>
+                </CardActions>
+              </Card>
+            </Grid>
+          )
+        })}
       </Grid>
     </Container>
   );

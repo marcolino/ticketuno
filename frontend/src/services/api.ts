@@ -286,14 +286,14 @@ export const theaterApi = {
   updateTheaterFull: (id: string, theater: Partial<Theater>) =>
     api.put<Theater>(`/theaters/${id}`, theater),
 
-  getTheaterLayoutCurrent: (id: string) =>
-    api.get<Theater>(`/theaters/${id}/layout`),
+  // getTheaterLayoutCurrent: (id: string) =>
+  //   api.get<Theater>(`/theaters/${id}/layout`),
 
-  setTheaterLayoutCurrent: (id: string, layoutId: string) =>
-    api.put<Theater>(`/theaters/${id}/layout/${layoutId}`),
+  // setTheaterLayoutCurrent: (id: string, layoutId: string) =>
+  //   api.put<Theater>(`/theaters/${id}/layout/${layoutId}`),
 
-  clearTheaterLayoutCurrent: (id: string) =>
-    api.delete<Theater>(`/theaters/${id}/layout`),
+  // clearTheaterLayoutCurrent: (id: string) =>
+  //   api.delete<Theater>(`/theaters/${id}/layout`),
 
   deleteTheater: (id: string) =>
     api.delete(`/theaters/${id}`),
@@ -342,26 +342,49 @@ export const eventApi = {
   deleteEvent: (id: string) =>
     api.delete(`/events/${id}`),
 
-  getPerformances: (eventId: string) =>
-    api.get<EventPerformance[]>(`/events/${eventId}/performances`),
-
-  getPerformance: (eventId: string, performanceId: string) => 
-    api.get<EventPerformance>(`/events/${eventId}/performances/${performanceId}`),
-
+  // TODO: always use eventId, or never use it...
   createPerformance: (eventId: string, performance: Partial<EventPerformance>) => 
     api.post<EventPerformance>(`/events/${eventId}/performances`, performance),
 
-  bookPerformance: (eventId: string, performanceId: string, seatIds: string[]) =>
-    api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
+  // getPerformances: (eventId: string) =>
+  //   api.get<EventPerformance[]>(`/events/${eventId}/performances`),
+
+  getPerformance: (performanceId: string) => 
+    api.get<EventPerformance>(`/events/performances/${performanceId}`),
+
+  updatePerformance: (performanceId: string, data: Partial<EventPerformance>) =>
+    api.put<EventPerformance>(`/events/performances/${performanceId}`, data),
+
+  deletePerformance: (performanceId: string) =>
+    api.delete(`/events/performances/${performanceId}`),
+
+  bookPerformance: (performanceId: string, seatIds: string[]) =>
+    api.post(`/events/performances/${performanceId}/book`, { seatIds }),
 };
 
+export const imageApi = {
+  upload: (file: File | Blob, imageType: string) => {
+    const formData = new FormData();
+    const name = file instanceof File ? file.name : `${imageType}-upload.jpg`;
+    formData.append('image', file, name);
+    formData.append('imageType', imageType);
+    return api.post<{ filename: string }>('/images/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  delete: (filename: string) =>
+    api.delete(`/images/${filename}`),
+};
+
+/*
 // Image API
 export const imageApi = {
   /**
    * Upload an image to the server
    * @param formData FormData object containing the image file
    * @returns Promise with the uploaded image data including URL
-   */
+   * /
   uploadImage: async (formData: FormData) => {
     return api.post('/images/upload', formData, {
       headers: {
@@ -373,7 +396,7 @@ export const imageApi = {
   /**
    * Delete an image from the server
    * @param imageId The ID of the image to delete
-   */
+   * /
   deleteImage: async (imageId: string) => {
     return api.delete(`/images/${imageId}`);
   },
@@ -381,10 +404,11 @@ export const imageApi = {
   /**
    * Get image metadata
    * @param imageId The ID of the image
-   */
+   * /
   getImageMetadata: async (imageId: string) => {
     return api.get(`/images/${imageId}/metadata`);
   },
 };
+*/
 
 export default api;

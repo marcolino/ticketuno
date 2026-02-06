@@ -30,7 +30,7 @@ const TheaterList: React.FC = () => {
   const [theaters, setTheaters] = useState<Theater[] | null>(null); // ← null = not loaded
   const [layouts, setLayouts] = useState<Layout[] | null>(null); // ← null = not loaded
   //const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null); // TODO ... do we use error ?
 
   useEffect(() => {
     //if (isAuthenticated && isAdmin) {

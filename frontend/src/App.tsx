@@ -14,6 +14,7 @@ import { frFR } from '@mui/x-date-pickers/locales';
 
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { DialogProvider } from './contexts/DialogContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import OAuthHandler from './components/OAuthHandler';
@@ -66,42 +67,44 @@ const App: React.FC = () => {
       localeText={muiLocale}
       key={adapterLocale(i18n.language)}
     >
-      <LoadingProvider /*minLoadingTime={3000}*/>
-        <LoadingSpinner />
-        <ThemeProvider>
-          <ToastProvider>
-            <CssBaseline />
-            <AuthProvider>
-              <Router future={{
-                v7_startTransition: true,
-                v7_relativeSplatPath: true,
-              }}>
-                <OAuthHandler />
-                <Home>
-                  <Routes>{/* TODO: move routes in Route component... */}
-                    <Route path="/" element={<TheaterList />} />
-                    <Route path="/events" element={<EventList />} />
-                    <Route path="/event/new" element={<EventEdit />} />
-                    <Route path="/event/:id" element={<EventDetails />} />
-                    <Route path="/event/edit/:id" element={<PR requireAdmin={true}><EventEdit /></PR>} />
-                    <Route path="/theaters" element={<TheaterList />} />
-                    <Route path="/theater/new" element={<PR requireAdmin={true}><TheaterEdit /></PR>} />
-                    <Route path="/theater/:id" element={<TheaterSeating />} />
-                    <Route path="/theater/edit/:id" element={<PR requireAdmin={true}><TheaterEdit /></PR>} />
-                    <Route path="/layout/new/:theaterId?" element={<PR requireAdmin={false}><LayoutEdit /></PR>} />
-                    <Route path="/layout/edit/:id" element={<PR requireAdmin={false}><LayoutEdit /></PR>} />
-                    <Route path="/layouts" element={<PR requireAdmin={false}><LayoutList /></PR>} />
-                    {/* <Route path="/layout/:json" element={<PR requireAdmin={true}><LayoutPreviewSVG /></PR>} /> */}
-                    <Route path="/performance/:eventId/:performanceId" element={<TheaterSeating />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </Home>
-              </Router>
-            </AuthProvider>
-          </ToastProvider>
-        </ThemeProvider>
-      </LoadingProvider>
+      <ThemeProvider>
+        <LoadingProvider /*minLoadingTime={3000}*/>
+          <LoadingSpinner />
+          <DialogProvider>
+            <ToastProvider>
+              <CssBaseline />
+              <AuthProvider>
+                <Router future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true,
+                }}>
+                  <OAuthHandler />
+                  <Home>
+                    <Routes>{/* TODO: move routes in Route component... */}
+                      <Route path="/" element={<EventList />} />
+                      <Route path="/events" element={<EventList />} />
+                      <Route path="/event/new" element={<EventEdit />} />
+                      <Route path="/event/:id" element={<EventDetails />} />
+                      <Route path="/event/edit/:id" element={<PR requireAdmin={true}><EventEdit /></PR>} />
+                      <Route path="/theaters" element={<TheaterList />} />
+                      <Route path="/theater/new" element={<PR requireAdmin={true}><TheaterEdit /></PR>} />
+                      <Route path="/theater/:id" element={<TheaterSeating />} />
+                      <Route path="/theater/edit/:id" element={<PR requireAdmin={true}><TheaterEdit /></PR>} />
+                      <Route path="/layout/new/:theaterId?" element={<PR requireAdmin={false}><LayoutEdit /></PR>} />
+                      <Route path="/layout/edit/:id" element={<PR requireAdmin={false}><LayoutEdit /></PR>} />
+                      <Route path="/layouts" element={<PR requireAdmin={false}><LayoutList /></PR>} />
+                      {/* <Route path="/layout/:json" element={<PR requireAdmin={true}><LayoutPreviewSVG /></PR>} /> */}
+                      <Route path="/performance/:eventId/:performanceId" element={<TheaterSeating />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Home>
+                </Router>
+              </AuthProvider>
+            </ToastProvider>
+          </DialogProvider>
+        </LoadingProvider>
+      </ThemeProvider>
     </LocalizationProvider>
   );
 };

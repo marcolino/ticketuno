@@ -100,37 +100,6 @@ router.put("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res
   }
 });
 
-// Public: get theater current layout by id
-router.get("/:id/layout/", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-  try {
-    const theaterId = req.params.id;
-    const layout = await database.getTheaterLayoutCurrent(theaterId);
-    res.json(layout);
-  } catch (error) {
-    res.status(500).json({ error: req.t('Failed to get theater current layout: {{err}}: {{err}}', { err: getErrorMessage(error) }) });
-  }
-});
-
-// Protected: update theater current layout by id (admin only)
-router.put("/:id/layout/:layoutId?", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-  try {
-    await database.setTheaterLayoutCurrent(req.params.id, req.params.layoutId);
-    res.sendStatus(204);
-  } catch (error) {
-    res.status(500).json({ error: req.t('Failed to update theater current layout: {{err}}', { err: getErrorMessage(error) }) });
-  }
-});
-
-// Protected: clear theater current layout by id (admin only)
-router.delete("/:id/layout/", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
-  try {
-    await database.clearTheaterLayoutCurrent(req.params.id);
-    res.sendStatus(204);
-  } catch (error) {
-    res.status(500).json({ error: req.t('Failed to clear theater current layout: {{err}}', { err: getErrorMessage(error) }) });
-  }
-});
-
 // Protected: delete theater by id (admin only)
 router.delete("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
   try {

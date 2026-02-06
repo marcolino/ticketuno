@@ -106,15 +106,21 @@ app.get(`${prefix}/health`, (req, res) => {
   });
 });
 
-// Example route with translation
+// Example route with translation - TODO: debug only
 app.get(`${prefix}/test`, (req: any, res) => {
   // Use req.t for translations in request context
   const message = req.t('hello_world');
   res.json({ message });
 });
 
-// Serve static files from React build (MUST be after API routes)
+/**
+ * Serve static files (MUST be after API routes)
+ */
+// Serve public assets
 app.use(express.static(path.join(__dirname, '../public')));
+
+// Serve uploaded images
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Global error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

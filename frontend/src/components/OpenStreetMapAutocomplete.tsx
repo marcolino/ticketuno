@@ -19,7 +19,8 @@ interface OpenStreetMapAutocompleteProps {
 
 const OpenStreetMapAutocomplete: React.FC<OpenStreetMapAutocompleteProps> = ({ 
   value, 
-  onChange, 
+  name,
+  onChange,
   placeholder = "Indirizzo stradale" 
 }) => {
   const [inputValue, setInputValue] = useState('');
@@ -90,7 +91,7 @@ const OpenStreetMapAutocomplete: React.FC<OpenStreetMapAutocompleteProps> = ({
         // This fires on selection (click or Enter on a suggestion)
 
         const addressString = typeof newValue === 'string' ? newValue : newValue?.label || '';
-        onChange({ target: { name: name || 'address', value: addressString } });
+        onChange({ target: { name: name || 'address', value: addressString } } as any);
         
 
         // const addressString = typeof newValue === 'string' ? newValue : newValue?.label || '';

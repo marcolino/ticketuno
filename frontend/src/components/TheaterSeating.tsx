@@ -47,18 +47,19 @@ const TheaterSeating: React.FC = () => {
 
   const loadPerformance = useCallback(async () => {
     try {
-      const response = await eventApi.getPerformance(eventId!, performanceId!);
+      const response = await eventApi.getPerformance(performanceId!);
       const perf = response.data;
       setPerformance(perf);
 
       // Parse seat data from performance
-      const sections = JSON.parse(perf.seatData);
+      //const sections = JSON.parse(perf.seatData);
       setTheater({
         id: eventId!,
         name: 'Theater', // Will be updated from event data if needed
-        sections: sections,
+        //sections: sections,
         createdAt: '',
-        updatedAt: ''
+        updatedAt: '',
+        status: 'active',
       });
       
       setError(null);
@@ -146,7 +147,7 @@ const TheaterSeating: React.FC = () => {
 
     try {
       if (eventId && performanceId) {
-        await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
+        await eventApi.bookPerformance(performanceId, Array.from(selectedSeats));
       } else if (id) {
         await theaterApi.bookSeats(id, Array.from(selectedSeats));
       } else {
