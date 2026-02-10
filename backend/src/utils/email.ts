@@ -33,7 +33,7 @@ export const isCodeValid = (expiry: string): boolean => {
 };
 
 export const sendVerificationEmail = async (email: string, code: string): Promise<void> => {
-  const subject = i18n.t('Verify your {{appname}} account', config.app.fullname);
+  const subject = i18n.t('Verify your {{appname}} account', config.app.name);
   const body = i18n.t(`
 Welcome to {{appName}}!
 
@@ -42,13 +42,13 @@ Your verification code is: {{code}}
 This code will expire in {{expirationMinutes}} minutes.
 
 If you didn't request this, please ignore this email.
-`, {appName: config.app.fullname, code, expirationMinutes: config.app.auth.verificationCode.expirationMinutes});
+`, {appName: config.app.name, code, expirationMinutes: config.auth.verificationCode.expirationMinutes});
   
   await sendEmail(email, subject, body);
 };
 
 export const sendPasswordResetEmail = async (email: string, code: string): Promise<void> => {
-  const subject = i18n.t('Reset your {{appName}} password', { appName: config.app.fullname });
+  const subject = i18n.t('Reset your {{appName}} password', { appName: config.app.name });
   const body = i18n.t(`
 You requested to reset your password.
 
@@ -57,7 +57,7 @@ Your password reset code is: {{code}}
 This code will expire in {{expirationMinutes}} minutes.
 
 If you didn't request this, please ignore this email and your password will remain unchanged.
-`, {code, expirationMinutes: config.app.auth.verificationCode.expirationMinutes});
+`, {code, expirationMinutes: config.auth.verificationCode.expirationMinutes});
   
   await sendEmail(email, subject, body);
 };

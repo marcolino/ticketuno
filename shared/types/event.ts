@@ -43,10 +43,12 @@ export interface EventPerformance {
   performanceDate: string;
   startTime: string;
   endTime?: string;
-  availableSeats: number;
-  bookedSeats: number;
-  seatData: string; // JSON string of seat statuses
+  // availableSeats?: number; // Optional (calculated)
+  // bookedSeats?: number; // Optional (calculated)
+  //seatData: string; // JSON string of seat statuses
   status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
+  availableSeats?: number;
+  bookedSeats?: number;
   createdAt?: string;
   updatedAt?: string;
 }

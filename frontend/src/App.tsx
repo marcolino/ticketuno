@@ -25,14 +25,16 @@ import EventDetails from './components/EventDetails';
 import EventList from './components/EventList';
 import EventEdit from './components/EventEdit';
 import TheaterList from './components/TheaterList';
-import TheaterSeating from './components/TheaterSeating';
+//import TheaterSeating from './components/TheaterSeating';
+import PerformanceBooking from './components/PerformanceBooking';
 import TheaterEdit from './components/TheaterEdit';
 import LayoutList from './components/LayoutList';
 import LayoutEdit from './components/LayoutEdit';
 import Profile from './components/Profile';
 import NotFound from './components/NotFound';
+import config from '@/config';
 
-console.log('🎭 App is starting');
+console.log(`🎭 App ${config.app.name} is starting`);
 
 const App: React.FC = () => {
   const { i18n } = useTranslation();
@@ -88,13 +90,14 @@ const App: React.FC = () => {
                       <Route path="/event/edit/:id" element={<PR requireAdmin={true}><EventEdit /></PR>} />
                       <Route path="/theaters" element={<TheaterList />} />
                       <Route path="/theater/new" element={<PR requireAdmin={true}><TheaterEdit /></PR>} />
-                      <Route path="/theater/:id" element={<TheaterSeating />} />
+                      {/* <Route path="/theater/:id" element={<TheaterSeating />} /> */}
                       <Route path="/theater/edit/:id" element={<PR requireAdmin={true}><TheaterEdit /></PR>} />
                       <Route path="/layout/new/:theaterId?" element={<PR requireAdmin={false}><LayoutEdit /></PR>} />
                       <Route path="/layout/edit/:id" element={<PR requireAdmin={false}><LayoutEdit /></PR>} />
                       <Route path="/layouts" element={<PR requireAdmin={false}><LayoutList /></PR>} />
                       {/* <Route path="/layout/:json" element={<PR requireAdmin={true}><LayoutPreviewSVG /></PR>} /> */}
-                      <Route path="/performance/:eventId/:performanceId" element={<TheaterSeating />} />
+                      {/* <Route path="/performance/:eventId/:performanceId" element={<TheaterSeating />} /> */}
+                      <Route path="/event/:eventId/performance/:performanceId/book" element={<PerformanceBooking />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>

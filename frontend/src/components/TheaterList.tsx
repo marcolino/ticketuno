@@ -5,6 +5,7 @@ import {
   Container,
   Card,
   CardContent,
+  CardMedia,
   Typography,
   Button,
   Grid,
@@ -15,6 +16,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Curtains as CurtainsIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../contexts/ToastContext';
@@ -169,6 +171,29 @@ const TheaterList: React.FC = () => {
                   },
                 }}
               >
+                <CardMedia
+                  component="div"
+                  sx={{
+                    pt: '56.25%',
+                    bgcolor: 'primary.main',
+                    position: 'relative',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <CurtainsIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
+                  </Box>
+                </CardMedia>
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Typography variant="h5" gutterBottom>
                     {theater.name}

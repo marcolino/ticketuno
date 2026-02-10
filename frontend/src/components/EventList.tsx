@@ -30,6 +30,7 @@ import { eventApi } from '../services/api';
 import { EventStats } from '../../../shared/types/event';
 import { useAuth } from '../contexts/AuthContext';
 import config, { CurrencyCode } from '../config';
+//import { __test } from '@/shared/config';
 
 const EventList: React.FC = () => {
   const { t } = useTranslation();
@@ -45,6 +46,7 @@ const EventList: React.FC = () => {
   const loadEvents = async () => {
     try {
       const response = await eventApi.getAllEvents();
+      console.log("EVENTS:", events);
       setEvents(response.data);
       setError(null);
     } catch (err) {
@@ -258,7 +260,7 @@ const EventList: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                       <Typography variant="body2" color="text.secondary">
-                        {t('From')} {config.currencies[event.currency as CurrencyCode]?.symbol} {event.baseTicketPrice}
+                        {t('From')} {config.app.currencies[event.currency as CurrencyCode]?.symbol} {event.baseTicketPrice}
                       </Typography>
                     </Box>
 
@@ -305,11 +307,11 @@ const EventList: React.FC = () => {
                   <Button
                     variant="contained"
                     startIcon={<EventIcon />}
-                    onClick={() => handleViewEvent(event.id)}
+                    onClick={() => handleViewEvent(event.id) }
                     disabled={!isAdmin && event.availablePerformances === 0}
                     sx={{
                       width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
-                      minWidth: 200 // Minimum width for better appearance
+                      //minWidth: 200 // Minimum width for better appearance
                     }}
                   >
                     {t('Performances')}

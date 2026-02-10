@@ -1,11 +1,15 @@
 import { Router } from "express";
-import { v4 as uuidv4 } from 'uuid';
+//import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
+import { generateSeats } from '../shared/types/layoutToSeats';
 import { getErrorMessage } from '../utils/errorHandler';
+import config from '../config';
 
 const router = Router();
+
+// ========== EVENTS ==========
 
 // Public: Get all events with stats
 router.get('/', async (req, res) => {
@@ -21,15 +25,6 @@ router.get('/', async (req, res) => {
         const upcomingPerformances = performances ? performances.filter(p =>
           new Date(p.performanceDate) >= new Date() && p.status === 'scheduled'
         ) : [];
-
-        // let totalSeats = 0;
-        // if (theater) {
-        //   theater.sections.forEach(section => {
-        //     section.rows.forEach(row => {
-        //       totalSeats += row.seats;
-        //     });
-        //   });
-        // }
 
         return {
           id: event.id,
@@ -54,7 +49,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Public: Get event by ID with theater and performances
+// Public: Get event by ID with theater and performances (with calculated seat counts)
 router.get('/:id', async (req, res) => {
   try {
     const event = await database.getEventById(req.params.id);
@@ -65,10 +60,22 @@ router.get('/:id', async (req, res) => {
     const theater = await database.getTheaterById(event.theaterId);
     const performances = await database.getPerformancesByEventId(event.id);
 
+    // Calculate seat counts for each performance from seats table
+    const performancesWithCounts = await Promise.all(
+      (performances || []).map(async (performance) => {
+        const counts = await database.getSeatCountsByPerformanceId(performance.id!);
+        return {
+          ...performance,
+          availableSeats: counts.available,
+          bookedSeats: counts.booked
+        };
+      })
+    );
+
     res.json({
       ...event,
       theater,
-      performances
+      performances: performancesWithCounts,
     });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to fetch event: {{err}}', {err: getErrorMessage(error)}) });
@@ -86,18 +93,27 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       socialMediaLinks, maxCapacity, contentWarnings
     } = req.body;
 
-    if (!title || !theaterId || !baseTicketPrice) {
-      return res.status(400).json({ error: req.t('Title, theater, and base ticket price are required') });
+    // Check if title is set
+    if (title === undefined || title === null) {
+      return res.status(400).json({ error: req.t('Title is required') });
     }
 
-    // Debug: Check if all foreign keys exist
+    if (theaterId === undefined || theaterId === null) {
+      return res.status(400).json({ error: req.t('Theater is required') });
+    }
+
+    if (baseTicketPrice === undefined || baseTicketPrice === null) {
+      return res.status(400).json({ error: req.t('Base ticket price is required') });
+    }
+
+    // Check if all foreign keys exist
     const theater = await database.getTheaterById(theaterId);
     if (!theater) {
       return res.status(404).json({ error: req.t('Theater with id {{theaterId}} not found', { theaterId }) });
     }
 
     const event: Event = {
-      id: uuidv4(),
+      id: '', //uuidv4(),
       title,
       description,
       genre,
@@ -116,7 +132,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       closingDate,
       isActive: true,
       baseTicketPrice,
-      currency: currency || 'USD',
+      currency: currency || config.app.defaultCurrency,
       isSoldOut: false,
       specialRequirements,
       minimumAge,
@@ -164,6 +180,20 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ error: req.t('Event not found') });
     }
 
+    // Check if any performances have bookings
+    const performances = await database.getPerformancesByEventId(req.params.id);
+    if (performances) {
+      for (const performance of performances) {
+        const hasBookings = await database.performanceHasBookings(performance.id!);
+        if (hasBookings) {
+          return res.status(400).json({ 
+            error: req.t('Cannot delete event with booked performances'),
+            details: req.t('Performance for this event on date {{date}} has bookings', { date: performance.performanceDate }),
+          });
+        }
+      }
+    }
+
     await database.deleteEvent(req.params.id);
     res.json({ message: 'Event deleted successfully' });
   } catch (error: any) {
@@ -171,118 +201,271 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// ========== PERFORMANCES (nested under events) ==========
+
 // Get performances for an event
 router.get('/:id/performances', async (req, res) => {
   try {
     const performances = await database.getPerformancesByEventId(req.params.id);
+
+    // Calculate seat counts from seats table
+    const performancesWithCounts = await Promise.all(
+      (performances || []).map(async (performance) => {
+        const counts = await database.getSeatCountsByPerformanceId(performance.id!);
+        return {
+          ...performance,
+          availableSeats: counts.available,
+          bookedSeats: counts.booked
+        };
+      })
+    );
+
     res.json(performances);
   } catch (error: any) {
     res.status(500).json({ error: req.t('Failed to fetch performances: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 
-// Protected: Create performance for an event (admin only)
-router.post('/:id/performances', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { performanceDate, startTime, endTime } = req.body;
-    const event = await database.getEventById(req.params.id);
-
-    if (!event) {
-      return res.status(404).json({ error: req.t('Event not found') });
-    }
-
-    const theater = await database.getTheaterById(event.theaterId);
-    if (!theater) {
-      return res.status(404).json({ error: req.t('Theater not found') });
-    }
-
-    // TODO: ...
-    // Calculate total seats
-    // let totalSeats = 0;
-    // theater.sections.forEach(section => {
-    //   section.rows.forEach(row => {
-    //     totalSeats += row.seats;
-    //   });
-    // });
-
-    // // Initialize seat data from theater
-    // const seatData = JSON.stringify(theater.sections);
-    let totalSeats = 0;
-    const seatData = JSON.stringify([]);
-    
-    const performance: EventPerformance = {
-      id: uuidv4(),
-      eventId: req.params.id,
-      performanceDate,
-      startTime,
-      endTime,
-      availableSeats: totalSeats,
-      bookedSeats: 0,
-      seatData,
-      status: 'scheduled',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    await database.createPerformance(performance);
-    res.status(201).json(performance);
-  } catch (error) {
-    res.status(500).json({ error: req.t('Failed to create performance: {{err}}', {err: getErrorMessage(error)}) });
-  }
-});
-
 // Get specific performance for an event
-router.get('/performances/:performanceId', async (req, res) => {
+router.get('/:eventId/performances/:performanceId', async (req, res) => {
   try {
     const performance = await database.getPerformanceById(req.params.performanceId);
     if (!performance) {
       return res.status(404).json({ error: req.t('Event performance not found') });
     }
-    res.json(performance);
+    if (performance.eventId !== req.params.eventId) {
+      return res.status(400).json({ error: req.t('Performance does not belong to this event') });
+    }
+    
+    // Calculate seat counts
+    const counts = await database.getSeatCountsByPerformanceId(performance.id!);
+    
+    res.json({
+      ...performance,
+      availableSeats: counts.available,
+      bookedSeats: counts.booked
+    });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to fetch performance: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
-// Protected: Update performance (admin only)
-router.put('/performances/:performanceId', authenticateToken, requireAdmin, async (req, res) => {
+// Protected: Create performance for an event (admin only)
+router.post('/:eventId/performances', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
   try {
-    // const event = await database.getEventById(req.params.id);
-    // if (!event) {
-    //   return res.status(404).json({ error: req.t('Event not found') });
-    // }
+    const { performanceDate, startTime, endTime } = req.body;
+    const eventId = req.params.eventId;
+
+    // Check the event exists
+    const event = await database.getEventById(req.params.eventId);
+    if (!event) {
+      return res.status(404).json({ error: req.t('Event not found') });
+    }
+
+    // Get theater
+    const theater = await database.getTheaterById(event.theaterId);
+    if (!theater) {
+      return res.status(404).json({ error: req.t('Theater not found') });
+    }
+
+    if (!theater.currentLayoutId) {
+      return res.status(400).json({ error: req.t('Theater has no current layout assigned') });
+    }
+
+    // Get theater layout
+    const layout = await database.getLayoutById(theater.currentLayoutId);
+    if (!layout) {
+      return res.status(404).json({ error: req.t('Layout not found') });
+    }
+
+    // Generate seats from layout
+    const layoutJSON = JSON.parse(layout.json);
+    const generatedSeats = generateSeats(layoutJSON);
+    //const seats = generateSeats(layoutJSON);
+    
+    // Create performance (no seat counts stored)
+    const performance: EventPerformance = {
+      id: '', //uuidv4(),
+      eventId,
+      performanceDate,
+      startTime,
+      endTime,
+      // availableSeats: undefined,
+      // bookedSeats: undefined,
+      // seatData: JSON.stringify(seats), // Optional: could store layout snapshot
+      status: 'scheduled',
+      // createdAt: new Date().toISOString(),
+      // updatedAt: new Date().toISOString(),
+    };
+
+    const performanceId = await database.createPerformance(performance);
+
+    // Insert seat records for this performance
+    await database.bulkCreateSeats(
+      performanceId,
+      generatedSeats,
+    );
+
+    // Get calculated seat counts for this performance
+    const counts = await database.getSeatCountsByPerformanceId(performanceId);
+
+    res.status(201).json({ 
+      ...performance, 
+      id: performanceId,
+      availableSeats: counts.available,
+      bookedSeats: counts.booked
+    });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to create performance: {{err}}', {err: getErrorMessage(error)}) });
+  }
+});
+
+// Protected: Update performance (admin only)
+router.put('/:eventId/performances/:performanceId', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { eventId, performanceId } = req.params;
+    const performance = await database.getPerformanceById(performanceId);
+
+    if (!performance) {
+      return res.status(404).json({ error: req.t('Performance not found') });
+    }
+    
+    if (performance.eventId !== eventId) {
+      return res.status(400).json({ error: req.t('Performance does not belong to this event') });
+    }
+
+    // Prevent changes if seats are already booked
+    const hasBookings = await database.performanceHasBookings(performanceId);
+    if (hasBookings) {
+      return res.status(400).json({ 
+        error: req.t('Cannot modify performance with existing bookings') 
+      });
+    }
+
     await database.updatePerformance(req.params.performanceId, req.body);
-    const updatedPerformance = await database.getEventById(req.params.id);
-    res.json(updatedPerformance);
+    const updatedPerformance = await database.getPerformanceById(performanceId);
+
+    // Get calculated seats counts
+    const counts = await database.getSeatCountsByPerformanceId(performanceId);
+
+    res.json({
+      ...updatedPerformance,
+      availableSeats: counts.available,
+      bookedSeats: counts.booked
+    });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to update event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
 // Delete specific performance for an event
-router.delete('/performances/:performanceId', async (req, res) => {
+router.delete(':eventId/performances/:performanceId', async (req, res) => {
   try {
-    const performance = await database.deletePerformanceById(req.params.performanceId);
+    const { eventId, performanceId } = req.params;
+    const performance = await database.getPerformanceById(performanceId);
+
     if (!performance) {
       return res.status(404).json({ error: req.t('Event performance not found') });
     }
-    await database.deletePerformanceById(req.params.performanceId);
+
+    if (performance.eventId !== eventId) {
+      return res.status(400).json({ error: req.t('Performance does not belong to this event') });
+    }
+    
+    // Prevent deletion if seats are already booked
+    const hasBookings = await database.performanceHasBookings(performanceId);
+    if (hasBookings) {
+      return res.status(400).json({ 
+        error: req.t('Cannot delete performance with existing bookings') 
+      });
+    }
+
+    // Delete seats first (foreign key constraint)
+    await database.deleteSeatsForPerformance(performanceId);
+    
+    // Delete performance
+    await database.deletePerformanceById(performanceId);
+
     res.json({ message: 'Performance deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to delete performance: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
-// Protected: Book seats for a performance
-router.post('/performances/:performanceId/book', authenticateToken, async (req, res) => {
-  try {
-    const { seatIds } = req.body;
-    const performance = await database.getPerformanceById(req.params.performanceId);
+// ========== BOOKING (user endpoint) ==========
 
+// Get seats for a performance (for booking UI)
+router.get('/:eventId/performances/:performanceId/seats', async (req, res) => {
+  try {
+    const { performanceId } = req.params;
+    
+    const performance = await database.getPerformanceById(performanceId);
     if (!performance) {
-      return res.status(404).json({ error: req.t('Event performance not found') });
+      return res.status(404).json({ error: req.t('Performance not found') });
     }
 
+    const seats = await database.getSeatsByPerformanceIdGrouped(performanceId);
+    
+    res.json(seats);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to fetch seats: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
+// Get seats for a specific section
+router.get('/:eventId/performances/:performanceId/seats/:sectionName', async (req, res) => {
+  try {
+    const { performanceId, sectionName } = req.params;
+    
+    const seats = await database.getSeatsBySection(performanceId, sectionName);
+    
+    res.json(seats);
+  } catch (error) {
+    res.status(500).json({ 
+      error: req.t('Failed to fetch seats: {{err}}', { err: getErrorMessage(error) }) 
+    });
+  }
+});
+
+// Protected: Book seats for a performance
+router.post('/:eventId/performances/:performanceId/book', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { seatIds } = req.body;
+    const { eventId, performanceId } = req.params;
+    const userId = req.userId;
+
+    if (!seatIds || !Array.isArray(seatIds) || seatIds.length === 0) {
+      return res.status(400).json({ error: req.t('Seat IDs required') });
+    }
+
+    const performance = await database.getPerformanceById(performanceId);
+
+    if (!performance) {
+      return res.status(404).json({ error: req.t('Performance not found') });
+    }
+
+    if (performance.eventId !== eventId) {
+      return res.status(400).json({ error: req.t('Performance does not belong to this event') });
+    }
+
+    if (performance.status !== 'scheduled') {
+      return res.status(400).json({
+        error: req.t('Performance is not available for booking'),
+        details: req.t('Performance status is {{status}}', { status: performance.status }),
+      });
+    }
+
+     // Atomic booking transaction
+    const result = await database.bookSeats(performanceId, seatIds, userId!);
+    
+    if (!result.success) {
+      return res.status(409).json({ 
+        error: req.t('Some seats are no longer available'),
+        unavailableSeats: result.unavailableSeats ,
+      });
+    }
+
+    /*
     const sections = JSON.parse(performance.seatData);
     let seatsBooked = 0;
 
@@ -303,11 +486,12 @@ router.post('/performances/:performanceId/book', authenticateToken, async (req, 
 
     await database.updatePerformance(req.params.performanceId, {
       seatData: JSON.stringify(updatedSections),
-      bookedSeats: performance.bookedSeats + seatsBooked,
-      availableSeats: performance.availableSeats - seatsBooked
+      // bookedSeats: performance.bookedSeats + seatsBooked,
+      // availableSeats: performance.availableSeats - seatsBooked
     });
-
-    res.json({ message: req.t('{{count}} seats booked successfully', { count: seatsBooked }) });
+    */
+    
+    res.json({ message: req.t('{{count}} seats booked successfully', { count: result.bookedCount }) });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });
   }

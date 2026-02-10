@@ -44,7 +44,9 @@ import Footer from './Footer';
 import { useAuth } from '../contexts/AuthContext';
 import { useThemeMode } from '../contexts/ThemeContext';
 import LoginDialog from './LoginDialog';
-import config from '../config';
+import config from '@/config';
+
+console.log("CONFIG ********************:", config);
 
 interface HomeProps {
   children: React.ReactNode;
@@ -278,7 +280,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
         <DialogTitle>{t('Select Language')}</DialogTitle>
         <DialogContent>
           <List>
-            {Object.entries(config.languages).map(([code, { name, flag }]) => (
+            {Object.entries(config.app.languages).map(([code, { name, flag }]) => (
               <ListItem key={code} disablePadding>
                 <ListItemButton 
                   onClick={() => handleLanguageChange(code)}

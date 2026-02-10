@@ -47,6 +47,7 @@ import {
   Language as LanguageIcon,
   Theaters as TheaterIcon,
   ExpandMore as ExpandMoreIcon,
+  Star as StarIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -70,7 +71,7 @@ interface EventPerformanceForm {
   endTime: Dayjs | null;
   availableSeats: number;
   bookedSeats: number;
-  seatData: string;
+  //seatData: string;
   status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
   createdAt?: string;
   updatedAt?: string;
@@ -97,12 +98,17 @@ const EventDetails: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   //const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [performanceToEdit, setPerformanceToEdit] = useState<EventPerformanceForm | null>(null);
-  const [performanceToDelete, setPerformanceToDelete] = useState<string | null>(null);
+  //const [performanceToDelete, setPerformanceToDelete] = useState<string | null>(null);
 
   // Responsive breakpoints
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md')); // xs and sm for mobile
 
+  const hasSelection =
+    selectedRows.type === 'exclude' ||
+    selectedRows.ids.size > 0
+  ;
+  
   const showDialog = useDialog();
 
   dayjs.locale('it'); // TODO: Set to current locale dynamically
@@ -146,11 +152,11 @@ const EventDetails: React.FC = () => {
   }, [id, loadEvent]);
 
   // Convert EventPerformance to EventPerformanceForm (for editing)
-  const performanceToForm = (perf: EventPerformance): EventPerformanceForm => ({
-    ...perf,
-    performanceDate: perf.performanceDate ? dayjs(perf.performanceDate) : null,
-    startTime: perf.startTime ? dayjs(`1970-01-01T${perf.startTime}`) : null,
-    endTime: perf.endTime ? dayjs(`1970-01-01T${perf.endTime}`) : null,
+  const performanceToForm = (performance: EventPerformance): EventPerformanceForm => ({
+    ...performance,
+    performanceDate: performance.performanceDate ? dayjs(performance.performanceDate) : null,
+    startTime: performance.startTime ? dayjs(`1970-01-01T${performance.startTime}`) : null,
+    endTime: performance.endTime ? dayjs(`1970-01-01T${performance.endTime}`) : null,
   });
 
   // Convert EventPerformanceForm to API payload
@@ -189,9 +195,9 @@ const EventDetails: React.FC = () => {
       performanceDate: nextDay,
       startTime: event?.typicalStartTime ? dayjs(`1970-01-01T${event.typicalStartTime}`) : null,
       endTime: event?.typicalEndTime ? dayjs(`1970-01-01T${event.typicalEndTime}`) : null,
-      availableSeats: event?.maxCapacity || 0,
-      bookedSeats: 0,
-      seatData: '[]',
+      //availableSeats: event?.maxCapacity || 0,
+      //bookedSeats: 0,
+      //seatData: '[]',
       status: 'scheduled',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -205,7 +211,7 @@ const EventDetails: React.FC = () => {
   };
 
   const handleDeletePerformance = (performanceId: string) => {
-    setPerformanceToDelete(performanceId);
+    //setPerformanceToDelete(performanceId);
     //setDeleteDialogOpen(true);
     showDialog({
       title: t('Confirm Performance Delete'),
@@ -225,7 +231,7 @@ const EventDetails: React.FC = () => {
 
   const confirmDelete = async (performanceId: string) => {
     try {
-      await eventApi.deletePerformance(performanceId);
+      await eventApi.deletePerformance(id!, performanceId);
       await reloadEvent();
     } catch (err: any) {
       setError(
@@ -240,7 +246,7 @@ const EventDetails: React.FC = () => {
       const payload = formToPerformance(performanceToEdit);
       
       if (performanceToEdit.id) {
-        await eventApi.updatePerformance(performanceToEdit.id, payload);
+        await eventApi.updatePerformance(id!, performanceToEdit.id, payload);
       } else {
         await eventApi.createPerformance(id!, payload);
       }
@@ -252,9 +258,23 @@ const EventDetails: React.FC = () => {
     }
   };
 
+  const getSelectedIds = () => {
+    if (selectedRows.type === 'include') {
+      return Array.from(selectedRows.ids);
+    }
+
+    // exclude mode = all rows minus excluded ones
+    const excluded = selectedRows.ids;
+    return performances
+      .map(p => p.id)
+      .filter(id => !excluded.has(id))
+    ;
+  };
+  
   const handleBulkAction = (action: string) => {
     setBulkMenuAnchor(null);
-    const selectedIds = Array.from(selectedRows.ids);
+    //const selectedIds = Array.from(selectedRows.ids);
+    const selectedIds = getSelectedIds();
     
     switch (action) {
       case 'cancel':
@@ -266,8 +286,8 @@ const EventDetails: React.FC = () => {
     }
   };
 
-  const handleBookPerformance = (performanceId: string) => {
-    navigate(`/performance/${id}/${performanceId}`);
+  const handleBookPerformance = (eventId: string, performanceId: string) => {
+    navigate(`/event/${eventId}/performance/${performanceId}/book`);
   };
 
   // const handleEditEvent = () => {
@@ -304,7 +324,7 @@ const EventDetails: React.FC = () => {
 
   // Get total seats (available + booked)
   const getTotalSeats = (performance: EventPerformance) => {
-    return performance.availableSeats + performance.bookedSeats;
+    return performance.availableSeats + performance.bookedSeats; // TODO ...
   };
 
   // Create Choose Seats button component to avoid repetition
@@ -326,7 +346,7 @@ const EventDetails: React.FC = () => {
       <Button
         variant={buttonVariant}
         color={buttonColor}
-        onClick={() => handleBookPerformance(performance.id || '')}
+        onClick={() => handleBookPerformance(id!, performance.id)}
         disabled={!isAvailable}
         size={size}
         sx={{
@@ -375,6 +395,16 @@ const EventDetails: React.FC = () => {
           <DeleteIcon fontSize="small" />
         </IconButton>
       </Tooltip>
+      <Tooltip title={t('Book')}>
+        <IconButton
+          size="small"
+          color="error"
+          onClick={() => handleBookPerformance(id!, performance.id)}
+        >
+          <StarIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      
     </Box>
   );
   
@@ -495,6 +525,9 @@ const EventDetails: React.FC = () => {
       </CardContent>
     </Card>
   );
+
+  console.log("$$$ selectedRows:", selectedRows);
+  console.log("$$$ isAdmin:", isAdmin);
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -732,10 +765,16 @@ const EventDetails: React.FC = () => {
             flexWrap: 'wrap',
             justifyContent: { xs: 'center', sm: 'flex-end' }
           }}>
-            {isAdmin && selectedRows.ids.size > 0 && (
+            {isAdmin && hasSelection && (
               <>
                 <Chip
-                  label={t('{{count}} selected', { count: selectedRows.ids.size })}
+                    label={t('{{count}} selected', {
+                      count:
+                        selectedRows.type === 'exclude' ?
+                          performances.length - selectedRows.ids.size :
+                          selectedRows.ids.size
+                        ,
+                    })}
                   color="primary"
                   onDelete={() => setSelectedRows({ type: 'include', ids: new Set() })}
                   size={isMobile ? "small" : "medium"}
@@ -782,7 +821,7 @@ const EventDetails: React.FC = () => {
           </Alert>
         ) : (
           <>
-            {/* Mobile card view */}
+            {/* Mobile card view - TODO: do not slice on mobile! */}
             <Hidden mdUp>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                 {performances.slice(0, 10).map((performance) => (

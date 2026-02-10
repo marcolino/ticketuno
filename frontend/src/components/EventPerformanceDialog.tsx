@@ -74,9 +74,9 @@ const EventPerformanceDialog: React.FC<EventPerformanceDialogProps> = ({
         performanceDate,
         startTime: startTimeStr,
         endTime: endTimeStr,
-        availableSeats: event.maxCapacity || 100,
-        bookedSeats: 0,
-        seatData: '{}',
+        //availableSeats: event.maxCapacity || 100,
+        //bookedSeats: 0,
+        //seatData: '{}',
         status: 'scheduled',
       });
 

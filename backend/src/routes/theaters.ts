@@ -66,7 +66,7 @@ router.get('/:id', async (req, res) => {
 // Protected, Admin: Create new theater
 router.post('/', authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { name, description, stageType, address, websiteUrl, status } = req.body;
+    const { name, description, stageType, address, websiteUrl, status, currentLayoutId } = req.body;
     if (!name) {
       return res.status(400).json({ error: req.t('Name is required') });
     }
@@ -79,8 +79,9 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
       address,
       websiteUrl,
       status,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      currentLayoutId,
+      // createdAt: new Date().toISOString(),
+      // updatedAt: new Date().toISOString()
     };
 
     const id = await database.createTheater(theater);
@@ -227,7 +228,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 // // Auth endpoint for admin
 // router.post('/auth/login', (req, res) => {
 //   const { password } = req.body;
-//   const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+//   const adminPassword = process.env.ADMIN_USER_PASSWORD || 'admin123';
 
 //   if (password === adminPassword) {
 //     const token = generateToken('admin', 'admin');

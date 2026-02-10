@@ -12,6 +12,7 @@ import {
 } from '../../../shared/types/user';
 import { Theater } from '../../../shared/types/theater';
 import { Event, EventStats, EventPerformance, EventWithDetails } from '../../../shared/types/event';
+import { GeneratedSeat } from '../../../shared/types/layoutToSeats';
 import { Layout } from '../../../shared/types/layout';
 import { i18n }  from '../i18n'; 
 
@@ -298,8 +299,8 @@ export const theaterApi = {
   deleteTheater: (id: string) =>
     api.delete(`/theaters/${id}`),
 
-  bookSeats: (theaterId: string, seatIds: string[]) =>
-    api.post(`/theaters/${theaterId}/book`, { seatIds }),
+  // bookSeats: (theaterId: string, seatIds: string[]) =>
+  //   api.post(`/theaters/${theaterId}/book`, { seatIds }),
 
   refreshTheaters: () => api.get('/theaters/refresh', { // Refresh theaters in background with skip-loading header (currently unused)
     headers: { 'X-Skip-Loading': 'true' }
@@ -342,24 +343,26 @@ export const eventApi = {
   deleteEvent: (id: string) =>
     api.delete(`/events/${id}`),
 
-  // TODO: always use eventId, or never use it...
+  getPerformances: (eventId: string) =>
+    api.get<EventPerformance[]>(`/events/${eventId}/performances`),
+
+  getPerformance: (eventId: string, performanceId: string) => 
+    api.get<EventPerformance>(`/events/${eventId}/performances/${performanceId}`),
+
+  getPerformanceSeats: (eventId: string, performanceId: string) => 
+    api.get<GeneratedSeat[]>(`/events/${eventId}/performances/${performanceId}/seats`),
+
   createPerformance: (eventId: string, performance: Partial<EventPerformance>) => 
     api.post<EventPerformance>(`/events/${eventId}/performances`, performance),
 
-  // getPerformances: (eventId: string) =>
-  //   api.get<EventPerformance[]>(`/events/${eventId}/performances`),
+  updatePerformance: (eventId: string, performanceId: string, data: Partial<EventPerformance>) =>
+    api.put<EventPerformance>(`/events/${eventId}/performances/${performanceId}`, data),
 
-  getPerformance: (performanceId: string) => 
-    api.get<EventPerformance>(`/events/performances/${performanceId}`),
+  deletePerformance: (eventId: string, performanceId: string) =>
+    api.delete(`/events/${eventId}/performances/${performanceId}`),
 
-  updatePerformance: (performanceId: string, data: Partial<EventPerformance>) =>
-    api.put<EventPerformance>(`/events/performances/${performanceId}`, data),
-
-  deletePerformance: (performanceId: string) =>
-    api.delete(`/events/performances/${performanceId}`),
-
-  bookPerformance: (performanceId: string, seatIds: string[]) =>
-    api.post(`/events/performances/${performanceId}/book`, { seatIds }),
+  bookPerformance: (eventId: string, performanceId: string, seatIds: string[]) =>
+    api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
 };
 
 export const imageApi = {

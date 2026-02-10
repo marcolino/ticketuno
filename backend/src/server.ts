@@ -174,7 +174,7 @@ if (process.env.NODE_ENV === 'production') { // in production mode
 }
 
 // Add artificial delay for all routes (in development only)
-if (config.nodeEnv === 'development') {
+if (config.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     if (config.server.delayMilliseconds) {
       setTimeout(next, config.server.delayMilliseconds);
@@ -183,8 +183,8 @@ if (config.nodeEnv === 'development') {
 }
 
 database.initialize().then(() => {
-  app.listen(config.port, () => {
-    console.log(`Server running on port ${config.port} in ${config.nodeEnv} mode`);
+  app.listen(config.env.PORT, () => {
+    console.log(`Server running on port ${config.env.PORT} in ${config.env.NODE_ENV} mode`);
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err);

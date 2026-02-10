@@ -20,7 +20,8 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   //CalendarToday as CalendarIcon,
-  TheaterComedy as TheaterIcon,
+  //TheaterComedy as TheaterIcon,
+  ViewCompact as ViewCompactIcon,
   //AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
 import { layoutApi } from '../services/api';
@@ -157,7 +158,7 @@ const LayoutList: React.FC = () => {
                       justifyContent: 'center',
                     }}
                   >
-                    <TheaterIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
+                    <ViewCompactIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
                   </Box>
                 </CardMedia>
                 <CardContent sx={{ flexGrow: 1 }}>

@@ -13,9 +13,13 @@ export default defineConfig({
     })
   ],
   resolve: {
+    // alias: {
+    //   '../../../shared': path.resolve(__dirname, '../shared')
+    // },
     alias: {
-      '../../../shared': path.resolve(__dirname, '../shared')
-    }
+      '@': path.resolve(__dirname, 'src'),
+    },
+    preserveSymlinks: true, // We use symlinks to /shared
   },
   optimizeDeps: {
     include: ['@emotion/react', '@emotion/styled'],

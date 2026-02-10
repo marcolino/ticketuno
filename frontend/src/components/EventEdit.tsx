@@ -76,7 +76,7 @@ const EventEdit: React.FC = () => {
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
   
   const [currency, setCurrency] = useState(config.defaultCurrency);
-  //   Object.values(config.currencies).find(c => c.code === config.defaultCurrency)?.code || ''
+  //   Object.values(config.app.currencies).find(c => c.code === config.defaultCurrency)?.code || ''
   // );
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [minimumAge, setMinimumAge] = useState<number>(0);
@@ -199,10 +199,10 @@ const EventEdit: React.FC = () => {
   // };
 
   const handleSave = async () => {
-    if (!title.trim() || !theaterId || !baseTicketPrice) {
-      setError(t('Title, theater, and base ticket price are required'));
-      return;
-    }
+    // if (!title.trim() || !theaterId || !baseTicketPrice) {
+    //   setError(t('Title, theater, and base ticket price are required'));
+    //   return;
+    // }
 
     try {
       setSaving(true);
@@ -248,9 +248,9 @@ const EventEdit: React.FC = () => {
       }
 
       // Create new performances (only for new ones without id)
-      for (const perf of performances) {
-        if (!perf.id && perf.performanceDate && perf.startTime) {
-          await eventApi.createPerformance(eventId, perf);
+      for (const performance of performances) {
+        if (!performance.id && performance.performanceDate && performance.startTime) {
+          await eventApi.createPerformance(eventId, performance);
         }
       }
 
@@ -544,12 +544,12 @@ const EventEdit: React.FC = () => {
                 label={t('Currency')}
                 onChange={(e) => setCurrency(e.target.value as any)}
               >
-                {/* {Object.values(config.currencies).map((currency) => (
+                {/* {Object.values(config.app.currencies).map((currency) => (
                   <MenuItem key={currency.code} value={currency.code}>
                     {currency.code} ({currency.symbol})
                   </MenuItem>
                 ))} */}
-                {Object.entries(config.currencies).map(([code, currency]) => (
+                {Object.entries(config.app.currencies).map(([code, currency]) => (
                   <MenuItem key={code} value={code}>
                     {code} ({currency.symbol})
                   </MenuItem>
@@ -573,9 +573,9 @@ const EventEdit: React.FC = () => {
               required
               InputProps={{
                 startAdornment: (
-                  //<InputAdornment position="start">{config.currencies[currency].symbol}</InputAdornment>,
+                  //<InputAdornment position="start">{config.app.currencies[currency].symbol}</InputAdornment>,
                   <InputAdornment position="start">
-                    {config.currencies[currency as CurrencyCode]?.symbol}
+                    {config.app.currencies[currency as CurrencyCode]?.symbol}
                   </InputAdornment>
                 )
               }}
@@ -660,7 +660,7 @@ const EventEdit: React.FC = () => {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 2 }}>
               <Button
                 startIcon={<TheaterComedyIcon />}
-                onClick={() => navigate(`/event/${id}`)}
+                onClick={() => navigate(`/event/${id}`) }
                 variant="outlined"
               >
                 {t('Performances')}

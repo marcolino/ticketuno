@@ -2,23 +2,29 @@ import sqlite3 from 'sqlite3';
 import { promises as fs } from 'fs';
 import path from 'path';
 import bcrypt from 'bcrypt';
-import { v4 as uuidv4 } from 'uuid';
+//import { v4 as uuidv4 } from 'uuid';
+import { nanoid } from 'nanoid';
 import { Migrator } from './migrator';
 import { User } from '../shared/types/user';
 import { Theater/*, Section*/, Seat } from '../shared/types/theater';
 import { Layout } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
+import { GeneratedSeat } from '../shared/types/layoutToSeats';
 import config from '../config';
 
 class Database {
   private db: sqlite3.Database | null = null;
 
+  uuid() {
+    return nanoid(22);
+  }
+  
   async initialize() {
-    const dir = path.dirname(config.dbPath);
+    const dir = path.dirname(config.env.DB_PATH!);
     await fs.mkdir(dir, { recursive: true });
 
     return new Promise<void>((resolve, reject) => {
-      this.db = new sqlite3.Database(config.dbPath, async (err) => {
+      this.db = new sqlite3.Database(config.env.DB_PATH!, async (err) => {
         if (err) {
           reject(err);
         } else {
@@ -151,9 +157,9 @@ class Database {
           start_time TEXT NOT NULL,
           end_time TEXT,
           status TEXT DEFAULT 'scheduled',
-          available_seats INTEGER,
-          booked_seats INTEGER,
-          seat_data TEXT,
+          -- REMOVED: available_seats INTEGER,
+          -- REMOVED: booked_seats INTEGER,
+          -- REMOVED: seat_data TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (event_id) REFERENCES events(id)
@@ -163,21 +169,44 @@ class Database {
       await execQuery(this.db!, `
         CREATE TABLE IF NOT EXISTS seats (
           performance_id TEXT NOT NULL,
-          seat_id TEXT NOT NULL,
+          seat_id TEXT NOT NULL, -- Composite: "Platea-A-1"
+          section_name TEXT NOT NULL,
+          row_id TEXT NOT NULL,
+          seat_number INTEGER NOT NULL,
           status TEXT NOT NULL DEFAULT 'available',
+          booked_by_user_id TEXT,
+          booked_at DATETIME,
           reserved_until TEXT,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (performance_id, seat_id),
-          FOREIGN KEY (performance_id) REFERENCES performances(id)
+          FOREIGN KEY (performance_id) REFERENCES performances(id) ON DELETE CASCADE,
+          FOREIGN KEY (booked_by_user_id) REFERENCES users(id)
         );
       `, 'CREATE seats');
-
+      //booked_by_user_id TEXT NULL if not booked,
+      
       await execQuery(this.db!, `
         CREATE INDEX IF NOT EXISTS idx_layouts_active
         ON layouts(theater_id)
         WHERE deleted_at IS NULL;
       `, 'INDEX layouts_active');
+
+      await execQuery(this.db!, `
+        CREATE INDEX IF NOT EXISTS idx_seats_performance ON seats(performance_id);
+      `, 'INDEX seats_performance');
+
+      await execQuery(this.db!, `
+        CREATE INDEX IF NOT EXISTS idx_seats_section ON seats(performance_id, section_name);
+      `, 'INDEX seats_section');
+      
+      await execQuery(this.db!, `
+        CREATE INDEX IF NOT EXISTS idx_seats_status ON seats(performance_id, status);
+      `, 'INDEX seats_status');
+
+      await execQuery(this.db!, `
+        CREATE INDEX IF NOT EXISTS idx_seats_user ON seats(booked_by_user_id);
+      `, 'INDEX seats_user');
 
     } catch (err) {
       throw err;
@@ -193,18 +222,18 @@ class Database {
   }
   
   async createUser(user: User): Promise<string> {
-    const id = uuidv4();
+    const id = this.uuid();
     const sql = `
       INSERT INTO users (
         id, email, password, first_name, last_name, phone, role,
         is_verified, verification_code, verification_code_expiry,
-        google_id, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        google_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       id, user.email, user.password, user.firstName, user.lastName, user.phone, user.role,
       user.isVerified ? 1 : 0, user.verificationCode, user.verificationCodeExpiry,
-      user.googleId, user.createdAt, user.updatedAt
+      user.googleId
     ];
     const result = await runQuery(this.db!, sql, params, 'create user');
     return id;
@@ -250,10 +279,10 @@ class Database {
       
       // If no admin exists, create one
       if (!adminUsers || adminUsers.length === 0) {
-        const hashedPassword = await bcrypt.hash(config.adminPassword, 10);
+        const hashedPassword = await bcrypt.hash(config.env.ADMIN_USER_PASSWORD!, 10);
         const adminUser: User = {
           id: '',
-          email: config.adminUserEmail,
+          email: config.env.ADMIN_USER_EMAIL!,
           password: hashedPassword,
           firstName: 'Carlo',
           lastName: 'Marx',
@@ -373,15 +402,17 @@ class Database {
   }
 
   async createTheater(theater: Theater): Promise<string> {
-    const id = uuidv4();
+    const id = this.uuid();
     const sql = `
       INSERT INTO theaters (
-        id, name, description, stage_type, address, website_url, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        id, name, description, stage_type, address, website_url, status,
+        current_layout_id
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
       id, theater.name, theater.description, /*JSON.stringify(theater.sections),*/
       theater.stageType, theater.address, theater.websiteUrl, theater.status,
+      theater.currentLayoutId
     ];
     const result = await runQuery(this.db!, sql, params, 'create theater');
     return id;
@@ -449,7 +480,7 @@ class Database {
   }
   
   async createLayout(layout: Layout): Promise<string> {
-    const id = uuidv4();
+    const id = this.uuid();
     //const now = new Date().toISOString(); // TODO: now should be not needed, 
     const sql = `
       INSERT INTO layouts (
@@ -536,13 +567,14 @@ class Database {
   }
 
   async deleteLayoutSoft(id: string): Promise<boolean> {
+    const now = new Date().toISOString();
     const sql = `
       UPDATE layouts
       SET deleted_at = ?
       WHERE id = ?
       AND id NOT IN (SELECT current_layout_id FROM theaters)
     `;
-    const params = [id];
+    const params = [now, id];
     const result = await runQuery(this.db!, sql, params, 'soft delete layout');
     return result.changes > 0;
   }
@@ -617,23 +649,23 @@ class Database {
   }
 
   async createEvent(event: Event): Promise<string> {
-    const id = uuidv4();
+    const id = this.uuid();
     const sql = `
       INSERT INTO events (
         id, title, description, genre, duration_minutes, intermission_count, rating, language,
         director, playwright, producer, choreographer, musical_director, theater_id, stage_type,
         opening_date, closing_date, is_active, base_ticket_price, currency, is_sold_out,
-        special_requirements, minimum_age, created_at, updated_at, created_by_user_id,
+        special_requirements, minimum_age, created_by_user_id,
         typical_start_time, typical_end_time, poster_image, trailer_url, website_url,
         social_media_links, status, cancellation_reason, max_capacity, content_warnings
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
-        event.id, event.title, event.description, event.genre, event.durationMinutes, event.intermissionCount,
+        id, event.title, event.description, event.genre, event.durationMinutes, event.intermissionCount,
         event.rating, event.language, event.director, event.playwright, event.producer, event.choreographer,
         event.musicalDirector, event.theaterId, event.stageType, event.openingDate, event.closingDate,
         event.isActive ? 1 : 0, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
-        event.specialRequirements, event.minimumAge, event.createdAt, event.updatedAt, event.createdByUserId,
+        event.specialRequirements, event.minimumAge, event.createdByUserId,
         event.typicalStartTime, event.typicalEndTime, event.posterImage, event.trailerUrl, event.websiteUrl,
         event.socialMediaLinks, event.status, event.cancellationReason, event.maxCapacity, event.contentWarnings
     ];
@@ -721,9 +753,9 @@ class Database {
       performanceDate: row.performance_date,
       startTime: row.start_time,
       endTime: row.end_time,
-      availableSeats: row.available_seats,
-      bookedSeats: row.booked_seats,
-      seatData: row.seat_data,
+      //availableSeats: row.available_seats,
+      //bookedSeats: row.booked_seats,
+      //seatData: row.seat_data,
       status: row.status,
       createdAt: row.created_at,
       updatedAt: row.updated_at
@@ -750,17 +782,18 @@ class Database {
   }
 
   async createPerformance(performance: EventPerformance): Promise<string> {
-    const id = uuidv4();
+    const id = this.uuid();
     const sql = `
       INSERT INTO performances (
         id, event_id, performance_date, start_time, end_time,
-        available_seats, booked_seats, seat_data, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        -- REMOVED available_seats, booked_seats, seat_data,
+        status
+      ) VALUES (?, ?, ?, ?, ?, ?)
     `;
     const params = [
       id, performance.eventId, performance.performanceDate, performance.startTime,
-      performance.endTime, performance.availableSeats, performance.bookedSeats,
-      performance.seatData, performance.status, performance.createdAt, performance.updatedAt
+      performance.endTime, /*performance.availableSeats, performance.bookedSeats, performance.seatData, */
+      performance.status, performance.createdAt, performance.updatedAt
     ];
     const result = await runQuery(this.db!, sql, params, 'create performance');
     return id;
@@ -774,9 +807,9 @@ class Database {
       performanceDate: 'performance_date',
       startTime: 'start_time',
       endTime: 'end_time',
-      availableSeats: 'available_seats',
-      bookedSeats: 'booked_seats',
-      seatData: 'seat_data',
+      // availableSeats: 'available_seats',
+      // bookedSeats: 'booked_seats',
+      // seatData: 'seat_data',
       status: 'status',
     };
 
@@ -812,83 +845,105 @@ class Database {
   }
 
   // Seat management methods //////////////////////////////////////////////////////////////////////
-  private mapRowToSeat(row: any): { eventId: string; seatId: string; status: string; reservedUntil?: string } {
+  private mapRowToSeat(row: any): Seat {
     return {
-      eventId: row.event_id,
       seatId: row.seat_id,
+      sectionName: row.section_name,
+      rowId: row.row_id,
+      seatNumber: row.seat_number,
       status: row.status,
-      reservedUntil: row.reserved_until
+      bookedByUserId: row.booked_by_user_id,
+      bookedAt: row.booked_at,
+      reservedUntil: row.reserved_until,
+      price: row.price
     };
   }
 
-    // Array mapper
+  // Array mapper
   private mapRowsToSeats(rows: any[]): any[] {
     return rows.map(row => this.mapRowToSeat(row));
   }
 
-  async getSeatsByEventId(eventId: string): Promise<Array<{ eventId: string; seatId: string; status: string; reservedUntil?: string }> | null> {
-    const sql = `SELECT * FROM seats WHERE event_id = ?`;
-    const params = [eventId];
-    const rows = await getQuery(this.db!, sql, params, 'get seats by event id');
-    return rows ? this.mapRowsToSeats(rows) : null;
-  }
-
-  async getSeat(eventId: string, seatId: string): Promise<{ eventId: string; seatId: string; status: string; reservedUntil?: string } | null> {
-    const sql = `SELECT * FROM seats WHERE event_id = ? AND seat_id = ?`;
-    const params = [eventId, seatId];
-    const row = await getQuery(this.db!, sql, params, 'get seat');
-    return row ? this.mapRowToSeat(row) : null;
-  }
-
-  async createOrUpdateSeat(eventId: string, seatId: string, status: string, reservedUntil?: string): Promise<void> {
+  async getSeatsByPerformanceId(performanceId: string): Promise<Seat[]> {
     const sql = `
-      INSERT INTO seats (event_id, seat_id, status, reserved_until)
-      VALUES (?, ?, ?, ?)
-      ON CONFLICT(event_id, seat_id) 
-      DO UPDATE SET status = ?, reserved_until = ?
+      SELECT 
+        seat_id,
+        status,
+        booked_by_user_id,
+        reserved_until,
+        price
+      FROM seats 
+      WHERE performance_id = ?
+      ORDER BY seat_id
     `;
-    const params = [
-      eventId,
-      seatId,
-      status,
-      reservedUntil,
-      status,
-      reservedUntil
-    ];
-    await runQuery(this.db!, sql, params, 'create or update seat');
+    const params = [performanceId];
+    const rows = await allQuery(this.db!, sql, params, 'get seats by performance');
+    return rows ? this.mapRowsToSeats(rows) : [];
   }
 
-  async updateSeatStatus(eventId: string, seatId: string, status: string, reservedUntil?: string): Promise<boolean> {
-    const fields: string[] = [];
-    const values: any[] = [];
+  // async getSeatsByEventId(eventId: string): Promise<Array<{ eventId: string; seatId: string; status: string; reservedUntil?: string }> | null> {
+  //   const sql = `SELECT * FROM seats WHERE event_id = ?`;
+  //   const params = [eventId];
+  //   const rows = await getQuery(this.db!, sql, params, 'get seats by event id');
+  //   return rows ? this.mapRowsToSeats(rows) : null;
+  // }
+
+  // async getSeat(eventId: string, seatId: string): Promise<{ eventId: string; seatId: string; status: string; reservedUntil?: string } | null> {
+  //   const sql = `SELECT * FROM seats WHERE event_id = ? AND seat_id = ?`;
+  //   const params = [eventId, seatId];
+  //   const row = await getQuery(this.db!, sql, params, 'get seat');
+  //   return row ? this.mapRowToSeat(row) : null;
+  // }
+
+  // async createOrUpdateSeat(performanceId: string, seatId: string, status: string, reservedUntil?: string): Promise<void> {
+  //   const sql = `
+  //     INSERT INTO seats (performance_id, seat_id, status, reserved_until)
+  //     VALUES (?, ?, ?, ?)
+  //     ON CONFLICT(event_id, seat_id) 
+  //     DO UPDATE SET status = ?, reserved_until = ?
+  //   `;
+  //   const params = [
+  //     performanceId,
+  //     seatId,
+  //     status,
+  //     reservedUntil,
+  //     status,
+  //     reservedUntil
+  //   ];
+  //   await runQuery(this.db!, sql, params, 'create or update seat');
+  // }
+
+  // async updateSeatStatus(eventId: string, seatId: string, status: string, reservedUntil?: string): Promise<boolean> {
+  //   const fields: string[] = [];
+  //   const values: any[] = [];
     
-    const fieldMap: Record<string, string> = {
-      status: 'status',
-      reservedUntil: 'reserved_until',
-    };
+  //   const fieldMap: Record<string, string> = {
+  //     status: 'status',
+  //     reservedUntil: 'reserved_until',
+  //   };
 
-    Object.entries([status, reservedUntil]).forEach(([key, value]) => {
-      if (fieldMap[key] && value !== undefined) {
-        fields.push(`${fieldMap[key]} = ?`);
-        values.push(value);
-      }
-    });
+  //   Object.entries([status, reservedUntil]).forEach(([key, value]) => {
+  //     if (fieldMap[key] && value !== undefined) {
+  //       fields.push(`${fieldMap[key]} = ?`);
+  //       values.push(value);
+  //     }
+  //   });
     
-    if (fields.length === 0) {
-      return false;
-    }
+  //   if (fields.length === 0) {
+  //     return false;
+  //   }
 
-    values.push(eventId);
-    values.push(seatId);
+  //   values.push(eventId);
+  //   values.push(seatId);
 
-    const sql = `
-      UPDATE seats
-      SET ${fields.join(', ')}
-      WHERE event_id = ? AND seat_id = ?
-    `;
-    const result = await runQuery(this.db!, sql, values, 'update seat status');
-    return result.changes > 0;
-  }
+  //   const sql = `
+  //     UPDATE seats
+  //     SET ${fields.join(', ')}
+  //     WHERE event_id = ? AND seat_id = ?
+  //   `;
+  //   const result = await runQuery(this.db!, sql, values, 'update seat status');
+  //   return result.changes > 0;
+  // }
 
   async releaseExpiredReservations(): Promise<boolean> {
     const sql = `
@@ -900,34 +955,243 @@ class Database {
     return result.changes > 0;
   }
 
-  async deleteSeatsForEvent(eventId: string): Promise<boolean> {
-    const sql = `DELETE FROM seats WHERE event_id = ?`;
-    const params = [eventId];
-    const result = await runQuery(this.db!, sql, params, 'delete seats for event');
-    return result.changes > 0;
-  }
+  // async deleteSeatsForEvent(eventId: string): Promise<boolean> {
+  //   const sql = `DELETE FROM seats WHERE event_id = ?`;
+  //   const params = [eventId];
+  //   const result = await runQuery(this.db!, sql, params, 'delete seats for event');
+  //   return result.changes > 0;
+  // }
 
-  async getAvailableSeatsCount(eventId: string): Promise<number> {
-    const sql = `SELECT COUNT(*) as count FROM seats WHERE event_id = ? AND status = ?`;
-    const params = [eventId];
-    const row = await getQuery(this.db!, sql, params, 'get available seats count');
-    return row ? row.count : 0;
-  }
+  // async getAvailableSeatsCount(eventId: string): Promise<number> {
+  //   const sql = `SELECT COUNT(*) as count FROM seats WHERE event_id = ? AND status = ?`;
+  //   const params = [eventId];
+  //   const row = await getQuery(this.db!, sql, params, 'get available seats count');
+  //   return row ? row.count : 0;
+  // }
 
-  async bulkCreateSeats(eventId: string, seatIds: string[]): Promise<boolean> {
-    const placeholders = seatIds.map(() => '(?, ?, ?)').join(', ');
+  async bulkCreateSeats(
+    performanceId: string,
+    seats: GeneratedSeat[]
+  ): Promise<boolean> {
+    const placeholders = seats.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
     const values: any[] = [];
-    seatIds.forEach(seatId => {
-      values.push(eventId, seatId, 'available');
+    
+    seats.forEach(seat => {
+      values.push(
+        performanceId,
+        seat.seatId,
+        seat.sectionName,
+        seat.rowId,
+        seat.seatNumber,
+        'available'
+      );
     });
 
     const sql = `
       INSERT OR IGNORE INTO seats (
-        event_id, seat_id, status
+        performance_id, seat_id, section_name, row_id, seat_number, status
       ) VALUES ${placeholders}
     `;
+    
     const result = await runQuery(this.db!, sql, values, 'bulk create seats');
     return result.changes > 0;
+  }
+
+  /**
+   * Get seats grouped by section for UI
+   */
+  async getSeatsByPerformanceIdGrouped(performanceId: string): Promise<{
+    [sectionName: string]: {
+      [rowId: string]: Seat[]
+    }
+  }> {
+    const sql = `
+      SELECT 
+        seat_id,
+        section_name,
+        row_id,
+        seat_number,
+        status,
+        booked_by_user_id,
+        reserved_until
+
+      FROM seats 
+      WHERE performance_id = ?
+      ORDER BY section_name, row_id, seat_number
+    `;
+    // -- price
+    
+    const rows = await allQuery<any>(this.db!, sql, [performanceId], 'get seats grouped');
+    const seats = this.mapRowsToSeats(rows);
+    
+    // Group by section, then by row
+    const grouped: { [section: string]: { [row: string]: Seat[] } } = {};
+    
+    seats.forEach(seat => {
+      if (!grouped[seat.sectionName]) {
+        grouped[seat.sectionName] = {};
+      }
+      if (!grouped[seat.sectionName][seat.rowId]) {
+        grouped[seat.sectionName][seat.rowId] = [];
+      }
+      grouped[seat.sectionName][seat.rowId].push(seat);
+    });
+    
+    return grouped;
+  }
+
+  // Get seats for a specific section
+  async getSeatsBySection(
+    performanceId: string, 
+    sectionName: string
+  ): Promise<Seat[]> {
+    const sql = `
+      SELECT 
+        seat_id,
+        section_name,
+        row_id,
+        seat_number,
+        status,
+        booked_by_user_id,
+        reserved_until,
+        price
+      FROM seats 
+      WHERE performance_id = ? AND section_name = ?
+      ORDER BY row_id, seat_number
+    `;
+    
+    const rows = await allQuery<any>(
+      this.db!, 
+      sql, 
+      [performanceId, sectionName], 
+      'get seats by section'
+    );
+    
+    return this.mapRowsToSeats(rows);
+  }
+  
+  /**
+   * Get seat counts for a performance (calculated from seats table)
+   */
+  async getSeatCountsByPerformanceId(
+    performanceId: string
+  ): Promise<{ available: number; booked: number; reserved: number }> {
+    const sql = `
+      SELECT 
+        COUNT(CASE WHEN status = 'available' THEN 1 END) as available,
+        COUNT(CASE WHEN status = 'booked' THEN 1 END) as booked,
+        COUNT(CASE WHEN status = 'reserved' THEN 1 END) as reserved
+      FROM seats 
+      WHERE performance_id = ?
+    `;
+    const params = [performanceId];
+    const row = await getQuery<any>(this.db!, sql, params, 'get seat counts');
+    return {
+      available: row?.available || 0,
+      booked: row?.booked || 0,
+      reserved: row?.reserved || 0
+    };
+  }
+
+  /**
+   * Check if a performance has any booked seats
+   */
+  async performanceHasBookings(performanceId: string): Promise<boolean> {
+    const sql = `
+      SELECT COUNT(*) as count 
+      FROM seats 
+      WHERE performance_id = ? AND status = 'booked'
+    `;
+    const params = [performanceId];
+    const row = await getQuery<any>(this.db!, sql, params, 'check performance bookings');
+    return (row?.count || 0) > 0;
+  }
+
+  /**
+   * Delete seats for a performance
+   */
+  async deleteSeatsForPerformance(performanceId: string): Promise<boolean> {
+    const sql = `DELETE FROM seats WHERE performance_id = ?`;
+    const params = [performanceId];
+    const result = await runQuery(this.db!, sql, params, 'delete seats for performance');
+    return result.changes > 0;
+  }
+
+  /**
+   * Atomic booking transaction
+   * Returns success status and list of unavailable seats
+   */
+  async bookSeats(performanceId: string, seatIds: string[], userId: string):
+    Promise<{ success: boolean; bookedCount: number; unavailableSeats: string[] }> {
+    return new Promise((resolve, reject) => {
+      this.db!.serialize(() => {
+        this.db!.run('BEGIN TRANSACTION');
+
+        // Check all seats are available
+        const placeholders = seatIds.map(() => '?').join(',');
+        const checkSql = `
+          SELECT seat_id, status 
+          FROM seats 
+          WHERE performance_id = ? AND seat_id IN (${placeholders})
+        `;
+        
+        this.db!.all(checkSql, [performanceId, ...seatIds], (err, rows: any[]) => {
+          if (err) {
+            this.db!.run('ROLLBACK');
+            return reject(err);
+          }
+
+          // Find unavailable seats
+          const seatStatuses = new Map(rows.map(r => [r.seat_id, r.status]));
+          const unavailable = seatIds.filter(id => {
+            const status = seatStatuses.get(id);
+            return !status || status !== 'available';
+          });
+
+          if (unavailable.length > 0) {
+            this.db!.run('ROLLBACK');
+            return resolve({ 
+              success: false, 
+              bookedCount: 0, 
+              unavailableSeats: unavailable 
+            });
+          }
+
+          // Book seats with user info
+          const now = new Date().toISOString();
+          const updateSql = `
+            UPDATE seats 
+            SET
+              status = 'booked',
+              booked_by_user_id = ?,
+              booked_at = ?
+            WHERE performance_id = ? AND seat_id IN (${placeholders})
+          `;
+          
+          const db = this.db!; // Store db reference
+          this.db!.run(
+            updateSql, 
+            [userId, now, performanceId, ...seatIds], 
+            function(err) {
+              if (err) {
+                db.run('ROLLBACK');
+                return reject(err);
+              }
+              db.run('COMMIT', (err) => {
+                if (err) {
+                  return reject(err);
+                }
+                resolve({ 
+                  success: true, 
+                  bookedCount: seatIds.length, 
+                  unavailableSeats: [] 
+                });
+              });
+            }
+          );
+        });
+      });
+    });
   }
 
 }

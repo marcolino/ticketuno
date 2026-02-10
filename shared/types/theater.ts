@@ -7,8 +7,8 @@ export interface Theater {
   websiteUrl?: string;
   status: 'active' | 'inactive';
   currentLayoutId?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface TheaterStats { // TODO: dispose TheaterStats, use Theater...
@@ -25,9 +25,16 @@ export interface TheaterStats { // TODO: dispose TheaterStats, use Theater...
 }
 
 export interface Seat {
-  id: string;
-  number: number;
-  status: 'available' | 'booked' | 'none';
+  //id: string;
+  seatId: string; // Composite: "Platea-A-1"
+  sectionName: string; // "Platea"
+  rowId: string; // "A"
+  seatNumber: number; // 1
+  status: 'available' | 'reserved' | 'booked';
+  bookedByUserId?: string;
+  bookedAt?: string;
+  reservedUntil?: string;
+  price?: number;
 }
 
 export interface Row {

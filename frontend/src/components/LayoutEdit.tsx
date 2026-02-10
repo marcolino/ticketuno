@@ -26,6 +26,7 @@ import LayoutPreviewSVG from "./LayoutPreviewSVG";
 import { useTranslation } from 'react-i18next';
 import { layoutApi, theaterApi } from '../services/api';
 import { LayoutJSON, SectionJSON, RowJSON } from "../../../shared/types/layout";
+import { generateSeats } from '../../../shared/types/layoutToSeats';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../contexts/ToastContext';
 
@@ -80,7 +81,9 @@ const LayoutEdit: React.FC = () => {
       }
     ]
   });
-
+  //const [layout, setLayout] = useState<LayoutJSON>(layoutJSON);
+  const seats = generateSeats(layoutJSON); // No status needed
+  
   // Theater fields from location state
   const [theaterName, setTheaterName] = useState(theaterData?.name || '');
   const [theaterDescription, setTheaterDescription] = useState('');
@@ -625,7 +628,12 @@ const LayoutEdit: React.FC = () => {
               }}
             >
               <Box sx={{ minWidth: 'max-content', minHeight: 'max-content' }}>
-                <LayoutPreviewSVG layout={layoutJSON} />
+                {/* <LayoutPreviewSVG layout={layoutJSON} /> */}
+                <LayoutPreviewSVG
+                  layout={layoutJSON}
+                  seats={seats}
+                  interactive={false}  // Preview mode
+                />
               </Box>
             </Box>
           </Paper>

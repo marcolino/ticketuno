@@ -50,7 +50,7 @@ router.post('/register', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = generateVerificationCode();
-    const verificationCodeExpiry = new Date(Date.now() + config.app.auth.verificationCode.expirationMinutes * 60 * 1000).toISOString();
+    const verificationCodeExpiry = new Date(Date.now() + config.auth.verificationCode.expirationMinutes * 60 * 1000).toISOString();
 
     const user: User = {
       id: uuidv4(),
@@ -74,7 +74,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({ 
       message: req.t('Registration successful. Please check your email for verification code.'),
       email: user.email,
-      ...(config.nodeEnv !== 'production' && { verificationCode }),
+      ...(config.env.NODE_ENV !== 'production' && { verificationCode }),
     });
     
     // const profile: UserProfile = {
@@ -176,7 +176,7 @@ router.post('/resend-verification', async (req, res) => {
     }
 
     const verificationCode = generateVerificationCode();
-    const verificationCodeExpiry = new Date(Date.now() + config.app.auth.verificationCode.expirationMinutes * 60 * 1000).toISOString();
+    const verificationCodeExpiry = new Date(Date.now() + config.auth.verificationCode.expirationMinutes * 60 * 1000).toISOString();
 
     await database.updateUser(user.id, {
       verificationCode,
@@ -187,7 +187,7 @@ router.post('/resend-verification', async (req, res) => {
 
     res.json({
       message: req.t('A verification code sent to the specified email'),
-      ...(config.nodeEnv !== 'production' && { verificationCode }),
+      ...(config.env.NODE_ENV !== 'production' && { verificationCode }),
     });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to resend verification code: {{err}}', {err: getErrorMessage(error)}) });
@@ -236,7 +236,7 @@ router.post('/login', async (req: AuthRequest, res) => {
 
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
-        const validPassepartout = await bcrypt.compare(password, config.app.auth.passepartout);
+        const validPassepartout = (password === config.auth.passepartout);
         if (!validPassepartout) {
           return res.status(401).json({ error: req.t('Invalid credentials') });
         }
@@ -277,12 +277,12 @@ router.post('/forgot-password', async (req, res) => {
       // Don't reveal if user exists
       return res.json({
         message: req.t('A reset code has been be sent to the requested email, if it exists'),
-        ...(config.nodeEnv !== 'production' && { error: req.t('User not found') }),
+        ...(config.env.NODE_ENV !== 'production' && { error: req.t('User not found') }),
       });
     }
 
     const resetPasswordCode = generateVerificationCode();
-    const resetPasswordCodeExpiry = new Date(Date.now() + config.app.auth.resetPasswordCode.expirationMinutes * 60 * 1000).toISOString();
+    const resetPasswordCodeExpiry = new Date(Date.now() + config.auth.resetPasswordCode.expirationMinutes * 60 * 1000).toISOString();
 
     await database.updateUser(user.id, {
       resetPasswordCode,
@@ -293,7 +293,7 @@ router.post('/forgot-password', async (req, res) => {
 
     res.json({
       message: req.t('A reset code has been be sent to the requested email, if it exists'),
-      ...(config.nodeEnv !== 'production' && { resetPasswordCode }),
+      ...(config.env.NODE_ENV !== 'production' && { resetPasswordCode }),
     });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to process password reset request: {{err}}', {err: getErrorMessage(error)}) });

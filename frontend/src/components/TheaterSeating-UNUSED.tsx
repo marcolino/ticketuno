@@ -47,16 +47,16 @@ const TheaterSeating: React.FC = () => {
 
   const loadPerformance = useCallback(async () => {
     try {
-      const response = await eventApi.getPerformance(performanceId!);
+      const response = await eventApi.getPerformance(eventId!, performanceId!);
       const perf = response.data;
       setPerformance(perf);
-
+      
       // Parse seat data from performance
       //const sections = JSON.parse(perf.seatData);
       setTheater({
         id: eventId!,
         name: 'Theater', // Will be updated from event data if needed
-        //sections: sections,
+        sections: [], // TODO ...
         createdAt: '',
         updatedAt: '',
         status: 'active',

@@ -23,7 +23,8 @@
     // ]
     "baseUrl": "./src",
     "paths": {
-      "@shared/*": ["../../shared/*"]
+      //"@shared/*": ["../../shared/*"]
+      "@/*": ["*"]
     }
   },
   //"include": ["src", "src/global.d.ts", "../shared/types/**/*"],
