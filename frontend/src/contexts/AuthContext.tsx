@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
-import { userApi, setAuthToken } from '../services/api';
+import { userApi, setAuthToken } from '@/services/api';
 import { 
   User, 
   LoginCredentials,
@@ -13,7 +13,7 @@ import {
   ForgotPasswordResponse,
   ResetPasswordData,
   ResetPasswordResponse,
-} from '../../../shared/types/user';
+} from '@/shared/types/user';
 
 interface AuthContextType {
   user: User | null;

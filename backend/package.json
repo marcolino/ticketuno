@@ -4,14 +4,11 @@
   "description": "Theater ticket reservation system, backend",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "ts-node-dev --respawn src/server.ts",
-    "ORIG_build": "tsc",
-    "prebuild": "rm -rf src/shared && mkdir -p src/shared && cp -r ../shared/types src/shared/ && cp -r ../shared/locales src/shared/ 2>/dev/null || true",
-    "build": "tsc",
-    "postbuild": "rm -rf src/shared",
-    "start": "node dist/server.js",
+    "dev": "NODE_ENV=development PORT=3001 ts-node-dev --respawn src/server.ts",
+    "start": "NODE_ENV=development PORT=3001 node dist/server.js",
     "lint": "echo 'Add eslint later' && exit 0",
     "test": "echo 'Add tests later' && exit 0",
+    "build": "tsc",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -25,8 +22,8 @@
     "i18next-http-middleware": "^3.9.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
-    "nanoid": "^5.1.6",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

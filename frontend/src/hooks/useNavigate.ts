@@ -1,4 +1,3 @@
-// hooks/useNavigate.ts
 import { useNavigate as useOriginalNavigate, NavigateOptions, To } from 'react-router-dom';
 import { useCallback } from 'react';
 
@@ -30,45 +29,6 @@ const useNavigate = (): SafeNavigateFunction => {
       }
     }
     return originalNavigate(to, options);
-  }, [originalNavigate]);
-
-  const safeNavigate_V1 = useCallback((
-    to: To | number,
-    options?: NavigateOptions & { fallbackPath?: string }
-  ) => {
-    // Handle "go back" with negative numbers
-    if (typeof to === 'number' && to < 0) {
-      const referrer = document.referrer;
-      // if (!referrer) {
-      //   console.warn("no document.referrer, cant't stay inside our domain... :-(");
-      // }
-      // const currentOrigin = window.location.origin;
-      // const cameFromExternal = referrer && !referrer.startsWith(currentOrigin);
-      // const hasHistory = window.history.length > 1;
-      const isInternalReferrer = referrer && referrer.startsWith(window.location.origin);
-      
-      // Only go back if we're SURE it's internal, when in doubt (empty referrer or external), redirect to home
-      if (!isInternalReferrer) {
-        const fallback = options?.fallbackPath || '/';
-        return originalNavigate(fallback, options);
-      }
-
-      // // If came from external OR no history → use fallback or home
-      // if (cameFromExternal || !hasHistory) {
-      //   const fallbackPath = (options as any)?.fallbackPath || '/';
-      //   return originalNavigate(fallbackPath, {
-      //     ...options,
-      //     // Don't replace by default for fallback navigation
-      //     replace: options?.replace || false,
-      //   });
-      // }
-
-      // Safe internal back navigation
-      return originalNavigate(to);
-    }
-
-    // All other navigation passes through unchanged
-    return originalNavigate(to as To, options);
   }, [originalNavigate]);
 
   // Create the callable function with additional methods

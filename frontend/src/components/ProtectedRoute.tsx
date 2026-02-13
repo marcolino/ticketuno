@@ -2,8 +2,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from '../contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/contexts/ToastContext';
 import { CircularProgress, Box } from '@mui/material'; // Optional: for loading spinner
 
 interface ProtectedRouteProps {
@@ -27,7 +27,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       hasShownToast.current = true;
     }
     if (!loading && !requireAdmin && !isAdmin && !hasShownToast.current) {
-      toast.error(t("Admin privileges required to access this page"));
+      toast.error(t('Admin privileges required to access this page'));
     }
   }, [loading, isAuthenticated, requireAdmin, isAdmin, t]);
 

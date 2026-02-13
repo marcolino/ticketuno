@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { /*useNavigate, */ useParams } from 'react-router-dom';
-import useNavigate from '../hooks/useNavigate';
+import { useParams } from 'react-router-dom';
 import { useMediaQuery, useTheme } from '@mui/material';
 import {
   Container,
@@ -20,23 +19,21 @@ import {
 } from '@mui/material';
 import {
   Save as SaveIcon,
-  //Add as AddIcon,
-  //Delete as DeleteIcon,
   TheaterComedy as TheaterComedyIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import dayjs, { Dayjs } from 'dayjs';
-import { eventApi, theaterApi, imageApi } from '../services/api';
-import { Event, EventPerformance } from '../../../shared/types/event';
-import { TheaterStats } from '../../../shared/types/theater';
-//import { ImageType, UploadedImage } from '../../../shared/types/image';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from '../contexts/ToastContext';
+import useNavigate from '@/hooks/useNavigate';
+import { eventApi, theaterApi, imageApi } from '@/services/api';
+import { Event, EventPerformance } from '@/shared/types/event';
+import { TheaterStats } from '@/shared/types/theater';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/contexts/ToastContext';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
 import { t } from 'i18next';
-import config, { CurrencyCode } from '../config';
+import config, { CurrencyCode } from '@/config';
 
 const EventEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -75,13 +72,10 @@ const EventEdit: React.FC = () => {
   const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50);
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
   
-  const [currency, setCurrency] = useState(config.defaultCurrency);
-  //   Object.values(config.app.currencies).find(c => c.code === config.defaultCurrency)?.code || ''
-  // );
+  const [currency, setCurrency] = useState(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [minimumAge, setMinimumAge] = useState<number>(0);
 
-  //const [eventPosterUrl, setEventPosterUrl] = useState('');
   const [contentWarnings, setContentWarnings] = useState('');
   const [status, setStatus] = useState<'scheduled' | 'in progress' | 'completed' | 'cancelled'>('scheduled');
 
@@ -89,15 +83,8 @@ const EventEdit: React.FC = () => {
   const [performances, setPerformances] = useState<Partial<EventPerformance>[]>([]);
 
   // Image upload state
-  const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
   const [posterImage, setPosterImage] = useState<string | null>(null);
-  //const [activeImageType, setActiveImageType] = useState<ImageType | null>(null);
-  // const [uploadedImages, setUploadedImages] = useState<Record<ImageType, UploadedImage | null>>({
-  //   poster: null,
-  //   website: null,
-  //   banner: null,
-  //   thumbnail: null
-  // });
+  const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
   
   const loadTheaters = async () => {
     try {
@@ -574,7 +561,7 @@ const EventEdit: React.FC = () => {
               InputProps={{
                 startAdornment: (
                   //<InputAdornment position="start">{config.app.currencies[currency].symbol}</InputAdornment>,
-                  <InputAdornment position="start">
+                  <InputAdornment position="start" sx={{ mt: -0.2 }}>
                     {config.app.currencies[currency as CurrencyCode]?.symbol}
                   </InputAdornment>
                 )

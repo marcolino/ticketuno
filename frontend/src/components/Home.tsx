@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import {
   // AppBar,
   // Toolbar,
@@ -38,15 +37,16 @@ import {
   TheaterComedy as TheaterComedyIcon,
   //Theaters as TheatersIcon,
 } from '@mui/icons-material';
+import useNavigate from '@/hooks/useNavigate';
 import Header from './Header';
 import Body from './Body';
 import Footer from './Footer';
-import { useAuth } from '../contexts/AuthContext';
-import { useThemeMode } from '../contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useThemeMode } from '@/contexts/ThemeContext';
 import LoginDialog from './LoginDialog';
 import config from '@/config';
 
-console.log("CONFIG ********************:", config);
+console.log('CONFIG ********************:', config);
 
 interface HomeProps {
   children: React.ReactNode;

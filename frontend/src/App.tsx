@@ -37,7 +37,7 @@ import config from '@/config';
 console.log(`🎭 App ${config.app.name} is starting`);
 
 const App: React.FC = () => {
-  const { i18n } = useTranslation();
+const { i18n } = useTranslation();  
   
   // Map i18next language codes to dayjs locale codes if needed
   const adapterLocale = (lang: string) => {

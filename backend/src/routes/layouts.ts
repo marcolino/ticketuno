@@ -1,6 +1,5 @@
-import { Router } from "express";
-//import { v4 as uuidv4 } from "uuid";
-import { database } from "../db/database";
+import { Router } from 'express';
+import { database } from '../db/database';
 import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth';
 import { Layout } from '../shared/types/layout';
 import { i18n } from '../i18n';
@@ -31,7 +30,7 @@ router.get('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) =
 });
 
 // Public: get layout by id
-router.get("/:id", async (req, res) => {
+router.get('/:id', async (req, res) => {
   try {
     const layout = await database.getLayoutById(req.params.id);
     if (!layout) {
@@ -44,7 +43,7 @@ router.get("/:id", async (req, res) => {
 });
 
 // Public: get layout by theater id
-router.get("/:theaterId", async (req, res) => {
+router.get('/:theaterId', async (req, res) => {
   try {
     const layouts = await database.getLayoutsByTheaterId(req.params.theaterId);
     if (!layouts) {
@@ -57,7 +56,7 @@ router.get("/:theaterId", async (req, res) => {
 });
 
 // Protected: update layout by id (admin only)
-router.put("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
   try {
     const updates: Partial<Layout> = {
       name: req.body.name,
@@ -72,7 +71,7 @@ router.put("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res
 });
 
 // Protected: delete layout by id (admin only)
-router.delete("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
   try {
     await database.deleteLayoutSoft(req.params.id);
     res.json({ message: req.t('Layout soft-deleted successfully') });

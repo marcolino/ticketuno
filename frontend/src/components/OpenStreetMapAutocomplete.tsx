@@ -21,7 +21,7 @@ const OpenStreetMapAutocomplete: React.FC<OpenStreetMapAutocompleteProps> = ({
   value, 
   name,
   onChange,
-  placeholder = "Indirizzo stradale" 
+  placeholder = 'Indirizzo stradale' 
 }) => {
   const [inputValue, setInputValue] = useState('');
   const [options, setOptions] = useState<OpenStreetMapResult[]>([]);
@@ -60,7 +60,7 @@ const OpenStreetMapAutocomplete: React.FC<OpenStreetMapAutocompleteProps> = ({
           setOptions(italianResults);
         }
       } catch (error) {
-        console.error("Geosearch error:", error);
+        console.error('Geosearch error:', error);
         if (active) setOptions([]);
       } finally {
         if (active) setLoading(false);

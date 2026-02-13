@@ -50,6 +50,8 @@ const NotFound: React.FC = () => {
           src="/images/404.png"
           alt="404"
           sx={{
+            display: 'block',
+            width: '100%',
             maxWidth: 300,
             height: 'auto',
             mb: 4,

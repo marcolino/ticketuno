@@ -4,6 +4,14 @@ import path from 'path';
 import { sharedConfig } from './shared/config';
 
 const backendConfig = {
+  db: {
+    database: 'sqlite',
+    path: '../data/ticketuno.db', // DB_PATH=../data/ticketuno.db
+  },
+  images: {
+    path: '../data/images',
+    allowedTypes: ['poster', 'website', 'profile', 'banner', 'thumbnail'],
+  },
   auth: {
     verificationCode: {
       expirationMinutes: 15 as const,
@@ -11,7 +19,7 @@ const backendConfig = {
     resetPasswordCode: {
       expirationMinutes: 15 as const,
     },
-    passepartout: "passaquì,passalà" as const,
+    passepartout: 'passaquì,passalà' as const,
     oauth: {
     },
   },
@@ -60,56 +68,3 @@ export type Config = typeof config;
 
 // Full config
 export default config;
-
-
-// interface Config {
-//   app: {
-//     codename: string;
-//     fullname: string;
-//     auth: {
-//       verificationCode: {
-//         expirationMinutes: number;
-//       };
-//       passepartout: string;
-//     };
-//     defaultCurrency: string;
-//   };
-//   server: {
-//     delayMilliseconds: number;
-//   },
-//   nodeEnv: string;
-//   port: number;
-//   jwtSecret: string;
-//   dbPath: string;
-//   adminUserEmail: string;
-//   adminPassword: string;
-// }
-
-// // Define all environment variables in one place
-// const config = {
-//   app: {
-//     codename: "ticketuno" as const,
-//     fullname: "TicketUno" as const,
-//     auth: {
-//       verificationCode: {
-//         expirationMinutes: 15 as const,
-//       },
-//       resetPasswordCode: {
-//         expirationMinutes: 15 as const,
-//       },
-//       passepartout: "passaquì,passalà",
-//       oauth: {
-//       },
-//     },
-//     defaultCurrency: 'EUR' as const, // TODO: align with same variable on frontend...
-//   },
-//   server: {
-//     delayMilliseconds: 3000 as const,
-//   },
-//   nodeEnv: process.env.NODE_ENV || 'development',
-//   port: parseInt(process.env.PORT || '3001'),
-//   jwtSecret: process.env.JWT_SECRET || '',
-//   dbPath: process.env.DB_PATH || '',
-//   adminUserEmail: process.env.ADMIN_USER_EMAIL || '',
-//   adminPassword: process.env.ADMIN_PASSWORD || '',
-// };

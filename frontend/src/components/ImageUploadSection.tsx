@@ -9,7 +9,7 @@ import {
   CloudUpload as CloudUploadIcon,
   PhotoCamera as PhotoCameraIcon,
 } from '@mui/icons-material';
-import { ImageUploadSectionProps } from '../../../shared/types/image';
+import { ImageUploadSectionProps } from '@/shared/types/image';
 
 const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({
   label,
@@ -19,9 +19,16 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({
 }) => {
   const theme = useTheme();
   const [previewOpen, setPreviewOpen] = useState(false);
-  const previewUrl = imageFilename ? `/uploads/${imageFilename}` : null; // TODO: '/uploads' to config
+  //const previewUrl = imageFilename ? `/images/${imageFilename}` : null; // TODO: '/images' to config
+  //const previewUrl = imageFilename ? `${import.meta.env.VITE_API_BASE_URL}/images/${imageFilename}` : null; // TODO: '/images' to config
 
-  
+  // const API_BASE = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  // const previewUrl = imageFilename ? `${API_BASE}/images/${imageFilename}` : null; // TODO: '/images' to config
+
+  const previewUrl = imageFilename ?
+    `/uploads/${imageFilename}` :
+    null
+  ;
   // Medium TextField height = 56px (7 * 8px spacing unit)
   const textFieldHeight = theme.spacing(7);
 

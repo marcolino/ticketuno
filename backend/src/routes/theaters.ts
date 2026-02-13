@@ -92,7 +92,7 @@ router.post('/', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Protected: update theater by id (admin only)
-router.put("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
   try {
     await database.updateTheaterFull(req.params.id, req.body/*JSON.stringify(req.body)*/); // TODO: and name and des ?
     res.sendStatus(204);
@@ -102,7 +102,7 @@ router.put("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res
 });
 
 // Protected: delete theater by id (admin only)
-router.delete("/:id", authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
   try {
     await database.deleteTheater(req.params.id);
     res.json({ message: 'Theater deleted successfully' });

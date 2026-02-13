@@ -7,11 +7,11 @@ set -e
 APP_NAME="ticketuno"
 REGIONS="fra"
 
-echo "🚀 Deploying app \"$APP_NAME\" to Fly.io..."
+echo "🚀 Deploying app \"${APP_NAME}\" to Fly.io..."
 
 # Check if the folder name is the same as APP_NAME
-if [ "`basename \"$PWD\"`" != "$APP_NAME" ]; then
-  echo "❌ Current directory is `basename \"$PWD\"`, not $APP_NAME ..."
+if [ "`basename \"${PWD}\"`" != "${APP_NAME}" ]; then
+  echo "❌ Current directory is `basename \"${PWD}\"`, not ${APP_NAME} ..."
   exit 1
 fi
 
@@ -28,8 +28,8 @@ if ! fly auth whoami &> /dev/null; then
 fi
 
 # Check if .env exists
-if [ ! -f .env ]; then
-  echo "❌ .env file not found. Create it from .env.example"
+if [ ! -f "backend/.env" ]; then
+  echo "❌ backend/.env file not found. Create it from backend/.env.example"
   exit 4
 fi
 
@@ -41,28 +41,33 @@ npm run type-check > /dev/null || {
 }
 
 # Check if app exists, create if not
-if ! fly apps list | grep -q "^$APP_NAME"; then
+if ! fly apps list | grep -q "^${APP_NAME}"; then
   echo "📦 Creating new Fly.io app..."
-  fly apps create $APP_NAME --org personal
+  fly apps create "${APP_NAME}" --org personal
   
   echo "💾 Creating persistent volume..."
-  fly volumes create ticketuno_data --regions $REGIONS --size 1 --app $APP_NAME
+  fly volumes create ticketuno_data --regions "${REGIONS}" --size 1 --app "${APP_NAME}"
 fi
 
-# Import secrets from .env
+# Import secrets from backend .env
 echo "🔐 Importing secrets..."
-cat .env | fly secrets import --app $APP_NAME
+cat backend/.env | fly secrets import --app "${APP_NAME}"
+
+# Force dev/prod depending variables to be the production one
+fly secrets set APP_URL="https://${APP_NAME}.fly.dev" --app "${APP_NAME}"
+fly secrets set NODE_ENV="production"
+fly secrets set PORT="8080" # default fly.io port
 
 # Deploy
 echo "🏗️  Building and deploying..."
-fly deploy --app $APP_NAME --regions $REGIONS
+fly deploy --app "${APP_NAME}" --regions "${REGIONS}"
 
 echo "✅ Deploy complete!"
-echo "🌐 Your app is available at: https://$APP_NAME.fly.dev"
+echo "🌐 Your app is available at: https://${APP_NAME}.fly.dev"
 echo ""
 echo "Useful commands:"
-echo "  fly logs --app $APP_NAME         - View logs"
-echo "  fly ssh console --app $APP_NAME  - SSH into container"
-echo "  fly status --app $APP_NAME       - Check status"
+echo "  fly logs --app ${APP_NAME}         - View logs"
+echo "  fly ssh console --app ${APP_NAME}  - SSH into container"
+echo "  fly status --app ${APP_NAME}       - Check status"
 
 exit 0

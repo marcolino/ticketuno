@@ -9,8 +9,8 @@ import React, {
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { CssBaseline, useMediaQuery } from '@mui/material';
 
-import { native, custom } from '../theme';
-import config from '../config';
+import { native, custom } from '@/theme';
+import config from '@/config';
 
 // TODO: import these types from config
 type ThemeType = 'native' | 'custom';

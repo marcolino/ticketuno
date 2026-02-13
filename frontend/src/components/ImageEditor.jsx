@@ -31,7 +31,7 @@ import {
   Close,
   History
 } from '@mui/icons-material';
-import { getCroppedImg } from '../utils/canvasUtils';
+import { getCroppedImg } from '@/utils/canvasUtils';
 
 const ASPECT_RATIOS = [
   { label: 'Free', value: NaN },

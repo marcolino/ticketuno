@@ -1,4 +1,4 @@
-import { useLoading } from '../contexts/LoadingContext';
+import { useLoading } from '@/contexts/LoadingContext';
 import { Backdrop, CircularProgress } from '@mui/material';
 
 export const LoadingSpinner = () => {

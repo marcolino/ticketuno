@@ -32,5 +32,3 @@ export const sharedConfig = {
 
 export type CurrencyCode = keyof typeof sharedConfig.app.currencies;
 export type LanguageCode = keyof typeof sharedConfig.app.languages;
-
-export const __test = 123;

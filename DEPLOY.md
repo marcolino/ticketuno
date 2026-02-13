@@ -28,7 +28,8 @@ Create `.env` in root:
 NODE_ENV=production
 PORT=8080
 JWT_SECRET=your-super-secret-jwt-key-change-this
-ADMIN_PASSWORD=your-admin-password-change-this
+ADMIN_USER_EMAIL=your-admin-email-change-this
+ADMIN_USER_PASSWORD=your-admin-password-change-this
 DB_PATH=/data/ticketuno.db
 REACT_APP_API_URL=https://ticketuno.fly.dev/api
 ```

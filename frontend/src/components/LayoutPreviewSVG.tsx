@@ -1,7 +1,7 @@
-import React, { useMemo } from "react";
-import { LayoutJSON } from "@/shared/types/layout";
+import React, { useMemo } from 'react';
+import { LayoutJSON } from '@/shared/types/layout';
 import type { SeatStatus } from '@/shared/types/layoutToSeats';
-import LayoutSeat from "./LayoutSeat";
+import LayoutSeat from './LayoutSeat';
 
 export interface SeatWithStatus {
   seatId: string;

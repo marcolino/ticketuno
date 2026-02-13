@@ -50,7 +50,7 @@ npm start
 ```
 PORT=3001
 JWT_SECRET=your-secret-key
-ADMIN_PASSWORD=your-admin-password
+ADMIN_USER_PASSWORD=your-admin-password
 DB_PATH=./data/ticketuno.db
 ```
 

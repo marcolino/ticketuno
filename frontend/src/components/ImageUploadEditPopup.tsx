@@ -21,9 +21,9 @@ import { useDropzone } from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
 import Cropper from 'react-easy-crop';
 import imageCompression from 'browser-image-compression';
-import { getCroppedImg } from '../utils/canvasUtils';
-import { imageApi } from '../services/api';
-import { ImageType } from '../../../shared/types/image';
+import { getCroppedImg } from '@/utils/canvasUtils';
+import { imageApi } from '@/services/api';
+import { ImageType } from '@/shared/types/image';
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 

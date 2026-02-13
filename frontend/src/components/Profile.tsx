@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Paper,
@@ -21,10 +20,11 @@ import {
   Save,
   AccountBox,
 } from '@mui/icons-material';
-import Title from "../components/Title";
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from '../contexts/ToastContext';
-import { userApi } from '../services/api';
+import useNavigate from '@/hooks/useNavigate';
+import Title from '@/components/Title';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/contexts/ToastContext';
+import { userApi } from '@/services/api';
 
 const Profile: React.FC = () => {
   const { user, isAdmin, updateUser, isAuthenticated } = useAuth();

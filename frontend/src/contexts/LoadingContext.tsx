@@ -1,6 +1,6 @@
 // src/contexts/LoadingContext.tsx
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
-import { setupLoadingInterceptors } from '../services/api';
+import { setupLoadingInterceptors } from '@/services/api';
 
 interface LoadingContextType {
   isLoading: boolean;

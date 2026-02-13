@@ -14,15 +14,15 @@ import {
   sendPasswordResetEmail 
 } from '../utils/email';
 import { getErrorMessage } from '../utils/errorHandler';
-import config from '../config';
+import config from '../../config';
 
 const router = express.Router();
 
 // Initialize Google OAuth client
-const googleClient = new OAuth2Client(
-  process.env.GOOGLE_CLIENT_ID,
-  process.env.GOOGLE_CLIENT_SECRET,
-  process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/api/v1/users/auth/google/callback', // TODO: to config
+const googleClient = new OAuth2Client( // TODO: process.env -> config.env ...
+  config.env.GOOGLE_CLIENT_ID,
+  config.env.GOOGLE_CLIENT_SECRET,
+  `${config.env.APP_URL}/api/v1/users/auth/google/callback`,
 );
 
 // Register - Step 1: send verification code
@@ -356,7 +356,8 @@ router.get('/auth/google', (req, res) => {
         'https://www.googleapis.com/auth/userinfo.email'
       ],
       prompt: 'consent',
-      redirect_uri: process.env.GOOGLE_REDIRECT_URI
+      //redirect_uri: process.env.GOOGLE_REDIRECT_URI
+      //redirect_uri not needed, already set in the OAuth2Client constructor
     });
     
     res.json({ authUrl });
@@ -432,7 +433,7 @@ router.get('/auth/google/callback', async (req, res) => {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_SUCCESS',
             token: '${token}'
-          }, 'http://localhost:3000'); // RESTRICT to your frontend origin - TODO: to config
+          }, window.location.origin); // works in both dev and prod automatically
           
           // Close this popup automatically
           window.close();
@@ -452,7 +453,7 @@ router.get('/auth/google/callback', async (req, res) => {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_ERROR',
             error: '${error}'
-          }, 'http://localhost:3000'); // TODO: to config
+          }, window.location.origin); // works in both dev and prod automatically
           window.close();
         </script>
       </html>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Card,
@@ -10,24 +9,20 @@ import {
   Button,
   Grid,
   Box,
-  //CircularProgress,
   Alert,
-  //Chip,
   CardActions,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  //CalendarToday as CalendarIcon,
-  //TheaterComedy as TheaterIcon,
   ViewCompact as ViewCompactIcon,
-  //AttachMoney as MoneyIcon,
 } from '@mui/icons-material';
-import { layoutApi } from '../services/api';
-import { Layout } from '../../../shared/types/layout';
-import { useAuth } from '../contexts/AuthContext';
-import { i18n } from '../i18n';
+import useNavigate from '@/hooks/useNavigate';
+import { layoutApi } from '@/services/api';
+import { Layout } from '@/shared/types/layout';
+import { useAuth } from '@/contexts/AuthContext';
+import { i18n } from '@/i18n';
 
 const LayoutList: React.FC = () => {
   const { t } = useTranslation();

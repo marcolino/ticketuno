@@ -6,17 +6,32 @@ import crypto from 'crypto';
 import fs from 'fs/promises';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { getErrorMessage } from '../utils/errorHandler';
+import config from '../../config';
 
 const router: Router = express.Router();
 
-const IMAGES_DIR = path.join(process.cwd(), 'uploads');
-const ALLOWED_IMAGE_TYPES = ['poster', 'website', 'profile', 'banner', 'thumbnail'];
-
+const storage = multer.diskStorage({
+  destination: async (_req, _file, cb) => {
+    try {
+      await fs.mkdir(config.uploads.path, { recursive: true });
+      cb(null, config.uploads.path);
+    } catch (error) {
+      cb(error as Error, '');
+    }
+  },
+  filename: (_req, file, cb) => {
+    const uniqueId = crypto.randomBytes(16).toString('hex');
+    const ext = path.extname(file.originalname).toLowerCase();
+    // no imageType here, provisionally save without imageType prefix
+    cb(null, `${uniqueId}${ext}`);
+  }
+});
+/*
 const storage: StorageEngine = multer.diskStorage({
   destination: async (_req, _file, cb) => {
     try {
-      await fs.mkdir(IMAGES_DIR, { recursive: true });
-      cb(null, IMAGES_DIR);
+      await fs.mkdir(config.images.path, { recursive: true });
+      cb(null, config.images.path);
     } catch (error) {
       cb(error as Error, '');
     }
@@ -28,6 +43,7 @@ const storage: StorageEngine = multer.diskStorage({
     cb(null, `${imageType}-${uniqueId}${ext}`);
   }
 });
+*/
 
 const upload = multer({
   storage,
@@ -51,7 +67,29 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req: Au
     if (!req.file) {
       return res.status(400).json({ error: req.t('No file uploaded') });
     }
-    if (!req.body.imageType || !ALLOWED_IMAGE_TYPES.includes(req.body.imageType)) {
+    const imageType = req.body.imageType;
+    if (!imageType || !config.uploads.allowedTypes.includes(imageType)) {
+      await fs.unlink(req.file.path).catch(() => {});
+      return res.status(400).json({ error: req.t('Invalid or missing imageType') });
+    }
+    // rename with imageType prefix
+    //const ext = path.extname(req.file.filename);
+    const newFilename = `${imageType}-${req.file.filename}`;
+    const newPath = path.join(config.uploads.path, newFilename);
+    await fs.rename(req.file.path, newPath);
+    res.status(201).json({ filename: newFilename });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to upload image: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+/*
+router.post('/upload', authenticateToken, upload.single('image'), async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: req.t('No file uploaded') });
+    }
+    const imageType = req.body.imageType;
+    if (!imageType || !config.images.allowedTypes.includes(imageType)) {
       await fs.unlink(req.file.path).catch(() => {});
       return res.status(400).json({ error: req.t('Invalid or missing imageType') });
     }
@@ -60,6 +98,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req: Au
     res.status(500).json({ error: req.t('Failed to upload image: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
+*/
 
 // DELETE /api/images/:filename — clean up file from disk
 router.delete('/:filename', authenticateToken, async (req: AuthRequest, res: Response) => {
@@ -68,7 +107,7 @@ router.delete('/:filename', authenticateToken, async (req: AuthRequest, res: Res
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
       return res.status(400).json({ error: 'Invalid filename' });
     }
-    await fs.unlink(path.join(IMAGES_DIR, filename)).catch(() => {});
+    await fs.unlink(path.join(config.uploads.path, filename)).catch(() => {});
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to delete image: {{err}}', { err: getErrorMessage(error) }) });

@@ -3,14 +3,15 @@ import React, {
   useContext,
   useState,
   ReactNode,
-} from "react";
+} from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Button,
-} from "@mui/material";
+} from '@mui/material';
 
 export type DialogButton = {
   text: string;
@@ -76,6 +77,7 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({
         onClose={handleCancel}
         maxWidth="sm"
         fullWidth
+        disableScrollLock // TODO: ok?
       >
         {options && (
           <>
@@ -142,9 +144,10 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({
 
 export const useDialog = (): ShowDialog => {
   const ctx = useContext(DialogContext);
+  const { t } = useTranslation();
   if (!ctx) {
     throw new Error(
-      "useDialog must be used inside DialogProvider"
+      t("useDialog must be used inside DialogProvider")
     );
   }
   return ctx;

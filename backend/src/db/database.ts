@@ -2,29 +2,34 @@ import sqlite3 from 'sqlite3';
 import { promises as fs } from 'fs';
 import path from 'path';
 import bcrypt from 'bcrypt';
-//import { v4 as uuidv4 } from 'uuid';
-import { nanoid } from 'nanoid';
+import { v4 as uuidv4 } from 'uuid';
 import { Migrator } from './migrator';
 import { User } from '../shared/types/user';
 import { Theater/*, Section*/, Seat } from '../shared/types/theater';
 import { Layout } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
 import { GeneratedSeat } from '../shared/types/layoutToSeats';
-import config from '../config';
+import config from '../../config';
 
 class Database {
   private db: sqlite3.Database | null = null;
 
   uuid() {
-    return nanoid(22);
+    const fullUuid = uuidv4().replace(/-/g, '');
+    const buffer = Buffer.from(fullUuid, 'hex');
+    return buffer
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
   }
   
   async initialize() {
-    const dir = path.dirname(config.env.DB_PATH!);
+    const dir = path.dirname(config.db.path /*config.env.DB_PATH!*/);
     await fs.mkdir(dir, { recursive: true });
 
     return new Promise<void>((resolve, reject) => {
-      this.db = new sqlite3.Database(config.env.DB_PATH!, async (err) => {
+      this.db = new sqlite3.Database(config.db.path /*config.env.DB_PATH!*/, async (err) => {
         if (err) {
           reject(err);
         } else {
@@ -169,7 +174,7 @@ class Database {
       await execQuery(this.db!, `
         CREATE TABLE IF NOT EXISTS seats (
           performance_id TEXT NOT NULL,
-          seat_id TEXT NOT NULL, -- Composite: "Platea-A-1"
+          seat_id TEXT NOT NULL,
           section_name TEXT NOT NULL,
           row_id TEXT NOT NULL,
           seat_number INTEGER NOT NULL,

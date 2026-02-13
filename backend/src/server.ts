@@ -11,7 +11,7 @@ import theaterRoutes from './routes/theaters';
 import eventRoutes from './routes/events';
 import layoutRoutes from './routes/layouts';
 import imageRoutes from './routes/images';
-import config from './config';
+import config from '../config';
 
 if (process.env.NODE_ENV !== 'production') {
   // Load .env from the backend root directory
@@ -35,8 +35,8 @@ app.use((req: any, res: any, next) => {
   next();
 });
 
-const apiPrefix = 'api';
-const apiVersion = 'v1';
+const apiPrefix = 'api'; // TODO: to config
+const apiVersion = 'v1'; // TODO: to config
 const prefix = `/${apiPrefix}/${apiVersion}`;
 
 app.use(`${prefix}/users`, userRoutes);
@@ -93,7 +93,7 @@ app.get(`${prefix}/locales/:lng/:ns.json`, (req: any, res: any) => {
 // // Add middleware to add language to response locals
 // app.use((req: any, res: any, next) => {
 //   // Make current language available in response locals
-//   console.log("*************************************");
+//   console.log('*************************************');
 //   res.locals.language = req.language;
 //   next();
 // });
@@ -120,7 +120,7 @@ app.get(`${prefix}/test`, (req: any, res) => {
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Serve uploaded images
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/uploads', express.static(config.uploads.path));
 
 // Global error handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

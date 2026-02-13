@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Card,
@@ -26,10 +25,11 @@ import {
   //AttachMoney as MoneyIcon,
   ConfirmationNumber as ConfirmationNumberIcon,
 } from '@mui/icons-material';
-import { eventApi } from '../services/api';
-import { EventStats } from '../../../shared/types/event';
-import { useAuth } from '../contexts/AuthContext';
-import config, { CurrencyCode } from '../config';
+import useNavigate from '@/hooks/useNavigate';
+import { eventApi } from '@/services/api';
+import { EventStats } from '@/shared/types/event';
+import { useAuth } from '@/contexts/AuthContext';
+import config, { CurrencyCode } from '@/config';
 //import { __test } from '@/shared/config';
 
 const EventList: React.FC = () => {
@@ -46,7 +46,7 @@ const EventList: React.FC = () => {
   const loadEvents = async () => {
     try {
       const response = await eventApi.getAllEvents();
-      console.log("EVENTS:", events);
+      console.log('EVENTS:', events);
       setEvents(response.data);
       setError(null);
     } catch (err) {
@@ -126,8 +126,16 @@ const EventList: React.FC = () => {
 
       <Grid container spacing={3}>
         {events.map(event => {
-          const posterImageUrl = event.posterImage ? `/uploads/${event.posterImage}` : null; // TODO: '/uploads' to config
-
+          //const posterImageUrl = event.posterImage ? `/images/${event.posterImage}` : null; // TODO: '/images' to config
+          //const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+          // const API_BASE = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+          // const posterImageUrl1 = event.posterImage ? `${API_BASE}/images/${event.posterImage}` : null;
+          // console.log(posterImageUrl1);
+          const posterImageUrl = event.posterImage ?
+            `/uploads/${event.posterImage}` :
+            null
+          ;
+          
           return (
             <Grid item xs={12} sm={6} md={4} key={event.id}>
               <Card

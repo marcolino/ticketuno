@@ -15,8 +15,8 @@ import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { t } from 'i18next';
-import { eventApi } from '../services/api';
-import { Event } from '../../../shared/types/event';
+import { eventApi } from '@/services/api';
+import { Event } from '@/shared/types/event';
 
 interface EventPerformanceDialogProps {
   open: boolean;
@@ -42,8 +42,8 @@ const EventPerformanceDialog: React.FC<EventPerformanceDialogProps> = ({
       // Reset form when dialog opens
       const now = new Date();
       setDate(now);
-      setStartTime(new Date(now.setHours(19, 0, 0, 0))); // Default to 7:00 PM
-      setEndTime(new Date(now.setHours(21, 0, 0, 0))); // Default to 9:00 PM
+      setStartTime(new Date(now.setHours(19, 0, 0, 0))); // Default to 7:00 PM - TODO: get start time from event
+      setEndTime(new Date(now.setHours(21, 0, 0, 0))); // Default to 9:00 PM - TODO: get start time from event
       setError(null);
     }
   }, [open]);
@@ -74,9 +74,6 @@ const EventPerformanceDialog: React.FC<EventPerformanceDialogProps> = ({
         performanceDate,
         startTime: startTimeStr,
         endTime: endTimeStr,
-        //availableSeats: event.maxCapacity || 100,
-        //bookedSeats: 0,
-        //seatData: '{}',
         status: 'scheduled',
       });
 

@@ -1,5 +1,5 @@
 import { i18n } from '../i18n';
-import config from '../config';
+import config from '../../config';
 
 // Mock email sender - replace with real service (SendGrid, AWS SES, etc.)
 export const sendEmail = async (to: string, subject: string, body: string): Promise<void> => {

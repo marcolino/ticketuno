@@ -20,11 +20,8 @@ import {
   VisibilityOff,
   Google as GoogleIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-//import { useToast } from '../contexts/ToastContext';
-import { toast } from '../contexts/ToastContext';
-//import { eventToast } from '../utils/toast';
-//import { userApi } from '../services/api';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/contexts/ToastContext';
 
 interface LoginDialogProps {
   open: boolean;
@@ -61,7 +58,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
-  //const { toast } = useToast();
   const { t } = useTranslation();
   
   useEffect(() => {
@@ -88,12 +84,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         resetForms();
       }
     } catch (error: any) {
-      // if (err.response?.data?.requiresVerification) {
-      //   setVerifyEmailAddress(err.response?.data.email);
-      //   setTab('verify');
-      //   setError('Please verify your email first');
-      // } else {
-      
       console.error('Login error response:', error.response);
       console.error('Error data:', error.response?.data);
       console.error('Error message:', error.response?.data?.error);
@@ -220,7 +210,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
     try {
       // 1. Get the Google auth URL from your backend
-      const response = await fetch('http://localhost:3001/api/v1/users/auth/google'); // TODO: to config
+      const response = await fetch('/api/v1/users/auth/google'); // TODO: to shared config
       const { authUrl } = await response.json();
 
       // 2. Configure and open the popup
@@ -239,18 +229,9 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         setLoading(false);
         return;
       }
-
-      // // Optional: Poll to check if popup is closed
-      // const checkPopup = setInterval(() => {
-      //   if (popup.closed) {
-      //     clearInterval(checkPopup);
-      //     setLoading(false);
-      //   }
-      // }, 500);
-
-    } catch (err) {
-      console.error('Failed to start Google login:', err);
-      setError('Failed to start Google login');
+    } catch (error: any) {
+      //console.error('Failed to start Google login:', err);
+      setError(t('Failed to start Google login: {{err}}', {err: error.message}));
     } finally {
       setLoading(false);
     }
@@ -311,69 +292,6 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [onClose, login, t]);
-
-  /*
-  const handleGoogleLogin = async () => {
-    try {
-      setError('');
-      const response = await userApi.getGoogleAuthUrl();
-      const width = 500;
-      const height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      const popup = window.open(
-        response.data.authUrl,
-        'Google Login',
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-      if (!popup) {
-        setError('Popup blocked! Please allow popups for this site.');
-        setLoading(false);
-        return;
-      }
-
-      // Listen for OAuth callback
-      const handleMessage = async (event: MessageEvent) => {
-        if (event.data.type === 'GOOGLE_AUTH_SUCCESS') {
-          // For security, verify the origin if possible
-          if (event.origin !== window.location.origin) {
-            setError(t('Authentication message origin {{origin}} is not valid!', {origin: event.origin}));
-            return;
-          }
-
-          try {
-            setLoading(true);
-            await googleLogin(event.data.code);
-            toast.success('Logged in with Google!');
-            onClose();
-            resetForms();
-          } catch (error: any) {
-            setError(error.response?.data?.error || 'Google login failed');
-          } finally {
-            setLoading(false);
-          }
-          window.removeEventListener('message', handleMessage);
-        }
-      };
-
-      window.addEventListener('message', handleMessage);
-
-      // Clean up: remove event listener if popup is closed manually
-      const checkPopup = setInterval(() => {
-        if (popup.closed) {
-          console.warn('popup closed manually, removing event listener...'); // TODO: DEBUG ONLY
-          clearInterval(checkPopup);
-          window.removeEventListener('message', handleMessage);
-          setLoading(false);
-        }
-      }, 1 * 1000);
-
-    } catch (error: any) {
-      setError('Failed to initialize Google login');
-    }
-  };
-  */
 
   const resetForms = () => {
     setLoginEmail('');

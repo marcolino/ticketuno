@@ -1,5 +1,5 @@
-import React from "react";
-import type { SeatStatus } from '../shared/types/layoutToSeats';
+import React from 'react';
+import type { SeatStatus } from '@/shared/types/layoutToSeats';
 
 //export type SeatStatus = 'available' | 'selected' | 'booked' | 'reserved';
 
@@ -18,7 +18,7 @@ interface LayoutSeatProps {
 const LayoutSeat: React.FC<LayoutSeatProps> = ({
   x,
   y,
-  seatId,
+  //seatId,
   seatNumber,
   status,
   onClick,

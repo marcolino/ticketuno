@@ -1,6 +1,7 @@
 // LayoutEdit.tsx (adapted with React Router State)
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Button,
   TextField,
@@ -14,21 +15,21 @@ import {
   AccordionSummary,
   AccordionDetails,
   Divider,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Add as AddIcon,
   Delete as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
-} from "@mui/icons-material";
-import LayoutPreviewSVG from "./LayoutPreviewSVG";
-import { useTranslation } from 'react-i18next';
-import { layoutApi, theaterApi } from '../services/api';
-import { LayoutJSON, SectionJSON, RowJSON } from "../../../shared/types/layout";
-import { generateSeats } from '../../../shared/types/layoutToSeats';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from '../contexts/ToastContext';
+} from '@mui/icons-material';
+import useNavigate from '@/hooks/useNavigate';
+import LayoutPreviewSVG from './LayoutPreviewSVG';
+import { layoutApi, theaterApi } from '@/services/api';
+import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
+import { generateSeats } from '@/shared/types/layoutToSeats';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/contexts/ToastContext';
 
 // Define location state interface
 interface LocationState {
@@ -68,15 +69,15 @@ const LayoutEdit: React.FC = () => {
     stage: { x: 300, y: 40, width: 400, height: 50, label: t('Stage') },
     sections: [
       {
-        id: "platea",
-        label: "Platea",
+        id: 'platea',
+        label: 'Platea',
         origin: { x: 500, y: 200 },
         rowSpacing: 64,
         seatSpacing: 52,
         rows: [
-          { "rowId": "A", "seatCount": 16, "curve": -2, "stretch": 1 },
-          { "rowId": "B", "seatCount": 16, "curve": -2, "stretch": 1 },
-          { "rowId": "C", "seatCount": 16, "curve": -2, "stretch": 1 }
+          { 'rowId': 'A', 'seatCount': 16, 'curve': -2, 'stretch': 1 },
+          { 'rowId': 'B', 'seatCount': 16, 'curve': -2, 'stretch': 1 },
+          { 'rowId': 'C', 'seatCount': 16, 'curve': -2, 'stretch': 1 }
         ]
       }
     ]
@@ -155,7 +156,7 @@ const LayoutEdit: React.FC = () => {
       rowSpacing: 64,
       seatSpacing: 52,
       rows: [
-        { rowId: "A", seatCount: 10, curve: 0, stretch: 1.0 }
+        { rowId: 'A', seatCount: 10, curve: 0, stretch: 1.0 }
       ]
     };
     setLayoutJSON({
@@ -256,11 +257,11 @@ const LayoutEdit: React.FC = () => {
       if (!id) {
         const response = await layoutApi.createLayout(layoutData);
         savedLayout = response.data;
-        toast.success("Layout created successfully!");
+        toast.success('Layout created successfully!');
       } else {
         const response = await layoutApi.updateLayout(id, layoutData);
         savedLayout = response.data;
-        toast.success("Layout saved successfully!");
+        toast.success('Layout saved successfully!');
       }
       
       // Navigate back with updated theater data
@@ -287,7 +288,7 @@ const LayoutEdit: React.FC = () => {
         navigate(-1);
       }
     } catch (error: any) {
-      toast.error(t("Failed to save layout: {{err}}", { err: error.response?.data?.error }));
+      toast.error(t('Failed to save layout: {{err}}', { err: error.response?.data?.error }));
     } finally {
       setSaving(false);
     }

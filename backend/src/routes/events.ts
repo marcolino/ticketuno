@@ -1,11 +1,11 @@
-import { Router } from "express";
+import { Router } from 'express';
 //import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
 import { generateSeats } from '../shared/types/layoutToSeats';
 import { getErrorMessage } from '../utils/errorHandler';
-import config from '../config';
+import config from '../../config';
 
 const router = Router();
 
@@ -359,7 +359,7 @@ router.put('/:eventId/performances/:performanceId', authenticateToken, requireAd
 });
 
 // Delete specific performance for an event
-router.delete(':eventId/performances/:performanceId', async (req, res) => {
+router.delete('/:eventId/performances/:performanceId', async (req, res) => {
   try {
     const { eventId, performanceId } = req.params;
     const performance = await database.getPerformanceById(performanceId);
@@ -465,32 +465,6 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       });
     }
 
-    /*
-    const sections = JSON.parse(performance.seatData);
-    let seatsBooked = 0;
-
-    // Update seat statuses
-    const updatedSections = sections.map((section: any) => ({
-      ...section,
-      rows: section.rows.map((row: any) => ({
-        ...row,
-        seatStatuses: row.seatStatuses?.map((seat: any) => {
-          if (seatIds.includes(seat.id) && seat.status === 'available') {
-            seatsBooked++;
-            return { ...seat, status: 'booked' };
-          }
-          return seat;
-        })
-      }))
-    }));
-
-    await database.updatePerformance(req.params.performanceId, {
-      seatData: JSON.stringify(updatedSections),
-      // bookedSeats: performance.bookedSeats + seatsBooked,
-      // availableSeats: performance.availableSeats - seatsBooked
-    });
-    */
-    
     res.json({ message: req.t('{{count}} seats booked successfully', { count: result.bookedCount }) });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });

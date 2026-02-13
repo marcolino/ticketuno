@@ -9,12 +9,12 @@ import {
   ForgotPasswordData,
   ForgotPasswordResponse,
   ResetPasswordData
-} from '../../../shared/types/user';
-import { Theater } from '../../../shared/types/theater';
-import { Event, EventStats, EventPerformance, EventWithDetails } from '../../../shared/types/event';
-import { GeneratedSeat } from '../../../shared/types/layoutToSeats';
-import { Layout } from '../../../shared/types/layout';
-import { i18n }  from '../i18n'; 
+} from '@/shared/types/user';
+import { Theater } from '@/shared/types/theater';
+import { Event, EventStats, EventPerformance, EventWithDetails } from '@/shared/types/event';
+import { GeneratedSeat } from '@/shared/types/layoutToSeats';
+import { Layout } from '@/shared/types/layout';
+import { i18n }  from '@/i18n'; 
 
 //const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
 const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH; // ?? '/api/'; // TODO: set default from config...
@@ -369,8 +369,8 @@ export const imageApi = {
   upload: (file: File | Blob, imageType: string) => {
     const formData = new FormData();
     const name = file instanceof File ? file.name : `${imageType}-upload.jpg`;
+    formData.append('imageType', imageType); // imageType BEFORE image ... order matters in multipart streams... :-/
     formData.append('image', file, name);
-    formData.append('imageType', imageType);
     return api.post<{ filename: string }>('/images/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
@@ -379,39 +379,5 @@ export const imageApi = {
   delete: (filename: string) =>
     api.delete(`/images/${filename}`),
 };
-
-/*
-// Image API
-export const imageApi = {
-  /**
-   * Upload an image to the server
-   * @param formData FormData object containing the image file
-   * @returns Promise with the uploaded image data including URL
-   * /
-  uploadImage: async (formData: FormData) => {
-    return api.post('/images/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-  },
-
-  /**
-   * Delete an image from the server
-   * @param imageId The ID of the image to delete
-   * /
-  deleteImage: async (imageId: string) => {
-    return api.delete(`/images/${imageId}`);
-  },
-
-  /**
-   * Get image metadata
-   * @param imageId The ID of the image
-   * /
-  getImageMetadata: async (imageId: string) => {
-    return api.get(`/images/${imageId}/metadata`);
-  },
-};
-*/
 
 export default api;

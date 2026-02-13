@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import {
   Container,
   Card,
@@ -18,11 +17,13 @@ import {
   Delete as DeleteIcon,
   Curtains as CurtainsIcon,
 } from '@mui/icons-material';
-import { useAuth } from '../contexts/AuthContext';
-import { toast } from '../contexts/ToastContext';
-import { theaterApi, layoutApi } from '../services/api';
-import { Layout } from '../../../shared/types/layout';
-import { Theater/*, TheaterStats*/ } from '../../../shared/types/theater';
+
+import useNavigate from '@/hooks/useNavigate';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/contexts/ToastContext';
+import { theaterApi, layoutApi } from '@/services/api';
+import { Layout } from '@/shared/types/layout';
+import { Theater } from '@/shared/types/theater';
 
 const TheaterList: React.FC = () => {
   const { t } = useTranslation();
@@ -47,7 +48,7 @@ const TheaterList: React.FC = () => {
       // setLoading(true);
       const response = await theaterApi.getAllTheaters();
       setTheaters(response.data);
-      //console.log("THEATERS:", response.data);
+      //console.log('THEATERS:', response.data);
       setError(null);
     } catch (err: any) {
       setTheaters(null);

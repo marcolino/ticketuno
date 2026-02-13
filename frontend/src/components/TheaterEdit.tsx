@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation, useParams  } from 'react-router-dom';
+import { useLocation, useParams  } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Container,
@@ -18,11 +18,12 @@ import {
 import {
   Save as SaveIcon,
 } from '@mui/icons-material';
+import useNavigate from '@/hooks/useNavigate';
 import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
-import { theaterApi, layoutApi } from '../services/api';
-import { Layout } from '../../../shared/types/layout';
-import { useAuth } from '../contexts/AuthContext';
-import { useToast } from '../contexts/ToastContext';
+import { theaterApi, layoutApi } from '@/services/api';
+import { Layout } from '@/shared/types/layout';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 
 const TheaterEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -70,7 +71,7 @@ const TheaterEdit: React.FC = () => {
   //   try {
   //     const response = await theaterApi.getTheaterById(id!);
   //     const theater = response.data;
-  //     console.log("getTheaterById theater:", theater);
+  //     console.log('getTheaterById theater:', theater);
 
   //     // Load current layout for this theater
   //     const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
@@ -86,7 +87,7 @@ const TheaterEdit: React.FC = () => {
     try {
       const response = await theaterApi.getTheaterById(id!);
       const theater = response.data;
-      console.log("getTheaterById theater:", theater);
+      console.log('getTheaterById theater:', theater);
 
       setTheaterData({
         ...theater,
@@ -112,7 +113,7 @@ const TheaterEdit: React.FC = () => {
     try {
       const response = await layoutApi.getAllLayouts();
       const layouts = response.data;
-      console.log("getAllLayouts layouts:", layouts);
+      console.log('getAllLayouts layouts:', layouts);
       setLayouts(layouts);
       setError('');
     } catch (err: any) {
@@ -133,12 +134,12 @@ const TheaterEdit: React.FC = () => {
   // }, [theaterData.selectedLayoutId, layouts]);
 
   // useEffect(() => { // DEBUG ONLY
-  //   console.log("Current layouts:", layouts);
-  //   console.log("Selected layout ID:", selectedLayoutId);
+  //   console.log('Current layouts:', layouts);
+  //   console.log('Selected layout ID:', selectedLayoutId);
     
   //   if (selectedLayoutId && layouts.length > 0) {
   //     const isLayoutInList = layouts.some(layout => layout.id === selectedLayoutId);
-  //     console.log("Is selected layout in the list?", isLayoutInList);
+  //     console.log('Is selected layout in the list?', isLayoutInList);
   //   }
   // }, [layouts, selectedLayoutId]);
 
