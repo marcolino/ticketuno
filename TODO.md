@@ -20,7 +20,7 @@
  - schedule job to call the method to clean up unreferenced images
  - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
  - process.env. -> config.env.
-
+ - tune token expiration time
 
  frontend:
  - Design.tsx => Home.tsx - OK
