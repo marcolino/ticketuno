@@ -1,4 +1,4 @@
- common:
+common:
  - change " into ', wherever possible - OK
 
  - translate all to Italian and French
@@ -37,7 +37,7 @@
  - less vertical space among menu items
  - language popup menu on desktop should be closer to it's menu entry
  - components container + title should be common for all components
- - in EventDetails add "book" button for admin (operator) too
+ - in EventDetails correct "book" button and add for admin (operator) too
  - dark mode changes logo colors in a less then optimal way
  - use currency from setup, and remove currency selection from EventEdit component
  - resolve all TODO's in code
