@@ -19,10 +19,10 @@ import config from '../../config';
 const router = express.Router();
 
 // Initialize Google OAuth client
-const googleClient = new OAuth2Client( // TODO: process.env -> config.env ...
+const googleClient = new OAuth2Client(
   config.env.GOOGLE_CLIENT_ID,
   config.env.GOOGLE_CLIENT_SECRET,
-  `${config.env.APP_URL}/api/v1/users/auth/google/callback`,
+  `${config.env.BACKEND_URL}/api/v1/users/auth/google/callback`,
 );
 
 // Register - Step 1: send verification code
@@ -202,7 +202,7 @@ router.post('/login', async (req: AuthRequest, res) => {
     let user;
 
     if (token) { // Google token login
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+      const decoded = jwt.verify(token, config.env.JWT_SECRET!);
       if (typeof decoded !== 'object' || !decoded.userId) {
         return res.status(401).json({ error: 'Invalid token format' });
       }
@@ -356,7 +356,7 @@ router.get('/auth/google', (req, res) => {
         'https://www.googleapis.com/auth/userinfo.email'
       ],
       prompt: 'consent',
-      //redirect_uri: process.env.GOOGLE_REDIRECT_URI
+      //redirect_uri: config.env.GOOGLE_REDIRECT_URI
       //redirect_uri not needed, already set in the OAuth2Client constructor
     });
     
@@ -383,7 +383,7 @@ router.get('/auth/google/callback', async (req, res) => {
     // Get user profile from Google
     const ticket = await googleClient.verifyIdToken({
       idToken: tokens.id_token!,
-      audience: process.env.GOOGLE_CLIENT_ID
+      audience: config.env.GOOGLE_CLIENT_ID
     });
 
     // Get ticket payload
@@ -433,12 +433,10 @@ router.get('/auth/google/callback', async (req, res) => {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_SUCCESS',
             token: '${token}'
-          }, window.location.origin); // works in both dev and prod automatically
-          
-          // Close this popup automatically
-          window.close();
+          }, '${config.env.FRONTEND_URL}'); // Works in both dev and production
+          window.close(); // Close this popup automatically
         </script>
-        <body>Login successful! Closing...</body>
+        <body>` + req.t('Login successful! Closing...') + `</body>
       </html>
     `);
   } catch (error) {
@@ -453,9 +451,10 @@ router.get('/auth/google/callback', async (req, res) => {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_ERROR',
             error: '${error}'
-          }, window.location.origin); // works in both dev and prod automatically
-          window.close();
+          }, '${config.env.FRONTEND_URL}'); // Works in both dev and production
+          window.close(); // Close this popup automatically
         </script>
+        <body>` + req.t('Login error: {{error}}! Closing...', { error }) + `</body>
       </html>
     `);
   }

@@ -12,7 +12,7 @@ export const sendEmail = async (to: string, subject: string, body: string): Prom
   // In production, use a real email service:
   /*
   import sgMail from '@sendgrid/mail';
-  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+  sgMail.setApiKey(config.env.SENDGRID_API_KEY!);
   
   await sgMail.send({
     to,

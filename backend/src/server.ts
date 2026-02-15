@@ -2,7 +2,7 @@ import fs from 'fs';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
-import dotenv from 'dotenv';
+//import dotenv from 'dotenv';
 import multer from 'multer';
 import { i18n, middleware as i18nextMiddleware } from './i18n';
 import { database } from './db/database';
@@ -13,12 +13,12 @@ import layoutRoutes from './routes/layouts';
 import imageRoutes from './routes/images';
 import config from '../config';
 
-if (process.env.NODE_ENV !== 'production') {
-  // Load .env from the backend root directory
-  dotenv.config({ path: path.join(__dirname, '..', '.env') });
-} else {
-  // Hosting provider automatically injects environment
-}
+// if (process.env.NODE_ENV !== 'production') {
+//   // Load .env from the backend root directory
+//   dotenv.config({ path: path.join(__dirname, '..', '.env') });
+// } else {
+//   // Hosting provider automatically injects environment
+// }
 
 const app = express();
 
@@ -162,7 +162,7 @@ app.use('/api/*', (req, res) => {
 // });
 //
 // // AFTER all API routes, add:
-if (process.env.NODE_ENV === 'production') { // in production mode
+if (config.env.NODE_ENV === 'production') { // in production mode
   app.use(express.static(path.join(__dirname, '../public')));
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, '../public/index.html'));

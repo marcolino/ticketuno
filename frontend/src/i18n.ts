@@ -11,7 +11,6 @@ i18n
   .init({
     fallbackLng: 'en',
     lng: localStorage.getItem('i18nextLng') || 'en',
-    //debug: process.env.NODE_ENV === 'development', // TODO: how to detect dev/prod on frontend ??
     debug: import.meta.env.MODE === 'development',
 
     // Behavior for empty/missing:

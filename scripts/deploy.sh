@@ -54,9 +54,10 @@ echo "🔐 Importing secrets..."
 cat backend/.env | fly secrets import --app "${APP_NAME}"
 
 # Force dev/prod depending variables to be the production one
-fly secrets set APP_URL="https://${APP_NAME}.fly.dev" --app "${APP_NAME}"
-fly secrets set NODE_ENV="production"
-fly secrets set PORT="8080" # default fly.io port
+fly secrets set BACKEND_URL="https://${APP_NAME}.fly.dev" --app "${APP_NAME}"
+fly secrets set FRONTEND_URL="https://${APP_NAME}.fly.dev" --app "${APP_NAME}"
+fly secrets set NODE_ENV="production" --app "${APP_NAME}"
+fly secrets set PORT="8080" --app "${APP_NAME}" # default fly.io port
 
 # Deploy
 echo "🏗️  Building and deploying..."

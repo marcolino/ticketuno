@@ -225,17 +225,4 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
-// // Auth endpoint for admin
-// router.post('/auth/login', (req, res) => {
-//   const { password } = req.body;
-//   const adminPassword = process.env.ADMIN_USER_PASSWORD || 'admin123';
-
-//   if (password === adminPassword) {
-//     const token = generateToken('admin', 'admin');
-//     res.json({ token });
-//   } else {
-//     res.status(401).json({ error: 'Invalid password' });
-//   }
-// });
-
 export default router;

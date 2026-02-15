@@ -1,26 +1,27 @@
 common:
  - change " into ', wherever possible - OK
 
- - translate all to Italian and French
  - make a /privacy and a /terms page
-
+ - translate all to Italian and French
+ - remove all comments in code
+ - use tool to find unused code and components
 
  backend:
  - add passepartout - OK
  - uuidv4 -> uuid-simple ... - OK
-
  - /backend/uploads -> /data/images - OK
  - poster: image-* -> poster-* - OK
  - oauth login problem (only in prod) - OK
  - check /data is preserved among deploys - OK
- 
- - change default admin name, surname, ...
+ - change default admin name, surname - OK
+
  - introduce "operator" role
  - make a method to clean up unreferenced images from /data/images
  - schedule job to call the method to clean up unreferenced images
  - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
  - process.env. -> config.env.
- - tune token expiration time
+ - tune token expiration time, and put it in config
+ - add a bookings component for operators/admins
 
  frontend:
  - Design.tsx => Home.tsx - OK
@@ -32,10 +33,11 @@ common:
  - 404 image should be responsive on mobile - OK
  - event list: poster image should not increase event container squared size - OK
  - less vertical space among menu items - OK
+ - always use showDialog - OK
 
  - handle users profiles (by admin)
+ - add check for changes in all components (when dirty)
  - move routes from App.tsx to Routes.tsx
- - always use showDialog
  - reduce login/... padding in mobile mode
  - language popup menu on desktop should be closer to it's menu entry
  - components container + title should be common for all components
