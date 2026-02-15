@@ -31,10 +31,12 @@ common:
  - solve issue of poster not reachable in prod - OK
  - 404 image should be responsive on mobile - OK
  - event list: poster image should not increase event container squared size - OK
+ - less vertical space among menu items - OK
 
+ - handle users profiles (by admin)
+ - move routes from App.tsx to Routes.tsx
  - always use showDialog
  - reduce login/... padding in mobile mode
- - less vertical space among menu items
  - language popup menu on desktop should be closer to it's menu entry
  - components container + title should be common for all components
  - in EventDetails correct "book" button and add for admin (operator) too
@@ -44,6 +46,6 @@ common:
  - resolve all TS warnings in code
  - add version number/build/date in footer
  - normalize all *List.tsx components as TheatersList, and make same aspect for event with and without poster
- - setup handling - "React MUI PWA Setup" with ChatGPT
+ - settings handling - "React MUI PWA Setup" with ChatGPT
  - make theme selectable among "light", "dark" and "system"
  - PWA handling - "PWA setup automation for theater booking system" with Claude

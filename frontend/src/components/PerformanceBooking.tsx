@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams/*, useNavigate*/ } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -8,23 +8,18 @@ import {
   Button,
   Paper,
   Grid,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Alert,
   Chip,
-  Divider,
-  CircularProgress,
 } from '@mui/material';
 import {
   EventSeat as EventSeatIcon,
   CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
   ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import { eventApi, layoutApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '@/contexts/DialogContext';
+import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
 import { EventPerformance } from '@/shared/types/event';
 import { LayoutJSON } from '@/shared/types/layout';
@@ -45,20 +40,22 @@ interface PerformanceSeatsResponse {
 }
 
 const PerformanceBooking: React.FC = () => {
-  const { t } = useTranslation();    
+  const { t } = useTranslation();
   const { eventId, performanceId } = useParams<{ eventId: string; performanceId: string }>();
   const { isAuthenticated } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
+  const showDialog = useDialog();
+  
   const [performance, setPerformance] = useState<EventPerformance | null>(null);
   const [layout, setLayout] = useState<LayoutJSON | null>(null);
   const [seats, setSeats] = useState<SeatWithStatus[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
+//  const [confirmOpen, setConfirmOpen] = useState(false);
+  //const [loginPromptOpen, setLoginPromptOpen] = useState(false);
 
   // Helper function to flatten nested seat data
   const flattenSeatsData = useCallback((data: PerformanceSeatsResponse): SeatData[] => {
@@ -151,11 +148,6 @@ const PerformanceBooking: React.FC = () => {
       return;
     }
 
-    if (!isAuthenticated) {
-      setLoginPromptOpen(true);
-      return;
-    }
-
     setSelectedSeats(prev => {
       const newSelected = new Set(prev);
       if (newSelected.has(seatId)) {
@@ -176,23 +168,66 @@ const PerformanceBooking: React.FC = () => {
       return 'selected';
     }
     return 'available';
-   }, [selectedSeats]);
+  }, [selectedSeats]);
   
   // Calculate total price
   const totalPrice = useMemo(() => {
     return selectedSeats.size * (performance?.baseTicketPrice || 0);
   }, [selectedSeats.size, performance?.baseTicketPrice]);
 
+  const handleConfirmBooking = () => {
+    showDialog({
+      title: t('Confirm Booking'),
+      content: (
+        <Box>
+          <Typography>
+            {t('You are about to book {{count}} seats:', { count: selectedSeats.size })}
+          </Typography>
+          <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2, f_ontFamily: 'monospace' }}>
+            {Array.from(selectedSeats).join(', ')}
+          </Paper>
+          {/* <Divider sx={{ my: 2 }} /> */}
+          <Typography variant="h6">
+            {t('Total amount')}: ${totalPrice.toFixed(2)}
+          </Typography>
+        </Box>
+      ),
+      cancelText: t('Cancel'),
+      confirmText: t('Confirm Booking'),
+      onConfirm: confirmBooking,
+      showCloseIcon: true,
+    });
+  }
+
   // Confirm booking
   const confirmBooking = async () => {
-    if (!eventId || !performanceId) return;
+    if (!eventId) {
+      toast.error(t('No event id!'));
+      return;
+    }
+    if (!performanceId) {
+      toast.error(t('No performance id!'));
+      return;
+    }
+    
+    if (!isAuthenticated) {
+      showDialog({
+        title: t('Login Required'),
+        content: t('You need to login to book seats. Please login or register to continue.'),
+        onConfirm: () => navigate(`${location.pathname}?login=true`),
+        cancelText: 'Cancel',
+        confirmText: 'Login',
+        shrinkToContent: true,
+      });
+      return;
+    }
     
     try {
       await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
       
       toast.success(t('Successfully booked {{count}} seats', { count: selectedSeats.size }));
       setSelectedSeats(new Set());
-      setConfirmOpen(false);
+      //setConfirmOpen(false);
       
       // Reload to get updated seat statuses
       await loadPerformance();
@@ -203,12 +238,15 @@ const PerformanceBooking: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return null;
   }
+  // if (loading) {
+  //   return (
+  //     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+  //       <CircularProgress />
+  //     </Box>
+  //   );
+  // }
 
   if (error || !layout || !performance) {
     return (
@@ -341,7 +379,7 @@ const PerformanceBooking: React.FC = () => {
                     fullWidth
                     variant="contained"
                     size="large"
-                    onClick={() => setConfirmOpen(true)}
+                    onClick={() => handleConfirmBooking()}
                     startIcon={<CheckCircleIcon />}
                   >
                     {t('Book Now')}
@@ -352,24 +390,8 @@ const PerformanceBooking: React.FC = () => {
           )}
         </Paper>
       </Container>
-
-      {/* Dialogs */}
-      <Dialog open={loginPromptOpen} onClose={() => setLoginPromptOpen(false)}>
-        <DialogTitle>{t('Login Required')}</DialogTitle>
-        <DialogContent>
-          <Typography>
-            {t('You need to login to book seats. Please login or register to continue.')}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setLoginPromptOpen(false)}>{t('Close')}</Button>
-          <Button variant="contained" onClick={() => navigate('/login')}>
-            {t('Login')}
-          </Button>
-        </DialogActions>
-      </Dialog>
       
-      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+      {/* <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
         <DialogTitle>{t('Confirm Booking')}</DialogTitle>
         <DialogContent>
           <Typography gutterBottom>
@@ -396,7 +418,7 @@ const PerformanceBooking: React.FC = () => {
             {t('Confirm Booking')}
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog> */}
     </Box>
   );
 };

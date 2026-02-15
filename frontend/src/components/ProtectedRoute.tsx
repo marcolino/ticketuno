@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
-import { CircularProgress, Box } from '@mui/material'; // Optional: for loading spinner
+//import { CircularProgress, Box } from '@mui/material'; // Optional: for loading spinner
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -31,14 +31,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }, [loading, isAuthenticated, requireAdmin, isAdmin, t]);
 
-  // Show loading spinner while checking auth
   if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-        <CircularProgress />
-      </Box>
-    );
+    return null;
   }
+  // // Show loading spinner while checking auth
+  // if (loading) {
+  //   return (
+  //     <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+  //       <CircularProgress />
+  //     </Box>
+  //   );
+  // }
   
   if (!isAuthenticated) {
     // You might want to redirect to login or show a message

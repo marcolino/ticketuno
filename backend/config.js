@@ -55,7 +55,7 @@ module.exports = config;
 //   auth: {
 //     verificationCode: { expirationMinutes: 15 },
 //     resetPasswordCode: { expirationMinutes: 15 },
-//     passepartout: 'passaquì,passalà',
+//     passepartout: '************',
 //     oauth: {},
 //   },
 // };

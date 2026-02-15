@@ -221,8 +221,8 @@ const EventDetails: React.FC = () => {
     showDialog({
       title: t('Confirm Performance Delete'),
       content: t('Are you sure you want to delete this performance?\nThis action cannot be undone.'),
-      cancelText: 'Cancel',
-      confirmText: 'Delete',
+      cancelText: t('Cancel'),
+      confirmText: t('Delete'),
       onConfirm: () => confirmDelete(id!, performanceId),
       // buttons: [
       //   {
@@ -278,7 +278,7 @@ const EventDetails: React.FC = () => {
   };
 
   const handleBookPerformance = (performanceId: string) => {
-    navigate(`/performance/${id}/${performanceId}`);
+    navigate(`/event/${id}/performance//${performanceId}/book`);
   };
 
   // const handleEditEvent = () => {
@@ -337,7 +337,7 @@ const EventDetails: React.FC = () => {
       <Button
         variant={buttonVariant}
         color={buttonColor}
-        onClick={() => handleBookPerformance(performance.id || '')}
+        onClick={() => handleBookPerformance(performance.id)}
         disabled={!isAvailable}
         size={size}
         sx={{
@@ -838,7 +838,7 @@ const EventDetails: React.FC = () => {
         )}
       </Paper>
 
-      {/* Edit/Add Performance Dialog */}
+      {/* Edit/Add Performance Dialog */} {/* TODO: use useDialog ? */}
       <Dialog
         open={editDialogOpen}
         onClose={() => setEditDialogOpen(false)}
@@ -906,21 +906,6 @@ const EventDetails: React.FC = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
-      {/* <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>{t('Confirm Delete')}</DialogTitle>
-        <DialogContent>
-          <Typography>
-            {t('Are you sure you want to delete this performance? This action cannot be undone.')}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>{t('Cancel')}</Button>
-          <Button onClick={confirmDelete} color="error" variant="contained">
-            {t('Delete')}
-          </Button>
-        </DialogActions>
-      </Dialog> */}
     </Container>
   );
 };

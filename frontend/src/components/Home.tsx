@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import {
   // AppBar,
@@ -14,9 +15,9 @@ import {
   Divider,
   ListItemIcon,
   ListItemText,
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  // Dialog,
+  // DialogTitle,
+  // DialogContent,
   List,
   ListItem,
   ListItemButton,
@@ -42,6 +43,7 @@ import Header from './Header';
 import Body from './Body';
 import Footer from './Footer';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '../contexts/DialogContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import LoginDialog from './LoginDialog';
 import config from '@/config';
@@ -54,15 +56,18 @@ interface HomeProps {
 
 const Home: React.FC<HomeProps> = ({ children }) => {
   const { t, i18n } = useTranslation();
+  const location = useLocation();
   const navigate = useNavigate();
   //const location = useLocation();
   const { user, isAuthenticated, /*isAdmin, */logout } = useAuth();
   const { mode, toggleMode } = useThemeMode();
   //const { themeType, setThemeType, platform } = useThemeMode();
-
+  
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [langDialogOpen, setLangDialogOpen] = useState(false);
+  //const [langDialogOpen, setLangDialogOpen] = useState(false);
+
+  const showDialog = useDialog();
 
   // const languages = [ // TODO: to config
   //   { code: 'en', name: 'English', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
@@ -74,6 +79,26 @@ const Home: React.FC<HomeProps> = ({ children }) => {
   //   setThemeType(themeType === 'custom' ? 'native' : 'custom');
   // }
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const shouldOpenLogin = params.get("login") === "true";
+
+    if (shouldOpenLogin) {
+      setLoginDialogOpen(true);
+
+      // remove query param but stay in same page
+      params.delete("login");
+
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString(),
+        },
+        { replace: true }
+      );
+    }
+  }, [location.search]);
+  
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -116,9 +141,32 @@ const Home: React.FC<HomeProps> = ({ children }) => {
   //   }
   // };
 
+  const handleLanguage = () => {
+    showDialog({
+      title: t('Select Language'),
+      content: (
+        <List>
+          {Object.entries(config.app.languages).map(([code, { name, flag }]) => (
+            <ListItem key={code} disablePadding>
+              <ListItemButton 
+                onClick={() => handleLanguageChange(code)}
+                selected={i18n.language === code}
+              >
+                <ListItemText primary={`${flag} ${name}`} />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
+      ),
+      onConfirm: () => { },
+      showCloseIcon: true,
+      shrinkToContent: true,
+    });
+  }
+
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang);
-    setLangDialogOpen(false);
+    //setLangDialogOpen(false);
   };
 
   //const isHomePage = location.pathname === '/';
@@ -131,8 +179,6 @@ const Home: React.FC<HomeProps> = ({ children }) => {
     return '';
   };
 
-  // Header: AppBar position="static"
-  // Body: <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default' }}></Box>
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -175,16 +221,15 @@ const Home: React.FC<HomeProps> = ({ children }) => {
               anchorEl={anchorEl}
               open={menuOpen}
               onClose={handleClose}
-              // transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              // anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+              MenuListProps={{ dense: true }}
             >
-              <MenuItem disabled sx={{ my: 1, py: 0, }}>
+              <MenuItem sx={{ fontWeight: 'bold' }}>
                 <Typography variant="body2">
                   {user?.firstName} {user?.lastName} ({user?.role})
                 </Typography>
               </MenuItem>
 
-              <MenuItem disabled sx={{ my: 1, py: 0, }}>
+              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', mt: -1, }}>
                 <Typography variant="caption" color="text.primary">
                   {user?.email}
                 </Typography>
@@ -227,7 +272,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
                 </ListItemIcon>
                 <ListItemText>{mode === 'dark' ? 'Light Mode' : 'Dark Mode'}</ListItemText>
               </MenuItem>
-              <MenuItem onClick={() => { handleClose(); setLangDialogOpen(true); }}>
+              <MenuItem onClick={() => { handleLanguage(); /*handleClose(); setLangDialogOpen(true);*/ }}>
                 <ListItemIcon>
                   <LanguageIcon fontSize="small" />
                 </ListItemIcon>
@@ -252,9 +297,6 @@ const Home: React.FC<HomeProps> = ({ children }) => {
           >
             {t("Join !")}
           </Button>
-          // <IconButton color="inherit" onClick={() => setLoginDialogOpen(true)}>
-          //   <LoginIcon />
-          // </IconButton>
         )}
       </Header>
 
@@ -270,29 +312,12 @@ const Home: React.FC<HomeProps> = ({ children }) => {
         </Typography>
       </Footer>
 
+      {/* Login dialog */}
       <LoginDialog
         open={loginDialogOpen}
         onClose={() => setLoginDialogOpen(false)}
       />
 
-      {/* Language Selection Dialog */}
-      <Dialog open={langDialogOpen} onClose={() => setLangDialogOpen(false)}>
-        <DialogTitle>{t('Select Language')}</DialogTitle>
-        <DialogContent>
-          <List>
-            {Object.entries(config.app.languages).map(([code, { name, flag }]) => (
-              <ListItem key={code} disablePadding>
-                <ListItemButton 
-                  onClick={() => handleLanguageChange(code)}
-                  selected={i18n.language === code}
-                >
-                  <ListItemText primary={`${flag} ${name}`} />
-                </ListItemButton>
-              </ListItem>
-            ))}
-          </List>
-        </DialogContent>
-      </Dialog>
     </Box>
   );
 };

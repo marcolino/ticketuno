@@ -11,12 +11,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  IconButton,
 } from '@mui/material';
-import {
-  Close as CloseIcon,
-  Cancel as CancelIcon,
-} from '@mui/icons-material/';
 
 export type DialogButton = {
   text: string;
@@ -36,9 +31,6 @@ export type DialogOptions = {
   onCancel?: () => void;
 
   buttons?: DialogButton[];
-
-  showCloseIcon?: boolean;
-  shrinkToContent?: boolean;
 };
 
 type ShowDialog = (options: DialogOptions) => Promise<void>;
@@ -83,19 +75,9 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({
       <Dialog
         open={!!options}
         onClose={handleCancel}
-        maxWidth={options?.shrinkToContent ? false : "sm"}
-        fullWidth={!options?.shrinkToContent}
+        maxWidth="sm"
+        fullWidth
         disableScrollLock // TODO: ok?
-        PaperProps={
-          options?.shrinkToContent
-            ? {
-                sx: {
-                  width: "auto",
-                  maxWidth: "90vw",
-                },
-              }
-            : undefined
-        }
       >
         {options && (
           <>
@@ -104,26 +86,9 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({
                 backgroundColor: "primary.main",
                 color: "primary.contrastText",
                 fontWeight: 600,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                pr: 1,
               }}
             >
               {options.title}
-
-              {options.showCloseIcon && (
-                <IconButton
-                  size="small"
-                  onClick={handleCancel}
-                  sx={{
-                    color: "primary.contrastText",
-                    pl: 4,
-                  }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              )}
             </DialogTitle>
 
             {options.content && (
@@ -142,7 +107,6 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({
                 {/* Cancel */}
                 {options.cancelText && (
                   <Button onClick={handleCancel}>
-                    
                     {options.cancelText}
                   </Button>
                 )}

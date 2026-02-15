@@ -9,7 +9,7 @@ import {
   Card, CardContent, CardMedia,
   Chip, Stack, Slider,
   FormControl, InputLabel, Select, MenuItem,
-  TextField, Tooltip, CircularProgress,
+  TextField, Tooltip, //CircularProgress,
 } from '@mui/material';
 import {
   Close, CloudUpload, InsertPhoto, CheckCircle,
@@ -378,14 +378,14 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
       <DialogContent dividers sx={{ overflow: 'hidden' }}>
 
         {/* Loading overlay */}
-        {isLoading && (
+        {/* {isLoading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column' }}>
             <CircularProgress />
             <Typography variant="body2" sx={{ mt: 2 }}>
               {activeStep === 'edit' ? t('Processing and uploading...') : t('Processing image...')}
             </Typography>
           </Box>
-        )}
+        )} */}
 
         {!isLoading && (
           <>

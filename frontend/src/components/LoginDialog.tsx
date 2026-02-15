@@ -332,7 +332,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
-      disableEscapeKeyDown={tab === 'verify' || tab === 'reset'} // Prevent ESC key during flows
+      disableEscapeKeyDown={tab === 'verify' || tab === 'reset'} // Prevent ESC key during authentication flow
     >
       <DialogTitle
         sx={{
@@ -343,7 +343,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         }}
       >
         <IconButton color="primary">
-          <LockPerson />
+          <LockPerson fontSize="large" />
         </IconButton>
         <Box>
           {tab === 'login' && 'Login'}
