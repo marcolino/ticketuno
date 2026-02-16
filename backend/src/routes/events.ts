@@ -94,15 +94,17 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
     } = req.body;
 
     // Check if title is set
-    if (title === undefined || title === null) {
+    if (title == null) {
       return res.status(400).json({ error: req.t('Title is required') });
     }
 
-    if (theaterId === undefined || theaterId === null) {
+    // Check if theater id is set
+    if (theaterId == null) {
       return res.status(400).json({ error: req.t('Theater is required') });
     }
 
-    if (baseTicketPrice === undefined || baseTicketPrice === null) {
+    // Check if base ticket price is set
+    if (baseTicketPrice == null) {
       return res.status(400).json({ error: req.t('Base ticket price is required') });
     }
 
@@ -160,6 +162,17 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
 // Protected: Update event (admin only)
 router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
   try {
+
+    // Check if title is set and not null
+    if (req.body.title !== undefined && (req.body.title == '' || req.body.title === null)) {
+      return res.status(400).json({ error: req.t('Title cannot be empty') });
+    }
+
+    // Check if theater id is set and not null
+    if (req.body.theaterId !== undefined && (req.body.theaterId == '' || req.body.theaterId === null)) {
+      return res.status(400).json({ error: req.t('Theater cannot be empty') });
+    }
+
     const event = await database.getEventById(req.params.id);
     if (!event) {
       return res.status(404).json({ error: req.t('Event not found') });

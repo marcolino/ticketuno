@@ -12,6 +12,7 @@ export interface Event {
   producer?: string;
   choreographer?: string;
   musicalDirector?: string;
+  cast?: { role: string; name: string }[];
   theaterId: string;
   stageType?: string;
   openingDate?: string;

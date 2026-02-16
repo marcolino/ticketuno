@@ -32,6 +32,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
+import { CastEditor, type CastEntry } from './CastEditor'; 
 import { t } from 'i18next';
 import config, { CurrencyCode } from '@/config';
 
@@ -62,6 +63,8 @@ const EventEdit: React.FC = () => {
   const [producer, setProducer] = useState('');
   const [choreographer, setChoreographer] = useState('');
   const [musicalDirector, setMusicalDirector] = useState('');
+  const [cast, setCast] = useState<CastEntry[]>([]);
+
   const [theaterId, setTheaterId] = useState('');
 
   const [openingDate, setOpeningDate] = useState<Dayjs | null>(null);
@@ -78,7 +81,6 @@ const EventEdit: React.FC = () => {
 
   const [contentWarnings, setContentWarnings] = useState('');
   const [status, setStatus] = useState<'scheduled' | 'in progress' | 'completed' | 'cancelled'>('scheduled');
-
   // Performances
   const [performances, setPerformances] = useState<Partial<EventPerformance>[]>([]);
 
@@ -112,6 +114,10 @@ const EventEdit: React.FC = () => {
       setProducer(event.producer || '');
       setChoreographer(event.choreographer || '');
       setMusicalDirector(event.musicalDirector || '');
+      if (event.cast) {
+        setCast(typeof event.cast === 'string' ? JSON.parse(event.cast) : event.cast);
+      }
+
       setTheaterId(event.theaterId);
       
       if (event.openingDate) setOpeningDate(dayjs(event.openingDate));
@@ -127,19 +133,6 @@ const EventEdit: React.FC = () => {
       setPosterImage(event.posterImage || null);
       setContentWarnings(event.contentWarnings || '');
       setStatus(event.status);
-
-      // if (event.eventPosterUrl) {
-      //   const posterUrl = event.eventPosterUrl; // TypeScript now knows this is string
-      //   setUploadedImages(prev => ({
-      //     ...prev,
-      //     poster: {
-      //       url: posterUrl,
-      //       size: 0,
-      //       timestamp: new Date(),
-      //       type: 'poster' as const
-      //     }
-      //   }));
-      // }
 
       if (event.performances) {
         setPerformances(event.performances);
@@ -163,34 +156,7 @@ const EventEdit: React.FC = () => {
     }
   }, [isAuthenticated, isAdmin, isEditMode, navigate, loadEvent]);
   
-  // const addPerformance = () => {
-  //   setPerformances([
-  //     ...performances,
-  //     {
-  //       performanceDate: '',
-  //       startTime: typicalStartTime ? typicalStartTime.format('HH:mm') : '',
-  //       endTime: typicalEndTime ? typicalEndTime.format('HH:mm') : '',
-  //       status: 'scheduled'
-  //     }
-  //   ]);
-  // };
-
-  // const removePerformance = (index: number) => {
-  //   setPerformances(performances.filter((_, i) => i !== index));
-  // };
-
-  // const updatePerformance = (index: number, field: string, value: string) => {
-  //   const updated = [...performances];
-  //   updated[index] = { ...updated[index], [field]: value };
-  //   setPerformances(updated);
-  // };
-
   const handleSave = async () => {
-    // if (!title.trim() || !theaterId || !baseTicketPrice) {
-    //   setError(t('Title, theater, and base ticket price are required'));
-    //   return;
-    // }
-
     try {
       setSaving(true);
       setError('');
@@ -208,6 +174,7 @@ const EventEdit: React.FC = () => {
         producer,
         choreographer,
         musicalDirector,
+        cast: cast as any,
         theaterId,
         openingDate: openingDate?.format('YYYY-MM-DD'),
         closingDate: closingDate?.format('YYYY-MM-DD'),
@@ -242,11 +209,14 @@ const EventEdit: React.FC = () => {
       }
 
       navigate(-1);
-      //goBack();
     } catch (error: any) {
-      setError(error.response?.data?.error ||
-        t('Failed to {{what}} event: {{err}}', { what: isEditMode ? t('update') : t('create'), err: error.message})
-      );
+      const err = error.response?.data?.error || error.message;
+      const msg = isEditMode ?
+        t('Failed to update event: {{err}}', { err }) :
+        t('Failed to create event: {{err}}', { err })
+      ;
+      setError(msg);
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
@@ -470,6 +440,25 @@ const EventEdit: React.FC = () => {
               label={t('Musical Director')}
               value={musicalDirector}
               onChange={(e) => setMusicalDirector(e.target.value)}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              {t('Actors')}
+            </Typography>
+            <CastEditor
+              //label={t('Cast')}
+              value={cast}
+              onChange={setCast}
+              // Optional: pass your own preset roles instead of the component's defaults:
+              // roleOptions={[
+              //   { key: 'director',   value: t('Director')          },
+              //   { key: 'lead',       value: t('Lead Actor')         },
+              //   { key: 'supporting', value: t('Supporting Actor')   },
+              //   { key: 'understudy', value: t('Understudy')         },
+              //   { key: 'crew',       value: t('Stage Crew')         },
+              // ]}
             />
           </Grid>
 

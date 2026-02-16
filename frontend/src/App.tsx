@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
-
 import { useTranslation } from 'react-i18next';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -11,7 +10,6 @@ import 'dayjs/locale/fr';
 import { itIT } from '@mui/x-date-pickers/locales';
 import { enUS } from '@mui/x-date-pickers/locales';
 import { frFR } from '@mui/x-date-pickers/locales';
-
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { DialogProvider } from './contexts/DialogContext';

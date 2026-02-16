@@ -600,6 +600,7 @@ class Database {
       producer: row.producer,
       choreographer: row.choreographer,
       musicalDirector: row.musical_director,
+      cast: row.cast ? JSON.parse(row.cast) : [],  
       theaterId: row.theater_id,
       stageType: row.stage_type,
       openingDate: row.opening_date,
@@ -658,17 +659,18 @@ class Database {
     const sql = `
       INSERT INTO events (
         id, title, description, genre, duration_minutes, intermission_count, rating, language,
-        director, playwright, producer, choreographer, musical_director, theater_id, stage_type,
+        director, playwright, producer, choreographer, musical_director, cast, theater_id, stage_type,
         opening_date, closing_date, is_active, base_ticket_price, currency, is_sold_out,
         special_requirements, minimum_age, created_by_user_id,
         typical_start_time, typical_end_time, poster_image, trailer_url, website_url,
         social_media_links, status, cancellation_reason, max_capacity, content_warnings
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params = [
         id, event.title, event.description, event.genre, event.durationMinutes, event.intermissionCount,
         event.rating, event.language, event.director, event.playwright, event.producer, event.choreographer,
-        event.musicalDirector, event.theaterId, event.stageType, event.openingDate, event.closingDate,
+        event.musicalDirector, JSON.stringify(event.cast ?? []),
+        event.theaterId, event.stageType, event.openingDate, event.closingDate,
         event.isActive ? 1 : 0, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
         event.specialRequirements, event.minimumAge, event.createdByUserId,
         event.typicalStartTime, event.typicalEndTime, event.posterImage, event.trailerUrl, event.websiteUrl,
@@ -696,6 +698,7 @@ class Database {
       choreographer: 'choreographer',
       musicalDirector: 'musical_director',
       theaterId: 'theater_id',
+      cast: 'cast',
       stageType: 'stage_type',
       openingDate: 'opening_date',
       closingDate: 'closing_date',
@@ -722,6 +725,8 @@ class Database {
         fields.push(`${fieldMap[key]} = ?`);
         if ((key === 'isActive') || (key === 'isSoldOut')) {
           values.push(value ? 1 : 0);
+        } else if (key === 'cast') {
+          values.push(JSON.stringify(value));
         } else {
           values.push(value);
         }

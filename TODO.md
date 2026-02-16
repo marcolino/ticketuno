@@ -4,7 +4,9 @@ common:
  - make a /privacy and a /terms page
  - translate all to Italian and French
  - remove all comments in code
- - use tool to find unused code and components
+ - resolve all TODO's in code
+ - resolve all TypeScript warnings in code
+ - use some tool to find unused code and components
 
  backend:
  - add passepartout - OK
@@ -14,12 +16,12 @@ common:
  - oauth login problem (only in prod) - OK
  - check /data is preserved among deploys - OK
  - change default admin name, surname - OK
+ - process.env.* -> config.env.* - OK
 
  - introduce "operator" role
  - make a method to clean up unreferenced images from /data/images
  - schedule job to call the method to clean up unreferenced images
  - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
- - process.env. -> config.env.
  - tune token expiration time, and put it in config
  - add a bookings component for operators/admins
 
@@ -34,18 +36,18 @@ common:
  - event list: poster image should not increase event container squared size - OK
  - less vertical space among menu items - OK
  - always use showDialog - OK
+ - language popup menu on desktop should be closer to it's menu entry (no) - OK
 
+ - in all components, check for setError: always add toast.error, and possibly remove Alert for errors...
+ - add "Cast" input for EventEdit.tsx component (use SelectWithAdd ?)
  - handle users profiles (by admin)
- - add check for changes in all components (when dirty)
+ - add check for changes in all components (when dirty), before navigating away
  - move routes from App.tsx to Routes.tsx
  - reduce login/... padding in mobile mode
- - language popup menu on desktop should be closer to it's menu entry
  - components container + title should be common for all components
- - in EventDetails correct "book" button and add for admin (operator) too
+ - in EventDetails add "bookings" button for admin (operator) too
  - dark mode changes logo colors in a less then optimal way
  - use currency from setup, and remove currency selection from EventEdit component
- - resolve all TODO's in code
- - resolve all TS warnings in code
  - add version number/build/date in footer
  - normalize all *List.tsx components as TheatersList, and make same aspect for event with and without poster
  - settings handling - "React MUI PWA Setup" with ChatGPT
