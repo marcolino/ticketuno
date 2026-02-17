@@ -5,7 +5,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'operator' | 'user';
   isVerified: boolean;
   verificationCode?: string;
   verificationCodeExpiry?: string;
@@ -102,7 +102,7 @@ export interface UserProfile {
   firstName: string;
   lastName: string;
   phone?: string;
-  role: 'admin' | 'user';
+  role: 'admin' | 'operator' | 'user';
   isVerified: boolean;
   createdAt: string;
   updatedAt: string;

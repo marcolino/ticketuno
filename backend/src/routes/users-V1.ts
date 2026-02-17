@@ -13,7 +13,7 @@ import {
   sendVerificationEmail, 
   sendPasswordResetEmail 
 } from '../utils/email';
-import { userCanManageAccount, userCanSetRole } from '../shared/utils/roles';
+import { userCanSetRole } from '../shared/utils/roles';
 import { getErrorMessage } from '../utils/errorHandler';
 import config from '../../config';
 
@@ -461,26 +461,12 @@ router.get('/auth/google/callback', async (req, res) => {
   }
 });
 
-// GET /profile     → own profile
-// GET /profile/:id → another user's profile (if permitted)
-router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res) => {
+// Get profile
+router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const targetId = req.params.userId ?? req.userId!;
-    const isSelf = targetId === req.userId;
-
-    // if (!isSelf && !userCanManageAccount(req.userRole ?? '', /* need target role */)) {
-    //   // We don't know target role yet, so fetch first then check
-    // }
-
-    // We don't know target role yet, so fetch first then check
-    const user = await database.getUserById(targetId);
+    const user = await database.getUserById(req.userId!);
     if (!user) {
       return res.status(404).json({ error: req.t('User not found') });
-    }
-
-    // Non-self access: actor must be able to manage this account
-    if (!isSelf && !userCanManageAccount(req.userRole ?? '', user.role)) {
-      return res.status(403).json({ error: req.t('Insufficient permissions') });
     }
 
     const profile: UserProfile = {
@@ -492,34 +478,19 @@ router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       role: user.role,
       isVerified: user.isVerified,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      updatedAt: user.updatedAt
     };
+
     res.json(profile);
   } catch (error) {
-    res.status(500).json({ error: req.t('Failed to fetch profile: {{err}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to fetch profile: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
 
-// PUT /profile     → own profile
-// PUT /profile/:id → another user's profile (if permitted)
-router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res) => {
+// Update profile
+router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const actorId = req.userId!;
-    const actorRole = req.userRole ?? '';
-    const targetId = req.params.userId ?? actorId;
-    const isSelf = targetId === actorId;
-
-    // Fetch target to know their current role before any permission check
-    const targetUser = await database.getUserById(targetId);
-    if (!targetUser) {
-      return res.status(404).json({ error: req.t('User not found') });
-    }
-
-    // Can the actor manage this account at all?
-    if (!isSelf && !userCanManageAccount(actorRole, targetUser.role)) {
-      return res.status(403).json({ error: req.t('Insufficient permissions') });
-    }
-
+    const userId = req.userId!;
     const { firstName, lastName, phone, email, role } = req.body;
     const updates: Partial<User> = {};
 
@@ -527,30 +498,35 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
     if (lastName) updates.lastName = lastName;
     if (phone !== undefined) updates.phone = phone;
     if (email) updates.email = email;
-    if (role !== undefined) {
-      if (!userCanSetRole(actorRole, targetUser.role, role)) {
-        return res.status(403).json({ error: req.t('Cannot assign role {{role}}', { role }) });
-      }
-      updates.role = role;
-    }
+    if (role) updates.role = role;
 
-    await database.updateUser(targetId, updates);
-    const updated = await database.getUserById(targetId);
+    if (!userCanSetRole(req.userRole ?? '', role)) {
+      res.status(403).json({ error: req.t('User cannot update role to {{role}}', { role }) });
+      return;
+    }
+    // // Only admins can change roles
+    // if (role && req.userRole === 'admin') {
+    //   updates.role = role;
+    // }
+
+    await database.updateUser(userId, updates);
+    const user = await database.getUserById(req.userId!);
 
     const profile: UserProfile = {
-      id: updated!.id,
-      email: updated!.email,
-      firstName: updated!.firstName,
-      lastName: updated!.lastName,
-      phone: updated!.phone,
-      role: updated!.role,
-      isVerified: updated!.isVerified,
-      createdAt: updated!.createdAt,
-      updatedAt: updated!.updatedAt,
+      id: user!.id,
+      email: user!.email,
+      firstName: user!.firstName,
+      lastName: user!.lastName,
+      phone: user!.phone,
+      role: user!.role,
+      isVerified: user!.isVerified,
+      createdAt: user!.createdAt,
+      updatedAt: user!.updatedAt
     };
+
     res.json(profile);
   } catch (error) {
-    res.status(500).json({ error: req.t('Failed to update profile: {{err}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to update profile', { err: getErrorMessage(error) }) });
   }
 });
 

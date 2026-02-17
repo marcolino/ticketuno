@@ -98,7 +98,7 @@ const EventList: React.FC = () => {
         </Alert>
       )}
 
-      {events.length === 0 && (
+      {!error && events.length === 0 && (
         <Alert severity="info">{t('No events available')}</Alert>
       )}
       

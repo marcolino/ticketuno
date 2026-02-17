@@ -23,7 +23,8 @@ common:
  - schedule job to call the method to clean up unreferenced images
  - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
  - tune token expiration time, and put it in config
- - add a bookings component for operators/admins
+ - add a bookings component for operators/admins, with a ticket convalidation (with QRCode?)
+ - implement a real sendEmail using Brevo service, possibly with templates
 
  frontend:
  - Design.tsx => Home.tsx - OK
@@ -37,14 +38,14 @@ common:
  - less vertical space among menu items - OK
  - always use showDialog - OK
  - language popup menu on desktop should be closer to it's menu entry (no) - OK
+ - add "CastEditor.tsx compomnent - OK
 
  - in all components, check for setError: always add toast.error, and possibly remove Alert for errors...
- - add "Cast" input for EventEdit.tsx component (use SelectWithAdd ?)
- - handle users profiles (by admin)
+ - add users profiles (by admin)
  - add check for changes in all components (when dirty), before navigating away
  - move routes from App.tsx to Routes.tsx
  - reduce login/... padding in mobile mode
- - components container + title should be common for all components
+ - components container + title should be common for all components (perhaps)
  - in EventDetails add "bookings" button for admin (operator) too
  - dark mode changes logo colors in a less then optimal way
  - use currency from setup, and remove currency selection from EventEdit component

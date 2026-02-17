@@ -481,7 +481,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
                   {t('Upload Successful!')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {t('Theimage has been uploaded and saved')}
+                  {t('The image has been uploaded and saved')}
                 </Typography>
               </Box>
             )}

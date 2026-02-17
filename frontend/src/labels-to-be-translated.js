@@ -6,3 +6,7 @@ i18n.t('scheduled');
 i18n.t('in progress');
 i18n.t('completed');
 i18n.t('cancelled');
+
+i18n.t('admin');
+i18n.t('operator');
+i18n.t('user');

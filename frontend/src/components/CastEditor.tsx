@@ -481,7 +481,7 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
           <Box sx={{ borderTop: "1px solid", borderColor: "divider", p: 1 }}>
             <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.07em",
               textTransform: "uppercase", color: "text.disabled", mb: 0.5 }}>
-              {t('Add new')}
+              {t('Add new role')}
             </Typography>
             <Box sx={{ display: "flex", gap: 0.75 }}>
               <InputBase
@@ -490,7 +490,7 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
                 onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') addNew(); }}
                 onClick={(e) => e.stopPropagation()}
                 onMouseDown={(e) => e.stopPropagation()}
-                placeholder={t('New role') + '…'}
+                placeholder={t('Role') + '…'}
                 sx={{
                   flex: 1, px: 1, py: 0.5, fontSize: "0.83rem",
                   border: "1px solid", borderColor: addErr ? "error.main" : "divider",

@@ -37,7 +37,8 @@ class Database {
             // Run all initialization tasks in sequence
             await this.initSchema();
             await this.runMigrations();
-            await this.createDefaultAdminUser();
+            //await this.createDefaultAdminUser();
+            await this.createDefaultUsers();
             resolve(); // Single resolve call after ALL tasks complete
           } catch (error) {
             reject(error);
@@ -277,7 +278,7 @@ class Database {
     return row ? this.mapRowToUser(row) : null;
   }
 
-  async createDefaultAdminUser(): Promise<string|undefined> {
+  async createDefaultAdminUser_DO_NOT_USE(): Promise<string|undefined> {
     try {
       // First, check if an admin user already exists
       const adminUsers = await this.getUsersByRole('admin');
@@ -298,8 +299,61 @@ class Database {
           updatedAt: new Date().toISOString()
         };
         
-        console.log('Default admin user created successfully');
+        //console.log('Default admin user created successfully');
         return await this.createUser(adminUser);
+      }
+    } catch (error) {
+      console.error('Error creating default admin user:', error);
+      throw error;
+    }
+  }
+
+  async createDefaultUsers(): Promise<void> {
+    try {
+      // Check if an admin user already exists
+      const adminUsers = await this.getUsersByRole('admin');
+      
+      // If no admin exists, create one
+      if (!adminUsers || adminUsers.length === 0) {
+        const hashedPassword = await bcrypt.hash(config.env.ADMIN_USER_PASSWORD!, 10);
+        const adminUser: User = {
+          id: '',
+          email: config.env.ADMIN_USER_EMAIL!,
+          password: hashedPassword,
+          firstName: 'Ammini',
+          lastName: 'Stratore',
+          phone: undefined,
+          role: 'admin',
+          isVerified: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await this.createUser(adminUser);
+        console.log('Default admin user created successfully');
+      }
+
+      // Check if an operator user already exists
+      const operatorUsers = await this.getUsersByRole('operator');
+      
+      // If no operator exists, create one
+      if (!operatorUsers || operatorUsers.length === 0) {
+        const hashedPassword = await bcrypt.hash(config.env.OPERATOR_USER_PASSWORD!, 10);
+        const operatorUser: User = {
+          id: '',
+          email: config.env.OPERATOR_USER_EMAIL!,
+          password: hashedPassword,
+          firstName: 'Opera',
+          lastName: 'Tore',
+          phone: undefined,
+          role: 'operator',
+          isVerified: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        await this.createUser(operatorUser);
+        console.log('Default operator user created successfully');
       }
     } catch (error) {
       console.error('Error creating default admin user:', error);

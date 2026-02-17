@@ -23,66 +23,150 @@ import {
 import useNavigate from '@/hooks/useNavigate';
 import Title from '@/components/Title';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '../contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { userApi } from '@/services/api';
+import { UserProfile } from '@/shared/types/user';
+import {
+  userCanManageAccount,
+  userCanSetRole,
+  assignableRoles,
+  Role,
+} from '@/shared/utils/roles';
 
-const Profile: React.FC = () => {
-  const { user, isAdmin, updateUser, isAuthenticated } = useAuth();
+interface ProfileProps {
+  userId?: string; // undefined = editing self
+}
+
+const Profile: React.FC<ProfileProps> = ({ userId }) => {
+  //const { user, updateUser, isAdmin, isAuthenticated } = useAuth();
+  const { user: currentUser, updateUser, /*isAdmin, */isAuthenticated } = useAuth();
+  const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
+  const { t } = useTranslation();
+  const theme = useTheme();
+  const isXs = useMediaQuery(theme.breakpoints.down('sm')); // true for xs
+  const showDialog = useDialog();
+
   const navigate = useNavigate();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [role, setRole] = useState<'admin' | 'user'>('user');
+  const [role, setRole] = useState<Role>('user');
   //const [error, setError] = useState('');
   //const [success, setSuccess] = useState('');
-  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const theme = useTheme();
-  const isXs = useMediaQuery(theme.breakpoints.down('sm')); // true for xs
 
+  const isSelf = !userId || userId === currentUser?.id;
+
+  // Can the current user even open this profile for role editing?
+  const canEditRoles =
+    //!isSelf &&
+    !!currentUser &&
+    !!targetUser &&
+    userCanManageAccount(currentUser.role, targetUser.role)
+  ;
+  
+  // Only the roles the current user is allowed to assign
+  //const roleOptions = currentUser ? assignableRoles(currentUser.role) : [];
+  const roleOptions = currentUser ? assignableRoles(currentUser.role).reverse() : [];
+  
   useEffect(() => {
     if (!isAuthenticated) {
       navigate(-1);
-      return;
     }
-    if (user) {
-      setFirstName(user.firstName);
-      setLastName(user.lastName);
-      setEmail(user.email);
-      setPhone(user.phone || '');
-      setRole(user.role);
-    }
-  }, [user, isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const load = async () => {
+      if (isSelf) {
+        // Use auth context directly, no fetch needed
+        if (currentUser) {
+          setTargetUser(currentUser as UserProfile);
+          setFirstName(currentUser.firstName);
+          setLastName(currentUser.lastName);
+          setEmail(currentUser.email);
+          setPhone(currentUser.phone ?? '');
+          setRole(currentUser.role as Role);
+        }
+      } else {
+        if (userId) { // Only fetch if userId is a real value
+          // Fetch the other user's profile
+          const response = await userApi.getProfile(userId);
+          const profile: UserProfile = response.data;
+          setTargetUser(profile);
+          setFirstName(profile.firstName);
+          setLastName(profile.lastName);
+          setEmail(profile.email);
+          setPhone(profile.phone ?? '');
+          setRole(profile.role as Role);
+        }
+      }
+    };
+    load();
+  }, [userId, currentUser, isSelf]);
+
+  // useEffect(() => {
+  //   if (currentUser) {
+  //     setTargetUser(currentUser as UserProfile);
+  //     setFirstName(currentUser.firstName);
+  //     setLastName(currentUser.lastName);
+  //     setEmail(currentUser.email);
+  //     setPhone(currentUser.phone || '');
+  //     setRole(currentUser.role);
+  //   }
+  // }, [currentUser, isAuthenticated, navigate]);
 
   const handleCancel = async () => {
     toast.success(t('Profile updated successfully'));
     navigate(-1);
   }
 
+  const handleSaveWithWarning = async () => {
+    if (isSelf && currentUser && currentUser.role !== role) {
+      showDialog({
+        title: t('Stepping role down'),
+        content: t('You are about to step your role down.\nProbably you will not be anymore able to step up anymore.'),
+        onConfirm: handleSave,
+        cancelText: 'Cancel',
+        confirmText: 'Confirm',
+        shrinkToContent: true,
+      });
+    } else {
+      handleSave();
+    }
+  };
+
   const handleSave = async () => {
+    if (!currentUser || !targetUser) return;
     try {
-      //setError('');
-      //setSuccess('');
       setLoading(true);
-      const updates: any = {
+      const updates: Partial<UserProfile> = {
         firstName,
         lastName,
         email,
         phone,
       };
-      if (isAdmin) {
-        updates.role = role;
+      if (canEditRoles && role !== targetUser.role) {
+        if (userCanSetRole(currentUser.role, targetUser.role, role)) {
+          updates.role = role;
+        }
       }
 
-      const response = await userApi.updateProfile(updates);
-      updateUser(response.data);
+      //const response = await userApi.updateProfile(userId || currentUser?.id, updates);
+      const response = await userApi.updateProfile(isSelf ? currentUser?.id : userId, updates);
+
+      // Only update auth context when editing yourself
+      if (isSelf) {
+        updateUser(response.data);
+      }
+      
       //setSuccess('Profile updated successfully');
       toast.success(t('Profile updated successfully'));
       navigate(-1);
-    } catch (err: any) {
-      //setError(err.response?.data?.error || 'Failed to update profile');
-      toast.error(err.response?.data?.error || t('Failed to update profile'));
+    } catch (error: any) {
+      console.warn(error, typeof error); // TODO !!!
+      toast.error(error.response?.data?.error || t('Failed to update profile: {{err}}', { err: error.getMessage() }));
     } finally {
       setLoading(false);
     }
@@ -147,16 +231,20 @@ const Profile: React.FC = () => {
             sx={{ mb: 2 }}
           />
 
-          {isAdmin && (
+          {canEditRoles && roleOptions.length > 0 && (
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Role</InputLabel>
+              <InputLabel>{t('Role')}</InputLabel>
               <Select
                 value={role}
-                label="Role"
-                onChange={(e) => setRole(e.target.value as 'admin' | 'user')}
+                label={t('Role')}
+                onChange={(e) => setRole(e.target.value as Role)}
               >
-                <MenuItem value="user">User</MenuItem>
-                <MenuItem value="admin">Admin</MenuItem>
+                {roleOptions.map(r => (
+                  <MenuItem key={r} value={r}>
+                    {/* {t(r.charAt(0).toUpperCase() + r.slice(1))} */}
+                    {t(r)}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           )}
@@ -176,7 +264,7 @@ const Profile: React.FC = () => {
               fullWidth
               variant="contained"
               startIcon={<Save />}
-              onClick={handleSave}
+              onClick={handleSaveWithWarning}
               disabled={loading}
               size={isXs ? "small" : "medium"}
               sx={isXs ? { px: 1 } : {}}

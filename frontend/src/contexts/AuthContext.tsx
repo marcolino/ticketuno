@@ -19,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isOperator: boolean;
   loading: boolean;
   login: (credentials: LoginCredentials) => Promise<LoginResponse>;
   register: (data: RegisterData) => Promise<RegisterResponse>;
@@ -38,9 +39,18 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // const isAdmin = (user): boolean => {
+  //   return user?.role === 'admin';
+  // };
+  // const isOperator = (user): boolean => {
+  //   return user?.role === 'admin' || user?.role === 'operator';
+  // };
+  const isAdmin = user?.role === 'admin';
+  const isOperator = user?.role === 'admin' || user?.role === 'operator';
+  
   const loadProfile = useCallback(async () => {
     try {
       const response = await userApi.getProfile();
@@ -155,7 +165,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const contextValue = useMemo(() => ({
     user,
     isAuthenticated,
-    isAdmin: user?.role === 'admin',
+    isAdmin,
+    isOperator,
     loading,
     login,
     register,
@@ -165,7 +176,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetPassword,
     logout,
     updateUser
-  }), [user, isAuthenticated, loading, login, register, verifyEmail, resendVerification, forgotPassword, resetPassword, logout, updateUser]);
+  }), [user, isAuthenticated, isAdmin, isOperator, loading, login, register, verifyEmail, resendVerification, forgotPassword, resetPassword, logout, updateUser]);
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -32,6 +32,29 @@ export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction
   next();
 };
 
+export const requireOperator = (req: AuthRequest, res: Response, next: NextFunction) => {
+  if (req.userRole !== 'admin' && req.userRole !== 'operator') {
+    return res.status(403).json({ error: 'Operator access required' });
+  }
+  next();
+};
+
+// export const userCanSetRole = (userRole: string, role: string) => {
+//   let result = false;
+//   switch (userRole) {
+//     case 'admin':
+//       result = true;
+//       break;
+//     case 'operator':
+//       result = (role === 'operator' || role === 'user');
+//       break;
+//     case 'user':
+//       result = (role === 'user');
+//       break;
+//   }
+//   return result;
+// };
+
 export const generateToken = (userId: string, role: string): string => {
   return jwt.sign({ userId, role }, config.env.JWT_SECRET!, { expiresIn: '24h' });
 };

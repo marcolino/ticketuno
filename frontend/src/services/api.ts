@@ -261,14 +261,20 @@ export const userApi = {
   getGoogleAuthUrl: () => // Google OAuth
     api.get<{ authUrl: string }>('/users/auth/google'),
   
-  googleCallback: (code: string) =>
+  googleCallback: (code: string) => // Google callback
     api.post<{ token: string; user: User }>('/users/auth/google/callback', { code }),
 
-  getProfile: () => // Get user profile
-    api.get<User>('/users/profile'),
+  // getProfile: (userId: string) => // Get user profile
+  //   api.get<User>(`/users/profile/${userId}`),
   
-  updateProfile: (data: Partial<User>) => // Update user profile
-    api.put<User>('/users/profile', data),
+  // updateProfile: (userId: string, data: Partial<User>) => // Update user profile
+  //   api.put<User>('/users/profile', { userId, data }),
+  
+  getProfile: (userId?: string) =>
+    api.get<User>(userId ? `/users/profile/${userId}` : '/users/profile'),
+
+  updateProfile: (userId: string | undefined, data: Partial<User>) =>
+    api.put<User>(userId ? `/users/profile/${userId}` : '/users/profile', data),
 };
 
 export const theaterApi = {
