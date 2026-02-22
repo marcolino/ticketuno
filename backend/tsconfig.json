@@ -13,7 +13,7 @@
     "moduleResolution": "node",
     // "allowJs": true,
     // "checkJs": false,
-    "noImplicitAny": false
+    "noImplicitAny": true
   },
   "include": ["src/**/*"],
   "exclude": [

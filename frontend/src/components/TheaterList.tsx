@@ -27,7 +27,7 @@ import { Theater } from '@/shared/types/theater';
 
 const TheaterList: React.FC = () => {
   const { t } = useTranslation();
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isOperator } = useAuth();
   const navigate = useNavigate();
   //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [theaters, setTheaters] = useState<Theater[] | null>(null); // ← null = not loaded
@@ -36,12 +36,12 @@ const TheaterList: React.FC = () => {
   const [_error, setError] = useState<string | null>(null); // TODO ... do we use error ?
 
   useEffect(() => {
-    //if (isAuthenticated && isAdmin) {
+    //if (isAuthenticated && ) {
       loadTheaters();
     // } else {
     //   setTheaters(null);
     // }
-  }, [isAuthenticated, isAdmin]);
+  }, [isAuthenticated/*, isAdmin*/]);
 
   const loadTheaters = async () => {
     try {
@@ -123,7 +123,7 @@ const TheaterList: React.FC = () => {
         </Typography>
       </div> */}
       
-      {isAdmin && (
+      {isOperator && (
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4">
             {t('Available Theaters')}
@@ -222,7 +222,7 @@ const TheaterList: React.FC = () => {
                   </Box>
                 </CardContent>
                 <Box sx={{ p: 2 }}>
-                   {isAdmin && (
+                   {isOperator && (
                     <Button
                       variant="contained"
                       startIcon={<EditIcon />}
@@ -245,7 +245,7 @@ const TheaterList: React.FC = () => {
                     </Button>
                   )} */}
                  
-                  {isAdmin && (
+                  {isOperator && (
                     <Button
                       variant="outlined"
                       startIcon={<DeleteIcon />}

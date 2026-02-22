@@ -10,3 +10,6 @@ i18n.t('cancelled');
 i18n.t('admin');
 i18n.t('operator');
 i18n.t('user');
+
+i18n.t('light');
+i18n.t('dark');

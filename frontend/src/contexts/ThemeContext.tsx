@@ -1,4 +1,3 @@
-// contexts/ThemeContext.tsx
 import React, {
   createContext,
   useContext,
@@ -12,14 +11,17 @@ import { CssBaseline, useMediaQuery } from '@mui/material';
 import { native, custom } from '@/theme';
 import config from '@/config';
 
-// TODO: import these types from config
-type ThemeType = 'native' | 'custom';
-type Platform = 'android' | 'ios';
-type Mode = 'light' | 'dark';
+import { ThemeType, Platform, ThemeMode, ThemePreference } from '@/shared/types/theme';
+// TODO: put in some types file, export there and import here...
+// type ThemeType = 'native' | 'custom';
+// type Platform = 'android' | 'ios';
+// type ThemeMode = 'light' | 'dark';
+// type ThemePreference = ThemeMode | 'system';
 
 interface ThemeContextValue {
-  mode: Mode;
-  toggleMode: () => void;
+  themePreference: ThemePreference;
+  setThemePreference: (mode: ThemePreference) => void;
+  effectiveMode: ThemeMode;
   themeType: ThemeType;
   platform: Platform;
 }
@@ -46,43 +48,56 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   const prefersDark = useMediaQuery('(prefers-color-scheme: dark)');
   const platform = detectPlatform();
 
-  // ⬇️ MODE is stateful and user-controlled
-  const [mode, setMode] = useState<Mode>(() => {
-    const saved = localStorage.getItem('themeMode') as Mode | null;
-    return saved ?? (prefersDark ? 'dark' : 'light');
-  });
+  /**
+   * USER PREFERENCE (light | dark | system)
+   */
+  const [themePreference, setThemePreference] =
+    useState<ThemePreference>(() => {
+      const saved = localStorage.getItem('themePreference') as ThemePreference | null;
+
+      if (saved) return saved;
+
+      // first visit → use config default
+      return config.app.theme.defaultMode as ThemePreference; // 'system' | 'light' | 'dark'
+    });
 
   useEffect(() => {
-    localStorage.setItem('themeMode', mode);
-  }, [mode]);
+    localStorage.setItem('themePreference', themePreference);
+  }, [themePreference]);
 
-  const toggleMode = () =>
-    setMode((m) => (m === 'light' ? 'dark' : 'light'));
+  /**
+   * EFFECTIVE MODE (what MUI actually receives)
+   */
+  const effectiveMode: ThemeMode =
+    themePreference === 'system'
+      ? prefersDark
+        ? 'dark'
+        : 'light'
+      : themePreference;
 
-  // themeType can stay config-driven for now
-  //const themeType = config.themeType;
-  const themeType: ThemeType = config.themeType as ThemeType;
-  
+  /**
+   * THEME TYPE (native/custom)
+   */
+  //const themeType: ThemeType = config.app.theme.defaultType as ThemeType;
+  const themeType: ThemeType =
+  themePreference === 'system' ? 'native' : 'custom';
+
   const muiTheme = useMemo(() => {
     if (themeType === 'native') {
       return platform === 'ios'
-        ? native.iosTheme[mode]
-        : native.androidTheme[mode];
+        ? native.iosTheme[effectiveMode]
+        : native.androidTheme[effectiveMode];
     }
 
-    return custom.defaultTheme[mode];
-  }, [themeType, platform, mode]);
+    return custom.defaultTheme[effectiveMode];
+  }, [themeType, platform, effectiveMode]);
 
-  console.log('------------- themeType:', themeType);
-  console.log('------------- typeof themeType:', typeof themeType);
-  console.log('------------- config.themeType:', config.themeType);
-  console.log('------------- typeof config.themeType:', typeof config.themeType);
-  
   return (
     <ThemeContext.Provider
       value={{
-        mode,
-        toggleMode,
+        themePreference,
+        setThemePreference,
+        effectiveMode,
         themeType,
         platform,
       }}

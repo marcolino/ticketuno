@@ -1,5 +1,5 @@
 import { i18n } from '../i18n';
-import config from '../../config';
+import config from '../config';
 
 // Mock email sender - replace with real service (SendGrid, AWS SES, etc.)
 export const sendEmail = async (to: string, subject: string, body: string): Promise<void> => {
@@ -12,7 +12,7 @@ export const sendEmail = async (to: string, subject: string, body: string): Prom
   // In production, use a real email service:
   /*
   import sgMail from '@sendgrid/mail';
-  sgMail.setApiKey(config.env.SENDGRID_API_KEY!);
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
   
   await sgMail.send({
     to,

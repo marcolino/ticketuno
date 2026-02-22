@@ -1,12 +1,12 @@
 import express, { Router, Response } from 'express';
-import multer, { StorageEngine } from 'multer';
+import multer/*, { StorageEngine }*/ from 'multer';
 import { i18n } from '../i18n';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { getErrorMessage } from '../utils/errorHandler';
-import config from '../../config';
+import config from '../config';
 
 const router: Router = express.Router();
 
@@ -47,11 +47,11 @@ const storage: StorageEngine = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
+  limits: { fileSize: config.uploads.sizeLimit.value },
   fileFilter: (_req, file, cb) => {
     const allowed = {
-      mime: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
-      typeNames: ['JPEG', 'PNG', 'WEBP', 'GIF'],
+      mime: config.uploads.allowedMimeTypes,
+      typeNames: config.uploads.allowedMimeNames,
     }
     if (allowed.mime.includes(file.mimetype)) {
       cb(null, true);

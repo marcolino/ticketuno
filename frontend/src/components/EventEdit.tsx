@@ -525,9 +525,9 @@ const EventEdit: React.FC = () => {
                     {currency.code} ({currency.symbol})
                   </MenuItem>
                 ))} */}
-                {Object.entries(config.app.currencies).map(([code, currency]) => (
+                {Object.entries(config.app.currencies).map(([code, _currency]) => (
                   <MenuItem key={code} value={code}>
-                    {code} ({currency.symbol})
+                    {code} ({'currency.symbol'})
                   </MenuItem>
                 ))}
               </Select>

@@ -1,6 +1,6 @@
 // utils/roles.ts  — usable on both frontend and backend (pure TS, no dependencies)
 
-export const ROLES = ['user', 'operator', 'admin'] as const;
+const ROLES = ['user', 'operator', 'admin'] as const;
 export type Role = typeof ROLES[number];
 
 const ROLE_LEVEL: Record<Role, number> = {

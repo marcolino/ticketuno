@@ -9,15 +9,17 @@ import { toast } from '@/contexts/ToastContext';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  requireOperator?: boolean;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
-  requireAdmin = false 
+  requireAdmin = false,
+  requireOperator = false,
 }) => {
   // You need to expose loading from AuthContext
   // For now, let's assume you can access it
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isOperator, loading } = useAuth();
   const { t } = useTranslation();
   const hasShownToast = useRef(false);
   
@@ -28,6 +30,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
     if (!loading && !requireAdmin && !isAdmin && !hasShownToast.current) {
       toast.error(t('Admin privileges required to access this page'));
+    }
+    if (!loading && !requireOperator && !isOperator && !hasShownToast.current) {
+      toast.error(t('Operator privileges required to access this page'));
     }
   }, [loading, isAuthenticated, requireAdmin, isAdmin, t]);
 
@@ -52,9 +57,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requireAdmin && !isAdmin) {
-    //toast.error(t("Admin privileges required to access this page"));
     return <Navigate to="/" replace state={{ 
       message: t("Admin privileges required to access this page")
+    }} />;
+  }
+
+  if (requireOperator && !isOperator) {
+    return <Navigate to="/" replace state={{ 
+      message: t("Operator privileges required to access this page")
     }} />;
   }
 

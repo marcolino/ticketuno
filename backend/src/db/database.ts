@@ -4,12 +4,12 @@ import path from 'path';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { Migrator } from './migrator';
-import { User } from '../shared/types/user';
-import { Theater/*, Section*/, Seat } from '../shared/types/theater';
+import { User, NewUser } from '../shared/types/user';
+import { Theater, TheaterStatus, EventStatus, SeatStatus/*, Section*/, Seat } from '../shared/types/theater';
 import { Layout } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
 import { GeneratedSeat } from '../shared/types/layoutToSeats';
-import config from '../../config';
+import config from '../config';
 
 class Database {
   private db: sqlite3.Database | null = null;
@@ -25,11 +25,11 @@ class Database {
   }
   
   async initialize() {
-    const dir = path.dirname(config.db.path /*config.env.DB_PATH!*/);
+    const dir = path.dirname(config.db.path);
     await fs.mkdir(dir, { recursive: true });
 
     return new Promise<void>((resolve, reject) => {
-      this.db = new sqlite3.Database(config.db.path /*config.env.DB_PATH!*/, async (err) => {
+      this.db = new sqlite3.Database(config.db.path, async (err) => {
         if (err) {
           reject(err);
         } else {
@@ -37,7 +37,6 @@ class Database {
             // Run all initialization tasks in sequence
             await this.initSchema();
             await this.runMigrations();
-            //await this.createDefaultAdminUser();
             await this.createDefaultUsers();
             resolve(); // Single resolve call after ALL tasks complete
           } catch (error) {
@@ -56,178 +55,174 @@ class Database {
   }
 
   private async initSchema(): Promise<void> {
-    try {
-      await execQuery(this.db!, `PRAGMA foreign_keys = ON;`, 'PRAGMA foreign_keys');
-      await execQuery(this.db!, `PRAGMA foreign_key_check;`, 'PRAGMA foreign_key_check');
+    await execQuery(this.db!, `PRAGMA foreign_keys = ON;`, 'PRAGMA foreign_keys');
+    await execQuery(this.db!, `PRAGMA foreign_key_check;`, 'PRAGMA foreign_key_check');
 
-      await execQuery(this.db!, `
-        CREATE TABLE IF NOT EXISTS users (
-          id TEXT PRIMARY KEY,
-          email TEXT UNIQUE NOT NULL,
-          password TEXT NOT NULL,
-          first_name TEXT NOT NULL,
-          last_name TEXT NOT NULL,
-          phone TEXT,
-          role TEXT NOT NULL,
-          is_verified INTEGER DEFAULT 0,
-          verification_code TEXT,
-          verification_code_expiry TEXT,
-          reset_password_code TEXT,
-          reset_password_code_expiry TEXT,
-          google_id TEXT UNIQUE,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          deleted_at DATETIME
-        );
-      `, 'CREATE users');
+    await execQuery(this.db!, `
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        phone TEXT,
+        role TEXT NOT NULL,
+        is_verified INTEGER DEFAULT 0,
+        verification_code TEXT,
+        verification_code_expiry TEXT,
+        reset_password_code TEXT,
+        reset_password_code_expiry TEXT,
+        google_id TEXT UNIQUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        deleted_at DATETIME
+      );
+    `, 'CREATE users');
 
-      await execQuery(this.db!, `
-        CREATE TABLE IF NOT EXISTS theaters (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          description TEXT,
-          stage_type TEXT,
-          address TEXT,
-          website_url TEXT,
-          status TEXT NOT NULL,
-          current_layout_id TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          deleted_at DATETIME,
-          FOREIGN KEY (current_layout_id) REFERENCES layouts(id)
-        );
-      `, 'CREATE theaters');
+    await execQuery(this.db!, `
+      CREATE TABLE IF NOT EXISTS theaters (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        stage_type TEXT,
+        address TEXT,
+        website_url TEXT,
+        status TEXT NOT NULL,
+        current_layout_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        deleted_at DATETIME,
+        FOREIGN KEY (current_layout_id) REFERENCES layouts(id)
+      );
+    `, 'CREATE theaters');
 
-      await execQuery(this.db!, `
-        CREATE TABLE IF NOT EXISTS layouts (
-          id TEXT PRIMARY KEY,
-          theater_id TEXT,
-          name TEXT,
-          description TEXT,
-          json TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          deleted_at DATETIME,
-          FOREIGN KEY (theater_id) REFERENCES theaters(id)
-        );
-      `, 'CREATE layouts');
+    await execQuery(this.db!, `
+      CREATE TABLE IF NOT EXISTS layouts (
+        id TEXT PRIMARY KEY,
+        theater_id TEXT,
+        name TEXT,
+        description TEXT,
+        json TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        deleted_at DATETIME,
+        FOREIGN KEY (theater_id) REFERENCES theaters(id)
+      );
+    `, 'CREATE layouts');
 
-      await execQuery(this.db!, `
-        CREATE TABLE IF NOT EXISTS events (
-          id TEXT PRIMARY KEY,
-          title TEXT NOT NULL,
-          description TEXT,
-          genre TEXT,
-          duration_minutes INTEGER,
-          intermission_count INTEGER DEFAULT 1,
-          rating TEXT,
-          language TEXT,
-          director TEXT,
-          playwright TEXT,
-          producer TEXT,
-          choreographer TEXT,
-          musical_director TEXT,
-          theater_id TEXT,
-          stage_type TEXT,
-          opening_date TEXT,
-          closing_date TEXT,
-          is_active INTEGER DEFAULT 1,
-          base_ticket_price REAL NOT NULL,
-          currency TEXT DEFAULT 'USD',
-          is_sold_out INTEGER DEFAULT 0,
-          special_requirements TEXT,
-          minimum_age INTEGER,
-          created_by_user_id TEXT,
-          typical_start_time TEXT,
-          typical_end_time TEXT,
-          poster_image TEXT,
-          trailer_url TEXT,
-          website_url TEXT,
-          social_media_links TEXT,
-          status TEXT DEFAULT 'scheduled',
-          cancellation_reason TEXT,
-          max_capacity INTEGER,
-          content_warnings TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (theater_id) REFERENCES theaters(id),
-          FOREIGN KEY (created_by_user_id) REFERENCES users(id)
-        );
-      `, 'CREATE events');
+    await execQuery(this.db!, `
+      CREATE TABLE IF NOT EXISTS events (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        description TEXT,
+        genre TEXT,
+        duration_minutes INTEGER,
+        intermission_count INTEGER DEFAULT 1,
+        rating TEXT,
+        language TEXT,
+        director TEXT,
+        playwright TEXT,
+        producer TEXT,
+        choreographer TEXT,
+        musical_director TEXT,
+        cast_members TEXT,
+        theater_id TEXT,
+        stage_type TEXT,
+        opening_date TEXT,
+        closing_date TEXT,
+        is_active INTEGER DEFAULT 1,
+        base_ticket_price REAL NOT NULL,
+        currency TEXT DEFAULT 'USD',
+        is_sold_out INTEGER DEFAULT 0,
+        special_requirements TEXT,
+        minimum_age INTEGER,
+        created_by_user_id TEXT,
+        typical_start_time TEXT,
+        typical_end_time TEXT,
+        poster_image TEXT,
+        trailer_url TEXT,
+        website_url TEXT,
+        social_media_links TEXT,
+        status TEXT DEFAULT 'scheduled',
+        cancellation_reason TEXT,
+        max_capacity INTEGER,
+        content_warnings TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (theater_id) REFERENCES theaters(id),
+        FOREIGN KEY (created_by_user_id) REFERENCES users(id)
+      );
+    `, 'CREATE events');
 
-      await execQuery(this.db!, `
-        CREATE TABLE IF NOT EXISTS performances (
-          id TEXT PRIMARY KEY,
-          event_id TEXT NOT NULL,
-          performance_date TEXT NOT NULL,
-          start_time TEXT NOT NULL,
-          end_time TEXT,
-          status TEXT DEFAULT 'scheduled',
-          -- REMOVED: available_seats INTEGER,
-          -- REMOVED: booked_seats INTEGER,
-          -- REMOVED: seat_data TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (event_id) REFERENCES events(id)
-        );
-      `, 'CREATE performances');
+    await execQuery(this.db!, `
+      CREATE TABLE IF NOT EXISTS performances (
+        id TEXT PRIMARY KEY,
+        event_id TEXT NOT NULL,
+        performance_date TEXT NOT NULL,
+        start_time TEXT NOT NULL,
+        end_time TEXT,
+        status TEXT DEFAULT 'scheduled',
+        -- REMOVED: available_seats INTEGER,
+        -- REMOVED: booked_seats INTEGER,
+        -- REMOVED: seat_data TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (event_id) REFERENCES events(id)
+      );
+    `, 'CREATE performances');
 
-      await execQuery(this.db!, `
-        CREATE TABLE IF NOT EXISTS seats (
-          performance_id TEXT NOT NULL,
-          seat_id TEXT NOT NULL,
-          section_name TEXT NOT NULL,
-          row_id TEXT NOT NULL,
-          seat_number INTEGER NOT NULL,
-          status TEXT NOT NULL DEFAULT 'available',
-          booked_by_user_id TEXT,
-          booked_at DATETIME,
-          reserved_until TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          PRIMARY KEY (performance_id, seat_id),
-          FOREIGN KEY (performance_id) REFERENCES performances(id) ON DELETE CASCADE,
-          FOREIGN KEY (booked_by_user_id) REFERENCES users(id)
-        );
-      `, 'CREATE seats');
-      //booked_by_user_id TEXT NULL if not booked,
-      
-      await execQuery(this.db!, `
-        CREATE INDEX IF NOT EXISTS idx_layouts_active
-        ON layouts(theater_id)
-        WHERE deleted_at IS NULL;
-      `, 'INDEX layouts_active');
+    await execQuery(this.db!, `
+      CREATE TABLE IF NOT EXISTS seats (
+        performance_id TEXT NOT NULL,
+        seat_id TEXT NOT NULL,
+        section_name TEXT NOT NULL,
+        row_id TEXT NOT NULL,
+        seat_number INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'available',
+        booked_by_user_id TEXT,
+        booked_at DATETIME,
+        reserved_until TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (performance_id, seat_id),
+        FOREIGN KEY (performance_id) REFERENCES performances(id) ON DELETE CASCADE,
+        FOREIGN KEY (booked_by_user_id) REFERENCES users(id)
+      );
+    `, 'CREATE seats');
+    //booked_by_user_id TEXT NULL if not booked,
+    
+    await execQuery(this.db!, `
+      CREATE INDEX IF NOT EXISTS idx_layouts_active
+      ON layouts(theater_id)
+      WHERE deleted_at IS NULL;
+    `, 'INDEX layouts_active');
 
-      await execQuery(this.db!, `
-        CREATE INDEX IF NOT EXISTS idx_seats_performance ON seats(performance_id);
-      `, 'INDEX seats_performance');
+    await execQuery(this.db!, `
+      CREATE INDEX IF NOT EXISTS idx_seats_performance ON seats(performance_id);
+    `, 'INDEX seats_performance');
 
-      await execQuery(this.db!, `
-        CREATE INDEX IF NOT EXISTS idx_seats_section ON seats(performance_id, section_name);
-      `, 'INDEX seats_section');
-      
-      await execQuery(this.db!, `
-        CREATE INDEX IF NOT EXISTS idx_seats_status ON seats(performance_id, status);
-      `, 'INDEX seats_status');
+    await execQuery(this.db!, `
+      CREATE INDEX IF NOT EXISTS idx_seats_section ON seats(performance_id, section_name);
+    `, 'INDEX seats_section');
+    
+    await execQuery(this.db!, `
+      CREATE INDEX IF NOT EXISTS idx_seats_status ON seats(performance_id, status);
+    `, 'INDEX seats_status');
 
-      await execQuery(this.db!, `
-        CREATE INDEX IF NOT EXISTS idx_seats_user ON seats(booked_by_user_id);
-      `, 'INDEX seats_user');
-
-    } catch (err) {
-      throw err;
-    }
+    await execQuery(this.db!, `
+      CREATE INDEX IF NOT EXISTS idx_seats_user ON seats(booked_by_user_id);
+    `, 'INDEX seats_user');
   }
   
   // User methods //////////////////////////////////////////////////////////////////////
-  async getAllUsers(): Promise<User[] | null> {
+  async getAllUsers(): Promise<any[] | null> {
     const sql = `SELECT * FROM users`;
-    const params:any = [];
+    const params: SqlParam[] = [];
     const rows = await allQuery(this.db!, sql, params, 'get all users');
     return rows ? this.mapRowsToUsers(rows) : null;
   }
   
-  async createUser(user: User): Promise<string> {
+  async createUser(user: NewUser): Promise<string> {
     const id = this.uuid();
     const sql = `
       INSERT INTO users (
@@ -236,12 +231,12 @@ class Database {
         google_id
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const params = [
-      id, user.email, user.password, user.firstName, user.lastName, user.phone, user.role,
-      user.isVerified ? 1 : 0, user.verificationCode, user.verificationCodeExpiry,
-      user.googleId
+    const params: SqlParam[] = [
+      id, user.email, user.password, user.firstName, user.lastName, user.phone || '', user.role,
+      user.isVerified ? 1 : 0, user.verificationCode ?? '', user.verificationCodeExpiry ?? '',
+      user.googleId ?? ''
     ];
-    const result = await runQuery(this.db!, sql, params, 'create user');
+    await runQuery(this.db!, sql, params, 'create user');
     return id;
   }
 
@@ -266,15 +261,24 @@ class Database {
   }
 
   // Array mapper
-  private mapRowsToUsers(rows: any[]): User[] {
+  // private mapRowsToUsers(rows: User[]): User[] {
+  //   return rows.map(row => this.mapRowToUser(row));
+  // }
+  // private mapRowsToUsers(rows: Record<string, unknown>[]): User[] {
+  //   return rows.map(row => this.mapRowToUser(row));
+  // }
+  private mapRowsToUsers(rows: Record<string, unknown>[]): User[] {
     return rows.map(row => this.mapRowToUser(row));
   }
+  // private mapRowsToUsers(rows: any[]): User[] {
+  //   return rows.map(row => this.mapRowToUser(row));
+  // }
 
   // Get user by Google ID
   async getUserByGoogleId(googleId: string): Promise<User | null> {
     const sql = `SELECT * FROM users WHERE google_id = ?`;
     const params = [googleId];
-    const row = await getQuery<any>(this.db!, sql, params, 'create user');
+    const row = await getQuery<User>(this.db!, sql, params, 'create user');
     return row ? this.mapRowToUser(row) : null;
   }
 
@@ -285,10 +289,10 @@ class Database {
       
       // If no admin exists, create one
       if (!adminUsers || adminUsers.length === 0) {
-        const hashedPassword = await bcrypt.hash(config.env.ADMIN_USER_PASSWORD!, 10);
+        const hashedPassword = await bcrypt.hash(process.env.ADMIN_USER_PASSWORD!, 10);
         const adminUser: User = {
           id: '',
-          email: config.env.ADMIN_USER_EMAIL!,
+          email: process.env.ADMIN_USER_EMAIL!,
           password: hashedPassword,
           firstName: 'Charles',
           lastName: 'Darwin',
@@ -308,57 +312,118 @@ class Database {
     }
   }
 
-  async createDefaultUsers(): Promise<void> {
-    try {
-      // Check if an admin user already exists
-      const adminUsers = await this.getUsersByRole('admin');
+  // async createDefaultUsers(): Promise<void> {
+  //   try {
+  //     // Check if an admin user already exists
+  //     const adminUsers = await this.getUsersByRole('admin');
       
-      // If no admin exists, create one
-      if (!adminUsers || adminUsers.length === 0) {
-        const hashedPassword = await bcrypt.hash(config.env.ADMIN_USER_PASSWORD!, 10);
-        const adminUser: User = {
-          id: '',
-          email: config.env.ADMIN_USER_EMAIL!,
-          password: hashedPassword,
-          firstName: 'Ammini',
-          lastName: 'Stratore',
-          phone: undefined,
-          role: 'admin',
-          isVerified: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+  //     // If no admin exists, create one
+  //     if (!adminUsers || adminUsers.length === 0) {
+  //       const hashedPassword = await bcrypt.hash(process.env.ADMIN_USER_PASSWORD!, 10);
+  //       const adminUser: User = {
+  //         id: '',
+  //         email: process.env.ADMIN_USER_EMAIL!,
+  //         password: hashedPassword,
+  //         firstName: 'Ammini',
+  //         lastName: 'Stratore',
+  //         phone: undefined,
+  //         role: 'admin',
+  //         isVerified: true,
+  //         createdAt: new Date().toISOString(),
+  //         updatedAt: new Date().toISOString()
+  //       };
         
-        await this.createUser(adminUser);
-        console.log('Default admin user created successfully');
-      }
+  //       await this.createUser(adminUser);
+  //       console.log('Default admin user created successfully');
+  //     }
 
-      // Check if an operator user already exists
-      const operatorUsers = await this.getUsersByRole('operator');
+  //     // Check if an operator user already exists
+  //     const operatorUsers = await this.getUsersByRole('operator');
       
-      // If no operator exists, create one
-      if (!operatorUsers || operatorUsers.length === 0) {
-        const hashedPassword = await bcrypt.hash(config.env.OPERATOR_USER_PASSWORD!, 10);
-        const operatorUser: User = {
-          id: '',
-          email: config.env.OPERATOR_USER_EMAIL!,
-          password: hashedPassword,
-          firstName: 'Opera',
-          lastName: 'Tore',
-          phone: undefined,
-          role: 'operator',
-          isVerified: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+  //     // If no operator exists, create one
+  //     if (!operatorUsers || operatorUsers.length === 0) {
+  //       const hashedPassword = await bcrypt.hash(process.env.OPERATOR_USER_PASSWORD!, 10);
+  //       const operatorUser: User = {
+  //         id: '',
+  //         email: process.env.OPERATOR_USER_EMAIL!,
+  //         password: hashedPassword,
+  //         firstName: 'Opera',
+  //         lastName: 'Tore',
+  //         phone: undefined,
+  //         role: 'operator',
+  //         isVerified: true,
+  //         createdAt: new Date().toISOString(),
+  //         updatedAt: new Date().toISOString()
+  //       };
         
-        await this.createUser(operatorUser);
-        console.log('Default operator user created successfully');
-      }
+  //       await this.createUser(operatorUser);
+  //       console.log('Default operator user created successfully');
+  //     }
+  //   } catch (error) {
+  //     console.error('Error creating default admin user:', error);
+  //     throw error;
+  //   }
+  // }
+
+  async createDefaultUsers(): Promise<void> {
+    const adminEmail = process.env.ADMIN_USER_EMAIL;
+    const adminPassword = process.env.ADMIN_USER_PASSWORD;
+    const operatorEmail = process.env.OPERATOR_USER_EMAIL;
+    const operatorPassword = process.env.OPERATOR_USER_PASSWORD;
+    if (!adminEmail || !adminPassword) {
+      throw new Error('ADMIN_USER_EMAIL and ADMIN_USER_PASSWORD must be set in environment!');
+    }
+    if (!operatorEmail || !operatorPassword) {
+      throw new Error('OPERATOR_USER_EMAIL and OPERATOR_USER_PASSWORD must be set in environment!');
+    }
+
+    try {
+      await this.createDefaultUserIfNotExists(
+        adminEmail,
+        adminPassword,
+        'admin',
+        'Ammini',
+        'Stratore',
+      );
+      await this.createDefaultUserIfNotExists(
+        operatorEmail,
+        operatorPassword,
+        'operator',
+        'Opera',
+        'Tore',
+      );
     } catch (error) {
-      console.error('Error creating default admin user:', error);
+      console.error('Error creating default users:', error);
       throw error;
     }
+  }
+
+  private async createDefaultUserIfNotExists(
+    email: string,
+    password: string,
+    role: string,
+    firstName: string,
+    lastName: string,
+  ): Promise<void> {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const id = this.uuid();
+    const now = new Date().toISOString();
+
+    // INSERT OR IGNORE is atomic — no race condition possible
+    const sql = `
+      INSERT OR IGNORE INTO users (
+        id, email, password, first_name, last_name, role, is_verified, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+    `;
+
+    const result = await runQuery(this.db!, sql, [
+      id, email, hashedPassword, firstName, lastName, role, now, now,
+    ], `create default ${role} user`);
+
+    if (result.changes > 0) {
+      console.log(`Default ${role} user created successfully`);
+    }
+    // If changes === 0, the row already existed — silently skip
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
@@ -384,7 +449,7 @@ class Database {
 
   async updateUser(id: string, updates: Partial<User>): Promise<boolean> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number)[] = [];
     
     const fieldMap: Record<string, string> = {
       firstName: 'first_name',
@@ -407,7 +472,7 @@ class Database {
         if (key === 'isVerified') {
           values.push(value ? 1 : 0);
         } else {
-          values.push(value);
+          values.push(typeof value === 'boolean' ? (value ? 1 : 0) : value);
         }
       }
     });
@@ -426,29 +491,29 @@ class Database {
   }
 
   // Theater methods //////////////////////////////////////////////////////////////////////
-  private mapRowToTheater(row: any): Theater {
+  private mapRowToTheater(row: Record<string, unknown>): Theater {
     return {
-      id: row.id,
-      name: row.name,
-      description: row.description,
-      stageType: row.stage_type,
-      address: row.address,
-      websiteUrl: row.website_url,
-      status: row.status,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      currentLayoutId: row.current_layout_id,
+      id: row.id as string,
+      name: row.name as string,
+      description: row.description as string,
+      stageType: row.stage_type as string,
+      address: row.address as string,
+      websiteUrl: row.website_url as string,
+      status: row.status as TheaterStatus,
+      createdAt: row.created_at as string,
+      updatedAt: row.updated_at as string,
+      currentLayoutId: row.current_layout_id as string | undefined,
     };
   }
 
   // Array mapper
-  private mapRowsToTheaters(rows: any[]): Theater[] {
+  private mapRowsToTheaters(rows: Record<string, unknown>[]): Theater[] {
     return rows.map(row => this.mapRowToTheater(row));
   }
 
   async getAllTheaters(): Promise<Theater[] | null> {
     const sql = `SELECT * FROM theaters`;
-    const params:any = [];
+    const params: SqlParam[] = [];
     const rows = await allQuery(this.db!, sql, params, 'get all theaters');
     return rows ? this.mapRowsToTheaters(rows) : null;
   }
@@ -468,18 +533,18 @@ class Database {
         current_layout_id
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const params = [
-      id, theater.name, theater.description, /*JSON.stringify(theater.sections),*/
-      theater.stageType, theater.address, theater.websiteUrl, theater.status,
-      theater.currentLayoutId
+    const params: SqlParam[] = [
+      id, theater.name, theater.description ?? '', /*JSON.stringify(theater.sections),*/
+      theater.stageType ?? '', theater.address ?? '', theater.websiteUrl ?? '', theater.status,
+      theater.currentLayoutId ?? ''
     ];
-    const result = await runQuery(this.db!, sql, params, 'create theater');
+    await runQuery(this.db!, sql, params, 'create theater');
     return id;
   }
 
   async updateTheaterFull(id: string, updates: Partial<Theater>): Promise<boolean> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number)[] = [];
     
     const fieldMap: Record<string, string> = {
       name: 'name',
@@ -523,18 +588,18 @@ class Database {
   }
 
   // Layout methods (IMMUTABLE) //////////////////////////////////////////////////////////////////
-  private mapRowToLayout(row: any): Layout {
+  private mapRowToLayout(row: Record<string, unknown>): Layout {
     return {
-      id: row.id,
-      theaterId: row.theater_id,
-      name: row.name,
-      description: row.description,
-      json: row.json
+      id: row.id as string,
+      theaterId: row.theater_id as string,
+      name: row.name as string,
+      description: row.description as string,
+      json: row.json as string,
     };
   }
 
   // Array mapper
-  private mapRowsToLayouts(rows: any[]): Layout[] {
+  private mapRowsToLayouts(rows: Record<string, unknown>[]): Layout[] {
     return rows.map(row => this.mapRowToLayout(row));
   }
   
@@ -555,7 +620,7 @@ class Database {
       layout.description ?? '',
       layout.json,
     ];
-    const result = await runQuery(this.db!, sql, params, 'create layout');
+    await runQuery(this.db!, sql, params, 'create layout');
     return id;
   }
 
@@ -587,14 +652,14 @@ class Database {
       FROM layouts
       WHERE deleted_at is NULL
     `;
-    const params:any = [];
+    const params: SqlParam[] = [];
     const rows = await allQuery(this.db!, sql, params, 'get all layouts');
     return rows ? this.mapRowsToLayouts(rows) : null;
   }
 
   async updateLayout(id: string, updates: Partial<Layout>): Promise<boolean> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number)[] = [];
     
     const fieldMap: Record<string, string> = {
       name: 'name',
@@ -605,7 +670,7 @@ class Database {
     Object.entries(updates).forEach(([key, value]) => {
       if (fieldMap[key] && value !== undefined) {
         fields.push(`${fieldMap[key]} = ?`);
-        values.push(value);
+        values.push(value!);
       }
     });
     
@@ -639,50 +704,50 @@ class Database {
   }
 
   // Event methods //////////////////////////////////////////////////////////////////////
-  private mapRowToEvent(row: any): Event {
+  private mapRowToEvent(row: Record<string, unknown>): Event {
     return {
-      id: row.id,
-      title: row.title,
-      description: row.description,
-      genre: row.genre,
-      durationMinutes: row.duration_minutes,
-      intermissionCount: row.intermission_count,
-      rating: row.rating,
-      language: row.language,
-      director: row.director,
-      playwright: row.playwright,
-      producer: row.producer,
-      choreographer: row.choreographer,
-      musicalDirector: row.musical_director,
-      cast: row.cast ? JSON.parse(row.cast) : [],  
-      theaterId: row.theater_id,
-      stageType: row.stage_type,
-      openingDate: row.opening_date,
-      closingDate: row.closing_date,
+      id: row.id as string,
+      title: row.title as string,
+      description: row.description as string,
+      genre: row.genre as string,
+      durationMinutes: row.duration_minutes as number,
+      intermissionCount: row.intermission_count as number,
+      rating: row.rating as string,
+      language: row.language as string,
+      director: row.director as string,
+      playwright: row.playwright as string,
+      producer: row.producer as string,
+      choreographer: row.choreographer as string,
+      musicalDirector: row.musical_director as string,
+      cast: row.cast_members ? JSON.parse(row.cast_members as string) : [],  
+      theaterId: row.theater_id as string,
+      stageType: row.stage_type as string,
+      openingDate: row.opening_date as string,
+      closingDate: row.closing_date as string,
       isActive: row.is_active === 1,
-      baseTicketPrice: row.base_ticket_price,
-      currency: row.currency,
+      baseTicketPrice: row.base_ticket_price as number,
+      currency: row.currency as string,
       isSoldOut: row.is_sold_out === 1,
-      specialRequirements: row.special_requirements,
-      minimumAge: row.minimum_age,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      createdByUserId: row.created_by_user_id,
-      typicalStartTime: row.typical_start_time,
-      typicalEndTime: row.typical_end_time,
-      posterImage: row.poster_image,
-      trailerUrl: row.trailer_url,
-      websiteUrl: row.website_url,
-      socialMediaLinks: row.social_media_links,
-      status: row.status,
-      cancellationReason: row.cancellation_reason,
-      maxCapacity: row.max_capacity,
-      contentWarnings: row.content_warnings,
+      specialRequirements: row.special_requirements as string,
+      minimumAge: row.minimum_age as number,
+      createdByUserId: row.created_by_user_id as string,
+      typicalStartTime: row.typical_start_time as string,
+      typicalEndTime: row.typical_end_time as string,
+      posterImage: row.poster_image as string,
+      trailerUrl: row.trailer_url as string,
+      websiteUrl: row.website_url as string,
+      socialMediaLinks: row.social_media_links as string,
+      status: row.status as EventStatus,
+      cancellationReason: row.cancellation_reason as string | undefined,
+      maxCapacity: row.max_capacity as number,
+      contentWarnings: row.content_warnings as string,
+      createdAt: row.created_at as string,
+      updatedAt: row.updated_at as string,
     };
   }
 
   // Array mapper
-  private mapRowsToEvents(rows: any[]): Event[] {
+  private mapRowsToEvents(rows: Record<string, unknown>[]): Event[] {
     return rows.map(row => this.mapRowToEvent(row));
   }
 
@@ -692,7 +757,7 @@ class Database {
       FROM events
       ORDER BY opening_date DESC
     `;
-    const params:any = [];
+    const params: (string | number)[]  = [];
     const rows = await allQuery(this.db!, sql, params, 'get all events');
     return rows ? this.mapRowsToEvents(rows) : null;
   }
@@ -713,31 +778,35 @@ class Database {
     const sql = `
       INSERT INTO events (
         id, title, description, genre, duration_minutes, intermission_count, rating, language,
-        director, playwright, producer, choreographer, musical_director, cast, theater_id, stage_type,
+        director, playwright, producer, choreographer, musical_director, cast_members, theater_id, stage_type,
         opening_date, closing_date, is_active, base_ticket_price, currency, is_sold_out,
         special_requirements, minimum_age, created_by_user_id,
         typical_start_time, typical_end_time, poster_image, trailer_url, website_url,
         social_media_links, status, cancellation_reason, max_capacity, content_warnings
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const params = [
-        id, event.title, event.description, event.genre, event.durationMinutes, event.intermissionCount,
-        event.rating, event.language, event.director, event.playwright, event.producer, event.choreographer,
-        event.musicalDirector, JSON.stringify(event.cast ?? []),
-        event.theaterId, event.stageType, event.openingDate, event.closingDate,
-        event.isActive ? 1 : 0, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
-        event.specialRequirements, event.minimumAge, event.createdByUserId,
-        event.typicalStartTime, event.typicalEndTime, event.posterImage, event.trailerUrl, event.websiteUrl,
-        event.socialMediaLinks, event.status, event.cancellationReason, event.maxCapacity, event.contentWarnings
+    const params: SqlParam[] = [
+      id, event.title, event.description ?? '', event.genre ?? '',
+      event.durationMinutes ?? '', event.intermissionCount ?? 0,
+      event.rating ?? '', event.language ?? '', event.director ?? '',
+      event.playwright ?? '', event.producer ?? '', event.choreographer ?? '',
+      event.musicalDirector ?? '', JSON.stringify(event.cast ?? []),
+      event.theaterId, event.stageType ?? '', event.openingDate ?? '', event.closingDate ?? '',
+      event.isActive ? 1 : 0, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
+      event.specialRequirements ?? '', event.minimumAge ?? '', event.createdByUserId ?? '',
+      event.typicalStartTime ?? '', event.typicalEndTime ?? '', event.posterImage ?? '',
+      event.trailerUrl ?? '', event.websiteUrl ?? '', event.socialMediaLinks ?? '',
+      event.status, event.cancellationReason ?? '', event.maxCapacity ?? '', event.contentWarnings ?? ''
     ];
-    const result = await runQuery(this.db!, sql, params, 'create event');
+    await runQuery(this.db!, sql, params, 'create event');
     return id;
   }
 
   async updateEvent(id: string, updates: Partial<Event>): Promise<boolean> {
     const fields: string[] = [];
-    const values: any[] = [];
-    
+    //const values: (string | number | boolean)[] = [];
+    const values: (string | number | Buffer | null)[] =[];
+
     const fieldMap: Record<string, string> = {
       title: 'title',
       description: 'description',
@@ -752,7 +821,7 @@ class Database {
       choreographer: 'choreographer',
       musicalDirector: 'musical_director',
       theaterId: 'theater_id',
-      cast: 'cast',
+      cast: 'cast_members',
       stageType: 'stage_type',
       openingDate: 'opening_date',
       closingDate: 'closing_date',
@@ -777,12 +846,19 @@ class Database {
     Object.entries(updates).forEach(([key, value]) => {
       if (fieldMap[key] && value !== undefined) {
         fields.push(`${fieldMap[key]} = ?`);
-        if ((key === 'isActive') || (key === 'isSoldOut')) {
+        if (key === 'isActive' || key === 'isSoldOut' || key === 'isVerified') {
+          // Convert booleans to 0/1
           values.push(value ? 1 : 0);
         } else if (key === 'cast') {
+          // Always JSON-stringify arrays/objects for SQL
+          values.push(JSON.stringify(value));
+        } else if (Array.isArray(value) || typeof value === 'object') {
+          // Safeguard: stringify anything else that's object/array
           values.push(JSON.stringify(value));
         } else {
-          values.push(value);
+          // string | number | null
+          //values.push(value);
+          values.push(toSqlParam(value));
         }
       }
     });
@@ -810,24 +886,24 @@ class Database {
   }
 
   // Performance methods //////////////////////////////////////////////////////////////////////
-  private mapRowToPerformance(row: any): EventPerformance {
+  private mapRowToPerformance(row: Record<string, unknown>): EventPerformance {
     return {
-      id: row.id,
-      eventId: row.event_id,
-      performanceDate: row.performance_date,
-      startTime: row.start_time,
-      endTime: row.end_time,
+      id: row.id as string,
+      eventId: row.event_id as string,
+      performanceDate: row.performance_date as string,
+      startTime: row.start_time as string,
+      endTime: row.end_time as string,
       //availableSeats: row.available_seats,
       //bookedSeats: row.booked_seats,
       //seatData: row.seat_data,
-      status: row.status,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
+      status: row.status as EventStatus,
+      createdAt: row.created_at as string,
+      updatedAt: row.updated_at as string
     };
   }
 
   // Array mapper
-  private mapRowsToPerformances(rows: any[]): EventPerformance[] {
+  private mapRowsToPerformances(rows: Record<string, unknown>[]): EventPerformance[] {
     return rows.map(row => this.mapRowToPerformance(row));
   }
 
@@ -854,18 +930,18 @@ class Database {
         status
       ) VALUES (?, ?, ?, ?, ?, ?)
     `;
-    const params = [
+    const params: SqlParam[] = [
       id, performance.eventId, performance.performanceDate, performance.startTime,
-      performance.endTime, /*performance.availableSeats, performance.bookedSeats, performance.seatData, */
-      performance.status, performance.createdAt, performance.updatedAt
+      performance.endTime ?? '', /*performance.availableSeats, performance.bookedSeats, performance.seatData, */
+      performance.status, performance.createdAt ?? '', performance.updatedAt ?? ''
     ];
-    const result = await runQuery(this.db!, sql, params, 'create performance');
+    await runQuery(this.db!, sql, params, 'create performance');
     return id;
   }
 
   async updatePerformance(id: string, updates: Partial<EventPerformance>): Promise<boolean> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number)[] = [];
     
     const fieldMap: Record<string, string> = {
       performanceDate: 'performance_date',
@@ -909,22 +985,22 @@ class Database {
   }
 
   // Seat management methods //////////////////////////////////////////////////////////////////////
-  private mapRowToSeat(row: any): Seat {
+  private mapRowToSeat(row: Record<string, unknown>): Seat {
     return {
-      seatId: row.seat_id,
-      sectionName: row.section_name,
-      rowId: row.row_id,
-      seatNumber: row.seat_number,
-      status: row.status,
-      bookedByUserId: row.booked_by_user_id,
-      bookedAt: row.booked_at,
-      reservedUntil: row.reserved_until,
-      price: row.price
+      seatId: row.seat_id as string,
+      sectionName: row.section_name as string,
+      rowId: row.row_id as string,
+      seatNumber: row.seat_number as number,
+      status: row.status as SeatStatus,
+      bookedByUserId: row.booked_by_user_id as string,
+      bookedAt: row.booked_at as string,
+      reservedUntil: row.reserved_until as string,
+      price: row.pric as number,
     };
   }
 
   // Array mapper
-  private mapRowsToSeats(rows: any[]): any[] {
+  private mapRowsToSeats(rows: Record<string, unknown>[]): Seat[] {
     return rows.map(row => this.mapRowToSeat(row));
   }
 
@@ -1038,7 +1114,7 @@ class Database {
     seats: GeneratedSeat[]
   ): Promise<boolean> {
     const placeholders = seats.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
-    const values: any[] = [];
+    const values: (string | number)[] = [];
     
     seats.forEach(seat => {
       values.push(
@@ -1085,7 +1161,7 @@ class Database {
     `;
     // -- price
     
-    const rows = await allQuery<any>(this.db!, sql, [performanceId], 'get seats grouped');
+    const rows = await allQuery<Record<string, unknown>>(this.db!, sql, [performanceId], 'get seats grouped');
     const seats = this.mapRowsToSeats(rows);
     
     // Group by section, then by row
@@ -1124,7 +1200,7 @@ class Database {
       ORDER BY row_id, seat_number
     `;
     
-    const rows = await allQuery<any>(
+    const rows = await allQuery(
       this.db!, 
       sql, 
       [performanceId, sectionName], 
@@ -1149,7 +1225,12 @@ class Database {
       WHERE performance_id = ?
     `;
     const params = [performanceId];
-    const row = await getQuery<any>(this.db!, sql, params, 'get seat counts');
+    //const row = await getQuery(this.db!, sql, params, 'get seat counts');
+    const row = await getQuery<{
+      available: number
+      booked: number
+      reserved: number
+    }>(this.db!, sql, params, 'get seat counts');
     return {
       available: row?.available || 0,
       booked: row?.booked || 0,
@@ -1167,7 +1248,7 @@ class Database {
       WHERE performance_id = ? AND status = 'booked'
     `;
     const params = [performanceId];
-    const row = await getQuery<any>(this.db!, sql, params, 'check performance bookings');
+    const row = await getQuery(this.db!, sql, params, 'check performance bookings');
     return (row?.count || 0) > 0;
   }
 
@@ -1199,7 +1280,7 @@ class Database {
           WHERE performance_id = ? AND seat_id IN (${placeholders})
         `;
         
-        this.db!.all(checkSql, [performanceId, ...seatIds], (err, rows: any[]) => {
+        this.db!.all(checkSql, [performanceId, ...seatIds], (err, rows: Record<string, unknown>[]) => {
           if (err) {
             this.db!.run('ROLLBACK');
             return reject(err);
@@ -1267,13 +1348,14 @@ class Database {
 const execQuery = (
   db: sqlite3.Database,
   sql: string,
-  label: string
+  context: string = '',
 ): Promise<void> =>
   new Promise((resolve, reject) => {
     db.exec(sql, err => {
       if (err) {
-        err.message = `[${label}] ${err.message}`;
-        reject(err);
+        // err.message = `[${label}] ${err.message}`;
+        // reject(err);
+        reject(new Error(`${context}: ${err.message}`));
       } else {
         resolve();
       }
@@ -1285,67 +1367,56 @@ const execQuery = (
  * Run parameterized query (INSERT, UPDATE, DELETE)
  * Returns RunResult with lastID and changes
  */
+type SqlParam = string | number | Buffer | null;
+
 const runQuery = (
   db: sqlite3.Database,
   sql: string,
-  params: any[] = [],
-  label: string = ''
+  params: SqlParam[] = [],
+  context = ''
 ): Promise<sqlite3.RunResult> =>
   new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {  // Must use regular function for 'this'
-      if (err) {
-        err.message = `[${label}] ${err.message}`;
-        reject(err);
-      } else {
-        resolve(this);  // 'this' contains { lastID, changes }
-      }
+    db.run(sql, params, function (err) {
+      if (err) reject(new Error(`${context}: ${err.message}`));
+      else resolve(this);
     });
   })
-;
+  ;
 
-/**
- * Get single row from database
- * Returns one row or undefined
- */
 const getQuery = <T = any>(
   db: sqlite3.Database,
   sql: string,
-  params: any[] = [],
-  label: string = ''
+  params: SqlParam[] = [],
+  context = ''
 ): Promise<T | undefined> =>
   new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
-      if (err) {
-        err.message = `[${label}] ${err.message}`;
-        reject(err);
-      } else {
-        resolve(row as T);
-      }
+      if (err) reject(new Error(`${context}: ${err.message}`));
+      else resolve(row as T);
     });
   })
 ;
 
-/**
- * Get all rows from database
- * Returns array of rows
- */
 const allQuery = <T = any>(
   db: sqlite3.Database,
   sql: string,
-  params: any[] = [],
-  label: string = ''
+  params: SqlParam[] = [],
+  context = ''
 ): Promise<T[]> =>
   new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
-      if (err) {
-        err.message = `[${label}] ${err.message}`;
-        reject(err);
-      } else {
-        resolve(rows as T[]);
-      }
+      if (err) reject(new Error(`${context}: ${err.message}`));
+      else resolve(rows as T[]);
     });
   })
 ;
+
+function toSqlParam(value: unknown): string | number | null {
+  if (typeof value === 'boolean') return value ? 1 : 0;
+  if (value === null || typeof value === 'number' || typeof value === 'string') return value;
+  // anything else (array/object) → JSON
+  return JSON.stringify(value);
+}
 
 // release expired reservations, continuously
 setInterval(async () => { // TODO: move to /backend/src/scheduled/jobs.ts

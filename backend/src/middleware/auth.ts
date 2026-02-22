@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import config from '../../config';
+import { TFunction } from 'i18next';
+import jwt, { SignOptions } from 'jsonwebtoken';
+import config from '../config';
 
 export interface AuthRequest extends Request {
   userId?: string;
   userRole?: string;
+  t: TFunction;
 }
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -12,12 +14,16 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
+    return res.status(401).json({ error: req.t('No authentication found'), reason: req.t('Access token required') });
   }
 
-  jwt.verify(token, config.env.JWT_SECRET!, (err, decoded: any) => {
+  jwt.verify(token, process.env.JWT_SECRET!, (err, decoded) => {
     if (err) {
-      return res.status(403).json({ error: 'Invalid or expired token' });
+      return res.status(403).json({ error: req.t('Authentication expired'), reason: req.t('Invalid or expired token') });
+    }
+    // decoded can be string | JwtPayload
+    if (!decoded || typeof decoded === 'string') {
+      return res.status(403).json({ error: 'Invalid token' });
     }
     req.userId = decoded.userId;
     req.userRole = decoded.role;
@@ -27,34 +33,23 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.userRole !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
+    return res.status(403).json({ error: req.t('Admin access required') });
   }
   next();
 };
 
 export const requireOperator = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.userRole !== 'admin' && req.userRole !== 'operator') {
-    return res.status(403).json({ error: 'Operator access required' });
+    return res.status(403).json({ error: req.t('Operator access required') });
   }
   next();
 };
 
-// export const userCanSetRole = (userRole: string, role: string) => {
-//   let result = false;
-//   switch (userRole) {
-//     case 'admin':
-//       result = true;
-//       break;
-//     case 'operator':
-//       result = (role === 'operator' || role === 'user');
-//       break;
-//     case 'user':
-//       result = (role === 'user');
-//       break;
-//   }
-//   return result;
-// };
-
 export const generateToken = (userId: string, role: string): string => {
-  return jwt.sign({ userId, role }, config.env.JWT_SECRET!, { expiresIn: '24h' });
+  const payload = { userId, role };
+  const options: SignOptions = {
+    expiresIn: config.auth.tokenExpirationTime as jwt.SignOptions['expiresIn'],
+  };
+  // process.env.JWT_SECRET is non-null here (runtime check already)
+  return jwt.sign(payload, process.env.JWT_SECRET as jwt.Secret, options);
 };

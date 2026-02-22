@@ -57,7 +57,7 @@ const LayoutEdit: React.FC = () => {
     theaterIdFromState || undefined
   );
   
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isOperator } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -126,18 +126,20 @@ const LayoutEdit: React.FC = () => {
   }, [id, t, loadTheater]);
 
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
+    if (!isOperator) {
       navigate('/layouts');
       return;
     }
-    
+  }, [isOperator, navigate]);
+
+  useEffect(() => {
     // If we have theaterData from location state, use it
     if (theaterData?.name) {
       setTheaterName(theaterData.name);
     }
     
     loadLayout();
-  }, [isAuthenticated, isAdmin, navigate, loadLayout, theaterData]);
+  }, [loadLayout, theaterData]);
 
   // Update stage
   const updateStage = (field: string, value: number | string) => {

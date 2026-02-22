@@ -80,20 +80,20 @@ export function generateSeats(layout: LayoutJSON): GeneratedSeat[] {
   return seats;
 }
 
-// Helper to parse composite seat ID back into parts
-export function parseSeatId(seatId: string): { 
-  sectionName: string; 
-  rowId: string; 
-  seatNumber: number; 
-} {
-  const parts = seatId.split('-');
-  if (parts.length !== 3) {
-    throw new Error(`Invalid seat ID format: ${seatId}`);
-  }
+// // Helper to parse composite seat ID back into parts
+// export function parseSeatId(seatId: string): { 
+//   sectionName: string; 
+//   rowId: string; 
+//   seatNumber: number; 
+// } {
+//   const parts = seatId.split('-');
+//   if (parts.length !== 3) {
+//     throw new Error(`Invalid seat ID format: ${seatId}`);
+//   }
   
-  return {
-    sectionName: parts[0],
-    rowId: parts[1],
-    seatNumber: parseInt(parts[2], 10)
-  };
-}
+//   return {
+//     sectionName: parts[0],
+//     rowId: parts[1],
+//     seatNumber: parseInt(parts[2], 10)
+//   };
+// }

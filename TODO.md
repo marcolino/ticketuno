@@ -17,14 +17,19 @@ common:
  - check /data is preserved among deploys - OK
  - change default admin name, surname - OK
  - process.env.* -> config.env.* - OK
+ - config.env.* -> process.env.* - OK
+ - introduce "operator" role - OK
+ - tune token expiration time, and put it in config - OK
+ - use i18n.t (or something the like) in server.ts (onluy in requests) - OK
 
- - introduce "operator" role
+ - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
+ - complete tickets buy process, optionally redirecting to stripe for payment
+ - complete tickets buy process, sending an email to user with the ticket (with a QRCode?)
+ - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
+ - implement a real sendEmail using Brevo service, possibly with templates
+ - change console.log's to a real logging system
  - make a method to clean up unreferenced images from /data/images
  - schedule job to call the method to clean up unreferenced images
- - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
- - tune token expiration time, and put it in config
- - add a bookings component for operators/admins, with a ticket convalidation (with QRCode?)
- - implement a real sendEmail using Brevo service, possibly with templates
 
  frontend:
  - Design.tsx => Home.tsx - OK
@@ -39,18 +44,19 @@ common:
  - always use showDialog - OK
  - language popup menu on desktop should be closer to it's menu entry (no) - OK
  - add "CastEditor.tsx compomnent - OK
+ - move routes from App.tsx to Routes.tsx - OK
+ - reduce login/... padding in mobile mode - OK
+ - warning 'pathnames cannot have embedded double slashes - normalizing /event/id/performance// ...' - OK
+ - in EventDetails add "bookings" button for admin (operator) too - OK
+ - dark mode changes logo colors in a less then optimal way
+ - add version number/build/date in footer
+ - make theme selectable among "light", "dark" and "system"
 
  - in all components, check for setError: always add toast.error, and possibly remove Alert for errors...
- - add users profiles (by admin)
+ - add all users profile handling (by admins only)
  - add check for changes in all components (when dirty), before navigating away
- - move routes from App.tsx to Routes.tsx
- - reduce login/... padding in mobile mode
  - components container + title should be common for all components (perhaps)
- - in EventDetails add "bookings" button for admin (operator) too
- - dark mode changes logo colors in a less then optimal way
- - use currency from setup, and remove currency selection from EventEdit component
- - add version number/build/date in footer
  - normalize all *List.tsx components as TheatersList, and make same aspect for event with and without poster
  - settings handling - "React MUI PWA Setup" with ChatGPT
- - make theme selectable among "light", "dark" and "system"
+ - use currency from settings, and remove currency selection from EventEdit component
  - PWA handling - "PWA setup automation for theater booking system" with Claude

@@ -41,9 +41,9 @@ export class Migrator {
 
   private getAppliedMigrations(): Promise<string[]> {
     return new Promise((resolve, reject) => {
-      this.db.all('SELECT name FROM migrations ORDER BY id', [], (err, rows: any[]) => {
+      this.db.all('SELECT name FROM migrations ORDER BY id', [], (err, rows: Record<string, unknown>[]) => {
         if (err) reject(err);
-        else resolve(rows.map(r => r.name));
+        else resolve(rows.map(r => r.name as string));
       });
     });
   }

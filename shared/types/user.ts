@@ -16,14 +16,28 @@ export interface User {
   updatedAt: string;
 }
 
+export interface NewUser {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  role: string;
+  isVerified: boolean;
+  verificationCode?: string;
+  verificationCodeExpiry?: string;
+  resetPasswordCode?: string;
+  resetPasswordCodeExpiry?: string;
+  googleId?: string;
+}
 
-export interface LoginSuccessResponse {
+interface LoginSuccessResponse {
   token: string;
   user: User;
   requiresVerification?: never; // Explicitly exclude
 }
 
-export interface LoginVerificationRequiredResponse {
+interface LoginVerificationRequiredResponse {
   requiresVerification: true;
   email: string;
 }
@@ -32,12 +46,12 @@ export type LoginResponse =
   | LoginSuccessResponse
   | LoginVerificationRequiredResponse;
 
-export interface LoginEmailCredentials {
+interface LoginEmailCredentials {
   email: string;
   password: string;
 }
 
-export interface LoginOAuthCredentials {
+interface LoginOAuthCredentials {
   token: string;
 }
 

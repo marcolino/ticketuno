@@ -1,15 +1,18 @@
 {
   "name": "ticketuno-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Theater ticket reservation system, backend",
   "main": "dist/server.js",
   "scripts": {
     "dev": "NODE_ENV=development PORT=3001 ts-node-dev --respawn src/server.ts",
     "start": "NODE_ENV=development PORT=3001 node dist/server.js",
-    "lint": "echo 'Add eslint later' && exit 0",
-    "test": "echo 'Add tests later' && exit 0",
-    "build": "tsc",
-    "type-check": "tsc --noEmit"
+    "lint": "eslint src",
+    "test": "vitest run",
+    "migrations": "mkdir -p dist/db/migrations && cp -r src/db/migrations/* dist/db/migrations/",
+    "build": "tsc && npm run migrations",
+    "patch": "npm version patch",
+    "type-check": "tsc --noEmit",
+    "check": "npm run type-check && npm run lint && npm run test"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -33,6 +36,11 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^20.19.30",
     "@types/uuid": "^9.0.7",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^4.6.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   }

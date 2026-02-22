@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams/*, useNavigate*/ } from 'react-router-dom';
 import { t } from 'i18next';
 import {
   Container,
@@ -47,6 +47,7 @@ import {
   Language as LanguageIcon,
   Theaters as TheaterIcon,
   ExpandMore as ExpandMoreIcon,
+  EventSeat as EventSeatIcon,
 } from '@mui/icons-material';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
@@ -56,10 +57,11 @@ import 'dayjs/locale/it';
 import 'dayjs/locale/en';
 import 'dayjs/locale/fr';
 
-import { eventApi } from '../services/api';
-import { EventWithDetails, EventPerformance } from '../../../shared/types/event';
-import { useAuth } from '../contexts/AuthContext';
-import { useDialog } from '../contexts/DialogContext';
+import { eventApi } from '@/services/api';
+import { EventWithDetails, EventPerformance } from '@/shared/types/event';
+import useNavigate from '@/hooks/useNavigate';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '@/contexts/DialogContext';
 
 // Form interface for performance with Dayjs
 interface EventPerformanceForm {
@@ -79,7 +81,7 @@ interface EventPerformanceForm {
 const EventDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin/*, isAuthenticated*/ } = useAuth();
+  const { isAdmin, isOperator/*, isAuthenticated*/ } = useAuth();
   
   const [event, setEvent] = useState<EventWithDetails | null>(null);
   const [performances, setPerformances] = useState<EventPerformance[]>([]);
@@ -97,7 +99,7 @@ const EventDetails: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   //const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [performanceToEdit, setPerformanceToEdit] = useState<EventPerformanceForm | null>(null);
-  const [performanceToDelete, setPerformanceToDelete] = useState<string | null>(null);
+  //const [performanceToDelete, setPerformanceToDelete] = useState<string | null>(null);
 
   // Responsive breakpoints
   const theme = useTheme();
@@ -216,7 +218,7 @@ const EventDetails: React.FC = () => {
   };
 
   const handleDeletePerformance = (performanceId: string) => {
-    setPerformanceToDelete(performanceId);
+    //setPerformanceToDelete(performanceId);
     //setDeleteDialogOpen(true);
     showDialog({
       title: t('Confirm Performance Delete'),
@@ -278,7 +280,7 @@ const EventDetails: React.FC = () => {
   };
 
   const handleBookPerformance = (performanceId: string) => {
-    navigate(`/event/${id}/performance//${performanceId}/book`);
+    navigate(`/event/${id}/performance/${performanceId}/book`);
   };
 
   // const handleEditEvent = () => {
@@ -322,12 +324,12 @@ const EventDetails: React.FC = () => {
   const ChooseSeatsButton = ({ performance, size = 'medium' }: { performance: EventPerformance, size?: 'small' | 'medium' }) => {
     const isAvailable = (performance.availableSeats ?? 0) > 0 && performance.status === 'scheduled';
     const buttonText = isAvailable ? 
-      (isMobile ? (
+      /*(isMobile ? (
         <>
           <Box component="span" display="block">{t('Choose')}</Box>
           <Box component="span" display="block">{t('seats')}</Box>
         </>
-      ) : t('Choose seats')) 
+      ) : )*/ t('Choose seats')
       : t('Sold Out');
     
     const buttonColor = isAvailable ? 'success' : 'error';
@@ -343,17 +345,16 @@ const EventDetails: React.FC = () => {
         sx={{
           fontWeight: 'bold',
           whiteSpace: 'normal',
-          lineHeight: 1.1,
           textAlign: 'center',
-          minWidth: isMobile ? 70 : 'auto',
+          //minWidth: isMobile ? 70 : 'auto',
           ...(isMobile && {
-            height: isAvailable ? 70 : 'auto',
+            //height: isAvailable ? 70 : 'auto',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
             py: 1,
-            px: 1.5, // Add horizontal padding for 'Sold Out'
+            px: 1, // Add horizontal padding for 'Sold Out'
             // Ensure consistent padding for both states
             '&.MuiButton-containedSuccess, &.MuiButton-containedError': {
               py: 1,
@@ -384,6 +385,15 @@ const EventDetails: React.FC = () => {
           onClick={() => handleDeletePerformance(performance.id || '')}
         >
           <DeleteIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title={t('Bookings')}>
+        <IconButton
+          size="small"
+          color="success"
+          onClick={() => handleBookPerformance(performance.id || '')}
+        >
+          <EventSeatIcon fontSize="small" />
         </IconButton>
       </Tooltip>
     </Box>
@@ -425,7 +435,7 @@ const EventDetails: React.FC = () => {
     {
       field: 'actions',
       headerName: t('Actions'),
-      width: isAdmin ? 140 : 140,
+      width: 140,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
@@ -434,11 +444,13 @@ const EventDetails: React.FC = () => {
           display: 'flex', 
           alignItems: 'center' // This centers the content vertically
         }}>
-          {isAdmin ? (
-            <AdminActionButtons performance={params.row} />
-          ) : (
-            <ChooseSeatsButton performance={params.row} size="small" />
-          )}
+          <>
+            {isOperator ? (
+              <AdminActionButtons performance={params.row} />
+            ) : (
+              <ChooseSeatsButton performance={params.row} size="small" />
+            )}
+          </>
         </Box>
       ),
     },

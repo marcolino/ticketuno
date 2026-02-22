@@ -16,7 +16,7 @@ interface PixelCrop {
   height: number;
 }
 
-export const createImage = (url: string): Promise<HTMLImageElement> =>
+const createImage = (url: string): Promise<HTMLImageElement> =>
   new Promise((resolve, reject) => {
     const image = new Image();
     image.addEventListener('load', () => resolve(image));
@@ -25,11 +25,11 @@ export const createImage = (url: string): Promise<HTMLImageElement> =>
     image.src = url;
   });
 
-export function getRadianAngle(degreeValue: number): number {
+function getRadianAngle(degreeValue: number): number {
   return (degreeValue * Math.PI) / 180;
 }
 
-export function rotateSize(width: number, height: number, rotation: number): { width: number; height: number } {
+function rotateSize(width: number, height: number, rotation: number): { width: number; height: number } {
   const rotRad = getRadianAngle(rotation);
 
   return {
@@ -111,12 +111,12 @@ export async function getCroppedImg(
   });
 }
 
-// Helper to convert blob to data URL for preview
-export async function blobToDataURL(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+// // Helper to convert blob to data URL for preview
+// export async function blobToDataURL(blob: Blob): Promise<string> {
+//   return new Promise((resolve, reject) => {
+//     const reader = new FileReader();
+//     reader.onload = () => resolve(reader.result as string);
+//     reader.onerror = reject;
+//     reader.readAsDataURL(blob);
+//   });
+// }

@@ -1,0 +1,6 @@
+{
+  "_ignore": "default",
+  "skip": ".*-UNUSED\\.tsx?$|.*-V[0-9]+\\.tsx?$",
+  "include": ["backend/src/**/*", "shared/types/**/*"],
+  "exclude": ["backend/src/shared/**/*"]
+}

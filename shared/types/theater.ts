@@ -1,3 +1,7 @@
+export type TheaterStatus = 'active' | 'inactive';
+export type SeatStatus = 'available' | 'reserved' | 'booked';
+export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'cancelled';
+
 export interface Theater {
   id: string;
   name: string;
@@ -5,7 +9,7 @@ export interface Theater {
   stageType?: string;
   address?: string;
   websiteUrl?: string;
-  status: 'active' | 'inactive';
+  status: TheaterStatus;
   currentLayoutId?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -18,7 +22,7 @@ export interface TheaterStats { // TODO: dispose TheaterStats, use Theater...
   stageType?: string;
   address?: string;
   websiteUrl?: string;
-  status: 'active' | 'inactive';
+  status: TheaterStatus;
   //currentLayoutId?: string;
   // totalSeats: number;
   // freeSeats: number;
@@ -30,21 +34,21 @@ export interface Seat {
   sectionName: string; // "Platea"
   rowId: string; // "A"
   seatNumber: number; // 1
-  status: 'available' | 'reserved' | 'booked';
+  status: SeatStatus;
   bookedByUserId?: string;
   bookedAt?: string;
   reservedUntil?: string;
   price?: number;
 }
 
-export interface Row {
-  id: string;
-  seats: number;
-  startNumber: number;
-  seatStatuses?: Seat[];
-}
+// export interface Row {
+//   id: string;
+//   seats: number;
+//   startNumber: number;
+//   seatStatuses?: Seat[];
+// }
 
-export interface Section {
-  name: string;
-  rows: Row[];
-}
+// export interface Section {
+//   name: string;
+//   rows: Row[];
+// }

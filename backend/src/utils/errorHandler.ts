@@ -4,7 +4,7 @@ export function getErrorMessage(error: unknown): string {
   } else if (typeof error === 'string') {
     return error;
   } else if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as any).message);
+    return String((error as Error).message);
   }
   return 'Unknown error occurred';
 }

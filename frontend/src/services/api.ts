@@ -11,8 +11,9 @@ import {
   ResetPasswordData
 } from '@/shared/types/user';
 import { Theater } from '@/shared/types/theater';
-import { Event, EventStats, EventPerformance, EventWithDetails } from '@/shared/types/event';
-import { GeneratedSeat } from '@/shared/types/layoutToSeats';
+import type { Event, EventStats, EventPerformance, EventWithDetails } from '@/shared/types/event';
+//import { GeneratedSeat } from '@/shared/types/layoutToSeats';
+import { PerformanceSeatsResponse } from '@/components/PerformanceBooking';
 import { Layout } from '@/shared/types/layout';
 import { i18n }  from '@/i18n'; 
 
@@ -62,17 +63,17 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// Helper function to get current language
-export const getCurrentLanguage = (): string => {
-  return i18n.language || 'en';
-};
+// // Helper function to get current language
+// export const getCurrentLanguage = (): string => {
+//   return i18n.language || 'en';
+// };
 
-// Function to change language both in frontend and sync with backend
-export const changeLanguage = async (lng: string): Promise<void> => {
-  await i18n.changeLanguage(lng);
-  // Optionally, we could notify the backend about language change
-  // api.post('/api/v1/users/language', { language: lng });
-};
+// // Function to change language both in frontend and sync with backend
+// export const changeLanguage = async (lng: string): Promise<void> => {
+//   await i18n.changeLanguage(lng);
+//   // Optionally, we could notify the backend about language change
+//   // api.post('/api/v1/users/language', { language: lng });
+// };
 
 // ========== RESPONSE INTERCEPTOR FOR LANGUAGE SYNC ==========
 // If backend sends language in response headers, sync it
@@ -111,13 +112,13 @@ export const setupLoadingInterceptors = (
 // Control whether interceptors are enabled
 let interceptorsEnabled = true;
 
-export const enableLoadingInterceptors = () => {
-  interceptorsEnabled = true;
-};
+// export const enableLoadingInterceptors = () => {
+//   interceptorsEnabled = true;
+// };
 
-export const disableLoadingInterceptors = () => {
-  interceptorsEnabled = false;
-};
+// export const disableLoadingInterceptors = () => {
+//   interceptorsEnabled = false;
+// };
 
 // Custom request method that conditionally applies loading interceptors
 api.interceptors.request.use((config) => {
@@ -185,10 +186,11 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      setAuthToken(null);
-      // Optionally redirect to login page
-      // window.location.href = '/'; // TODO: force login dialog to open
+      window.dispatchEvent(new Event("unauthorized")); // handled in AuthProvider, in frontend
+      // // Token expired or invalid
+      // setAuthToken(null);
+      // // Optionally redirect to login page
+      // // window.location.href = '/'; // TODO: force login dialog to open
     }
     return Promise.reject(error);
   }
@@ -238,6 +240,12 @@ api.interceptors.response.use(
 // ========== END ERRORS MANAGEMENT ==========
 
 // ========== API ENDPOINTS ==========
+export const globalApi = {
+  
+  version: () => // Backend version
+    api.get('/global/version'),
+};
+
 export const userApi = {
   
   login: (credentials: LoginCredentials) => // Login
@@ -356,7 +364,7 @@ export const eventApi = {
     api.get<EventPerformance>(`/events/${eventId}/performances/${performanceId}`),
 
   getPerformanceSeats: (eventId: string, performanceId: string) => 
-    api.get<GeneratedSeat[]>(`/events/${eventId}/performances/${performanceId}/seats`),
+    api.get<PerformanceSeatsResponse>(`/events/${eventId}/performances/${performanceId}/seats`),
 
   createPerformance: (eventId: string, performance: Partial<EventPerformance>) => 
     api.post<EventPerformance>(`/events/${eventId}/performances`, performance),
@@ -386,4 +394,4 @@ export const imageApi = {
     api.delete(`/images/${filename}`),
 };
 
-export default api;
+//export default api;

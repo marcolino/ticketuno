@@ -105,7 +105,7 @@ const ToastAlert = ({
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   // Default options for all toasts
   const defaultOptions: ToastOptions = {
-    duration: 7000,
+    duration: 4000,
     position: 'bottom-right',
   };
 
@@ -201,7 +201,7 @@ export const useToast = () => {
 };
 
 // Direct function exports (can be imported without hook)
-export const toastSuccess = (message: string, options?: ToastOptions) => {
+const toastSuccess = (message: string, options?: ToastOptions) => {
   return hotToast.custom(
     (t) => (
       <ToastAlert 
@@ -214,7 +214,7 @@ export const toastSuccess = (message: string, options?: ToastOptions) => {
   );
 };
 
-export const toastError = (message: string, options?: ToastOptions) => {
+const toastError = (message: string, options?: ToastOptions) => {
   return hotToast.custom(
     (t) => (
       <ToastAlert 
@@ -227,7 +227,7 @@ export const toastError = (message: string, options?: ToastOptions) => {
   );
 };
 
-export const toastWarning = (message: string, options?: ToastOptions) => {
+const toastWarning = (message: string, options?: ToastOptions) => {
   return hotToast.custom(
     (t) => (
       <ToastAlert 
@@ -240,7 +240,7 @@ export const toastWarning = (message: string, options?: ToastOptions) => {
   );
 };
 
-export const toastInfo = (message: string, options?: ToastOptions) => {
+const toastInfo = (message: string, options?: ToastOptions) => {
   return hotToast.custom(
     (t) => (
       <ToastAlert 
@@ -253,7 +253,7 @@ export const toastInfo = (message: string, options?: ToastOptions) => {
   );
 };
 
-export const toastWithActions = (
+const toastWithActions = (
   message: string, 
   actions: Array<{label: string; onClick: () => void}>,
   severity: AlertColor = 'info',

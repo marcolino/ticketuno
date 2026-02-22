@@ -29,5 +29,5 @@
   },
   //"include": ["src", "src/global.d.ts", "../shared/types/**/*"],
   "include": ["src"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "*/**/*-UNUSED.*", "*/**/*-V*.*"]
 }

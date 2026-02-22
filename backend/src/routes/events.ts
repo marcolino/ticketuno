@@ -5,7 +5,7 @@ import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
 import { generateSeats } from '../shared/types/layoutToSeats';
 import { getErrorMessage } from '../utils/errorHandler';
-import config from '../../config';
+import config from '../config';
 
 const router = Router();
 
@@ -44,7 +44,7 @@ router.get('/', async (req, res) => {
     );
 
     res.json(stats);
-  } catch (error:any) { // TODO: error: req.t(...) everywhere...
+  } catch (error: unknown) { // TODO: error: req.t(...) everywhere...
     res.status(500).json({ error: req.t('Failed to fetch events: {{err}}', { err: getErrorMessage(error) })});
   }
 });
@@ -77,7 +77,7 @@ router.get('/:id', async (req, res) => {
       theater,
       performances: performancesWithCounts,
     });
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to fetch event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -154,7 +154,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
 
     await database.createEvent(event);
     res.status(201).json(event);
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to create event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -180,7 +180,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
     await database.updateEvent(req.params.id, req.body);
     const updatedEvent = await database.getEventById(req.params.id);
     res.json(updatedEvent);
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -209,7 +209,7 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
 
     await database.deleteEvent(req.params.id);
     res.json({ message: 'Event deleted successfully' });
-  } catch (error: any) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to delete event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -233,8 +233,9 @@ router.get('/:id/performances', async (req, res) => {
       })
     );
 
-    res.json(performances);
-  } catch (error: any) {
+    //res.json(performances);
+    res.json(performancesWithCounts);
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to fetch performances: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
@@ -258,7 +259,7 @@ router.get('/:eventId/performances/:performanceId', async (req, res) => {
       availableSeats: counts.available,
       bookedSeats: counts.booked
     });
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to fetch performance: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -328,7 +329,7 @@ router.post('/:eventId/performances', authenticateToken, requireAdmin, async (re
       availableSeats: counts.available,
       bookedSeats: counts.booked
     });
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to create performance: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -366,7 +367,7 @@ router.put('/:eventId/performances/:performanceId', authenticateToken, requireAd
       availableSeats: counts.available,
       bookedSeats: counts.booked
     });
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update event: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -400,7 +401,7 @@ router.delete('/:eventId/performances/:performanceId', async (req, res) => {
     await database.deletePerformanceById(performanceId);
 
     res.json({ message: 'Performance deleted successfully' });
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to delete performance: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
@@ -420,7 +421,7 @@ router.get('/:eventId/performances/:performanceId/seats', async (req, res) => {
     const seats = await database.getSeatsByPerformanceIdGrouped(performanceId);
     
     res.json(seats);
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to fetch seats: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
@@ -433,7 +434,7 @@ router.get('/:eventId/performances/:performanceId/seats/:sectionName', async (re
     const seats = await database.getSeatsBySection(performanceId, sectionName);
     
     res.json(seats);
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ 
       error: req.t('Failed to fetch seats: {{err}}', { err: getErrorMessage(error) }) 
     });
@@ -479,7 +480,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     }
 
     res.json({ message: req.t('{{count}} seats booked successfully', { count: result.bookedCount }) });
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });
   }
 });

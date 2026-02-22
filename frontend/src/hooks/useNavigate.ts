@@ -2,7 +2,7 @@ import { useNavigate as useOriginalNavigate, NavigateOptions, To } from 'react-r
 import { useCallback } from 'react';
 
 // Define the return type of our custom hook
-export type SafeNavigateFunction = {
+type SafeNavigateFunction = {
   (to: To, options?: NavigateOptions & { fallbackPath?: string }): void;
   (delta: number): void;
   goBack: (fallbackPath?: string) => void;
@@ -17,19 +17,41 @@ const useNavigate = (): SafeNavigateFunction => {
     to: To | number,
     options?: NavigateOptions & { fallbackPath?: string }
   ) => {
-    if (typeof to === 'number' && to < 0) {
-      const referrer = document.referrer;
-      const isInternalReferrer = referrer && referrer.startsWith(window.location.origin);
-      
-      // Only go back if we're SURE it's internal
-      // When in doubt (empty referrer or external), redirect to home
-      if (!isInternalReferrer) {
-        const fallback = options?.fallbackPath || '/';
-        return originalNavigate(fallback, options);
+    if (typeof to === 'number') {
+      if (to < 0) {
+        const referrer = document.referrer;
+        const isInternalReferrer =
+          referrer && referrer.startsWith(window.location.origin);
+
+        if (!isInternalReferrer) {
+          const fallback = options?.fallbackPath || '/';
+          return originalNavigate(fallback, options);
+        }
       }
+
+      return originalNavigate(to);
     }
+
     return originalNavigate(to, options);
   }, [originalNavigate]);
+
+  // const safeNavigateORIG = useCallback((
+  //   to: To | number,
+  //   options?: NavigateOptions & { fallbackPath?: string }
+  // ) => {
+  //   if (typeof to === 'number' && to < 0) {
+  //     const referrer = document.referrer;
+  //     const isInternalReferrer = referrer && referrer.startsWith(window.location.origin);
+      
+  //     // Only go back if we're SURE it's internal
+  //     // When in doubt (empty referrer or external), redirect to home
+  //     if (!isInternalReferrer) {
+  //       const fallback = options?.fallbackPath || '/';
+  //       return originalNavigate(fallback, options);
+  //     }
+  //   }
+  //   return originalNavigate(to, options);
+  // }, [originalNavigate]);
 
   // Create the callable function with additional methods
   const navigate = safeNavigate as SafeNavigateFunction;

@@ -1,10 +1,19 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+  useCallback,
+  useMemo,
+} from 'react';
 import { userApi, setAuthToken } from '@/services/api';
-import { 
-  User, 
+import useSessionManager from '@/hooks/useSessionManager';
+import {
+  User,
   LoginCredentials,
   LoginResponse,
-  RegisterData, 
+  RegisterData,
   RegisterResponse,
   VerificationData,
   VerifyEmailResponse,
@@ -17,6 +26,7 @@ import {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
   isOperator: boolean;
@@ -37,17 +47,15 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [token, setToken] = useState<string | null>(
+    () => localStorage.getItem('authToken')
+  );
+
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // const isAdmin = (user): boolean => {
-  //   return user?.role === 'admin';
-  // };
-  // const isOperator = (user): boolean => {
-  //   return user?.role === 'admin' || user?.role === 'operator';
-  // };
   const isAdmin = user?.role === 'admin';
   const isOperator = user?.role === 'admin' || user?.role === 'operator';
   
@@ -56,61 +64,69 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await userApi.getProfile();
       setUser(response.data);
       setIsAuthenticated(true);
-      setLoading(false);
       return response.data;
     } catch (error) {
-      setAuthToken(null);
-      localStorage.removeItem('authToken');
-      setUser(null);
-      setIsAuthenticated(false);
-      setLoading(false);
+      logout();
       throw error;
+    } finally {
+      setLoading(false);
     }
   }, []);
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
-    try {
-      setLoading(true);
-      
-      // Check if it's a token login (Google OAuth)
-      if ('token' in credentials) {
-        // Token-based login (for Google OAuth)
-        const token = credentials.token;
-        setAuthToken(token);
-        localStorage.setItem('authToken', token);
-        
-        // Load user profile with the new token
-        const userData = await loadProfile();
-        
-        return {
-          token,
-          user: userData,
-        };
-      } else {
-        // Email/password login (existing logic)
-        const response = await userApi.login(credentials);
-        
-        if (response.data.requiresVerification) {
+  const login = useCallback(
+    async (credentials: LoginCredentials) => {
+      try {
+        setLoading(true);
+
+        if ('token' in credentials) {
+          const newToken = credentials.token;
+          setAuthToken(newToken);
+          localStorage.setItem('authToken', newToken);
+          setToken(newToken);
+
+          const userData = await loadProfile();
+
+          return {
+            token: newToken,
+            user: userData,
+          };
+        } else {
+          const response = await userApi.login(credentials);
+
+          if (response.data.requiresVerification) {
+            setLoading(false);
+            return response.data;
+          }
+
+          const newToken = response.data.token;
+          setAuthToken(newToken);
+          localStorage.setItem('authToken', newToken);
+          setToken(newToken);
+
+          setUser(response.data.user);
+          setIsAuthenticated(true);
           setLoading(false);
+
           return response.data;
         }
-        
-        setAuthToken(response.data.token);
-        localStorage.setItem('authToken', response.data.token);
-        setUser(response.data.user);
-        setIsAuthenticated(true);
-        setLoading(false);
-        return response.data;
+      } catch (error: any) {
+        logout();
+        throw error;
       }
-    } catch (error: any) {
-      setAuthToken(null);
-      localStorage.removeItem('authToken');
-      setUser(null);
-      setIsAuthenticated(false);
-      setLoading(false);
-      throw error;
-    }
-  }, [loadProfile]);
+    },
+    [loadProfile]
+  );
+
+  const logout = useCallback(() => {
+    const currentPath = window.location.pathname;
+    localStorage.setItem('redirectAfterLogin', currentPath);
+
+    setAuthToken(null);
+    localStorage.removeItem('authToken');
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+  }, []);
 
   const register = useCallback(async (data: RegisterData) => {
     const response = await userApi.register(data);
@@ -119,10 +135,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verifyEmail = useCallback(async (data: VerificationData) => {
     const response = await userApi.verifyEmail(data);
-    setAuthToken(response.data.token);
-    localStorage.setItem('authToken', response.data.token);
+    const newToken = response.data.token;
+
+    setAuthToken(newToken);
+    localStorage.setItem('authToken', newToken);
+    setToken(newToken);
+
     setUser(response.data.user);
     setIsAuthenticated(true);
+
     return response.data;
   }, []);
 
@@ -141,51 +162,79 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return response.data;
   }, []);
 
-  const logout = useCallback(() => {
-    setAuthToken(null);
-    localStorage.removeItem('authToken');
-    setUser(null);
-    setIsAuthenticated(false);
-  }, []);
-
   const updateUser = useCallback((updatedUser: User) => {
     setUser(updatedUser);
   }, []);
 
+  // Integrate session manager
+  useSessionManager({
+    token,
+    logout,
+  });
+
+  // Boot logic
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
     if (token) {
       setAuthToken(token);
       loadProfile();
     } else {
       setLoading(false);
     }
-  }, [loadProfile]);
+  }, [token, loadProfile]);
 
-  const contextValue = useMemo(() => ({
-    user,
-    isAuthenticated,
-    isAdmin,
-    isOperator,
-    loading,
-    login,
-    register,
-    verifyEmail,
-    resendVerification,
-    forgotPassword,
-    resetPassword,
-    logout,
-    updateUser
-  }), [user, isAuthenticated, isAdmin, isOperator, loading, login, register, verifyEmail, resendVerification, forgotPassword, resetPassword, logout, updateUser]);
+  // Unauthorized logic
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+    };
+    window.addEventListener("unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("unauthorized", handleUnauthorized);
+    };
+  }, [logout]);
+
+  const contextValue = useMemo(
+    () => ({
+      user,
+      token,
+      isAuthenticated,
+      isAdmin,
+      isOperator,
+      loading,
+      login,
+      register,
+      verifyEmail,
+      resendVerification,
+      forgotPassword,
+      resetPassword,
+      logout,
+      updateUser,
+    }),
+    [
+      user,
+      token,
+      isAuthenticated,
+      isAdmin,
+      isOperator,
+      loading,
+      login,
+      register,
+      verifyEmail,
+      resendVerification,
+      forgotPassword,
+      resetPassword,
+      logout,
+      updateUser,
+    ]
+  );
 
   return (
     <AuthContext.Provider value={contextValue}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
 
-// Hook MUST be AFTER provider
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (!context) {

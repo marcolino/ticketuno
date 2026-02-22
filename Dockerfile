@@ -44,7 +44,7 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install production dependencies only
-COPY backend/config.js ./
+#COPY backend/config.js ./
 COPY backend/package*.json ./
 RUN npm ci --only=production && \
     npm cache clean --force
@@ -55,11 +55,15 @@ COPY --from=backend-builder /app/backend/dist ./dist
 # Copy built frontend to be served by backend
 COPY --from=frontend-builder /app/frontend/dist ./public
 
-# Copy the locale files from the builder stage
+# Copy the shared files from the builder stage
 COPY --from=backend-builder /app/shared/ /shared/
 
 # Create data directory for SQLite
 RUN mkdir -p /data && chown -R node:node /data
+
+# JUST TO SOLVE DB PERMISSION ERRORS!!!
+#COPY backend/ticketuno-production.db /data/ticketuno.db
+#RUN chown node:node /data/ticketuno.db && chmod 660 /data/ticketuno.db
 
 # Add sqlite3
 RUN apk add --no-cache sqlite

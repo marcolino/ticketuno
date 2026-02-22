@@ -48,16 +48,17 @@ export interface EventPerformance {
   // bookedSeats?: number; // Optional (calculated)
   //seatData: string; // JSON string of seat statuses
   status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
+  //baseTicketPrice: number;
   availableSeats?: number;
   bookedSeats?: number;
   createdAt?: string;
   updatedAt?: string;
 }
 
-export interface EventWithTheater extends Event {
-  theaterName: string;
-  totalSeats: number;
-}
+// export interface EventWithTheater extends Event {
+//   theaterName: string;
+//   totalSeats: number;
+// }
 
 export interface EventStats {
   id: string;

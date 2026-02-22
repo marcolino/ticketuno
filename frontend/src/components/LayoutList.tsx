@@ -28,13 +28,15 @@ const LayoutList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isOperator } = useAuth();
   const [layouts, setLayouts] = useState<Layout[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadLayouts();
-  }, [isAuthenticated, isAdmin]);
+    if (isOperator) {
+      loadLayouts();
+    }
+  }, [isOperator]);
 
   const loadLayouts = async () => {
     try {
@@ -95,7 +97,7 @@ const LayoutList: React.FC = () => {
         <Alert severity="info">{t('No layouts available')}</Alert>
       )}
       
-      {!error && isAdmin && (
+      {!error && isOperator && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
@@ -209,7 +211,7 @@ const LayoutList: React.FC = () => {
                   >
                     View Performances
                   </Button> */}
-                  {isAdmin && (
+                  {isOperator && (
                     <Button
                       variant="outlined"
                       startIcon={<EditIcon />}
@@ -219,7 +221,7 @@ const LayoutList: React.FC = () => {
                       {i18n.t('Edit')}
                     </Button>
                   )}
-                  {isAdmin && (
+                  {isOperator && (
                     <Button
                       variant="outlined"
                       startIcon={<DeleteIcon />}

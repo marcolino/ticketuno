@@ -64,7 +64,7 @@ interface SelectWithAddProps {
   size?: 'small' | 'medium';
 }
 
-export function SelectWithAdd({
+function SelectWithAdd({
   label = "Select",
   options: initialOptions = [],
   value: controlledValue,

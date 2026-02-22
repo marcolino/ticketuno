@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
@@ -15,15 +15,15 @@ import {
 } from '../utils/email';
 import { userCanManageAccount, userCanSetRole } from '../shared/utils/roles';
 import { getErrorMessage } from '../utils/errorHandler';
-import config from '../../config';
+import config from '../config';
 
 const router = express.Router();
 
 // Initialize Google OAuth client
 const googleClient = new OAuth2Client(
-  config.env.GOOGLE_CLIENT_ID,
-  config.env.GOOGLE_CLIENT_SECRET,
-  `${config.env.BACKEND_URL}/api/v1/users/auth/google/callback`,
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  `${process.env.BACKEND_URL}/api/v1/users/auth/google/callback`,
 );
 
 // Register - Step 1: send verification code
@@ -75,7 +75,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({ 
       message: req.t('Registration successful. Please check your email for verification code.'),
       email: user.email,
-      ...(config.env.NODE_ENV !== 'production' && { verificationCode }),
+      ...(process.env.NODE_ENV !== 'production' && { verificationCode }),
     });
     
     // const profile: UserProfile = {
@@ -188,7 +188,7 @@ router.post('/resend-verification', async (req, res) => {
 
     res.json({
       message: req.t('A verification code sent to the specified email'),
-      ...(config.env.NODE_ENV !== 'production' && { verificationCode }),
+      ...(process.env.NODE_ENV !== 'production' && { verificationCode }),
     });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to resend verification code: {{err}}', {err: getErrorMessage(error)}) });
@@ -203,7 +203,7 @@ router.post('/login', async (req: AuthRequest, res) => {
     let user;
 
     if (token) { // Google token login
-      const decoded = jwt.verify(token, config.env.JWT_SECRET!);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
       if (typeof decoded !== 'object' || !decoded.userId) {
         return res.status(401).json({ error: 'Invalid token format' });
       }
@@ -278,7 +278,7 @@ router.post('/forgot-password', async (req, res) => {
       // Don't reveal if user exists
       return res.json({
         message: req.t('A reset code has been be sent to the requested email, if it exists'),
-        ...(config.env.NODE_ENV !== 'production' && { error: req.t('User not found') }),
+        ...(process.env.NODE_ENV !== 'production' && { error: req.t('User not found') }),
       });
     }
 
@@ -294,7 +294,7 @@ router.post('/forgot-password', async (req, res) => {
 
     res.json({
       message: req.t('A reset code has been be sent to the requested email, if it exists'),
-      ...(config.env.NODE_ENV !== 'production' && { resetPasswordCode }),
+      ...(process.env.NODE_ENV !== 'production' && { resetPasswordCode }),
     });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to process password reset request: {{err}}', {err: getErrorMessage(error)}) });
@@ -357,7 +357,7 @@ router.get('/auth/google', (req, res) => {
         'https://www.googleapis.com/auth/userinfo.email'
       ],
       prompt: 'consent',
-      //redirect_uri: config.env.GOOGLE_REDIRECT_URI
+      //redirect_uri: process.env.GOOGLE_REDIRECT_URI
       //redirect_uri not needed, already set in the OAuth2Client constructor
     });
     
@@ -374,7 +374,7 @@ router.get('/auth/google/callback', async (req, res) => {
 
     if (!code || typeof code !== 'string') {
       //return res.redirect('http://localhost:3000//?error=google_auth_failed'); // TODO: from config
-      return sendPopupError(res, req.t('Missing code in google response'));
+      return sendPopupError(req, res, req.t('Missing code in google response'));
     }
 
     // Exchange code for tokens with Google
@@ -384,7 +384,7 @@ router.get('/auth/google/callback', async (req, res) => {
     // Get user profile from Google
     const ticket = await googleClient.verifyIdToken({
       idToken: tokens.id_token!,
-      audience: config.env.GOOGLE_CLIENT_ID
+      audience: process.env.GOOGLE_CLIENT_ID
     });
 
     // Get ticket payload
@@ -405,8 +405,8 @@ router.get('/auth/google/callback', async (req, res) => {
       if (user) {
         await database.updateUser(user.id, { googleId });
       } else {
-        user = {
-          id: '',
+        console.log("GGG - email:", email);
+        const newUser: Omit<User, 'id' | 'createdAt' | 'updatedAt'> = {
           email,
           password: '',
           firstName: given_name || 'Google',
@@ -414,15 +414,17 @@ router.get('/auth/google/callback', async (req, res) => {
           role: 'user',
           isVerified: true,
           googleId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
         };
-        
-        await database.createUser(user);
+        const newUserId = await database.createUser(newUser);
+        console.log("GGG - newUserId:", newUserId);
+
+        // Fetch the full user object back from DB
+        user = await database.getUserById(newUserId);
+        console.log("GGG - user:", user);
       }
     }
 
-    const token = generateToken(user.id, user.role);
+    const token = generateToken(user!.id, user!.role);
     
     // Redirect to frontend with token
     //res.redirect(`http://localhost:3000/?google_token=${token}`); // TODO: from config
@@ -434,25 +436,25 @@ router.get('/auth/google/callback', async (req, res) => {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_SUCCESS',
             token: '${token}'
-          }, '${config.env.FRONTEND_URL}'); // Works in both dev and production
+          }, '${process.env.FRONTEND_URL}'); // Works in both dev and production
           window.close(); // Close this popup automatically
         </script>
         <body>` + req.t('Login successful! Closing...') + `</body>
       </html>
     `);
-  } catch (error) {
+  } catch (error: unknown) {
     //res.redirect('http://localhost:3000/?error=google_auth_failed');// TODO: from config
-    sendPopupError(res, req.t('Authentication failed: {{err}}', { err: getErrorMessage(error) || req.t('Google authentication error')} ));
+    sendPopupError(req, res, req.t('Authentication failed: {{err}}', { err: getErrorMessage(error) || req.t('Google authentication error')} ));
   }
 
-  function sendPopupError(res: any, error: string) {
+  function sendPopupError(req: Request, res: Response, error: string) {
     res.send(`
       <html>
         <script>
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_ERROR',
             error: '${error}'
-          }, '${config.env.FRONTEND_URL}'); // Works in both dev and production
+          }, '${process.env.FRONTEND_URL}'); // Works in both dev and production
           window.close(); // Close this popup automatically
         </script>
         <body>` + req.t('Login error: {{error}}! Closing...', { error }) + `</body>
@@ -495,7 +497,7 @@ router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       updatedAt: user.updatedAt,
     };
     res.json(profile);
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to fetch profile: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
@@ -549,7 +551,7 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       updatedAt: updated!.updatedAt,
     };
     res.json(profile);
-  } catch (error) {
+  } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update profile: {{err}}', { err: getErrorMessage(error) }) });
   }
 });

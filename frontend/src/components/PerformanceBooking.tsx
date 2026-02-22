@@ -21,7 +21,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
-import { EventPerformance } from '@/shared/types/event';
+import { Event, EventPerformance } from '@/shared/types/event';
 import { LayoutJSON } from '@/shared/types/layout';
 import { generateSeats, SeatStatus } from '@/shared/types/layoutToSeats';
 import LayoutPreviewSVG, { SeatWithStatus } from './LayoutPreviewSVG';
@@ -33,7 +33,7 @@ interface SeatData {
   [key: string]: any;
 }
 
-interface PerformanceSeatsResponse {
+export interface PerformanceSeatsResponse {
   [section: string]: {
     [row: string]: SeatData[];
   };
@@ -49,6 +49,7 @@ const PerformanceBooking: React.FC = () => {
   const showDialog = useDialog();
   
   const [performance, setPerformance] = useState<EventPerformance | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
   const [layout, setLayout] = useState<LayoutJSON | null>(null);
   const [seats, setSeats] = useState<SeatWithStatus[]>([]);
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
@@ -86,19 +87,20 @@ const PerformanceBooking: React.FC = () => {
       
       // Get performance details
       const perfResponse = await eventApi.getPerformance(eventId, performanceId);
-      const perf = perfResponse.data;
-      setPerformance(perf);
+      const performanceData = perfResponse.data;
+      setPerformance(performanceData);
       
       // Get event to access theater
       const eventResponse = await eventApi.getEventById(eventId);
-      const event = eventResponse.data;
+      const eventData = eventResponse.data;
+      setEvent(eventData);
       
-      if (!event.theater?.currentLayoutId) {
+      if (!eventData.theater?.currentLayoutId) {
         throw new Error('Theater layout not found');
       }
       
       // Get layout
-      const layoutResponse = await layoutApi.getLayoutById(event.theater.currentLayoutId);
+      const layoutResponse = await layoutApi.getLayoutById(eventData.theater.currentLayoutId);
       const layoutData: LayoutJSON = JSON.parse(layoutResponse.data.json);
       setLayout(layoutData);
       
@@ -172,8 +174,8 @@ const PerformanceBooking: React.FC = () => {
   
   // Calculate total price
   const totalPrice = useMemo(() => {
-    return selectedSeats.size * (performance?.baseTicketPrice || 0);
-  }, [selectedSeats.size, performance?.baseTicketPrice]);
+    return selectedSeats.size * (event?.baseTicketPrice || 0);
+  }, [selectedSeats.size, event?.baseTicketPrice]);
 
   const handleConfirmBooking = () => {
     showDialog({
@@ -183,7 +185,7 @@ const PerformanceBooking: React.FC = () => {
           <Typography>
             {t('You are about to book {{count}} seats:', { count: selectedSeats.size })}
           </Typography>
-          <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2, f_ontFamily: 'monospace' }}>
+          <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2 }}>
             {Array.from(selectedSeats).join(', ')}
           </Paper>
           {/* <Divider sx={{ my: 2 }} /> */}
@@ -211,7 +213,7 @@ const PerformanceBooking: React.FC = () => {
     }
     
     if (!isAuthenticated) {
-      showDialog({
+      await showDialog({
         title: t('Login Required'),
         content: t('You need to login to book seats. Please login or register to continue.'),
         onConfirm: () => navigate(`${location.pathname}?login=true`),

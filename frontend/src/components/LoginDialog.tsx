@@ -20,6 +20,7 @@ import {
   VisibilityOff,
   Google as GoogleIcon,
 } from '@mui/icons-material';
+import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 
@@ -32,6 +33,8 @@ type TabValue = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
 const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
   const { login, register, verifyEmail, resendVerification, forgotPassword, resetPassword/*, googleLogin*/ } = useAuth();
+  const navigate = useNavigate();
+
   const [tab, setTab] = useState<TabValue>('login');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -82,6 +85,12 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         toast.success(t('Login successful!'));
         onClose();
         resetForms();
+
+        const redirect = localStorage.getItem("redirectAfterLogin");
+        localStorage.removeItem("redirectAfterLogin");
+        if (redirect) {
+          navigate(redirect);
+        };
       }
     } catch (error: any) {
       console.error('Login error response:', error.response);
@@ -355,7 +364,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       </DialogTitle>
       <DialogContent
         sx={{
-          mx: { xs: 5, sm: 10 }
+          mx: { xs: 1, sm: 10 }
         }}
       >
         {error && (

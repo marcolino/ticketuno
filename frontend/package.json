@@ -1,16 +1,19 @@
 {
   "name": "ticketuno-frontend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Theater ticket reservation system, frontend",
   "private": true,
   "scripts": {
-    "start": "vite",
+    "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "vitest",
-    "eject": "echo \"please manually run: react-scripts eject\"",
-    "lint": "echo 'Add eslint later'",
-    "type-check": "tsc --noEmit"
+    "test": "vitest run",
+    "eject": "echo \"please manually run: react-scripts eject\" if you really want to eject",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "unused": "ts-prune",
+    "check": "npm run type-check && npm run lint && npm run test",
+    "patch_UNUSED": "npm version patch"
   },
   "dependencies": {
     "@date-io/date-fns": "^3.2.1",
@@ -46,8 +49,8 @@
     "@types/react": "^19.2.9",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^4.7.0",
-    "react-scripts": "5.0.1",
-    "typescript": "^4.9.5",
+    "ts-prune": "^0.10.3",
+    "typescript": "^5.9.3",
     "vite": "^6.4.1",
     "vitest": "^4.0.16"
   },

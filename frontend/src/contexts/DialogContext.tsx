@@ -15,17 +15,17 @@ import {
 } from '@mui/material';
 import {
   Close as CloseIcon,
-  Cancel as CancelIcon,
+  //Cancel as CancelIcon,
 } from '@mui/icons-material/';
 
-export type DialogButton = {
+type DialogButton = {
   text: string;
   onClick: () => void | Promise<void>;
   variant?: "text" | "outlined" | "contained";
   color?: "inherit" | "primary" | "secondary" | "error";
 };
 
-export type DialogOptions = {
+type DialogOptions = {
   title: string;
   content?: ReactNode;
 

@@ -21,6 +21,8 @@ import {
   List,
   ListItem,
   ListItemButton,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import {
   //EventSeat as EventSeatIcon,
@@ -36,6 +38,7 @@ import {
   ViewCompact as ViewCompactIcon,
   Curtains as CurtainsIcon,
   TheaterComedy as TheaterComedyIcon,
+  SettingsSuggest as SettingsSuggestIcon,
   //Theaters as TheatersIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
@@ -46,9 +49,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '../contexts/DialogContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import LoginDialog from './LoginDialog';
-import config from '@/config';
+import config from '../config';
 
-console.log('CONFIG ********************:', config);
+console.log('CONFIG is:', config);
 
 interface HomeProps {
   children: React.ReactNode;
@@ -60,7 +63,9 @@ const Home: React.FC<HomeProps> = ({ children }) => {
   const navigate = useNavigate();
   //const location = useLocation();
   const { user, isAuthenticated, /*isAdmin, */logout } = useAuth();
-  const { mode, toggleMode } = useThemeMode();
+//  const { mode, toggleMode } = useThemeMode();
+  //const { mode, changeThemeMode } = useThemeMode();
+  const { themePreference, setThemePreference, effectiveMode } = useThemeMode();
   //const { themeType, setThemeType, platform } = useThemeMode();
   
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
@@ -69,15 +74,18 @@ const Home: React.FC<HomeProps> = ({ children }) => {
 
   const showDialog = useDialog();
 
-  // const languages = [ // TODO: to config
-  //   { code: 'en', name: 'English', flag: '🏴󠁧󠁢󠁥󠁮󠁧󠁿' },
-  //   { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-  //   { code: 'fr', name: 'Français', flag: '🇫🇷' }
-  // ];
-
   // const toggleTheme = () => {
   //   setThemeType(themeType === 'custom' ? 'native' : 'custom');
   // }
+
+  const handleThemeChange = (
+    _: React.MouseEvent<HTMLElement>,
+    newValue: ThemePreference | null
+  ) => {
+    if (newValue !== null) {
+      setThemePreference(newValue);
+    }
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -193,18 +201,27 @@ const Home: React.FC<HomeProps> = ({ children }) => {
           sx={{ mr: 2 }}
         >
           <img 
-            src="/images/masks.png" 
+            src="/images/logo.png" 
             alt={t('Theater')}
             style={{ 
               width: 48, 
               height: 48,
-              filter: mode === 'dark' ? 'invert(0.7)' : '', // Optional: makes white in dark theme
+              //filter: mode === 'dark' ? 'invert(0) brightness(0.9) contrast(1.7)' : '', // TODO: use different logo.png icons
             }} 
           />
         </IconButton>
         
-        <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-          {t('TicketUno')} {/* TODO: from config */}
+        <Typography
+          variant="h6"
+          component="div"
+          sx={{ flexGrow: 1 }}
+        >
+          <Box 
+            onClick={() => navigate('/')} 
+            sx={{ display: 'inline', cursor: 'pointer' }}
+          >
+            {t('TicketUno')} {/* TODO: from config */}
+          </Box> 
         </Typography>
 
         {isAuthenticated ? (
@@ -264,27 +281,83 @@ const Home: React.FC<HomeProps> = ({ children }) => {
                 <ListItemIcon>
                   <PersonIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>Profile</ListItemText>
+                <ListItemText>{t('Profile')}</ListItemText>
               </MenuItem>
-              <MenuItem onClick={toggleMode}>
+
+              {/* <MenuItem onClick={toggleMode}>
                 <ListItemIcon>
                   {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
                 </ListItemIcon>
-                <ListItemText>{mode === 'dark' ? 'Light Mode' : 'Dark Mode'}</ListItemText>
-              </MenuItem>
+                <ListItemText>{mode === 'dark' ? t('Light Mode') : t('Dark Mode')}</ListItemText>
+              </MenuItem> */}
+
+              {/* <MenuItem>
+                <ListItemIcon>
+                  {mode === 'light' ? <LightModeIcon fontSize="small" /> : mode === 'dark' ? <DarkModeIcon fontSize="small" /> :  <SettingsSuggestIcon fontSize="small" />}
+                </ListItemIcon>
+                <ListItemText>{t('Theme')}</ListItemText>
+                &emsp;
+                <ToggleButtonGroup size="small" onChange={changeThemeMode} aria-label={t("Theme selection")}>
+                  <ToggleButton value="bold" aria-label="bold">
+                    <LightModeIcon fontSize="small" />
+                  </ToggleButton>
+                    <ToggleButton value="bold" aria-label="bold">
+                    <DarkModeIcon fontSize="small" />
+                  </ToggleButton>
+                    <ToggleButton value="bold" aria-label="bold">
+                    <SettingsSuggestIcon fontSize="small" />
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </MenuItem> */}
+
+              <MenuItem>
+                <ListItemIcon>
+                  {
+                    themePreference === 'light' ? <LightModeIcon fontSize="small" /> :
+                      themePreference === 'dark' ? <DarkModeIcon fontSize="small" /> :
+                        <SettingsSuggestIcon fontSize="small" />
+                  }
+                </ListItemIcon>
+                <ListItemText>{t('Theme')}</ListItemText>
+                &emsp;
+                <ToggleButtonGroup
+                  size="small"
+                  value={themePreference}
+                  exclusive
+                  onChange={handleThemeChange}
+                  aria-label={t("Theme selection")}
+                >
+                  <ToggleButton value="system" sx={{ textTransform: 'lowercase' }}>
+                    <SettingsSuggestIcon fontSize="small" />{themePreference === 'system' ? ` (${t(effectiveMode)})` : ''}
+                  </ToggleButton>
+
+                  <ToggleButton value="light">
+                    <LightModeIcon fontSize="small" />
+                  </ToggleButton>
+
+                  <ToggleButton value="dark">
+                    <DarkModeIcon fontSize="small" />
+                  </ToggleButton>
+
+                  </ToggleButtonGroup>
+                </MenuItem>
+              
               <MenuItem onClick={() => { handleLanguage(); /*handleClose(); setLangDialogOpen(true);*/ }}>
                 <ListItemIcon>
                   <LanguageIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText>{t('Language')}</ListItemText>
               </MenuItem>
+
               <Divider />
+
               <MenuItem onClick={handleLogout}>
                 <ListItemIcon>
                   <LogoutIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText>{t('Logout')}</ListItemText>
               </MenuItem>
+
             </Menu>
           </>
         ) : (
@@ -306,11 +379,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
       </Body>
 
       {/* Footer */}
-      <Footer>
-        <Typography variant="body2" color="text.secondary" align="center">
-          © {new Date().getFullYear()} TicketUno. {t('All rights reserved')}. {/* TODO: from config */}
-        </Typography>
-      </Footer>
+      <Footer />
 
       {/* Login dialog */}
       <LoginDialog
