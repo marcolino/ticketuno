@@ -16,7 +16,7 @@ import {
   //Avatar,
 } from '@mui/material';
 import {
-  Add as AddIcon,
+  //Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Event as EventIcon,
@@ -29,19 +29,23 @@ import useNavigate from '@/hooks/useNavigate';
 import { eventApi } from '@/services/api';
 import { EventStats } from '@/shared/types/event';
 import { useAuth } from '@/contexts/AuthContext';
-import config, { CurrencyCode } from '@/config';
+import PageHeader from "./PageHeader";
+//import type { CurrencyCode } from '@/shared/config';
+import config from '@/config';
 //import { __test } from '@/shared/config';
 
 const EventList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
+  const { isOperator} = useAuth();
   const [events, setEvents] = useState<EventStats[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadEvents();
-  }, []);
+    if (isOperator) {
+      loadEvents();
+    }
+  }, [isOperator]);
 
   const loadEvents = async () => {
     try {
@@ -52,7 +56,6 @@ const EventList: React.FC = () => {
     } catch (err) {
       setError('Failed to load events');
       console.error(err);
-    } finally {
     }
   };
 
@@ -65,10 +68,21 @@ const EventList: React.FC = () => {
     navigate(`/event/edit/${id}`);
   };
 
-  const handleDeleteEvent = (id: string, e: React.MouseEvent) => {
-    // TODO: ask for confirmation...
+  const handleDeleteEvent = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/event/delete/${id}`);
+
+    // TODO: ask for confirmation...
+
+    try {
+      /*const response = */await eventApi.deleteEvent(id);
+      const newEvents = events.filter(event => event.id !== id);
+      setEvents(newEvents);
+      setError(null);
+    } catch (err: any) {
+      // Show the actual server error message
+      setError(err.response?.data?.error || 'Failed to delete event');
+    }
+    navigate(`/events`);
   };
 
   const formatDate = (dateString?: string) => {
@@ -88,9 +102,15 @@ const EventList: React.FC = () => {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
+      {/* <Typography variant="h4" gutterBottom>
         {t('Current Events')}
-      </Typography>
+      </Typography> */}
+      <PageHeader
+        title={t('Events')}
+        showAdd={isOperator}
+        addLabel={t('Add Event')}
+        onAdd={() => navigate('/event/new')}
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -102,7 +122,7 @@ const EventList: React.FC = () => {
         <Alert severity="info">{t('No events available')}</Alert>
       )}
       
-      {isAdmin && (
+      {/* {isAdmin && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
@@ -114,7 +134,7 @@ const EventList: React.FC = () => {
             {t('Add Event')}
           </Button>
         </Box>
-      )}
+      )} */}
 
        {/* {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -268,7 +288,7 @@ const EventList: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                       <Typography variant="body2" color="text.secondary">
-                        {t('From')} {config.app.currencies[event.currency as CurrencyCode]?.symbol} {event.baseTicketPrice}
+                        {t('From')} {config.app.currencies[event.currency]?.symbol} {event.baseTicketPrice}
                       </Typography>
                     </Box>
 
@@ -288,7 +308,7 @@ const EventList: React.FC = () => {
                   gap: 1,
                   width: '100%'
                 }}>
-                  {isAdmin && (
+                  {isOperator && (
                     <Button
                       variant="outlined"
                       startIcon={<DeleteIcon />}
@@ -300,7 +320,7 @@ const EventList: React.FC = () => {
                       {t('Delete')}
                     </Button>
                   )}
-                  {isAdmin && (
+                  {isOperator && (
                     <Button
                       variant="contained"
                       startIcon={<EditIcon />}
@@ -316,7 +336,7 @@ const EventList: React.FC = () => {
                     variant="contained"
                     startIcon={<EventIcon />}
                     onClick={() => handleViewEvent(event.id) }
-                    disabled={!isAdmin && event.availablePerformances === 0}
+                    disabled={!isOperator}
                     sx={{
                       width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
                       //minWidth: 200 // Minimum width for better appearance

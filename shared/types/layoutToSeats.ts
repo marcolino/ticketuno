@@ -30,7 +30,7 @@ export function generateSeats(layout: LayoutJSON): GeneratedSeat[] {
       
       // Get curve and stretch parameters
       const curve = row.curve || 0; // Negative = curve toward stage (up)
-      const stretchFactor = row.stretch || 1.0;
+      const stretchFactor = row.stretch ?? 1.0;
       const seatSpacing = section.seatSpacing * (0.9 + (stretchFactor * 0.1));
       
       // Calculate total row width to center it

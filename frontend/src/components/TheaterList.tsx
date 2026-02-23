@@ -24,24 +24,23 @@ import { toast } from '@/contexts/ToastContext';
 import { theaterApi, layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { Theater } from '@/shared/types/theater';
+import PageHeader from "./PageHeader";
 
 const TheaterList: React.FC = () => {
   const { t } = useTranslation();
-  const { isAuthenticated, isOperator } = useAuth();
+  const { isOperator } = useAuth();
   const navigate = useNavigate();
   //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [theaters, setTheaters] = useState<Theater[] | null>(null); // ← null = not loaded
   const [layouts, setLayouts] = useState<Layout[] | null>(null); // ← null = not loaded
   //const [loading, setLoading] = useState(true);
-  const [_error, setError] = useState<string | null>(null); // TODO ... do we use error ?
+  const [error, setError] = useState<string | null>(null); // TODO ... do we use error ?
 
   useEffect(() => {
-    //if (isAuthenticated && ) {
+    if (isOperator) {
       loadTheaters();
-    // } else {
-    //   setTheaters(null);
-    // }
-  }, [isAuthenticated/*, isAdmin*/]);
+    }
+  }, [isOperator]);
 
   const loadTheaters = async () => {
     try {
@@ -107,27 +106,27 @@ const TheaterList: React.FC = () => {
       }
     }
   };
+
+  if (error) {
+    return error; // TODO...
+  }
   
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-
-      {/* <div>
-        <Typography variant="h4" sx={{ mb: 2 }}>
-          Font Test - Should be Open Sans
-        </Typography>
-        <Typography sx={{ fontFamily: 'Open Sans, sans-serif' }}>
-          Direct CSS: Open Sans
-        </Typography>
-        <Typography sx={{ fontFamily: theme.typography.fontFamily }}>
-          Theme font: {theme.typography.fontFamily}
-        </Typography>
-      </div> */}
       
       {isOperator && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <PageHeader
+          title={t('Theaters')}
+          showAdd={isOperator}
+          addLabel={t('Add Theater')}
+          onAdd={() => navigate('/theater/new')}
+        />
+      )}
+        {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h4">
             {t('Available Theaters')}
           </Typography>
+          
           <Button
             variant="contained"
             startIcon={<AddIcon />}
@@ -135,8 +134,7 @@ const TheaterList: React.FC = () => {
           >
             {t('Add Theater')}
           </Button>
-        </Box>
-      )}
+        </Box> */}
 
       {/* {error && (
         <Alert severity="error" sx={{ mb: 2 }}>

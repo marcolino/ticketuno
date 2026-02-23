@@ -48,6 +48,7 @@ import Footer from './Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '../contexts/DialogContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
+import { ThemePreference } from '@/shared/types/theme';
 import LoginDialog from './LoginDialog';
 import config from '../config';
 
@@ -160,7 +161,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
                 onClick={() => handleLanguageChange(code)}
                 selected={i18n.language === code}
               >
-                <ListItemText primary={`${flag} ${name}`} />
+                <ListItemText primary={`${flag} ${name}`} />
               </ListItemButton>
             </ListItem>
           ))}

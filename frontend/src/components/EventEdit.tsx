@@ -33,8 +33,10 @@ import { toast } from '@/contexts/ToastContext';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
 import { CastEditor, type CastEntry } from './CastEditor'; 
+import type { CurrencyCode } from '@/shared/config';
 import { t } from 'i18next';
-import config, { CurrencyCode } from '@/config';
+import config from '@/config';
+
 
 const EventEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -75,7 +77,7 @@ const EventEdit: React.FC = () => {
   const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50);
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
   
-  const [currency, setCurrency] = useState(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
+  const [currency, setCurrency] = useState<CurrencyCode>(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [minimumAge, setMinimumAge] = useState<number>(0);
 
@@ -525,7 +527,7 @@ const EventEdit: React.FC = () => {
                     {currency.code} ({currency.symbol})
                   </MenuItem>
                 ))} */}
-                {Object.entries(config.app.currencies).map(([code, _currency]) => (
+                {Object.entries(config.app.currencies).map(([code]) => (
                   <MenuItem key={code} value={code}>
                     {code} ({'currency.symbol'})
                   </MenuItem>
@@ -551,7 +553,7 @@ const EventEdit: React.FC = () => {
                 startAdornment: (
                   //<InputAdornment position="start">{config.app.currencies[currency].symbol}</InputAdornment>,
                   <InputAdornment position="start" sx={{ mt: -0.2 }}>
-                    {config.app.currencies[currency as CurrencyCode]?.symbol}
+                    {config.app.currencies[currency]?.symbol}
                   </InputAdornment>
                 )
               }}

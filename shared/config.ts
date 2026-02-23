@@ -4,9 +4,9 @@ const config: AppConfig = {
   app: {
     codename: 'ticketuno',
     name: 'TicketUno',
-    apiHost: '',
-    apiBasePath: '',
-    apiVersion: '',
+    // apiHost: '',
+    // apiBasePath: '',
+    // apiVersion: '',
     languages: {
       en: { name: 'English', flag: '🇬🇧' },
       it: { name: 'Italiano', flag: '🇮🇹' },
@@ -19,7 +19,7 @@ const config: AppConfig = {
       GBP: { symbol: '£', name: 'British Pound' },
       JPY: { symbol: '¥', name: 'Japanese Yen' },
     },
-    defaultCurrency: 'EUR',
+    defaultCurrency: 'EUR' as CurrencyCode,
     theme: {
       defaultType: 'native',
       defaultMode: 'system', // system / light / dark
@@ -29,6 +29,8 @@ const config: AppConfig = {
     //delayMilliseconds: 3 * 1000,
   },
 };
+
+export type CurrencyCode = keyof typeof config.app.currencies;
 
 export default config;
 

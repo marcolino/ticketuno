@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "target": "ES2020",
+    "target": "ESNext",
     "lib": ["DOM", "DOM.Iterable", "ES2020"],
     "module": "ESNext",
     "skipLibCheck": true,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
@@ -13,21 +13,15 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true,
+    "esModuleInterop": true, 
     "allowSyntheticDefaultImports": true,
     "noImplicitAny": false,
     "types": ["vite/client"],
-    // "typeRoots": [
-    //   "./node_modules/@types",
-    //   "../shared/types"
-    // ]
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "paths": {
-      //"@shared/*": ["../../shared/*"]
-      "@/*": ["*"]
+      "@/*": ["src/*"]
     }
   },
-  //"include": ["src", "src/global.d.ts", "../shared/types/**/*"],
   "include": ["src"],
   "exclude": ["node_modules", "*/**/*-UNUSED.*", "*/**/*-V*.*"]
 }

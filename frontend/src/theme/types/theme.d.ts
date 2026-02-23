@@ -1,4 +1,5 @@
-import { ComponentsProps, ComponentsOverrides, ComponentsVariants } from '@mui/material/styles';
+//import { ComponentsProps, ComponentsOverrides, ComponentsVariants } from '@mui/material/styles';
+import '@mui/material/styles';
 
 declare module '@mui/material/styles' {
 
@@ -44,3 +45,5 @@ declare module '@mui/material/styles' {
     };
   }
 }
+
+export {};

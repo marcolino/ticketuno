@@ -62,6 +62,7 @@ const LayoutEdit: React.FC = () => {
   const [error, setError] = useState('');
 
   // Layout fields
+  const SECTION_VERTICAL_GAP = 115;
   const [layoutName, setLayoutName] = useState('');
   const [layoutDescription, setLayoutDescription] = useState('');
   const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>({ // TODO: to config
@@ -75,12 +76,26 @@ const LayoutEdit: React.FC = () => {
         rowSpacing: 64,
         seatSpacing: 52,
         rows: [
-          { 'rowId': 'A', 'seatCount': 16, 'curve': -2, 'stretch': 1 },
-          { 'rowId': 'B', 'seatCount': 16, 'curve': -2, 'stretch': 1 },
-          { 'rowId': 'C', 'seatCount': 16, 'curve': -2, 'stretch': 1 }
+          { 'rowId': 'A', 'seatCount': 12, 'curve': -2, 'stretch': 1 },
+          { 'rowId': 'B', 'seatCount': 12, 'curve': -2, 'stretch': 1 },
+          { 'rowId': 'C', 'seatCount': 12, 'curve': -2, 'stretch': 1 },
         ]
-      }
-    ]
+      },
+      {
+        id: 'galleria',
+        label: 'Galleria',
+        origin: { x: 500, y: 475 },
+        rowSpacing: 64,
+        seatSpacing: 52,
+        rows: [
+          { 'rowId': 'A', 'seatCount': 10, 'curve': 0, 'stretch': 1 },
+          { 'rowId': 'B', 'seatCount': 10, 'curve': 0, 'stretch': 1 },
+          { 'rowId': 'C', 'seatCount': 10, 'curve': 0, 'stretch': 1 },
+          { 'rowId': 'D', 'seatCount': 10, 'curve': 0, 'stretch': 1 },
+          { 'rowId': 'E', 'seatCount': 10, 'curve': 0, 'stretch': 1 },
+        ],
+      },
+    ],
   });
   //const [layout, setLayout] = useState<LayoutJSON>(layoutJSON);
   const seats = generateSeats(layoutJSON); // No status needed
@@ -88,6 +103,9 @@ const LayoutEdit: React.FC = () => {
   // Theater fields from location state
   const [theaterName, setTheaterName] = useState(theaterData?.name || '');
   const [theaterDescription, setTheaterDescription] = useState('');
+
+  const [expandedSection, setExpandedSection] = useState<string | false>(false);
+  const sectionLabelRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
 
   const loadTheater = useCallback(async (theaterIdToLoad: string) => {
     try {
@@ -151,28 +169,52 @@ const LayoutEdit: React.FC = () => {
 
   // Add section
   const addSection = () => {
+    const newId = `section_${Date.now()}`;
+    const lastSection = layoutJSON.sections[layoutJSON.sections.length - 1];
+
+    let newY = 200;
+
+    if (lastSection) {
+      const rowsCount = lastSection.rows.length;
+
+      // Y of last row center
+      const lastRowY =
+        lastSection.origin.y +
+        (rowsCount - 1) * lastSection.rowSpacing;
+
+      // Add half spacing to reach bottom edge
+      const sectionBottom =
+        lastRowY + lastSection.rowSpacing / 2;
+
+      newY = sectionBottom + SECTION_VERTICAL_GAP;
+    }
+
     const newSection: SectionJSON = {
-      id: `section_${Date.now()}`,
+      id: newId,
       label: `Section ${layoutJSON.sections.length + 1}`,
-      origin: { x: 500, y: 200 + (layoutJSON.sections.length * 300) },
+      origin: { x: lastSection?.origin.x || 500, y: newY },
       rowSpacing: 64,
       seatSpacing: 52,
       rows: [
         { rowId: 'A', seatCount: 10, curve: 0, stretch: 1.0 }
       ]
     };
-    setLayoutJSON({
-      ...layoutJSON,
-      sections: [...layoutJSON.sections, newSection]
-    });
-  };
 
-  // Remove section
-  const removeSection = (index: number) => {
-    setLayoutJSON({
-      ...layoutJSON,
-      sections: layoutJSON.sections.filter((_, i) => i !== index)
-    });
+    setLayoutJSON(prev => ({
+      ...prev,
+      sections: [...prev.sections, newSection]
+    }));
+
+    setExpandedSection(newId);
+
+    // Focus and select new section name
+    setTimeout(() => {
+      const input = sectionLabelRefs.current[newId];
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    }, 0);
   };
 
   // Update section
@@ -196,6 +238,35 @@ const LayoutEdit: React.FC = () => {
     setLayoutJSON({ ...layoutJSON, sections: newSections });
   };
 
+  const removeSection = (index: number) => {
+    setLayoutJSON(prev => {
+      const newSections = prev.sections.filter((_, i) => i !== index);
+
+      // Update expandedSection if needed
+      if (expandedSection === prev.sections[index].id) {
+        if (newSections[index]) {
+          // Expand next section if exists
+          setExpandedSection(newSections[index].id);
+        } else if (newSections[index - 1]) {
+          // Otherwise expand previous section
+          setExpandedSection(newSections[index - 1].id);
+        } else {
+          // No sections left
+          setExpandedSection(false);
+        }
+      }
+
+      // Remove the ref of the deleted section
+      const removedId = prev.sections[index].id;
+      delete sectionLabelRefs.current[removedId];
+
+      return {
+        ...prev,
+        sections: newSections
+      };
+    });
+  };
+  
   // Add row to section
   const addRow = (sectionIndex: number) => {
     const section = layoutJSON.sections[sectionIndex];
@@ -244,8 +315,17 @@ const LayoutEdit: React.FC = () => {
     setLayoutJSON({ ...layoutJSON, sections: newSections });
   };
 
+  const validate = () => {
+    if (!layoutName) {
+      toast.warning(t("Layout name is mandatory"));
+      return false;
+    }
+    return true;
+  };
+
   // Save layout - KEY CHANGE HERE
   const save = async () => {
+    if (!validate()) return;
     try {
       setSaving(true);
       const layoutData = {
@@ -445,7 +525,14 @@ const LayoutEdit: React.FC = () => {
               </Box>
 
               {layoutJSON.sections.map((section, sectionIndex) => (
-                <Accordion key={section.id}>
+                <Accordion
+                  key={section.id}
+                  expanded={expandedSection === section.id}
+                  onChange={(_, isExpanded) =>
+                    setExpandedSection(isExpanded ? section.id : false)
+                  }
+                >
+                {/* <Accordion key={section.id}> */}
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
                       <Typography sx={{ flexGrow: 1 }}>{section.label}</Typography>
@@ -468,8 +555,15 @@ const LayoutEdit: React.FC = () => {
                           fullWidth
                           label={t('Section Label')}
                           value={section.label}
+                          inputRef={(el) => (sectionLabelRefs.current[section.id] = el)}
                           onChange={(e) => updateSection(sectionIndex, 'label', e.target.value)}
                         />
+                        {/* <TextField
+                          fullWidth
+                          label={t('Section Label')}
+                          value={section.label}
+                          onChange={(e) => updateSection(sectionIndex, 'label', e.target.value)}
+                        /> */}
                       </Grid>
                       <Grid item xs={6}>
                         <TextField

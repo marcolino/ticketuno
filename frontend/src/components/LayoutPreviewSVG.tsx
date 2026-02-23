@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useMediaQuery, useTheme } from '@mui/material';
 import { LayoutJSON } from '@/shared/types/layout';
 import type { SeatStatus } from '@/shared/types/layoutToSeats';
 import LayoutSeat from './LayoutSeat';
@@ -29,6 +30,12 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
   onSeatClick,
   getSeatStatus
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Zoom factor / zoom
+  const zoom = isMobile ? 0.8 : 1.0;
+
   // Seat dimensions
   const seatWidth = 48;
   const seatHeight = 48;
@@ -87,7 +94,9 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
       const sectionSeats = seats.filter(s => s.sectionId === section.id);
 
       return (
-        <g key={section.id}>
+        <g
+          key={section.id}
+        >
           {/* Section Label */}
           <g>
             <rect
@@ -134,7 +143,7 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
                     cy={rowLabelY - 2}
                     r="18"
                     fill="#3d4650"
-                    opacity="0.5"
+                    opacity="0.25"
                   />
                   <text
                     x={rowLabelX + 10}
@@ -170,58 +179,76 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
               </g>
             );
           })}
-        </g>
+          </g>
       );
     });
   }, [layout.sections, seats, getSeatStatus, interactive, onSeatClick, seatWidth, seatHeight]);
 
   return (
-    <svg 
-      width="100%" 
-      height="100%" 
-      viewBox={`${bounds.minX} ${bounds.minY} ${bounds.width} ${bounds.height}`}
-      preserveAspectRatio="xMidYMin meet"
+    <div
       style={{
-        touchAction: 'pan-x pan-y', // Add touch-friendly behavior on mobile
+        width: '100%',
+        height: '100%',
+        overflow: 'auto',
+        display: 'flex',
+        justifyContent: 'center',   // horizontal centering
+        alignItems: 'flex-start'    // keep top aligned
       }}
     >
-      {/* Background */}
-      <rect
-        x={bounds.minX}
-        y={bounds.minY}
-        width={bounds.width}
-        height={bounds.height}
-        fill="#f5f5f5"
-      />
-      
-      {/* Stage */}
-      <rect
-        x={layout.stage.x} 
-        y={layout.stage.y}
-        width={layout.stage.width} 
-        height={layout.stage.height}
-        fill="#2e2e2e"
-        stroke="#000"
-        strokeWidth="3"
-        rx="4"
-        ry="4"
-      />
-      <text
-        x={layout.stage.x + layout.stage.width / 2}
-        y={layout.stage.y + layout.stage.height / 2}
-        fill="white"
-        textAnchor="middle"
-        fontSize="24"
-        fontWeight="bold"
-        style={{ userSelect: 'none' }}
-        dy="0.3em"
+      <svg 
+        // width="100%" 
+        // height="100%"
+        width={bounds.width * zoom}
+        height={bounds.height * zoom}
+        viewBox={`
+          ${bounds.minX}
+          ${bounds.minY}
+          ${bounds.width}
+          ${bounds.height}
+        `}
+        preserveAspectRatio="xMidYMin meet"
+        style={{
+          touchAction: 'pan-x pan-y', // Add touch-friendly behavior on mobile
+        }}
       >
-        {layout.stage.label}
-      </text>
+        {/* Background */}
+        <rect
+          x={bounds.minX}
+          y={bounds.minY}
+          width={bounds.width}
+          height={bounds.height}
+          fill="#f5f5f5"
+        />
+        
+        {/* Stage */}
+        <rect
+          x={layout.stage.x} 
+          y={layout.stage.y}
+          width={layout.stage.width} 
+          height={layout.stage.height}
+          fill="#2e2e2e"
+          stroke="#000"
+          strokeWidth="3"
+          rx="4"
+          ry="4"
+        />
+        <text
+          x={layout.stage.x + layout.stage.width / 2}
+          y={layout.stage.y + layout.stage.height / 2}
+          fill="white"
+          textAnchor="middle"
+          fontSize="24"
+          fontWeight="bold"
+          style={{ userSelect: 'none' }}
+          dy="0.3em"
+        >
+          {layout.stage.label}
+        </text>
 
-      {/* Sections */}
-      {sectionGroups}
-    </svg>
+        {/* Sections */}
+        {sectionGroups}
+      </svg>
+    </div>
   );
 };
 

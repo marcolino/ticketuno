@@ -11,13 +11,11 @@ function Body({ children, maxWidth = 'xl' }: BodyProps) {
   return (
     <>
       <Toolbar /> {/* Spacer */}
-      
       <Box 
         component="main" 
         sx={{ 
-          flexGrow: 1, // This makes it fill available space
+          flexGrow: 1, // Fill available space
           py: 3,
-          // No minHeight needed
         }}
       >
         <Container maxWidth={maxWidth}>

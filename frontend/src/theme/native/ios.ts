@@ -5,7 +5,7 @@ export const iosTheme: PaletteModeRecord<ReturnType<typeof createTheme>> = {
   light: createTheme({
     palette: {
       mode: 'light',
-      primary: { main: '#007AFF' },
+      primary: { main: '#035284' },
       secondary: { main: '#34C759' },
       background: {
         default: '#F2F2F7',

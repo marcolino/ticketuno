@@ -215,7 +215,7 @@ class Database {
   }
   
   // User methods //////////////////////////////////////////////////////////////////////
-  async getAllUsers(): Promise<any[] | null> {
+  async getAllUsers(): Promise<User[] | null> {
     const sql = `SELECT * FROM users`;
     const params: SqlParam[] = [];
     const rows = await allQuery(this.db!, sql, params, 'get all users');
@@ -240,23 +240,24 @@ class Database {
     return id;
   }
 
-  private mapRowToUser(row: any): User {
+  private mapRowToUser(row: Record<string, unknown>): User {
     return {
-      id: row.id,
-      email: row.email,
-      password: row.password,
-      firstName: row.first_name,
-      lastName: row.last_name,
-      phone: row.phone,
-      role: row.role,
+      id: row.id as string,
+      email: row.email as string,
+      password: row.password as string,
+      firstName: row.first_name as string,
+      lastName: row.last_name as string,
+      phone: row.phone as string,
+      //role: row.role as "admin" | "operator" | "user",
+      role: (["admin", "operator", "user"].includes(row.role as string) ? row.role : "user") as User["role"],
       isVerified: row.is_verified === 1,
-      verificationCode: row.verification_code,
-      verificationCodeExpiry: row.verification_code_expiry,
-      resetPasswordCode: row.reset_password_code,
-      resetPasswordCodeExpiry: row.reset_password_code_expiry,
-      googleId: row.google_id,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at
+      verificationCode: row.verification_code as string,
+      verificationCodeExpiry: row.verification_code_expiry as string,
+      resetPasswordCode: row.reset_password_code as string,
+      resetPasswordCodeExpiry: row.reset_password_code_expiry as string,
+      googleId: row.google_id as string,
+      createdAt: row.created_at as string,
+      updatedAt: row.updated_at as string,
     };
   }
 
@@ -278,7 +279,7 @@ class Database {
   async getUserByGoogleId(googleId: string): Promise<User | null> {
     const sql = `SELECT * FROM users WHERE google_id = ?`;
     const params = [googleId];
-    const row = await getQuery<User>(this.db!, sql, params, 'create user');
+    const row = await getQuery<Record<string, unknown>>(this.db!, sql, params, 'create user');
     return row ? this.mapRowToUser(row) : null;
   }
 
@@ -933,7 +934,7 @@ class Database {
     const params: SqlParam[] = [
       id, performance.eventId, performance.performanceDate, performance.startTime,
       performance.endTime ?? '', /*performance.availableSeats, performance.bookedSeats, performance.seatData, */
-      performance.status, performance.createdAt ?? '', performance.updatedAt ?? ''
+      performance.status, /*performance.createdAt ?? '', performance.updatedAt ?? ''*/
     ];
     await runQuery(this.db!, sql, params, 'create performance');
     return id;
@@ -1248,7 +1249,7 @@ class Database {
       WHERE performance_id = ? AND status = 'booked'
     `;
     const params = [performanceId];
-    const row = await getQuery(this.db!, sql, params, 'check performance bookings');
+    const row = await getQuery<{ count: number }>(this.db!, sql, params, 'check performance bookings');
     return (row?.count || 0) > 0;
   }
 
@@ -1383,7 +1384,8 @@ const runQuery = (
   })
   ;
 
-const getQuery = <T = any>(
+//const getQuery = <T = any>(
+const getQuery = <T extends Record<string, unknown> = Record<string, unknown>>(
   db: sqlite3.Database,
   sql: string,
   params: SqlParam[] = [],
@@ -1397,7 +1399,8 @@ const getQuery = <T = any>(
   })
 ;
 
-const allQuery = <T = any>(
+//const allQuery = <T = any>(
+const allQuery = <T extends Record<string, unknown> = Record<string, unknown>>(
   db: sqlite3.Database,
   sql: string,
   params: SqlParam[] = [],

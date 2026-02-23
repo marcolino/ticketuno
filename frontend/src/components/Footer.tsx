@@ -17,8 +17,8 @@ function Footer({ children }: FooterProps) {
       try {
         const response = await globalApi.version();
         setBackendVersion(response?.data?.version ?? '?');
-      } catch (err) {
-        setBackendVersion('¿');
+      } catch (err: any) {
+        setBackendVersion(err?.message ?? '¿');
       }
     })();
   });

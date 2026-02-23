@@ -35,6 +35,14 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
   
   // Color scheme by status
   const getColors = () => {
+    if (!interactive) {
+      return {
+        base: "#730008", // Deep velvet red
+        backrest: "#8E0A14", // Slightly lighter red (fabric catches light)
+        armrest: "#3B1F1F", // Dark mahogany wood
+        text: "#f0f0f0"
+      };
+    }
     switch (status) {
       case 'available':
         return {
@@ -114,7 +122,7 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
         {/* Backrest */}
         <rect
           x={-seatBaseWidth / 2 + 2}
-          y={-height / 2}
+          y={seatBaseHeight / 2 - 8}
           width={seatBaseWidth - 4}
           height={backrestHeight}
           rx={4}

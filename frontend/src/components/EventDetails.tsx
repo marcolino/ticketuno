@@ -288,15 +288,15 @@ const EventDetails: React.FC = () => {
   // };
 
   // Date/Time handlers for pickers
-  const handlePerformanceDateChange = (value: Dayjs | null, _context: any) => {
+  const handlePerformanceDateChange = (value: Dayjs | null) => {
     setPerformanceToEdit(prev => prev ? { ...prev, performanceDate: value } : null);
   };
 
-  const handleStartTimeChange = (value: Dayjs | null, _context: any) => {
+  const handleStartTimeChange = (value: Dayjs | null) => {
     setPerformanceToEdit(prev => prev ? { ...prev, startTime: value } : null);
   };
 
-  const handleEndTimeChange = (value: Dayjs | null, _context: any) => {
+  const handleEndTimeChange = (value: Dayjs | null) => {
     setPerformanceToEdit(prev => prev ? { ...prev, endTime: value } : null);
   };
 

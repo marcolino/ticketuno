@@ -1,4 +1,5 @@
-import { PaletteMode } from '@mui/material';
+//import { PaletteMode } from '@mui/material';
+import '@mui/material/styles';
 
 declare module '@mui/material/styles' {
   interface Palette {
@@ -59,3 +60,5 @@ declare module '@mui/material/styles' {
     };
   }
 }
+
+export {};

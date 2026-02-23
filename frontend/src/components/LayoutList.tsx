@@ -13,7 +13,7 @@ import {
   CardActions,
 } from '@mui/material';
 import {
-  Add as AddIcon,
+  //Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   ViewCompact as ViewCompactIcon,
@@ -22,6 +22,7 @@ import useNavigate from '@/hooks/useNavigate';
 import { layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
+import PageHeader from "./PageHeader";
 import { i18n } from '@/i18n';
 
 const LayoutList: React.FC = () => {
@@ -47,7 +48,6 @@ const LayoutList: React.FC = () => {
       // Show the actual server error message
       setError(err.response?.data?.error || 'Failed to load layouts');
       console.error(err.response?.data || err);
-    } finally {
     }
   };
 
@@ -63,6 +63,9 @@ const LayoutList: React.FC = () => {
   
   const handleDeleteLayout = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // TODO: ask for confirmation...
+    
     try {
       /*const response = */await layoutApi.deleteLayout(id);
       const newLayouts = layouts.filter(layout => layout.id !== id);
@@ -71,7 +74,6 @@ const LayoutList: React.FC = () => {
     } catch (err: any) {
       // Show the actual server error message
       setError(err.response?.data?.error || 'Failed to delete layout');
-    } finally {
     }
     navigate(`/layouts`);
   };
@@ -83,9 +85,15 @@ const LayoutList: React.FC = () => {
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
+      {/* <Typography variant="h4" gutterBottom>
         {t('Current Layouts')}
-      </Typography>
+      </Typography> */}
+      <PageHeader
+        title={t('Layouts')}
+        showAdd={isOperator}
+        addLabel={t('Add Layout')}
+        onAdd={() => navigate('/layout/new')}
+      />
 
       {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -97,7 +105,7 @@ const LayoutList: React.FC = () => {
         <Alert severity="info">{t('No layouts available')}</Alert>
       )}
       
-      {!error && isOperator && (
+      {/* {!error && isOperator && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             variant="contained"
@@ -109,7 +117,7 @@ const LayoutList: React.FC = () => {
             {t('Add Layout')}
           </Button>
         </Box>
-      )}
+      )} */}
 
        {/* {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>

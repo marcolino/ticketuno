@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '@mui/material/styles';
+//import { useTheme } from '@mui/material/styles';
+import useTheme from "@mui/material/styles/useTheme";
 import {
   Box,
   InputBase,

@@ -1,6 +1,7 @@
 common:
  - change " into ', wherever possible - OK
 
+ - make a cookies popup (even if we only use localstore for technical goals, and not cookies?)
  - make a /privacy and a /terms page
  - translate all to Italian and French
  - remove all comments in code
@@ -22,14 +23,16 @@ common:
  - tune token expiration time, and put it in config - OK
  - use i18n.t (or something the like) in server.ts (onluy in requests) - OK
 
- - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
  - complete tickets buy process, optionally redirecting to stripe for payment
  - complete tickets buy process, sending an email to user with the ticket (with a QRCode?)
- - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
  - implement a real sendEmail using Brevo service, possibly with templates
- - change console.log's to a real logging system
+ - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
+ - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
  - make a method to clean up unreferenced images from /data/images
  - schedule job to call the method to clean up unreferenced images
+ - make a script to backup database
+ - schedule job to backup database daily, in production
+ - change console.log's to a real logging system
 
  frontend:
  - Design.tsx => Home.tsx - OK
@@ -48,15 +51,17 @@ common:
  - reduce login/... padding in mobile mode - OK
  - warning 'pathnames cannot have embedded double slashes - normalizing /event/id/performance// ...' - OK
  - in EventDetails add "bookings" button for admin (operator) too - OK
- - dark mode changes logo colors in a less then optimal way
- - add version number/build/date in footer
- - make theme selectable among "light", "dark" and "system"
+ - dark mode changes logo colors in a less then optimal way - OK
+ - add version number/build/date in footer - OK
+ - make theme selectable among "light", "dark" and "system" - OK
+ - components container + title should be common for all components (perhaps) - OK
+ - normalize all *List.tsx components as TheatersList, and make same aspect for event with and without poster - OK
 
+ - in event details, check for login as soon as one seat is selected, to avoid loosing state...
  - in all components, check for setError: always add toast.error, and possibly remove Alert for errors...
- - add all users profile handling (by admins only)
  - add check for changes in all components (when dirty), before navigating away
- - components container + title should be common for all components (perhaps)
- - normalize all *List.tsx components as TheatersList, and make same aspect for event with and without poster
  - settings handling - "React MUI PWA Setup" with ChatGPT
+ - add all users profile handling (in settings/admin)
+ - add all currency handling (in settings/misc)
  - use currency from settings, and remove currency selection from EventEdit component
  - PWA handling - "PWA setup automation for theater booking system" with Claude

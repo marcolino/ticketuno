@@ -269,6 +269,10 @@ const TheaterEdit: React.FC = () => {
       return;
     }
 
+    if (!theaterData.currentLayoutId) {
+      setError(t('A layout is required'));
+      return;
+    }
     try {
       setSaving(true);
       setError('');
