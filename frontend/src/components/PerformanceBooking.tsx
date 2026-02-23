@@ -356,6 +356,17 @@ const PerformanceBooking: React.FC = () => {
 
           {/* Booking Summary */}
           {selectedSeats.size > 0 && (
+            <Button
+              fullWidth
+              variant="contained"
+              size="medium"
+              onClick={() => handleConfirmBooking()}
+              startIcon={<CheckCircleIcon />}
+            >
+              {t('Book Now {{ count }} seats', { count: selectedSeats.size })}
+              </Button>
+          )}
+          {/* {selectedSeats.size > 0 && (
             <Paper elevation={4} sx={{ 
               p: 3, 
               bgcolor: 'primary.light', 
@@ -389,7 +400,7 @@ const PerformanceBooking: React.FC = () => {
                 </Grid>
               </Grid>
             </Paper>
-          )}
+          )} */}
         </Paper>
       </Container>
       
