@@ -33,6 +33,7 @@ common:
  - make a script to backup database
  - schedule job to backup database daily, in production
  - change console.log's to a real logging system
+ - before using analytics and marketing cookies, always check: const { canUseAnalytics, canUseMarketingCookies } = useConsent();
 
  frontend:
  - Design.tsx => Home.tsx - OK
@@ -49,7 +50,7 @@ common:
  - add "CastEditor.tsx compomnent - OK
  - move routes from App.tsx to Routes.tsx - OK
  - reduce login/... padding in mobile mode - OK
- - warning 'pathnames cannot have embedded double slashes - normalizing /event/id/performance// ...' - OK
+ - warning 'pathnames cannot have embedded double slashes - normalizing /event/id/performance//' - OK
  - in EventDetails add "bookings" button for admin (operator) too - OK
  - dark mode changes logo colors in a less then optimal way - OK
  - add version number/build/date in footer - OK
@@ -57,8 +58,12 @@ common:
  - components container + title should be common for all components (perhaps) - OK
  - normalize all *List.tsx components as TheatersList, and make same aspect for event with and without poster - OK
 
- - in event details, check for login as soon as one seat is selected, to avoid loosing state...
- - in all components, check for setError: always add toast.error, and possibly remove Alert for errors...
+ - complete ConsentContext translations
+ - allow ConsentContext opening from Settings / Privacy
+ - find where to suggest user to open ConsentContext to enable missing consents
+ - handle uniformly isOperator (or isAuthenticated) in components loading
+ - in event details, check for login as soon as one seat is selected, to avoid loosing state
+ - in all components, check for setError: always add toast.error, and possibly remove Alert for errors
  - add check for changes in all components (when dirty), before navigating away
  - settings handling - "React MUI PWA Setup" with ChatGPT
  - add all users profile handling (in settings/admin)

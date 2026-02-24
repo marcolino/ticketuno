@@ -7,14 +7,16 @@ import {
   Typography,
   Button,
   Paper,
-  Grid,
   Alert,
   Chip,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import {
   EventSeat as EventSeatIcon,
   CheckCircle as CheckCircleIcon,
   ArrowBack as ArrowBackIcon,
+  Cancel as CancelIcon,
 } from '@mui/icons-material';
 import { eventApi, layoutApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +27,7 @@ import { Event, EventPerformance } from '@/shared/types/event';
 import { LayoutJSON } from '@/shared/types/layout';
 import { generateSeats, SeatStatus } from '@/shared/types/layoutToSeats';
 import LayoutPreviewSVG, { SeatWithStatus } from './LayoutPreviewSVG';
+import config from '@/shared/config';
 
 interface SeatData {
   seatId: string;
@@ -45,6 +48,8 @@ const PerformanceBooking: React.FC = () => {
   const { isAuthenticated } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // xs and sm for mobile
 
   const showDialog = useDialog();
   
@@ -144,7 +149,19 @@ const PerformanceBooking: React.FC = () => {
   }, [eventId, performanceId, loadPerformance]);
 
   // Handle seat click
-  const handleSeatClick = useCallback((seatId: string, currentStatus?: SeatStatus) => {
+  const handleSeatClick = useCallback(async (seatId: string, currentStatus?: SeatStatus) => {
+     if (!isAuthenticated) {
+      await showDialog({
+        title: t('Login Required'),
+        content: t('You need to login to book seats. Please login or register to continue.'),
+        onConfirm: () => navigate(`${location.pathname}?login=true`),
+        cancelText: 'Cancel',
+        confirmText: 'Login',
+        shrinkToContent: true,
+      });
+      return;
+    }
+    
     if (currentStatus === 'booked' || currentStatus === 'reserved') {
       toast.error(t('This seat is not available'));
       return;
@@ -188,10 +205,11 @@ const PerformanceBooking: React.FC = () => {
           <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2 }}>
             {Array.from(selectedSeats).join(', ')}
           </Paper>
-          {/* <Divider sx={{ my: 2 }} /> */}
-          <Typography variant="h6">
-            {t('Total amount')}: ${totalPrice.toFixed(2)}
-          </Typography>
+          {(config.app.reservations.purchases.gateway !== 'free') && (
+            <Typography variant="h6">
+              {t('Total amount')}: ${totalPrice.toFixed(2)}
+            </Typography>
+          )}
         </Box>
       ),
       cancelText: t('Cancel'),
@@ -212,18 +230,6 @@ const PerformanceBooking: React.FC = () => {
       return;
     }
     
-    if (!isAuthenticated) {
-      await showDialog({
-        title: t('Login Required'),
-        content: t('You need to login to book seats. Please login or register to continue.'),
-        onConfirm: () => navigate(`${location.pathname}?login=true`),
-        cancelText: 'Cancel',
-        confirmText: 'Login',
-        shrinkToContent: true,
-      });
-      return;
-    }
-    
     try {
       await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
       
@@ -238,6 +244,8 @@ const PerformanceBooking: React.FC = () => {
       toast.error(err.response?.data?.error || err.message || t('Booking failed'));
     }
   };
+
+  const whiteSeatIcon = <EventSeatIcon sx={{ color: 'white', fill: 'white', stroke: 'white' }} />;
 
   if (loading) {
     return null;
@@ -267,18 +275,20 @@ const PerformanceBooking: React.FC = () => {
   
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
+      <Container maxWidth="xl" sx={{ px: { xs: 0, sm: 4 }, mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 } }}>
+        <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
           {/* Header */}
-          <Box sx={{ mb: 4 }}>
+          <Box sx={{ mb: { xs: 2, sm: 4 } }}>
+            {/* TODO: why back to ... ??? We usually use "Cancel", ad bo back ...
             <Button
               startIcon={<ArrowBackIcon />}
               onClick={() => navigate(`/event/${eventId}`)}
               sx={{ mb: 2 }}
             >
-              {t('Back to Event')}
+              {t('Back to Event Bookings')}
             </Button>
-            <Typography variant="h4" gutterBottom>
+            */}
+            <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
               {t('Select Your Seats')}
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -307,9 +317,9 @@ const PerformanceBooking: React.FC = () => {
           {/* Interactive Layout */}
           <Box sx={{ 
             width: '100%', 
-            height: '600px', 
             mb: 4, 
-            overflow: 'auto', 
+            overflowX: 'auto', 
+            overflowY: 'hidden',
             bgcolor: '#f5f5f5', 
             borderRadius: 2 
           }}>
@@ -329,33 +339,66 @@ const PerformanceBooking: React.FC = () => {
             </Box>
           </Box>
 
-          {/* Legend */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            gap: 3, 
-            mb: 4, 
-            flexWrap: 'wrap' 
-          }}>
-            <Chip 
-              icon={<EventSeatIcon />} 
-              label={t('Available')} 
-              sx={{ bgcolor: '#2E7D32', color: 'white' }} 
-            />
-            <Chip 
-              icon={<EventSeatIcon />} 
-              label={t('Selected')} 
-              sx={{ bgcolor: '#1976D2', color: 'white' }} 
-            />
-            <Chip 
-              icon={<EventSeatIcon />} 
-              label={t('Booked')} 
-              sx={{ bgcolor: '#757575', color: 'white' }} 
-            />
-          </Box>
+          {/* Legend (desktop only) */}
+          {!isMobile && (
+            <Box sx={{
+              display: 'flex',
+              justifyContent: 'center',
+              gap: 2,
+              mb: 3,
+              flexWrap: 'wrap'
+            }}>
+              <Chip
+                icon={whiteSeatIcon}
+                label={t('Available')}
+                sx={{ bgcolor: '#2E7D32', color: 'white', px: 1 }}
+              />
+              <Chip
+                icon={whiteSeatIcon}
+                label={t('Selected')}
+                sx={{ bgcolor: '#1976D2', color: 'white', px: 1 }}
+              />
+              <Chip
+                icon={whiteSeatIcon}
+                label={t('Booked')}
+                sx={{ bgcolor: '#757575', color: 'white', px: 1 }}
+              />
+            </Box>
+          )}
 
           {/* Booking Summary */}
           {selectedSeats.size > 0 && (
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'flex-end', // ⬅ pushes buttons to ends
+                gap: 1,
+                mt: 1,
+              }}
+            >
+              <Button
+                variant="outlined"
+                color="inherit"
+                onClick={() => { setSelectedSeats(new Set()); navigate(-1); }}
+                startIcon={<CancelIcon />}
+                sx={{ mx: 2 }}
+              >
+                {t('Cancel')}
+              </Button>
+
+              <Button
+                variant="contained"
+                size="medium"
+                onClick={handleConfirmBooking}
+                startIcon={<CheckCircleIcon />}
+              >
+                {t('Book {{ count }} seats', { count: selectedSeats.size })}
+              </Button>
+            </Box>
+          )}
+
+          {/* Booking Summary */}
+          {/* {selectedSeats.size > 0 && (
             <Button
               fullWidth
               variant="contained"
@@ -363,9 +406,9 @@ const PerformanceBooking: React.FC = () => {
               onClick={() => handleConfirmBooking()}
               startIcon={<CheckCircleIcon />}
             >
-              {t('Book Now {{ count }} seats', { count: selectedSeats.size })}
-              </Button>
-          )}
+              {t('Book {{ count }} seats now', { count: selectedSeats.size })}
+            </Button>
+          )} */}
           {/* {selectedSeats.size > 0 && (
             <Paper elevation={4} sx={{ 
               p: 3, 

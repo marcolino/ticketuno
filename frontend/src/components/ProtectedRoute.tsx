@@ -29,10 +29,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       hasShownToast.current = true;
     }
     if (!loading && !requireAdmin && !isAdmin && !hasShownToast.current) {
-      toast.error(t('Admin privileges required to access this page'));
+      toast.error(t('Admin role required to access this page'));
     }
     if (!loading && !requireOperator && !isOperator && !hasShownToast.current) {
-      toast.error(t('Operator privileges required to access this page'));
+      toast.error(t('Operator role required to access this page'));
     }
   }, [loading, isAuthenticated, requireAdmin, isAdmin, t]);
 
@@ -58,13 +58,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireAdmin && !isAdmin) {
     return <Navigate to="/" replace state={{ 
-      message: t("Admin privileges required to access this page")
+      message: t("Admin role required to access this page")
     }} />;
   }
 
   if (requireOperator && !isOperator) {
     return <Navigate to="/" replace state={{ 
-      message: t("Operator privileges required to access this page")
+      message: t("Operator role required to access this page")
     }} />;
   }
 

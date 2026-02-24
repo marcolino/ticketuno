@@ -31,7 +31,7 @@ const TheaterEdit: React.FC = () => {
   const { t } = useTranslation();
   const toast = useToast();
   const { id } = useParams<{ id: string }>();
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isOperator } = useAuth();
 
   const isEditMode = id && id !== 'new';
 
@@ -105,10 +105,6 @@ const TheaterEdit: React.FC = () => {
     }
   }, [id]);
 
-  // useEffect(() => {
-  //   loadLayouts();
-  // }, [isAuthenticated, isAdmin]);
-
   const loadLayouts = async () => {
     try {
       const response = await layoutApi.getAllLayouts();
@@ -122,45 +118,14 @@ const TheaterEdit: React.FC = () => {
       console.error(err.response?.data || err);
     }
   };
-
-  // useEffect(() => { // DEBUG ONLY
-  //   if (theaterData.selectedLayoutId && layouts.length > 0) {
-  //     const selectedLayoutExists = layouts.some(layout => layout.id === theaterData.selectedLayoutId);
-  //     console.log('xxx Selected layout exists in layouts array:', selectedLayoutExists);
-  //     if (!selectedLayoutExists) {
-  //       console.log('xxx Selected layout ID:', theaterData.selectedLayoutId, 'not found in layouts');
-  //     }
-  //   }
-  // }, [theaterData.selectedLayoutId, layouts]);
-
-  // useEffect(() => { // DEBUG ONLY
-  //   console.log('Current layouts:', layouts);
-  //   console.log('Selected layout ID:', selectedLayoutId);
-    
-  //   if (selectedLayoutId && layouts.length > 0) {
-  //     const isLayoutInList = layouts.some(layout => layout.id === selectedLayoutId);
-  //     console.log('Is selected layout in the list?', isLayoutInList);
-  //   }
-  // }, [layouts, selectedLayoutId]);
-
-  // useEffect(() => {
-  //   if (!isAuthenticated || !isAdmin) {
-  //     navigate('/theaters');
-  //     return;
-  //   }
-  //   loadLayouts();
-  //   if (isEditMode) {
-  //     loadTheater();
-  //   }
-  // }, [isAuthenticated, isAdmin, isEditMode, navigate, loadTheater]);
-
+  
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
-      navigate('/theaters');
+    if (!isOperator) {
+      navigate('-1');
       return;
     }
 
-    const initialize = async () => {
+    (async () => {
       // Check if returning from layout creation FIRST
       if (location.state?.theaterData?.selectedLayoutId) {
         setTheaterData((prev: any) => ({
@@ -171,25 +136,15 @@ const TheaterEdit: React.FC = () => {
         
         // Load layouts AFTER setting state (so new layout appears)
         await loadLayouts();
-        return;  // Skip theater load - we're editing existing
+        return; // Skip theater load - we're editing existing
       }
 
       await Promise.all([
         loadLayouts(),
         isEditMode ? loadTheater() : Promise.resolve()
       ]);
-      // // Normal edit mode - load theater first
-      // if (isEditMode) {
-      //   await loadTheater();
-      //   await loadLayouts();
-      // } else {
-      //   // New theater - just load layouts
-      //   await loadLayouts();
-      // }
-    };
-
-    initialize();
-  }, []); // runs ONCE on mount
+    })();
+  }, []); // Runs once on mount
 
   useEffect(() => {
     const state = location.state as { theaterData?: { selectedLayoutId?: string } };

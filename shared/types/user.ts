@@ -1,3 +1,5 @@
+import { FullConsent } from "./consent";
+
 export interface User {
   id: string;
   email: string;
@@ -12,6 +14,7 @@ export interface User {
   resetPasswordCode?: string;
   resetPasswordCodeExpiry?: string;
   googleId?: string;
+  consent: FullConsent | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -118,6 +121,7 @@ export interface UserProfile {
   phone?: string;
   role: 'admin' | 'operator' | 'user';
   isVerified: boolean;
+  consent: FullConsent | null;
   createdAt: string;
   updatedAt: string;
 }

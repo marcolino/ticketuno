@@ -29,6 +29,24 @@ export interface AppConfig {
       defaultType: ThemeType;
       defaultMode: ThemePreference;
     };
+    consent: {
+      version: string;
+      cookies: {
+        technical: true;
+        analytics: boolean;
+        marketing: boolean;
+      },
+      communication: {
+        marketingEmails: boolean;
+        pushNotifications: boolean;
+      },
+    },
+    reservations: {
+      purchases: {
+        gateways: Record<string, Record<string, unknown>>;
+        gateway: string;
+      };
+    };
   };
   server: {
     [key: string]: number;

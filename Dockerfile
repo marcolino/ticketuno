@@ -31,9 +31,9 @@ RUN ln -sf ../../shared src/shared
 # DEBUG ONLY ############################################################################################
 RUN echo "=== DEBUG: Checking /app/ directory ===" && ls -la /app/
 RUN echo "=== DEBUG: Looking for 'shared' folder ===" && find /app -name "shared" -type d 2>/dev/null
-RUN echo "=== DEBUG: Contents of potential shared locations ===" && \
-    (ls -la /app/shared/ 2>/dev/null || echo "/app/shared/ not found") && \
-    (ls -la /app/backend/shared/ 2>/dev/null || echo "/app/backend/shared/ not found")
+# RUN echo "=== DEBUG: Contents of potential shared locations ===" && \
+#     (ls -la /app/shared/ 2>/dev/null || echo "/app/shared/ not found") && \
+#     (ls -la /app/backend/shared/ 2>/dev/null || echo "/app/backend/shared/ not found")
 #########################################################################################################
 
 RUN npm run build

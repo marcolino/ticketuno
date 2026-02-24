@@ -30,7 +30,6 @@ import {
   useTheme,
   Card,
   CardContent,
-  Hidden,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridRowId, GridRowSelectionModel } from '@mui/x-data-grid';
 import {
@@ -81,8 +80,8 @@ interface EventPerformanceForm {
 const EventDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isAdmin, isOperator/*, isAuthenticated*/ } = useAuth();
-  
+  const { isOperator } = useAuth();
+
   const [event, setEvent] = useState<EventWithDetails | null>(null);
   const [performances, setPerformances] = useState<EventPerformance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -116,7 +115,7 @@ const EventDetails: React.FC = () => {
       setEvent(response.data);
       
       // Filter to show only upcoming performances for non-admin users
-      const filteredPerfs = isAdmin ?
+      const filteredPerfs = isOperator ?
         response.data.performances :
         response.data.performances?.filter(p => {
           if (!p.performanceDate) return false;
@@ -133,7 +132,7 @@ const EventDetails: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, isAdmin]);
+  }, [id, isOperator]);
 
   const reloadEvent = async () => {
     const scrollPosition = window.pageYOffset;
@@ -508,7 +507,7 @@ const EventDetails: React.FC = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {isAdmin ? (
+            {isOperator ? (
               <AdminActionButtons performance={performance} />
             ) : (
               <ChooseSeatsButton performance={performance} />
@@ -522,7 +521,7 @@ const EventDetails: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Event Details Header */}
-      {!isAdmin && (
+      {!isOperator && (
         <Paper elevation={3} sx={{ p: 4, mb: 3 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
             <Box sx={{
@@ -569,7 +568,7 @@ const EventDetails: React.FC = () => {
                 )}
               </Box>
             </Box>
-            {/* {isAdmin && (
+            {/* {isOperator && (
             <Button
               variant="contained"
               startIcon={<EditIcon />}
@@ -727,7 +726,7 @@ const EventDetails: React.FC = () => {
         mb: 3 
       }}>
         <Box>
-          {isAdmin && (
+          {isOperator && (
             <Box sx={{
               justifyContent: 'space-between', 
               alignItems: 'center',
@@ -755,7 +754,7 @@ const EventDetails: React.FC = () => {
             flexWrap: 'wrap',
             justifyContent: { xs: 'center', sm: 'flex-end' }
           }}>
-            {isAdmin && selectedRows.ids.size > 0 && (
+            {isOperator && selectedRows.ids.size > 0 && (
               <>
                 <Chip
                   label={t('{{count}} selected', { count: selectedRows.ids.size })}
@@ -785,7 +784,7 @@ const EventDetails: React.FC = () => {
                 </Menu>
               </>
             )}
-            {isAdmin && (
+            {isOperator && (
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
@@ -806,46 +805,50 @@ const EventDetails: React.FC = () => {
         ) : (
           <>
             {/* Mobile card view */}
-            <Hidden mdUp>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {performances.slice(0, 10).map((performance) => (
-                  <MobilePerformanceCard key={performance.id} performance={performance} />
-                ))}
-                {performances.length > 10 && (
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    {t('Showing 10 of {{total}} performances. Use desktop view for full table.', { total: performances.length })}
-                  </Alert>
-                )}
-              </Box>
-            </Hidden>
+            <Box sx={{
+              display: { xs: 'flex', md: 'none' },
+              flexDirection: 'column',
+              gap: 1
+            }}>
+              {performances.map((performance) => (
+                <MobilePerformanceCard key={performance.id} performance={performance} />
+              ))}
+              {/* {performances.slice(0, 10).map((performance) => (
+                <MobilePerformanceCard key={performance.id} performance={performance} />
+              ))}
+              {performances.length > 10 && (
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  {t('Showing 10 of {{total}} performances. Use desktop view for full table.', { total: performances.length })}
+                </Alert>
+              )} */}
+            </Box>
 
             {/* Desktop DataGrid */}
-            <Hidden mdDown>
-              <Box sx={{ 
-                height: 500, 
-                width: '100%',
-              }}>
-                <DataGrid
-                  rows={performances}
-                  columns={columns}
-                  checkboxSelection={isAdmin}
-                  disableRowSelectionOnClick
-                  rowSelectionModel={selectedRows}
-                  onRowSelectionModelChange={setSelectedRows}
-                  pageSizeOptions={[10, 25, 50]}
-                  initialState={{
-                    pagination: { paginationModel: { pageSize: 10 } },
-                    sorting: { sortModel: [{ field: 'performanceDate', sort: 'asc' }] },
-                  }}
-                  sx={{
-                    '& .MuiDataGrid-row:hover': {
-                      backgroundColor: 'action.hover',
-                    },
-                  }}
-                  getRowHeight={() => 52}
-                />
-              </Box>
-            </Hidden>
+            <Box sx={{ 
+              display: { xs: 'none', md: 'block' },
+              height: 500, 
+              width: '100%',
+            }}>
+              <DataGrid
+                rows={performances}
+                columns={columns}
+                checkboxSelection={isOperator}
+                disableRowSelectionOnClick
+                rowSelectionModel={selectedRows}
+                onRowSelectionModelChange={setSelectedRows}
+                pageSizeOptions={[10, 25, 50]}
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 10 } },
+                  sorting: { sortModel: [{ field: 'performanceDate', sort: 'asc' }] },
+                }}
+                sx={{
+                  '& .MuiDataGrid-row:hover': {
+                    backgroundColor: 'action.hover',
+                  },
+                }}
+                getRowHeight={() => 52}
+              />
+            </Box>
           </>
         )}
       </Paper>

@@ -39,8 +39,7 @@ interface ProfileProps {
 }
 
 const Profile: React.FC<ProfileProps> = ({ userId }) => {
-  //const { user, updateUser, isAdmin, isAuthenticated } = useAuth();
-  const { user: currentUser, updateUser, /*isAdmin, */isAuthenticated } = useAuth();
+  const { user: currentUser, updateUser, isAuthenticated } = useAuth();
   const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
   const { t } = useTranslation();
   const theme = useTheme();

@@ -34,7 +34,7 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // Zoom factor / zoom
-  const zoom = isMobile ? 0.8 : 1.0;
+  const zoom = isMobile ? 1.0 : 0.75;
 
   // Seat dimensions
   const seatWidth = 48;
@@ -61,28 +61,31 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
       maxY = Math.max(maxY, seat.y + (seatHeight / 2));
     });
     
-    // Section labels
-    layout.sections.forEach((section) => {
-      const sectionStartX = section.origin.x;
-      const sectionStartY = section.origin.y;
+    // REMOVE THIS: it causes big empry space on bottom in mobile mode
+    // // Section labels
+    // layout.sections.forEach((section) => {
+    //   const sectionStartX = section.origin.x;
+    //   const sectionStartY = section.origin.y;
       
-      minX = Math.min(minX, sectionStartX - 100);
-      maxX = Math.max(maxX, sectionStartX + 100);
-      minY = Math.min(minY, sectionStartY - 70);
-      maxY = Math.max(maxY, sectionStartY + 70);
-    });
+    //   minX = Math.min(minX, sectionStartX - 100);
+    //   maxX = Math.max(maxX, sectionStartX + 100);
+    //   minY = Math.min(minY, sectionStartY - 70);
+    //   maxY = Math.max(maxY, sectionStartY + 70);
+    // });
     
-    const padding = 60;
+    //const padding = 60;
+    const paddingX = 60;
+    const paddingY = isMobile ? 50 : -75;
     
     if (minX === Infinity) {
       return { minX: 0, minY: 0, width: 1000, height: 800 };
     }
     
     return {
-      minX: minX - padding,
-      minY: minY - padding,
-      width: maxX - minX + (2 * padding),
-      height: maxY - minY + (2 * padding)
+      minX: minX - paddingX,
+      minY: minY - paddingY,
+      width: maxX - minX + (2 * paddingX),
+      height: maxY - minY + (2 * paddingY)
     };
   }, [layout/*, seats*/]); // Only recalculate when layout changes
 
@@ -96,6 +99,7 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
       return (
         <g
           key={section.id}
+          //transform={`scale(${zoom})`}
         >
           {/* Section Label */}
           <g>
@@ -184,29 +188,37 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
     });
   }, [layout.sections, seats, getSeatStatus, interactive, onSeatClick, seatWidth, seatHeight]);
 
+  const viewWidth = bounds.width / zoom;
+  const viewHeight = bounds.height / zoom;
+  const viewMinX = bounds.minX - (viewWidth - bounds.width) / 2;
+  const viewMinY = bounds.minY - (viewHeight - bounds.height) / 2;
+
   return (
     <div
       style={{
         width: '100%',
-        height: '100%',
+        //height: '100%',
+        //height: isMobile ? 'auto' : '70vh',
+        //height: 'auto',
         overflow: 'auto',
         display: 'flex',
-        justifyContent: 'center',   // horizontal centering
-        alignItems: 'flex-start'    // keep top aligned
+        justifyContent: 'center', // horizontal centering
+        //alignItems: 'flex-start', // keep top aligned
+        //alignItems: 'center',
       }}
     >
       <svg 
-        // width="100%" 
-        // height="100%"
-        width={bounds.width * zoom}
-        height={bounds.height * zoom}
-        viewBox={`
-          ${bounds.minX}
-          ${bounds.minY}
-          ${bounds.width}
-          ${bounds.height}
-        `}
-        preserveAspectRatio="xMidYMin meet"
+        width="100%" 
+        //height="auto"
+        // viewBox={`
+        //   ${bounds.minX}
+        //   ${bounds.minY}
+        //   ${bounds.width / zoom}
+        //   ${bounds.height / zoom}
+        // `}
+        viewBox={`${viewMinX} ${viewMinY} ${viewWidth} ${viewHeight}`}
+        //preserveAspectRatio="xMidYMin meet"
+        preserveAspectRatio="xMidYMid meet"
         style={{
           touchAction: 'pan-x pan-y', // Add touch-friendly behavior on mobile
         }}

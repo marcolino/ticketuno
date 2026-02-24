@@ -63,7 +63,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   //const location = useLocation();
-  const { user, isAuthenticated, /*isAdmin, */logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
 //  const { mode, toggleMode } = useThemeMode();
   //const { mode, changeThemeMode } = useThemeMode();
   const { themePreference, setThemePreference, effectiveMode } = useThemeMode();

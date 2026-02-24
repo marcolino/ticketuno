@@ -27,7 +27,7 @@ type DialogButton = {
 
 type DialogOptions = {
   title: string;
-  content?: ReactNode;
+  content?: ReactNode | (() => ReactNode); // Allow either a ReactNode or a function that returns one
 
   confirmText?: string;
   onConfirm?: () => void | Promise<void>;
@@ -133,7 +133,10 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({
                   mt: 3,
                 }}
               >
-                {options.content}
+                {typeof options?.content === "function"
+                  ? options.content()
+                  : options.content
+                }
               </DialogContent>
             )}
 

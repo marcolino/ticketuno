@@ -12,7 +12,7 @@ import {
 } from '@/shared/types/user';
 import { Theater } from '@/shared/types/theater';
 import type { Event, EventStats, EventPerformance, EventWithDetails } from '@/shared/types/event';
-//import { GeneratedSeat } from '@/shared/types/layoutToSeats';
+import type { FullConsent } from '@/shared/types/consent';
 import { PerformanceSeatsResponse } from '@/components/PerformanceBooking';
 import { Layout } from '@/shared/types/layout';
 import { i18n }  from '@/i18n'; 
@@ -283,6 +283,9 @@ export const userApi = {
 
   updateProfile: (userId: string | undefined, data: Partial<User>) =>
     api.put<User>(userId ? `/users/profile/${userId}` : '/users/profile', data),
+
+  updateConsent: (userId: string | undefined, data: Partial<FullConsent>) =>
+    api.put<User>(userId ? `/users/consent/${userId}` : '/users/consent', data),
 };
 
 export const theaterApi = {

@@ -59,10 +59,8 @@ const TheaterList: React.FC = () => {
   useEffect(() => {
     if (theaters?.length) {
       loadLayouts();
-    //} else {
-    //  setLayouts(null);
     }
-  }, [theaters/*isAuthenticated, isAdmin*/]);
+  }, [theaters]);
 
   const loadLayouts = async () => {
     try {
@@ -231,18 +229,6 @@ const TheaterList: React.FC = () => {
                       {t('Edit')}
                     </Button>
                   )}
-                  {/* {isAdmin && (
-                    <Button
-                      variant="contained"
-                      startIcon={<EditIcon />}
-                      onClick={() => handleEditLayout(theater.currentLayoutId, theater.id)}
-                      size={"small"}
-                      sx={{ m: .5 }}
-                    >
-                      {t('Layout')}
-                    </Button>
-                  )} */}
-                 
                   {isOperator && (
                     <Button
                       variant="outlined"

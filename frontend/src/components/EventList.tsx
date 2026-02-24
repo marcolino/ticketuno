@@ -42,10 +42,10 @@ const EventList: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOperator) {
+    //if (isOperator) {
       loadEvents();
-    }
-  }, [isOperator]);
+    //}
+  }, []);
 
   const loadEvents = async () => {
     try {
@@ -121,41 +121,13 @@ const EventList: React.FC = () => {
       {!error && events.length === 0 && (
         <Alert severity="info">{t('No events available')}</Alert>
       )}
-      
-      {/* {isAdmin && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/event/new')}
-            sx={{ mt: 2, mr: 2 }}
-          >
-            {t('Add Event')}
-          </Button>
-        </Box>
-      )} */}
-
-       {/* {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : events.length === 0 ? (
-        <Alert severity="info">No events available</Alert>
-      ) : ( */}
 
       <Grid container spacing={3}>
         {events.map(event => {
-          //const posterImageUrl = event.posterImage ? `/images/${event.posterImage}` : null; // TODO: '/images' to config
-          //const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
-          // const API_BASE = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-          // const posterImageUrl1 = event.posterImage ? `${API_BASE}/images/${event.posterImage}` : null;
-          // console.log(posterImageUrl1);
           const posterImageUrl = event.posterImage ?
             `/uploads/${event.posterImage}` :
             null
           ;
-          
           return (
             <Grid item xs={12} sm={6} md={4} key={event.id}>
               <Card
@@ -336,7 +308,7 @@ const EventList: React.FC = () => {
                     variant="contained"
                     startIcon={<EventIcon />}
                     onClick={() => handleViewEvent(event.id) }
-                    disabled={!isOperator}
+                    disabled={!(event.availablePerformances > 0)}
                     sx={{
                       width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
                       //minWidth: 200 // Minimum width for better appearance

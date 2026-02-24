@@ -13,7 +13,7 @@ import {
   sendVerificationEmail, 
   sendPasswordResetEmail 
 } from '../utils/email';
-import { userCanManageAccount, userCanSetRole } from '../shared/utils/roles';
+import { userCanManageAccount, userCanSetRole, userCanManageConsent } from '../shared/utils/roles';
 import { getErrorMessage } from '../utils/errorHandler';
 import config from '../config';
 
@@ -64,6 +64,7 @@ router.post('/register', async (req, res) => {
       isVerified: false,
       verificationCode,
       verificationCodeExpiry,
+      consent: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -144,6 +145,7 @@ router.post('/verify-email', async (req, res) => {
       phone: user.phone,
       role: user.role,
       isVerified: true,
+      consent: user.consent,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
@@ -254,6 +256,7 @@ router.post('/login', async (req: AuthRequest, res) => {
       phone: user.phone,
       role: user.role,
       isVerified: user.isVerified,
+      consent: user.consent,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
@@ -413,6 +416,7 @@ router.get('/auth/google/callback', async (req, res) => {
           lastName: family_name || 'User',
           role: 'user',
           isVerified: true,
+          consent: null,
           googleId,
         };
         const newUserId = await database.createUser(newUser);
@@ -493,6 +497,7 @@ router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       phone: user.phone,
       role: user.role,
       isVerified: user.isVerified,
+      consent: user.consent,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
@@ -502,7 +507,7 @@ router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
   }
 });
 
-// PUT /profile     → own profile
+// PUT /profile → own profile
 // PUT /profile/:id → another user's profile (if permitted)
 router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res) => {
   try {
@@ -547,12 +552,58 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       phone: updated!.phone,
       role: updated!.role,
       isVerified: updated!.isVerified,
+      consent: updated!.consent,
       createdAt: updated!.createdAt,
       updatedAt: updated!.updatedAt,
     };
     res.json(profile);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update profile: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
+// PUT /consent → own consent
+// PUT /consent/:id → another user's consent (if permitted)
+router.put('/consent/:userId?', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const actorId = req.userId!;
+    const targetId = req.params.userId ?? actorId;
+    const isSelf = targetId === actorId;
+
+    // Fetch target to know their current role before any permission check
+    const targetUser = await database.getUserById(targetId);
+    if (!targetUser) {
+      return res.status(404).json({ error: req.t('User not found') });
+    }
+
+    // Can the actor manage consent?
+    if (!isSelf && !userCanManageConsent(actorId, targetUser.role)) {
+      return res.status(403).json({ error: req.t('Insufficient permissions') });
+    }
+
+    const consent = req.body;
+    const updates: Partial<User> = {};
+
+    updates.consent = consent;
+    
+    await database.updateUser(targetId, updates);
+    const updated = await database.getUserById(targetId);
+
+    const profile: UserProfile = {
+      id: updated!.id,
+      email: updated!.email,
+      firstName: updated!.firstName,
+      lastName: updated!.lastName,
+      phone: updated!.phone,
+      role: updated!.role,
+      isVerified: updated!.isVerified,
+      consent: updated!.consent,
+      createdAt: updated!.createdAt,
+      updatedAt: updated!.updatedAt,
+    };
+    res.json(profile);
+  } catch (error: unknown) {
+    res.status(500).json({ error: req.t('Failed to update consent: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 

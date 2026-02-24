@@ -33,14 +33,14 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 
 export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.userRole !== 'admin') {
-    return res.status(403).json({ error: req.t('Admin access required') });
+    return res.status(403).json({ error: req.t('Admin role required') });
   }
   next();
 };
 
 export const requireOperator = (req: AuthRequest, res: Response, next: NextFunction) => {
   if (req.userRole !== 'admin' && req.userRole !== 'operator') {
-    return res.status(403).json({ error: req.t('Operator access required') });
+    return res.status(403).json({ error: req.t('Operator role required') });
   }
   next();
 };

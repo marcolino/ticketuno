@@ -42,7 +42,7 @@ const EventEdit: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { id } = useParams<{ id: string }>();
-  const { isAuthenticated, isAdmin } = useAuth();
+  const { isAuthenticated, isOperator } = useAuth();
 
   const isEditMode = id && id !== 'new';
 
@@ -147,7 +147,7 @@ const EventEdit: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) {
+    if (!isOperator) {
       navigate(-1);
       return;
     }
@@ -156,7 +156,7 @@ const EventEdit: React.FC = () => {
     if (isEditMode) {
       loadEvent();
     }
-  }, [isAuthenticated, isAdmin, isEditMode, navigate, loadEvent]);
+  }, [isOperator, isEditMode, navigate, loadEvent]);
   
   const handleSave = async () => {
     try {

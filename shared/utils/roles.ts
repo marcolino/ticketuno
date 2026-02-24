@@ -29,6 +29,9 @@ export const userCanSetRole = (
   userCanManageAccount(actorRole, targetCurrentRole) &&
   userCanAssignRole(actorRole, newRole);
 
+export const userCanManageConsent = (actorRole: string, targetRole: string): boolean =>
+  level(actorRole) >= ROLE_LEVEL['admin'];
+
 /** Returns the list of roles that `actorRole` is allowed to assign */
 export const assignableRoles = (actorRole: string): Role[] =>
   ROLES.filter(r => userCanAssignRole(actorRole, r));

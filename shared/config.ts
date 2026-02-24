@@ -23,6 +23,27 @@ const config: AppConfig = {
     theme: {
       defaultType: 'native',
       defaultMode: 'system', // system / light / dark
+    },
+    consent: {
+      version: "1.0.0",
+      cookies: {
+        technical: true,
+        analytics: true,
+        marketing: true,
+      },
+      communication: {
+        marketingEmails: true,
+        pushNotifications: true,
+      },
+    },
+    reservations: {
+      purchases: {
+        gateways: {
+          'free': {}, // no payment requested
+          'stripe': {} // TODO ...
+        },
+        gateway: 'free',
+      }
     }
   },
   server: {
@@ -33,29 +54,3 @@ const config: AppConfig = {
 export type CurrencyCode = keyof typeof config.app.currencies;
 
 export default config;
-
-// {
-//   "app": {
-//     "codename": "ticketuno",
-//     "name": "TicketUno",
-//     "apiHost": "",
-//     "apiBasePath": "",
-//     "apiVersion": "",
-//     "languages": {
-//       "en": { "name": "English", "flag": "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
-//       "it": { "name": "Italiano", "flag": "🇮🇹" },
-//       "fr": { "name": "Français", "flag": "🇫🇷" }
-//     },
-//     "defaultLanguage": "it",
-//     "currencies": {
-//       "EUR": { "symbol": "€", "name": "Euro" },
-//       "USD": { "symbol": "$", "name": "US Dollar" },
-//       "GBP": { "symbol": "£", "name": "British Pound" },
-//       "JPY": { "symbol": "¥", "name": "Japanese Yen" }
-//     },
-//     "defaultCurrency": "EUR"
-//   },
-//   "server": {
-//     "delayMilliseconds.DISABLED": 0
-//   }
-// }

@@ -9,6 +9,7 @@ import { Theater, TheaterStatus, EventStatus, SeatStatus/*, Section*/, Seat } fr
 import { Layout } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
 import { GeneratedSeat } from '../shared/types/layoutToSeats';
+import { FullConsent } from '../shared/types/consent';
 import config from '../config';
 
 class Database {
@@ -73,6 +74,7 @@ class Database {
         reset_password_code TEXT,
         reset_password_code_expiry TEXT,
         google_id TEXT UNIQUE,
+        consent TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         deleted_at DATETIME
@@ -241,6 +243,15 @@ class Database {
   }
 
   private mapRowToUser(row: Record<string, unknown>): User {
+    let consent: FullConsent | null = null;
+    if (row.consent && typeof row.consent === "string") {
+      try {
+        consent = JSON.parse(row.consent);
+      } catch {
+        consent = null;
+      }
+    }
+    
     return {
       id: row.id as string,
       email: row.email as string,
@@ -256,6 +267,7 @@ class Database {
       resetPasswordCode: row.reset_password_code as string,
       resetPasswordCodeExpiry: row.reset_password_code_expiry as string,
       googleId: row.google_id as string,
+      consent,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };
@@ -300,6 +312,7 @@ class Database {
           phone: undefined,
           role: 'admin',
           isVerified: true,
+          consent: null,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -450,7 +463,8 @@ class Database {
 
   async updateUser(id: string, updates: Partial<User>): Promise<boolean> {
     const fields: string[] = [];
-    const values: (string | number)[] = [];
+    //const values: (string | number)[] = [];
+    const values: (string | number | null)[] = [];
     
     const fieldMap: Record<string, string> = {
       firstName: 'first_name',
@@ -465,6 +479,7 @@ class Database {
       resetPasswordCode: 'reset_password_code',
       resetPasswordCodeExpiry: 'reset_password_code_expiry',
       googleId: 'google_id',
+      consent: 'consent',
     };
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -472,8 +487,10 @@ class Database {
         fields.push(`${fieldMap[key]} = ?`);
         if (key === 'isVerified') {
           values.push(value ? 1 : 0);
+        } else if (key === 'consent') {
+          values.push(value ? JSON.stringify(value) : null);
         } else {
-          values.push(typeof value === 'boolean' ? (value ? 1 : 0) : value);
+          values.push(typeof value === 'boolean' ? (value ? 1 : 0) : value as string | number | null);
         }
       }
     });
@@ -720,7 +737,7 @@ class Database {
       producer: row.producer as string,
       choreographer: row.choreographer as string,
       musicalDirector: row.musical_director as string,
-      cast: row.cast_members ? JSON.parse(row.cast_members as string) : [],  
+      cast: row.cast_members ? JSON.parse(row.cast_members as string) : [],
       theaterId: row.theater_id as string,
       stageType: row.stage_type as string,
       openingDate: row.opening_date as string,
