@@ -7,11 +7,13 @@ import { database } from '../db/database';
 //import { i18n } from '../i18n';
 import { authenticateToken, generateToken, /*requireAdmin, userCanSetRole, */ AuthRequest } from '../middleware/auth';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
+import { FullConsent } from '../shared/types/consent';
 import { 
   generateVerificationCode, 
-  isCodeValid, 
-  sendVerificationEmail, 
-  sendPasswordResetEmail 
+  isVerificationCodeValid, 
+  sendVerificationEmail,
+  sendWelcomeEmail,
+  sendPasswordResetEmail,
 } from '../utils/email';
 import { userCanManageAccount, userCanSetRole, userCanManageConsent } from '../shared/utils/roles';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -121,7 +123,7 @@ router.post('/verify-email', async (req, res) => {
       return res.status(400).json({ error: req.t('No verification code found') });
     }
 
-    if (!isCodeValid(user.verificationCodeExpiry)) {
+    if (!isVerificationCodeValid(user.verificationCodeExpiry)) {
       return res.status(400).json({ error: req.t('Verification code is expired') });
     }
 
@@ -150,13 +152,17 @@ router.post('/verify-email', async (req, res) => {
       updatedAt: user.updatedAt
     };
 
+    const userName = profile.firstName;
+    const ctaUrl = config.app.baseUrl;
+    await sendWelcomeEmail(email, userName, ctaUrl);
+
     res.json({ 
       message: req.t('Email verified successfully'),
       token, 
       user: profile 
     });
   } catch (error) {
-    res.status(500).json({ error: req.t('Failed to verify email: {{err}}', req.t(getErrorMessage(error))) });
+    res.status(500).json({ error: req.t('Failed to verify email: {{err}}', { err: req.t(getErrorMessage(error)) }) });
   }
 });
 
@@ -328,7 +334,7 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: req.t('No password reset requested') });
     }
 
-    if (!isCodeValid(user.resetPasswordCodeExpiry)) {
+    if (!isVerificationCodeValid(user.resetPasswordCodeExpiry)) {
       return res.status(400).json({ error: req.t('Reset code expired') });
     }
 
@@ -408,7 +414,7 @@ router.get('/auth/google/callback', async (req, res) => {
       if (user) {
         await database.updateUser(user.id, { googleId });
       } else {
-        console.log("GGG - email:", email);
+        //console.log("email:", email);
         const newUser: Omit<User, 'id' | 'createdAt' | 'updatedAt'> = {
           email,
           password: '',
@@ -420,11 +426,15 @@ router.get('/auth/google/callback', async (req, res) => {
           googleId,
         };
         const newUserId = await database.createUser(newUser);
-        console.log("GGG - newUserId:", newUserId);
+        console.log("newUserId:", newUserId);
 
         // Fetch the full user object back from DB
         user = await database.getUserById(newUserId);
-        console.log("GGG - user:", user);
+        console.log("user:", user);
+
+        const userName = newUser.firstName;
+        const ctaUrl = config.app.baseUrl;
+        await sendWelcomeEmail(email, userName, ctaUrl);
       }
     }
 
@@ -606,5 +616,111 @@ router.put('/consent/:userId?', authenticateToken, async (req: AuthRequest, res)
     res.status(500).json({ error: req.t('Failed to update consent: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
+
+// GET /verifyConsentToken → verify token and return user profile
+router.get('/verifyConsentToken/:token/:consentType?', async (req, res) => {
+  try {
+    const { token, consentType } = req.params;
+    const user = await database.getUserByToken(token, consentType ?? undefined);
+    if (!user) {
+      throw (req.t('No user found for this token'));
+    }
+    // Return minimal profile (enough for the UI)
+    const profile: UserProfile = {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isVerified: user.isVerified,
+      consent: user.consent,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+    res.json(profile);
+  } catch (error: unknown) {
+    res.status(400).json({ error: req.t('Failed to verify token: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+  
+// // GET /verify-unsubscribe-token/:token and return user profile - TODO - use only /verify-consent-token/:token/:consentType
+// router.get('/verify-consent-unsubscribe-token/:token', async (req, res) => {
+//   try {
+//     const { token } = req.params;
+//     const user = await database.getUserByToken(token, 'communication.marketingEmails');
+//     if (!user) {
+//       throw (req.t('No user found for this token'));
+//     }
+//     // Return minimal profile (enough for the UI)
+//     const profile: UserProfile = {
+//       id: user.id,
+//       email: user.email,
+//       firstName: user.firstName,
+//       lastName: user.lastName,
+//       role: user.role,
+//       isVerified: user.isVerified,
+//       consent: user.consent,
+//       createdAt: user.createdAt,
+//       updatedAt: user.updatedAt
+//     };
+//     res.json(profile);
+//   } catch (error:unknown) {
+//     res.status(500).json({ error: req.t('Failed to verify token: {{err}}', { err: getErrorMessage(error) }) });
+//   }
+// });
+
+// POST /api/v1/users/unsubscribe
+router.post('/unsubscribe/:token', async (req, res) => {
+  try {
+    const { token } = req.params;
+    if (!token) {
+      return res.status(400).json({ error: req.t('Token is required') });
+    }
+    const user = await database.getUserByToken(token, 'communication.marketingEmails');
+    if (!user) {
+      return res.status(404).json({ error: req.t('Invalid or expired token') });
+    }
+
+    // Start with existing consent, or build a default FullConsent
+    let consent: FullConsent;
+    if (user.consent) {
+      consent = { ...user.consent };
+    } else {
+      // Create a minimal default consent
+      consent = {
+        version: '1.0',
+        cookies: { necessary: true, analytics: false, marketing: false },
+        communication: { marketingEmails: true, pushNotifications: false },
+        timestamp: new Date().toISOString(),
+      };
+    }
+  
+    // Update marketing preference
+    consent.communication.marketingEmails = false;
+    consent.timestamp = new Date().toISOString();
+
+    await database.updateUser(user.id, { consent });
+    // (Optional: delete the token if we want one‑time use)
+
+    res.json({ message: req.t('Unsubscribed successfully'), consent });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to unsubscribe: {{err}}', { err: error }) });
+  }
+});
+
+router.get('/token/:token', async (req, res) => {
+   try {
+    const token = req.params.token;
+
+    const user = await database.getUserByToken(token);
+    if (!user) {
+      return res.status(404).json({ error: req.t('User not found') });
+    }
+     
+    res.json(user);
+  } catch (error: unknown) {
+    res.status(500).json({ error: req.t('Failed to fetch user by token: {{err}}', { err: getErrorMessage(error) }) });
+  }
+}); 
 
 export default router;

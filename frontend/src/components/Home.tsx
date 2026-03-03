@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import {
   // AppBar,
@@ -54,11 +54,12 @@ import config from '../config';
 
 console.log('CONFIG is:', config);
 
-interface HomeProps {
-  children: React.ReactNode;
-}
+// interface HomeProps {
+//   children: React.ReactNode;
+// }
 
-const Home: React.FC<HomeProps> = ({ children }) => {
+//const Home: React.FC<HomeProps> = ({ children }) => {
+const Home: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
@@ -88,6 +89,25 @@ const Home: React.FC<HomeProps> = ({ children }) => {
     }
   };
 
+  // TODO: DEBUG ONLY!
+  useEffect(() => {
+    console.log('xxx Home mounted');
+    return () => console.log('xxx Home unmounted');
+  }, []);
+  useEffect(() => {
+    console.log('xxx loginDialogOpen changed to:', loginDialogOpen);
+  }, [loginDialogOpen]);
+  useEffect(() => {
+    console.log('xxx isAuthenticated changed to:', isAuthenticated);
+  }, [isAuthenticated]);
+  useEffect(() => {
+    console.log('xxx user changed:', user);
+  }, [user]);
+  useEffect(() => {
+    console.log('xxx Home mounted, path:', window.location.pathname);
+    return () => console.log('xxx Home unmounted, path was:', window.location.pathname);
+  }, []);
+  
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const shouldOpenLogin = params.get("login") === "true";
@@ -239,7 +259,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
               anchorEl={anchorEl}
               open={menuOpen}
               onClose={handleClose}
-              MenuListProps={{ dense: true }}
+              MenuListProps={{ dense: false }}
             >
               <MenuItem sx={{ fontWeight: 'bold' }}>
                 <Typography variant="body2">
@@ -376,7 +396,7 @@ const Home: React.FC<HomeProps> = ({ children }) => {
 
       {/* Main Body Content */}
       <Body>
-        {children}
+        <Outlet />
       </Body>
 
       {/* Footer */}

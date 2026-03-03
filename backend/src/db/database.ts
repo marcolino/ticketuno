@@ -194,6 +194,18 @@ class Database {
     //booked_by_user_id TEXT NULL if not booked,
     
     await execQuery(this.db!, `
+      CREATE TABLE IF NOT EXISTS tokens (
+        id TEXT PRIMARY KEY,
+        token TEXT UNIQUE NOT NULL,
+        user_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        expires_at TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+    `, 'CREATE tokens');
+
+    await execQuery(this.db!, `
       CREATE INDEX IF NOT EXISTS idx_layouts_active
       ON layouts(theater_id)
       WHERE deleted_at IS NULL;
@@ -214,6 +226,14 @@ class Database {
     await execQuery(this.db!, `
       CREATE INDEX IF NOT EXISTS idx_seats_user ON seats(booked_by_user_id);
     `, 'INDEX seats_user');
+
+    await execQuery(this.db!, `
+      CREATE INDEX IF NOT EXISTS idx_tokens_token ON tokens(token);
+    `, 'INDEX tokens_token');
+
+    await execQuery(this.db!, `
+      CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
+    `, 'INDEX tokens_user');
   }
   
   // User methods //////////////////////////////////////////////////////////////////////
@@ -236,7 +256,7 @@ class Database {
     const params: SqlParam[] = [
       id, user.email, user.password, user.firstName, user.lastName, user.phone || '', user.role,
       user.isVerified ? 1 : 0, user.verificationCode ?? '', user.verificationCodeExpiry ?? '',
-      user.googleId ?? ''
+      user.googleId ?? null
     ];
     await runQuery(this.db!, sql, params, 'create user');
     return id;
@@ -421,17 +441,16 @@ class Database {
   ): Promise<void> {
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = this.uuid();
-    const now = new Date().toISOString();
 
     // INSERT OR IGNORE is atomic — no race condition possible
     const sql = `
       INSERT OR IGNORE INTO users (
-        id, email, password, first_name, last_name, role, is_verified, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+        id, email, password, first_name, last_name, role, is_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, 1)
     `;
 
     const result = await runQuery(this.db!, sql, [
-      id, email, hashedPassword, firstName, lastName, role, now, now,
+      id, email, hashedPassword, firstName, lastName, role
     ], `create default ${role} user`);
 
     if (result.changes > 0) {
@@ -499,13 +518,47 @@ class Database {
       return false;
     }
 
-    fields.push('updated_at = ?');
-    values.push(new Date().toISOString());
     values.push(id);
     
     const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
     const result = await runQuery(this.db!, sql, values, 'update user');
     return result.changes > 0;
+  }
+
+  // Create a new token for a user (returns the token string)
+  async createToken(userId: string, type: string, expiresInDays: number = 7): Promise<string> { // TODO: 7 in config
+    const id = this.uuid(); // primary key
+    const token = this.uuid(); // the actual token (unique)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + expiresInDays);
+
+    const sql = `
+      INSERT INTO tokens (id, token, user_id, type, expires_at)
+      VALUES (?, ?, ?, ?, ?)
+    `;
+    await runQuery(this.db!, sql, [id, token, userId, type, expiresAt.toISOString()], 'create token');
+    return token;
+  }
+
+  async getUserByToken(token: string, type?: string): Promise<User | null> {
+    let sql = `
+      SELECT user_id
+      FROM tokens
+      WHERE
+        token = ? AND
+        expires_at > datetime('now')
+    `;
+    const params: SqlParam[] = [token];
+    if (type) {
+      sql += ` AND type = ?`;
+      params.push(type);
+    }
+
+    const row = await getQuery<{ user_id: string }>(this.db!, sql, params, 'get user by token');
+    if (!row) {
+      return null;
+    }
+    return this.getUserById(row.user_id);
   }
 
   // Theater methods //////////////////////////////////////////////////////////////////////
@@ -696,8 +749,8 @@ class Database {
       return false;
     }
 
-    fields.push('updated_at = ?');
-    values.push(new Date().toISOString());
+    // fields.push('updated_at = ?');
+    // values.push(new Date().toISOString());
     values.push(id);
 
     const sql = `
@@ -982,8 +1035,8 @@ class Database {
       return false;
     }
 
-    fields.push('updated_at = ?');
-    values.push(new Date().toISOString());
+    // fields.push('updated_at = ?');
+    // values.push(new Date().toISOString());
     values.push(id);
 
     const sql = `
@@ -1039,70 +1092,6 @@ class Database {
     return rows ? this.mapRowsToSeats(rows) : [];
   }
 
-  // async getSeatsByEventId(eventId: string): Promise<Array<{ eventId: string; seatId: string; status: string; reservedUntil?: string }> | null> {
-  //   const sql = `SELECT * FROM seats WHERE event_id = ?`;
-  //   const params = [eventId];
-  //   const rows = await getQuery(this.db!, sql, params, 'get seats by event id');
-  //   return rows ? this.mapRowsToSeats(rows) : null;
-  // }
-
-  // async getSeat(eventId: string, seatId: string): Promise<{ eventId: string; seatId: string; status: string; reservedUntil?: string } | null> {
-  //   const sql = `SELECT * FROM seats WHERE event_id = ? AND seat_id = ?`;
-  //   const params = [eventId, seatId];
-  //   const row = await getQuery(this.db!, sql, params, 'get seat');
-  //   return row ? this.mapRowToSeat(row) : null;
-  // }
-
-  // async createOrUpdateSeat(performanceId: string, seatId: string, status: string, reservedUntil?: string): Promise<void> {
-  //   const sql = `
-  //     INSERT INTO seats (performance_id, seat_id, status, reserved_until)
-  //     VALUES (?, ?, ?, ?)
-  //     ON CONFLICT(event_id, seat_id) 
-  //     DO UPDATE SET status = ?, reserved_until = ?
-  //   `;
-  //   const params = [
-  //     performanceId,
-  //     seatId,
-  //     status,
-  //     reservedUntil,
-  //     status,
-  //     reservedUntil
-  //   ];
-  //   await runQuery(this.db!, sql, params, 'create or update seat');
-  // }
-
-  // async updateSeatStatus(eventId: string, seatId: string, status: string, reservedUntil?: string): Promise<boolean> {
-  //   const fields: string[] = [];
-  //   const values: any[] = [];
-    
-  //   const fieldMap: Record<string, string> = {
-  //     status: 'status',
-  //     reservedUntil: 'reserved_until',
-  //   };
-
-  //   Object.entries([status, reservedUntil]).forEach(([key, value]) => {
-  //     if (fieldMap[key] && value !== undefined) {
-  //       fields.push(`${fieldMap[key]} = ?`);
-  //       values.push(value);
-  //     }
-  //   });
-    
-  //   if (fields.length === 0) {
-  //     return false;
-  //   }
-
-  //   values.push(eventId);
-  //   values.push(seatId);
-
-  //   const sql = `
-  //     UPDATE seats
-  //     SET ${fields.join(', ')}
-  //     WHERE event_id = ? AND seat_id = ?
-  //   `;
-  //   const result = await runQuery(this.db!, sql, values, 'update seat status');
-  //   return result.changes > 0;
-  // }
-
   async releaseExpiredReservations(): Promise<boolean> {
     const sql = `
       UPDATE seats 
@@ -1112,20 +1101,6 @@ class Database {
     const result = await runQuery(this.db!, sql, [], 'release expired seat reservations');
     return result.changes > 0;
   }
-
-  // async deleteSeatsForEvent(eventId: string): Promise<boolean> {
-  //   const sql = `DELETE FROM seats WHERE event_id = ?`;
-  //   const params = [eventId];
-  //   const result = await runQuery(this.db!, sql, params, 'delete seats for event');
-  //   return result.changes > 0;
-  // }
-
-  // async getAvailableSeatsCount(eventId: string): Promise<number> {
-  //   const sql = `SELECT COUNT(*) as count FROM seats WHERE event_id = ? AND status = ?`;
-  //   const params = [eventId];
-  //   const row = await getQuery(this.db!, sql, params, 'get available seats count');
-  //   return row ? row.count : 0;
-  // }
 
   async bulkCreateSeats(
     performanceId: string,
@@ -1155,10 +1130,10 @@ class Database {
     return result.changes > 0;
   }
 
-  /**
+    /**
    * Get seats grouped by section for UI
    */
-  async getSeatsByPerformanceIdGrouped(performanceId: string): Promise<{
+  async getSeatsByPerformanceIdGroupedBySection(performanceId: string): Promise<{
     [sectionName: string]: {
       [rowId: string]: Seat[]
     }
@@ -1172,7 +1147,6 @@ class Database {
         status,
         booked_by_user_id,
         reserved_until
-
       FROM seats 
       WHERE performance_id = ?
       ORDER BY section_name, row_id, seat_number

@@ -1,0 +1,20 @@
+<mj-text align="center" font-size="18px" font-weight="600">
+  {{t "Hey,"}} {{userName}}
+</mj-text>
+<mj-text align="center" font-size="18px" font-weight="600">
+  {{t "Welcome to"}} {{appName}}!
+</mj-text>
+
+<mj-text align="center" padding-top="15px">
+  {{t "Thanks for joining us."}}
+</mj-text>
+
+<mj-button
+  href="{{ctaUrl}}"
+  background-color="#6750A4"
+  color="white"
+  border-radius="8px"
+  padding="25px 0 0 0"
+>
+  {{t "Start using the app!"}}
+</mj-button>

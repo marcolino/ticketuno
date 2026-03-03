@@ -286,6 +286,18 @@ export const userApi = {
 
   updateConsent: (userId: string | undefined, data: Partial<FullConsent>) =>
     api.put<User>(userId ? `/users/consent/${userId}` : '/users/consent', data),
+
+  verifyConsentToken: (token: string, consentType?: string) =>
+    api.get<User>(`/users/verifyConsentToken/${token}/${consentType}`),
+
+  // verifyConsentUnsubscribeToken: (token: string) =>
+  //   api.put<User>(`/users/verify-consent-unsubscribe-token/${token}`),
+
+  unsubscribe: (token: string) =>
+    api.post(`/users/unsubscribe/${token}`),
+
+  getUserByToken: (token: string) =>
+    api.get<User>(`/users/token/${token}`),
 };
 
 export const theaterApi = {
@@ -397,4 +409,11 @@ export const imageApi = {
     api.delete(`/images/${filename}`),
 };
 
-//export default api;
+export const emailApi = {
+  verifyConsentToken: (token: string, type: string = 'consent') =>
+    api.post(`/emails/verifyConsentToken`, { token, type }),
+
+  // // TODO: we can avoid this endpoint...
+  // verifyUnsubscribeToken: (token: string,) =>
+  //   api.post(`/emails/verifyConsentToken`, { token, type: "communication.marketingEmails" }),
+};

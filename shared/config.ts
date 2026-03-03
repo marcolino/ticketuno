@@ -7,6 +7,10 @@ const config: AppConfig = {
     // apiHost: '',
     // apiBasePath: '',
     // apiVersion: '',
+    baseUrl: (process.env.NODE_ENV === 'production') ?
+      'https://ticketuno.fly.dev' :
+      'http://localhost:3000'
+    ,
     languages: {
       en: { name: 'English', flag: '🇬🇧' },
       it: { name: 'Italiano', flag: '🇮🇹' },

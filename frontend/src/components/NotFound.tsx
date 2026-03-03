@@ -59,10 +59,10 @@ const NotFound: React.FC = () => {
             mx: 'auto',
             opacity: 0.8,
           }}
-          onError={(e) => {
-            // If image doesn't exist, hide it
-            e.currentTarget.style.display = 'none';
-          }}
+          // onError={(e) => {
+          //   // If image doesn't exist, hide it
+          //   e.currentTarget.style.display = 'none';
+          // }}
         />
         
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>

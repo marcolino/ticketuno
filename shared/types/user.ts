@@ -43,6 +43,7 @@ interface LoginSuccessResponse {
 interface LoginVerificationRequiredResponse {
   requiresVerification: true;
   email: string;
+  error?: string;
 }
 
 export type LoginResponse =

@@ -110,7 +110,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = useCallback(
     async (credentials: LoginCredentials) => {
       try {
-        setLoading(true);
+        //setLoading(true);
 
         if ('token' in credentials) {
           const newToken = credentials.token;
@@ -128,7 +128,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           const response = await userApi.login(credentials);
 
           if (response.data.requiresVerification) {
-            setLoading(false);
+            //setLoading(false);
             return response.data;
           }
 
@@ -139,7 +139,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           setUser(response.data.user);
           setIsAuthenticated(true);
-          setLoading(false);
+          //setLoading(false);
 
           return response.data;
         }
@@ -153,7 +153,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = useCallback(() => {
     const currentPath = window.location.pathname;
-    localStorage.setItem('redirectAfterLogin', currentPath);
+    
+    if (!currentPath.startsWith('/unsubscribe')) {
+      localStorage.setItem('redirectAfterLogin', currentPath);
+    }
 
     setAuthToken(null);
     localStorage.removeItem('authToken');

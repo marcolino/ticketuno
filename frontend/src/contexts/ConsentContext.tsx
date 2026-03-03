@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
-import { useTranslation } from "react-i18next";
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogTitle,
@@ -11,269 +12,309 @@ import {
   Checkbox,
   Box,
   Typography,
+  //Paper,
   Tooltip,
-} from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
-import { userApi } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
-import { FullConsent } from "../shared/types/consent";
-import config from "../shared/config";
-
-const LOCAL_KEY = "consent";
+} from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
+import { userApi } from '@/services/api';
+import { useAuth } from './AuthContext';
+import { FullConsent } from '@/shared/types/consent';
+import config from '@/config';
 
 interface ConsentContextType {
   consent: FullConsent | null;
   canUseAnalytics: boolean;
   canUseMarketingCookies: boolean;
-  updateConsent: (c: FullConsent) => void;
+  openConsentDialog: (redirectAfterClose?: boolean) => void;
+  setMarketingEmailsDirect: (value: boolean) => Promise<void>;
 }
 
 const ConsentContext = createContext<ConsentContextType>({} as ConsentContextType);
-
 export const useConsent = () => useContext(ConsentContext);
 
-interface Props {
-  children: React.ReactNode;
-}
+const LOCAL_KEY = 'consent';
 
-export const ConsentProvider: React.FC<Props> = ({ children }) => {
+export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const version = config.app.consent.version;
 
   const [consent, setConsent] = useState<FullConsent | null>(null);
-
   const [analytics, setAnalytics] = useState(false);
   const [marketing, setMarketing] = useState(false);
   const [marketingEmails, setMarketingEmails] = useState(false);
   const [pushNotifications, setPushNotifications] = useState(false);
 
   const [openDialog, setOpenDialog] = useState(false);
+  const [setup, setSetup] = useState(false); // true = full consent, false = initial privacy notice
+  const [redirectAfterClose, setRedirectAfterClose] = useState(false);
+  const [consentInitialized, setConsentInitialized] = useState(false);
 
-  const version = config.app.consent.version;
+  // -----------------------------
+  // Helpers
+  // -----------------------------
+  const loadTogglesFromConsent = useCallback((c: FullConsent | null) => {
+    setAnalytics(!!c?.cookies.analytics);
+    setMarketing(!!c?.cookies.marketing);
+    setMarketingEmails(!!c?.communication.marketingEmails);
+    setPushNotifications(!!c?.communication.pushNotifications);
+  }, []);
 
   const syncToServer = async (updates: FullConsent) => {
     if (!user) return;
     await userApi.updateConsent(user.id, updates);
   };
 
-  const requestPushPermission = async () => {
-    if ("Notification" in window) {
-      await Notification.requestPermission();
+  const buildConsent = (): FullConsent => ({
+    version,
+    timestamp: new Date().toISOString(),
+    cookies: {
+      necessary: true,
+      analytics: config.app.consent.cookies.analytics ? analytics : false,
+      marketing: config.app.consent.cookies.marketing ? marketing : false,
+    },
+    communication: {
+      marketingEmails: config.app.consent.communication.marketingEmails
+        ? marketingEmails
+        : false,
+      pushNotifications: config.app.consent.communication.pushNotifications
+        ? pushNotifications
+        : false,
+    },
+  });
+
+  const closeDialog = () => {
+    setOpenDialog(false);
+    setSetup(false);
+
+    if (redirectAfterClose) {
+      navigate('/', { replace: true });
     }
+
+    setRedirectAfterClose(false);
   };
 
-  const loadTogglesFromConsent = (c: FullConsent | null) => {
-    setAnalytics(!!c?.cookies.analytics);
-    setMarketing(!!c?.cookies.marketing);
-    setMarketingEmails(!!c?.communication.marketingEmails);
-    setPushNotifications(!!c?.communication.pushNotifications);
+  // -----------------------------
+  // Public API
+  // -----------------------------
+  const openConsentDialog = (redirect = false) => {
+    setRedirectAfterClose(redirect);
+    setSetup(true);
+    setOpenDialog(true);
   };
 
   const saveConsent = async () => {
-    const newConsent: FullConsent = {
-      version,
-      timestamp: new Date().toISOString(),
-      cookies: {
-        necessary: true,
-        analytics: config.app.consent.cookies.analytics ? analytics : false,
-        marketing: config.app.consent.cookies.marketing ? marketing : false,
-      },
-      communication: {
-        marketingEmails: config.app.consent.communication.marketingEmails ? marketingEmails : false,
-        pushNotifications: config.app.consent.communication.pushNotifications ? pushNotifications : false,
-      },
-    };
-
+    const newConsent = buildConsent();
     setConsent(newConsent);
     localStorage.setItem(LOCAL_KEY, JSON.stringify(newConsent));
 
-    if (user) await syncToServer(newConsent);
-    if (newConsent.communication.pushNotifications) await requestPushPermission();
-
-    setOpenDialog(false);
+    await syncToServer(newConsent);
+    closeDialog();
   };
 
-  const rejectConsent = async () => {
-    const newConsent: FullConsent = {
-      version,
-      timestamp: new Date().toISOString(),
-      cookies: {
-        necessary: true,
-        analytics: false,
-        marketing: false,
-      },
-      communication: {
-        marketingEmails: false,
-        pushNotifications: false,
-      },
-    };
+  const acceptAll = async () => {
+    setAnalytics(true);
+    setMarketing(true);
+    setMarketingEmails(true);
+    setPushNotifications(true);
 
+    const newConsent = buildConsent();
     setConsent(newConsent);
     localStorage.setItem(LOCAL_KEY, JSON.stringify(newConsent));
-
-    if (user) await syncToServer(newConsent);
-
-    setOpenDialog(false);
+    await syncToServer(newConsent);
+    closeDialog();
   };
 
+  const rejectAll = async () => {
+    setAnalytics(false);
+    setMarketing(false);
+    setMarketingEmails(false);
+    setPushNotifications(false);
+
+    const newConsent = buildConsent();
+    setConsent(newConsent);
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(newConsent));
+    await syncToServer(newConsent);
+    closeDialog();
+  };
+
+  const setMarketingEmailsDirect = async (value: boolean) => {
+    setMarketingEmails(value);
+    const updated = buildConsent();
+    setConsent(updated);
+    localStorage.setItem(LOCAL_KEY, JSON.stringify(updated));
+    await syncToServer(updated);
+  };
+
+  // -----------------------------
+  // Initialization
+  // -----------------------------
   useEffect(() => {
-    if (loading) return;
+    if (loading || consentInitialized) return;
 
     const local = localStorage.getItem(LOCAL_KEY);
 
-    // Server consent valid
     if (user?.consent?.version === version) {
       setConsent(user.consent);
       loadTogglesFromConsent(user.consent);
+      setConsentInitialized(true);
       return;
     }
 
-    // Local consent valid
     if (local) {
       const parsed: FullConsent = JSON.parse(local);
       if (parsed.version === version) {
         setConsent(parsed);
         loadTogglesFromConsent(parsed);
-        if (user && !user.consent) syncToServer(parsed);
+        setConsentInitialized(true);
         return;
       }
     }
 
-    // No valid consent → open dialog
+    // No consent found → show initial privacy notice
+    setSetup(false); // !setup = initial "Privacy Notice"
     setOpenDialog(true);
-  }, [user, loading, version]);
+    setConsentInitialized(true);
+  }, [loading, user, version, consentInitialized, loadTogglesFromConsent]);
 
   if (loading) return null;
 
+  // -----------------------------
+  // UI
+  // -----------------------------
   return (
     <ConsentContext.Provider
       value={{
         consent,
         canUseAnalytics: !!consent?.cookies.analytics,
         canUseMarketingCookies: !!consent?.cookies.marketing,
-        updateConsent: saveConsent,
+        openConsentDialog,
+        setMarketingEmailsDirect,
       }}
     >
       {children}
 
       <Dialog
         open={openDialog}
-        onClose={rejectConsent}
-        maxWidth="sm"
+        onClose={closeDialog}
         fullWidth
+        maxWidth="sm"
         PaperProps={{
           sx: {
-            width: "auto",
-            maxWidth: {
-              xs: 'none',
-              sm: '80%',
-              md: '66%',
-              lg: '50%',
-              xl: '45%',
-            }
-          }
+            borderRadius: 2,
+            position: 'fixed',
+            bottom: 16, // sticky bottom banner style
+            left: '50%',
+            transform: 'translateX(-50%)',
+            p: 3,
+            boxShadow: 6,
+          },
         }}
       >
-        <DialogTitle
-          sx={{
-            backgroundColor: "primary.main",
-            color: "primary.contrastText",
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            pr: 1,
-            mb: 3,
-          }}
-        >
-          {t("Consents Handling")}
-          <IconButton size="small" onClick={rejectConsent} sx={{ color: "primary.contrastText" }}>
-            <CloseIcon fontSize="small" />
-          </IconButton>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between' }}>
+          {!setup ? t('Privacy Notice') : t('Manage Your Consents')}
+          {setup && (
+            <IconButton size="small" onClick={closeDialog}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          )}
         </DialogTitle>
 
-        <DialogContent>
-          {/* <Typography variant="body1" gutterBottom sx={{pt: 2, pb: 4}}>
-            {t('Authorizations for technical cookies, analytics cookies, marketing cookies, marketing emails and notifications')}
-          </Typography> */}
+        <DialogContent dividers>
+          {!setup ? (
+            <Typography variant="body2">
+              {t(
+                'We use cookies and communication tools to improve your experience. You can accept all, reject all, or manage your preferences.'
+              )}
+            </Typography>
+          ) : (
+            <>
+              <Box mt={2}>
+                <Typography variant="subtitle2">{t('Cookies')}</Typography>
+                
+                  <Tooltip title={t('Technical cookies are necessary and cannot be dismissed')}>
+                    <FormControlLabel
+                      control={<Checkbox checked disabled />}
+                      label={t('Technical cookies')}
+                    />
+                  </Tooltip>
+                  
+                {config.app.consent.cookies.analytics && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={analytics}
+                        onChange={(e) => setAnalytics(e.target.checked)}
+                      />
+                    }
+                    label={t('Analytics cookies')}
+                  />
+                )}
+                {config.app.consent.cookies.marketing && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={marketing}
+                        onChange={(e) => setMarketing(e.target.checked)}
+                      />
+                    }
+                    label={t('Marketing cookies')}
+                  />
+                )}
+              </Box>
 
-          <Box mt={2}>
-            <Typography variant="subtitle2">{t("Cookies")}</Typography>
-            
-            {config.app.consent.cookies.technical && (
-              <Tooltip title={t('Technical cookies are necessary for app functionality, and cannot be dismissed')}>
-                <FormControlLabel
-                control={<Checkbox checked={true} disabled />}
-                label={
-                  <Typography sx={{ fontSize: '0.9rem' }}>
-                    {t('Technical cookies')}
-                  </Typography>
-                }
-              />
-              </Tooltip>
-            )}
-            {config.app.consent.cookies.analytics && (
-              <Tooltip title={t('Analytics cookies help us understand how visitors use our site')}>
-                <FormControlLabel
-                  control={<Checkbox checked={analytics} onChange={(e) => setAnalytics(e.target.checked)} />}
-                  label={
-                    <Typography sx={{ fontSize: '0.9rem' }}>
-                      {t('Analytics cookies')}
-                    </Typography>
-                  }
-                />
-              </Tooltip>
-            )}
-            {config.app.consent.cookies.marketing && (
-              <Tooltip title={t('Marketing cookies are used to track visitors across websites')}>
-                <FormControlLabel
-                  control={<Checkbox checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />}
-                  label={
-                    <Typography sx={{ fontSize: '0.9rem' }}>
-                      {t('Marketing cookies')}
-                    </Typography>
-                  }
-                />
-              </Tooltip>
-            )}
-          </Box>
-
-          <Box mt={2}>
-            <Typography variant="subtitle2">{t("Communication")}</Typography>
-            {config.app.consent.communication.marketingEmails && (
-              <Tooltip title={t('Marketing emails consent to receive news, updates, and special offers')}>
-                <FormControlLabel
-                  control={<Checkbox checked={marketingEmails} onChange={(e) => setMarketingEmails(e.target.checked)} />}
-                  label={
-                    <Typography sx={{ fontSize: '0.9rem' }}>
-                      {t('Consent for marketing emails')}
-                    </Typography>
-                  }
-                />
-              </Tooltip>
-            )}
-            {config.app.consent.communication.pushNotifications && (
-              <Tooltip title={t('Get instant alerts and updates on your device.')}>
-                <FormControlLabel
-                  control={<Checkbox checked={pushNotifications} onChange={(e) => setPushNotifications(e.target.checked)} />}
-                  label={
-                    <Typography sx={{ fontSize: '0.9rem' }}>
-                      {t('Consent for push notifications')}
-                    </Typography>
-                  }
-                />
-              </Tooltip>
-            )}
-          </Box>
+              <Box mt={3}>
+                <Typography variant="subtitle2">{t('Communication')}</Typography>
+                {config.app.consent.communication.marketingEmails && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={marketingEmails}
+                        onChange={(e) => setMarketingEmails(e.target.checked)}
+                      />
+                    }
+                    label={t('Marketing emails')}
+                  />
+                )}
+                {config.app.consent.communication.pushNotifications && (
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={pushNotifications}
+                        onChange={(e) => setPushNotifications(e.target.checked)}
+                      />
+                    }
+                    label={t('Push notifications')}
+                  />
+                )}
+              </Box>
+            </>
+          )}
         </DialogContent>
 
-        <DialogActions>
-          <Button onClick={rejectConsent} color="secondary">
-            {t('Cancel')}
-          </Button>
-          <Button onClick={saveConsent} variant="contained" color="primary">
-            {t('Accept')}
-          </Button>
+        <DialogActions sx={{ justifyContent: 'flex-end', gap: 1 }}>
+          {!setup ? (
+            <>
+              <Button onClick={acceptAll} variant="contained">
+                {t('Accept All')}
+              </Button>
+              <Button onClick={rejectAll} variant="outlined">
+                {t('Reject All')}
+              </Button>
+              <Button onClick={() => openConsentDialog()}>
+                {t('Manage Preferences')}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={closeDialog}>{t('Cancel')}</Button>
+              <Button onClick={saveConsent} variant="contained">
+                {t('Save')}
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
     </ConsentContext.Provider>

@@ -418,7 +418,7 @@ router.get('/:eventId/performances/:performanceId/seats', async (req, res) => {
       return res.status(404).json({ error: req.t('Performance not found') });
     }
 
-    const seats = await database.getSeatsByPerformanceIdGrouped(performanceId);
+    const seats = await database.getSeatsByPerformanceIdGroupedBySection(performanceId);
     
     res.json(seats);
   } catch (error: unknown) {

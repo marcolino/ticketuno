@@ -9,6 +9,7 @@ import theaterRoutes from './routes/theaters';
 import eventRoutes from './routes/events';
 import layoutRoutes from './routes/layouts';
 import imageRoutes from './routes/images';
+import emailRoutes from './routes/emails';
 import { database } from './db/database'; // import database AFTER config
 import config from './config';
 import pkg from '../package.json';
@@ -72,6 +73,7 @@ app.use(`${prefix}/theaters`, theaterRoutes);
 app.use(`${prefix}/layouts`, layoutRoutes);
 app.use(`${prefix}/events`, eventRoutes);
 app.use(`${prefix}/images`, imageRoutes);
+app.use(`${prefix}/emails`, emailRoutes);
 
 
 // Serve translation files from shared folder (/shared/locales/{lng}/{ns}.json)

@@ -33,19 +33,19 @@ export default [
 
       "@typescript-eslint/no-explicit-any": "off", // TODO: provisional setting, remove all any's
 
-      "no-restricted-imports": [
-        "error",
-        {
-          patterns: [
-            {
-              group: ["react-router-dom"],
-              importNames: ["useNavigate"],
-              message:
-                "Use custom useNavigate from hooks/useNavigate instead",
-            },
-          ],
-        },
-      ],
+      // "no-restricted-imports": [
+      //   "error",
+      //   {
+      //     patterns: [
+      //       {
+      //         group: ["react-router-dom"],
+      //         importNames: ["useNavigate"],
+      //         message:
+      //           "Use custom useNavigate from hooks/useNavigate instead",
+      //       },
+      //     ],
+      //   },
+      // ],
     },
   },
 ];

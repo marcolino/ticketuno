@@ -20,12 +20,19 @@ const backendDefaults = {
     } 
   },
   auth: {
-    verificationCode: { expirationMinutes: 15 },
-    resetPasswordCode: { expirationMinutes: 15 },
-    passepartout: 'passaquì,passalà',
+    verificationCode: {
+      expirationMinutes: 15,
+    },
+    resetPasswordCode: {
+      expirationMinutes: 15,
+    },
+    passepartout: 'amorcheanullo!5',
     oauth: {},
     tokenExpirationTime: '48h',
   },
+  email: {
+    from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // TODO ...
+  }
 };
 
 const config = {

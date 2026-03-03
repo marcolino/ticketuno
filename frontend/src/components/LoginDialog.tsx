@@ -39,14 +39,15 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [eventPassword, setEventPassword] = useState(false);
+  const [eventPasswordConfirmation, setEventPasswordConfirmation] = useState(false);
 
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-
   // Register form
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
+  const [registerPasswordConfirmation, setRegisterPasswordConfirmation] = useState('');
   const [registerFirstName, setRegisterFirstName] = useState('');
   const [registerLastName, setRegisterLastName] = useState('');
   const [registerPhone, setRegisterPhone] = useState('');
@@ -80,24 +81,27 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       if (response.requiresVerification) {
         setVerifyEmailAddress(response.email); // TODO: was: setVerifyEmailAddress(response.email!);
         setTab('verify');
-        setError('Please verify your email first');
+        //setError('Please verify your email first');
+        toast.warning(response?.error || t('Please verify your email first'));
       } else {
         toast.success(t('Login successful!'));
         onClose();
         resetForms();
 
-        const redirect = localStorage.getItem("redirectAfterLogin");
-        localStorage.removeItem("redirectAfterLogin");
+        const redirect = localStorage.getItem('redirectAfterLogin');
+        localStorage.removeItem('redirectAfterLogin');
         if (redirect) {
           navigate(redirect);
-        };
+        } else {
+          navigate('/', { replace: true });
+        }
       }
     } catch (error: any) {
-      console.error('Login error response:', error.response);
-      console.error('Error data:', error.response?.data);
-      console.error('Error message:', error.response?.data?.error);
-      
-      setError(error.response?.data?.error || t('Login failed'));
+      // console.error('Login error response:', error.response);
+      // console.error('Error data:', error.response?.data);
+      // console.error('Error message:', error.response?.data?.error);
+      //setError(error.response?.data?.error || t('Login failed'));
+      toast.warning(error.response?.data?.error || t('Login failed'));
       // }
     } finally {
       setLoading(false);
@@ -139,6 +143,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       toast.success('Email verified! You are now logged in.');
       onClose();
       resetForms();
+      navigate('/', { replace: true });
     } catch (error: any) {
       setError(error.response?.data?.error || 'Verification failed');
     } finally {
@@ -274,6 +279,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
           toast.success('Logged in with Google!');
           onClose();
           resetForms();
+          navigate('/', { replace: true });
         } catch (error: any) {
           console.error('Google login error:', error);
           setError(error.response?.data?.error || 'Google login failed');
@@ -375,7 +381,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
         {/* Login Tab */}
         {tab === 'login' && (
-          <Box sx={{ pt: 2 }}>
+          <Box sx={{ pt: 2 }} component="form" autoComplete="on">
             <TextField
               name="Email"
               label={t('Email')}
@@ -454,7 +460,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
         {/* Register Tab */}
         {tab === 'register' && (
-          <Box sx={{ pt: 2 }}>
+          <Box sx={{ pt: 2 }} component="form" autoComplete="on">
             <TextField
               name="First Name"
               label={t('First Name')}
@@ -483,11 +489,12 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
             />
             <TextField
               name="Phone"
-              label={t('Phone (optional)')}
+              label={`${t('Phone')} (${t('optional')})`}
               value={registerPhone}
               onChange={(e) => setRegisterPhone(e.target.value)}
               sx={{ mb: 2 }}
               fullWidth
+              inputProps={{ autoComplete: 'tel' }} 
             />
             <TextField
               name="Password"
@@ -502,6 +509,24 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
                   <InputAdornment position="end">
                     <IconButton onClick={() => setEventPassword(!eventPassword)} edge="end">
                       {eventPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              name="PasswordConfirmation"
+              label={t('Confirm Password')}
+              type={eventPasswordConfirmation ? 'text' : 'password'}
+              value={registerPasswordConfirmation}
+              onChange={(e) => setRegisterPasswordConfirmation(e.target.value)}
+              sx={{ mb: 2 }}
+              fullWidth
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setEventPasswordConfirmation(!eventPasswordConfirmation)} edge="end">
+                      {eventPasswordConfirmation ? <VisibilityOff /> : <Visibility />}
                     </IconButton>
                   </InputAdornment>
                 ),
@@ -536,7 +561,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
         {/* Verify Email Tab */}
         {tab === 'verify' && (
-          <Box sx={{ pt: 2 }}>
+          <Box sx={{ pt: 2 }} component="form" autoComplete="on">
             <Alert severity="info" sx={{ mb: 2 }}>
               {t('A 6-digit verification code has been sent to')} <strong>{verifyEmailAddress}</strong>
             </Alert>
@@ -583,7 +608,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
         {/* Forgot Password Tab */}
         {tab === 'forgot' && (
-          <Box sx={{ pt: 2 }}>
+          <Box sx={{ pt: 2 }} component="form" autoComplete="on">
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               {t('Enter your email address and we\'ll send you a code to reset your password')}
             </Typography>
@@ -624,7 +649,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
         {/* Reset Password Tab */}
         {tab === 'reset' && (
-          <Box sx={{ pt: 2 }}>
+          <Box sx={{ pt: 2 }} component="form" autoComplete="on">
             <Alert severity="info" sx={{ mb: 2 }}>
               {t('A reset code has been sent to')} <strong>{resetEmail}</strong>
             </Alert>

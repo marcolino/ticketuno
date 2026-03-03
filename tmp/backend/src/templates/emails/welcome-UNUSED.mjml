@@ -1,0 +1,19 @@
+<mjml>
+  <mj-body>
+    <mj-section>
+      <mj-column>
+        <mj-text font-size="20px">
+          Hello {{name}} 👋
+        </mj-text>
+
+        <mj-text>
+          Welcome to {{appName}}!
+        </mj-text>
+
+        <mj-button href="{{loginUrl}}">
+          Login
+        </mj-button>
+      </mj-column>
+    </mj-section>
+  </mj-body>
+</mjml>

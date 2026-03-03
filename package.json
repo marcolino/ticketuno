@@ -35,7 +35,7 @@
     "build": "npm run build:backend && npm run build:frontend",
     "build:backend": "cd backend && npm run build",
     "build:frontend": "cd frontend && npm run build",
-    "i18n:extract": "i18next-cli extract --config i18next.config.js",
+    "i18n:extract": "scripts/extract-mjml-keys.js && i18next-cli extract --config i18next.config.js",
     "i18n:extract:watch": "i18next-cli extract --watch --config i18next.config.js",
     "i18n:sync": "i18next-cli sync --config i18next.config.js",
     "i18n:types": "i18next-cli types --config i18next.config.js",

@@ -19,6 +19,7 @@ export interface AppConfig {
     // apiHost: string;
     // apiBasePath: string;
     // apiVersion: string;
+    baseUrl: string;
     languages: Record<string, AppLanguage>;
     defaultLanguage: string;
     // currencies: Record<CurrencyCode, Currency>;

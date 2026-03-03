@@ -18,7 +18,7 @@ module.exports = defineConfig({
       '!' + path.join(projectRoot, 'backend/src/**/*.spec.{js,ts}'),
       '!' + path.join(projectRoot, 'backend/src/**/*.test.{js,ts}'),
       '!' + path.join(projectRoot, 'backend/src/**/*.d.ts'),
-      '!' + path.join(projectRoot, 'backend/node_modules/**')
+      '!' + path.join(projectRoot, 'backend/node_modules/**'),
     ],
     output: path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json'),
     defaultNS: 'translation',
@@ -27,7 +27,7 @@ module.exports = defineConfig({
     contextSeparator: '_',
     functions: ['t', 'i18next.t', 'i18n.t', 'req.t'],
     trans: false,
-    lngs: ['en', 'it', 'fr']
+    lngs: ['en', 'it', 'fr'],
   },
   types: {
     input: [path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json')],

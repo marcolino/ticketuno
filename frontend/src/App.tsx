@@ -18,7 +18,7 @@ import { LoadingProvider } from './contexts/LoadingContext';
 import { ConsentProvider } from './contexts/ConsentContext';
 import OAuthHandler from './components/OAuthHandler';
 import { LoadingSpinner } from './components/LoadingSpinner';
-import Home from './components/Home';
+//import Home from './components/Home';
 import Routes from './Routes';
 import config from '@/config';
 
@@ -64,17 +64,15 @@ const { i18n } = useTranslation();
             <ToastProvider>
               <CssBaseline />
               <AuthProvider>
-                <ConsentProvider>
-                  <Router future={{
-                    v7_startTransition: true,
-                    v7_relativeSplatPath: true,
-                  }}>
+                <Router future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true,
+                }}>
+                  <ConsentProvider>
                     <OAuthHandler />
-                    <Home>
-                      <Routes />
-                    </Home>
-                  </Router>
-                </ConsentProvider>
+                    <Routes />
+                  </ConsentProvider>
+                </Router>
               </AuthProvider>
             </ToastProvider>
           </DialogProvider>
