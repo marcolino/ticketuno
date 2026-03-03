@@ -1,4 +1,3 @@
-// shared/types/layout.ts
 export interface Layout {
   id: string;
   name: string;

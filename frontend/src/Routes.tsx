@@ -13,6 +13,7 @@ import LayoutEdit from './components/LayoutEdit';
 import Profile from './components/Profile';
 import Unsubscribe from './components/Unsubscribe';
 import ConsentEntry from './components/ConsentEntry';
+import GeneralSetup from './components/GeneralSetup';
 import NotFound from './components/NotFound';
 
 const Routes: React.FC = () => {
@@ -37,7 +38,7 @@ const Routes: React.FC = () => {
         <Route path="/profile" element={<Profile />} />
         <Route path="/unsubscribe/:token/:type?" element={<Unsubscribe />} />
         <Route path="/consent/:token/:type?" element={<ConsentEntry />} />
-        {/* <Route path="/consent/:token/:type?" element={<ConsentRedirect />} /> */}
+        <Route path="/generalSetup" element={<GeneralSetup />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </ReactRoutes>

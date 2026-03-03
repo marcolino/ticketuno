@@ -15,6 +15,7 @@ import type { Event, EventStats, EventPerformance, EventWithDetails } from '@/sh
 import type { FullConsent } from '@/shared/types/consent';
 import { PerformanceSeatsResponse } from '@/components/PerformanceBooking';
 import { Layout } from '@/shared/types/layout';
+import { SetupStatus } from '@/shared/types/generalSetup';
 import { i18n }  from '@/i18n'; 
 
 //const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
@@ -409,11 +410,19 @@ export const imageApi = {
     api.delete(`/images/${filename}`),
 };
 
-export const emailApi = {
-  verifyConsentToken: (token: string, type: string = 'consent') =>
-    api.post(`/emails/verifyConsentToken`, { token, type }),
+// export const emailApi = {
+//   verifyConsentToken: (token: string, type: string = 'consent') =>
+//     api.post(`/emails/verifyConsentToken`, { token, type }),
 
-  // // TODO: we can avoid this endpoint...
-  // verifyUnsubscribeToken: (token: string,) =>
-  //   api.post(`/emails/verifyConsentToken`, { token, type: "communication.marketingEmails" }),
+//   // // TODO: we can avoid this endpoint...
+//   // verifyUnsubscribeToken: (token: string,) =>
+//   //   api.post(`/emails/verifyConsentToken`, { token, type: "communication.marketingEmails" }),
+// };
+
+export const setupApi = {
+  load: () =>
+    api.get<SetupStatus>('/setup'),
+
+  save: (payload: Partial<SetupStatus>) =>
+    api.post<SetupStatus>('/setup', payload),
 };

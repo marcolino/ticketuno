@@ -40,6 +40,7 @@ import {
   TheaterComedy as TheaterComedyIcon,
   SettingsSuggest as SettingsSuggestIcon,
   //Theaters as TheatersIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import Header from './Header';
@@ -197,6 +198,10 @@ const Home: React.FC = () => {
     i18n.changeLanguage(lang);
     //setLangDialogOpen(false);
   };
+
+  const openGeneralSetup = () => {
+    navigate('/generalSetup');
+  }
 
   //const isHomePage = location.pathname === '/';
   const menuOpen = Boolean(anchorEl);
@@ -363,11 +368,18 @@ const Home: React.FC = () => {
                   </ToggleButtonGroup>
                 </MenuItem>
               
-              <MenuItem onClick={() => { handleLanguage(); /*handleClose(); setLangDialogOpen(true);*/ }}>
+              <MenuItem onClick={handleLanguage}>
                 <ListItemIcon>
                   <LanguageIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText>{t('Language')}</ListItemText>
+              </MenuItem>
+
+              <MenuItem onClick={openGeneralSetup}>
+                <ListItemIcon>
+                  <SettingsIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>{t('Settings')}</ListItemText>
               </MenuItem>
 
               <Divider />

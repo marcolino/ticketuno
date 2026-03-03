@@ -35,7 +35,8 @@ for (const file of mjmlFiles) {
 const lines = [
   '// AUTO-GENERATED FILE. DO NOT EDIT.',
   '// Generated from MJML templates for i18next extraction.',
-  '',
+  'import { t } from \'i18next\';',
+  ''
 ];
 
 for (const key of [...foundKeys].sort()) {

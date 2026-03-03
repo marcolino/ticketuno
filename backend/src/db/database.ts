@@ -39,6 +39,7 @@ class Database {
             await this.initSchema();
             await this.runMigrations();
             await this.createDefaultUsers();
+            await this.createDefaultSetup();
             resolve(); // Single resolve call after ALL tasks complete
           } catch (error) {
             reject(error);
@@ -76,7 +77,7 @@ class Database {
         google_id TEXT UNIQUE,
         consent TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         deleted_at DATETIME
       );
     `, 'CREATE users');
@@ -92,7 +93,7 @@ class Database {
         status TEXT NOT NULL,
         current_layout_id TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         deleted_at DATETIME,
         FOREIGN KEY (current_layout_id) REFERENCES layouts(id)
       );
@@ -106,7 +107,7 @@ class Database {
         description TEXT,
         json TEXT NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         deleted_at DATETIME,
         FOREIGN KEY (theater_id) REFERENCES theaters(id)
       );
@@ -150,7 +151,7 @@ class Database {
         max_capacity INTEGER,
         content_warnings TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (theater_id) REFERENCES theaters(id),
         FOREIGN KEY (created_by_user_id) REFERENCES users(id)
       );
@@ -168,7 +169,7 @@ class Database {
         -- REMOVED: booked_seats INTEGER,
         -- REMOVED: seat_data TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         FOREIGN KEY (event_id) REFERENCES events(id)
       );
     `, 'CREATE performances');
@@ -185,7 +186,7 @@ class Database {
         booked_at DATETIME,
         reserved_until TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         PRIMARY KEY (performance_id, seat_id),
         FOREIGN KEY (performance_id) REFERENCES performances(id) ON DELETE CASCADE,
         FOREIGN KEY (booked_by_user_id) REFERENCES users(id)
@@ -204,6 +205,15 @@ class Database {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
       );
     `, 'CREATE tokens');
+
+    await execQuery(this.db!, `
+      CREATE TABLE IF NOT EXISTS setup (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        data TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME
+      );
+    `, 'CREATE setup');
 
     await execQuery(this.db!, `
       CREATE INDEX IF NOT EXISTS idx_layouts_active
@@ -249,13 +259,14 @@ class Database {
     const sql = `
       INSERT INTO users (
         id, email, password, first_name, last_name, phone, role,
-        is_verified, verification_code, verification_code_expiry,
+        is_verified, verification_code, verification_code_expiry, consent,
         google_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
       id, user.email, user.password, user.firstName, user.lastName, user.phone || '', user.role,
       user.isVerified ? 1 : 0, user.verificationCode ?? '', user.verificationCodeExpiry ?? '',
+      user.consent ? JSON.stringify(user.consent) : null,
       user.googleId ?? null
     ];
     await runQuery(this.db!, sql, params, 'create user');
@@ -459,6 +470,14 @@ class Database {
     // If changes === 0, the row already existed — silently skip
   }
 
+  private async createDefaultSetup(): Promise<void> {
+    await execQuery(this.db!, `
+      INSERT OR IGNORE INTO setup (id, data)
+      VALUES (1, '{}');
+    `, 'INSERT default setup row'
+    );
+  }
+
   async getUserByEmail(email: string): Promise<User | null> {
     const sql = `SELECT * FROM users WHERE email = ?`;
     const params = [email];
@@ -520,7 +539,11 @@ class Database {
 
     values.push(id);
     
-    const sql = `UPDATE users SET ${fields.join(', ')} WHERE id = ?`;
+    const sql = `
+      UPDATE users
+      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `;
     const result = await runQuery(this.db!, sql, values, 'update user');
     return result.changes > 0;
   }
@@ -546,7 +569,7 @@ class Database {
       FROM tokens
       WHERE
         token = ? AND
-        expires_at > datetime('now')
+        expires_at > CURRENT_TIMESTAMP
     `;
     const params: SqlParam[] = [token];
     if (type) {
@@ -644,7 +667,7 @@ class Database {
 
     const sql = `
       UPDATE theaters
-      SET ${fields.join(', ')}
+      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
     const result = await runQuery(this.db!, sql, values, 'update theater full');
@@ -676,7 +699,6 @@ class Database {
   
   async createLayout(layout: Layout): Promise<string> {
     const id = this.uuid();
-    //const now = new Date().toISOString(); // TODO: now should be not needed, 
     const sql = `
       INSERT INTO layouts (
         id, theater_id, name, description, json
@@ -710,7 +732,7 @@ class Database {
      const sql = `
       SELECT id, name, description, json
       FROM layouts
-      WHERE id = ?
+      WHERE theater_id = ?
     `;
     const params = [theaterId];
     const row = await getQuery(this.db!, sql, params, 'get layout by theater id');
@@ -755,21 +777,20 @@ class Database {
 
     const sql = `
       UPDATE layouts
-      SET ${fields.join(', ')}
+      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?`;
     const result = await runQuery(this.db!, sql, values, 'update layout');
     return result.changes > 0;
   }
 
   async deleteLayoutSoft(id: string): Promise<boolean> {
-    const now = new Date().toISOString();
     const sql = `
       UPDATE layouts
-      SET deleted_at = ?
+      SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       AND id NOT IN (SELECT current_layout_id FROM theaters)
     `;
-    const params = [now, id];
+    const params = [id];
     const result = await runQuery(this.db!, sql, params, 'soft delete layout');
     return result.changes > 0;
   }
@@ -942,7 +963,7 @@ class Database {
 
     const sql = `
       UPDATE events
-      SET ${ fields.join(', ')}
+      SET ${ fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
     const result = await runQuery(this.db!, sql, values, 'update event');
@@ -1041,7 +1062,7 @@ class Database {
 
     const sql = `
       UPDATE performances
-      SET ${fields.join(', ')}
+      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `;
     const result = await runQuery(this.db!, sql, values, 'update performance');
@@ -1066,7 +1087,7 @@ class Database {
       bookedByUserId: row.booked_by_user_id as string,
       bookedAt: row.booked_at as string,
       reservedUntil: row.reserved_until as string,
-      price: row.pric as number,
+      price: row.price as number,
     };
   }
 
@@ -1079,13 +1100,16 @@ class Database {
     const sql = `
       SELECT 
         seat_id,
+        section_name,
+        row_id,
+        seat_number,
         status,
         booked_by_user_id,
         reserved_until,
         price
       FROM seats 
       WHERE performance_id = ?
-      ORDER BY seat_id
+      ORDER BY section_name, row_id, seat_number
     `;
     const params = [performanceId];
     const rows = await allQuery(this.db!, sql, params, 'get seats by performance');
@@ -1095,8 +1119,8 @@ class Database {
   async releaseExpiredReservations(): Promise<boolean> {
     const sql = `
       UPDATE seats 
-      SET status = 'available', reserved_until = NULL 
-      WHERE status = 'reserved' AND reserved_until < ?
+      SET status = 'available', reserved_until = NULL, updated_at = CURRENT_TIMESTAMP
+      WHERE status = 'reserved' AND reserved_until < CURRENT_TIMESTAMP
     `;
     const result = await runQuery(this.db!, sql, [], 'release expired seat reservations');
     return result.changes > 0;
@@ -1130,7 +1154,7 @@ class Database {
     return result.changes > 0;
   }
 
-    /**
+  /**
    * Get seats grouped by section for UI
    */
   async getSeatsByPerformanceIdGroupedBySection(performanceId: string): Promise<{
@@ -1189,7 +1213,7 @@ class Database {
         price
       FROM seats 
       WHERE performance_id = ? AND section_name = ?
-      ORDER BY row_id, seat_number
+      ORDER BY section_name, row_id, seat_number
     `;
     
     const rows = await allQuery(
@@ -1295,20 +1319,20 @@ class Database {
           }
 
           // Book seats with user info
-          const now = new Date().toISOString();
           const updateSql = `
             UPDATE seats 
             SET
               status = 'booked',
               booked_by_user_id = ?,
-              booked_at = ?
+              booked_at = CURRENT_TIMESTAMP,
+              updated_at = CURRENT_TIMESTAMP
             WHERE performance_id = ? AND seat_id IN (${placeholders})
           `;
           
           const db = this.db!; // Store db reference
           this.db!.run(
             updateSql, 
-            [userId, now, performanceId, ...seatIds], 
+            [userId, performanceId, ...seatIds], 
             function(err) {
               if (err) {
                 db.run('ROLLBACK');
@@ -1329,6 +1353,37 @@ class Database {
         });
       });
     });
+  }
+
+  // Setup table methods /////////////////////////////////////////////////////////
+  async loadSetup<T = unknown>(): Promise<T | null> {
+    const sql = `
+      SELECT data
+      FROM setup
+      WHERE id = 1
+    `;
+    const row = await getQuery<{ data: string }>(this.db!, sql, [], 'load setup');
+    if (!row) return null;
+
+    try {
+      return JSON.parse(row.data) as T;
+    } catch {
+      return null;
+    }
+  }
+
+  async saveSetup(data: unknown): Promise<void> {
+    const json = JSON.stringify(data);
+
+    const sql = `
+      INSERT INTO setup (id, data)
+      VALUES (1, ?)
+      ON CONFLICT(id)
+      DO UPDATE SET
+        data = excluded.data,
+        updated_at = CURRENT_TIMESTAMP
+    `;
+    await runQuery(this.db!, sql, [json], 'save setup');
   }
 
 }

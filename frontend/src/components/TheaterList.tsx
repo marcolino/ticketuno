@@ -12,7 +12,7 @@ import {
   Alert,
 } from '@mui/material';
 import {
-  Add as AddIcon,
+  //Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Curtains as CurtainsIcon,
@@ -110,7 +110,7 @@ const TheaterList: React.FC = () => {
   }
   
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       
       {isOperator && (
         <PageHeader

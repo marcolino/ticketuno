@@ -593,7 +593,7 @@ const EventEdit: React.FC = () => {
               onUploadClick={() => setIsImageUploadPopupOpen(true)}
               onClearClick={() => {
                 if (posterImage) {
-                  imageApi.delete(posterImage).catch(() => { });
+                  imageApi.delete(posterImage).catch(() => { }); // TODO: handle errors...
                 }
                 setPosterImage(null);
               }}

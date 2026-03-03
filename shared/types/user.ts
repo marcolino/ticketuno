@@ -31,6 +31,7 @@ export interface NewUser {
   verificationCodeExpiry?: string;
   resetPasswordCode?: string;
   resetPasswordCodeExpiry?: string;
+  consent?: FullConsent | null;
   googleId?: string;
 }
 
