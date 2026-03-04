@@ -200,6 +200,7 @@ const Home: React.FC = () => {
   };
 
   const openGeneralSetup = () => {
+    handleClose();
     navigate('/generalSetup');
   }
 
@@ -365,8 +366,8 @@ const Home: React.FC = () => {
                     <DarkModeIcon fontSize="small" />
                   </ToggleButton>
 
-                  </ToggleButtonGroup>
-                </MenuItem>
+                </ToggleButtonGroup>
+              </MenuItem>
               
               <MenuItem onClick={handleLanguage}>
                 <ListItemIcon>
@@ -379,7 +380,7 @@ const Home: React.FC = () => {
                 <ListItemIcon>
                   <SettingsIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>{t('Settings')}</ListItemText>
+                <ListItemText>{t('Setup')}</ListItemText>
               </MenuItem>
 
               <Divider />

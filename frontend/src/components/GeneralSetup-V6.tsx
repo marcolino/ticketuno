@@ -140,7 +140,7 @@ function GeneralSetup() {
       } catch (error) {
         const msg = getErrorMessage(error);
         setSaveError(msg);
-        //toast.error(t('Settings could not be saved: {{err}}', {err: msg}));
+        //toast.error(t('Settings could not be saved'));
       } finally {
         setSaving(false);
       }

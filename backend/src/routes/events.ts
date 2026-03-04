@@ -1,7 +1,7 @@
 import { Router } from 'express';
 //import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
-import { authenticateToken, requireAdmin, AuthRequest } from '../middleware/auth';
+import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
 import { generateSeats } from '../shared/types/layoutToSeats';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -13,6 +13,7 @@ const router = Router();
 
 // Public: Get all events with stats
 router.get('/', async (req, res) => {
+  const _req = req as any;
   try {
     const events = await database.getAllEvents();
     if (!events) {
@@ -29,7 +30,7 @@ router.get('/', async (req, res) => {
         return {
           id: event.id,
           title: event.title,
-          theaterName: theater?.name || req.t('Unknown'),
+          theaterName: theater?.name || _req.t('Unknown'),
           genre: event.genre,
           openingDate: event.openingDate,
           closingDate: event.closingDate,
@@ -45,13 +46,13 @@ router.get('/', async (req, res) => {
 
     res.json(stats);
   } catch (error: unknown) { // TODO: error: req.t(...) everywhere...
-    res.status(500).json({ error: req.t('Failed to fetch events: {{err}}', { err: getErrorMessage(error) })});
+    res.status(500).json({ error: _req.t('Failed to fetch events: {{err}}', { err: getErrorMessage(error) })});
   }
 });
 
 // Public: Get event by ID with theater and performances (with calculated seat counts)
 router.get('/:id', async (req, res) => {
-  try {
+  try { 
     const event = await database.getEventById(req.params.id);
     if (!event) {
       return res.status(404).json({ error: 'Event not found' });
@@ -83,7 +84,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Protected: Create new event (admin only)
-router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+router.post('/', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
     const {
       title, description, genre, durationMinutes, intermissionCount, rating, language,
@@ -148,6 +149,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
       websiteUrl,
       socialMediaLinks,
       status: 'scheduled',
+      canceled: 0,
       maxCapacity,
       contentWarnings
     };
@@ -160,7 +162,7 @@ router.post('/', authenticateToken, requireAdmin, async (req: AuthRequest, res) 
 });
 
 // Protected: Update event (admin only)
-router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/:id', authenticateToken, requireOperator, async (req, res) => {
   try {
 
     // Check if title is set and not null
@@ -186,7 +188,7 @@ router.put('/:id', authenticateToken, requireAdmin, async (req, res) => {
 });
 
 // Protected: Delete event (admin only)
-router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
+router.delete('/:id', authenticateToken, requireOperator, async (req, res) => {
   try {
     const event = await database.getEventById(req.params.id);
     if (!event) {
@@ -265,7 +267,7 @@ router.get('/:eventId/performances/:performanceId', async (req, res) => {
 });
 
 // Protected: Create performance for an event (admin only)
-router.post('/:eventId/performances', authenticateToken, requireAdmin, async (req: AuthRequest, res) => {
+router.post('/:eventId/performances', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
     const { performanceDate, startTime, endTime } = req.body;
     const eventId = req.params.eventId;
@@ -304,10 +306,13 @@ router.post('/:eventId/performances', authenticateToken, requireAdmin, async (re
       performanceDate,
       startTime,
       endTime,
+      status: 'scheduled',
+      canceled: 0,
       // availableSeats: undefined,
       // bookedSeats: undefined,
       // seatData: JSON.stringify(seats), // Optional: could store layout snapshot
-      status: 'scheduled',
+      //status: 'scheduled',
+      //canceled: 0,
       // createdAt: new Date().toISOString(),
       // updatedAt: new Date().toISOString(),
     };
@@ -335,7 +340,7 @@ router.post('/:eventId/performances', authenticateToken, requireAdmin, async (re
 });
 
 // Protected: Update performance (admin only)
-router.put('/:eventId/performances/:performanceId', authenticateToken, requireAdmin, async (req, res) => {
+router.put('/:eventId/performances/:performanceId', authenticateToken, requireOperator, async (req, res) => {
   try {
     const { eventId, performanceId } = req.params;
     const performance = await database.getPerformanceById(performanceId);

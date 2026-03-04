@@ -28,10 +28,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       toast.error('You must be logged in to access this page');
       hasShownToast.current = true;
     }
-    if (!loading && !requireAdmin && !isAdmin && !hasShownToast.current) {
+    if (!loading && requireAdmin && !isAdmin && !hasShownToast.current) {
       toast.error(t('Admin role required to access this page'));
     }
-    if (!loading && !requireOperator && !isOperator && !hasShownToast.current) {
+    if (!loading && requireOperator && !isOperator && !hasShownToast.current) {
       toast.error(t('Operator role required to access this page'));
     }
   }, [loading, isAuthenticated, requireAdmin, isAdmin, t]);

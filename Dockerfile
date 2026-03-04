@@ -11,26 +11,26 @@ RUN npm run build
 FROM node:18-alpine AS backend-builder
 WORKDIR /app/backend
 
-# 1. Copy and install dependencies (caches well)
+# Copy and install dependencies (caches well)
 COPY backend/package*.json ./
 RUN npm ci
 
-# 2. Copy backend source code
+# Copy backend source code
 COPY backend/ ./
 
-# 3. COPY SHARED FILES HERE, JUST BEFORE THE BUILD
+# Copy shared files
 COPY shared/ ../shared/
 RUN ln -sf ../../shared src/shared
 
-# 4. Now run the build
+# Run the build
 RUN npm run build
 
 # Create symlink for shared types inside src directory
 RUN ln -sf ../../shared src/shared
 
 # DEBUG ONLY ############################################################################################
-RUN echo "=== DEBUG: Checking /app/ directory ===" && ls -la /app/
-RUN echo "=== DEBUG: Looking for 'shared' folder ===" && find /app -name "shared" -type d 2>/dev/null
+#RUN echo "=== DEBUG: Checking /app/ directory ===" && ls -la /app/
+#RUN echo "=== DEBUG: Looking for 'shared' folder ===" && find /app -name "shared" -type d 2>/dev/null
 # RUN echo "=== DEBUG: Contents of potential shared locations ===" && \
 #     (ls -la /app/shared/ 2>/dev/null || echo "/app/shared/ not found") && \
 #     (ls -la /app/backend/shared/ 2>/dev/null || echo "/app/backend/shared/ not found")
@@ -44,7 +44,6 @@ FROM node:18-alpine
 WORKDIR /app
 
 # Install production dependencies only
-#COPY backend/config.js ./
 COPY backend/package*.json ./
 RUN npm ci --only=production && \
     npm cache clean --force
@@ -58,12 +57,11 @@ COPY --from=frontend-builder /app/frontend/dist ./public
 # Copy the shared files from the builder stage
 COPY --from=backend-builder /app/shared/ /shared/
 
+# Copy templates from backend source
+COPY --from=backend-builder /app/backend/src/templates /templates
+
 # Create data directory for SQLite
 RUN mkdir -p /data && chown -R node:node /data
-
-# JUST TO SOLVE DB PERMISSION ERRORS!!!
-#COPY backend/ticketuno-production.db /data/ticketuno.db
-#RUN chown node:node /data/ticketuno.db && chmod 660 /data/ticketuno.db
 
 # Add sqlite3
 RUN apk add --no-cache sqlite
@@ -71,6 +69,7 @@ RUN apk add --no-cache sqlite
 # Use non-root user
 USER node
 
+# Expose default port
 EXPOSE 8080
 
 # Health check

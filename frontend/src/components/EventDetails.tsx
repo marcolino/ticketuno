@@ -72,7 +72,7 @@ interface EventPerformanceForm {
   availableSeats: number;
   bookedSeats: number;
   seatData: string;
-  status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'in progress' | 'completed' | 'canceled';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -800,7 +800,7 @@ const EventDetails: React.FC = () => {
 
         {performances.length === 0 ? (
           <Alert severity="info">
-            {t('No performances scheduled at this time.')}
+            {t('No performances available at this time.')}
           </Alert>
         ) : (
           <>
@@ -824,31 +824,33 @@ const EventDetails: React.FC = () => {
             </Box>
 
             {/* Desktop DataGrid */}
-            <Box sx={{ 
-              display: { xs: 'none', md: 'block' },
-              height: 500, 
-              width: '100%',
-            }}>
-              <DataGrid
-                rows={performances}
-                columns={columns}
-                checkboxSelection={isOperator}
-                disableRowSelectionOnClick
-                rowSelectionModel={selectedRows}
-                onRowSelectionModelChange={setSelectedRows}
-                pageSizeOptions={[10, 25, 50]}
-                initialState={{
-                  pagination: { paginationModel: { pageSize: 10 } },
-                  sorting: { sortModel: [{ field: 'performanceDate', sort: 'asc' }] },
-                }}
-                sx={{
-                  '& .MuiDataGrid-row:hover': {
-                    backgroundColor: 'action.hover',
-                  },
-                }}
-                getRowHeight={() => 52}
-              />
-            </Box>
+            {!isMobile && (
+              <Box sx={{
+                //display: { xs: 'none', md: 'block' },
+                height: 500,
+                width: '100%',
+              }}>
+                <DataGrid
+                  rows={performances}
+                  columns={columns}
+                  checkboxSelection={isOperator}
+                  disableRowSelectionOnClick
+                  rowSelectionModel={selectedRows}
+                  onRowSelectionModelChange={setSelectedRows}
+                  pageSizeOptions={[10, 25, 50]}
+                  initialState={{
+                    pagination: { paginationModel: { pageSize: 10 } },
+                    sorting: { sortModel: [{ field: 'performanceDate', sort: 'asc' }] },
+                  }}
+                  sx={{
+                    '& .MuiDataGrid-row:hover': {
+                      backgroundColor: 'action.hover',
+                    },
+                  }}
+                  getRowHeight={() => 52}
+                />
+              </Box>
+            )}
           </>
         )}
       </Paper>

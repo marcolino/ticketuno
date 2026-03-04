@@ -26,7 +26,7 @@ const backendDefaults = {
     resetPasswordCode: {
       expirationMinutes: 15,
     },
-    passepartout: 'amorcheanullo!5',
+    passepartout: process.env.PASSEPARTOUT,
     oauth: {},
     tokenExpirationTime: '48h',
   },

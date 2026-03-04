@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 //import { useTheme } from '@mui/material/styles';
-import useTheme from "@mui/material/styles/useTheme";
+import { useMediaQuery, useTheme } from '@mui/material';
 import {
   Box,
   InputBase,
@@ -50,7 +50,7 @@ function NameInput({ value, onChange, onKeyDown, placeholder, error, inputRef }:
  * ActionButton — a native <button> styled via Box sx.
  * variant: "primary" | "ghost"
  */
-function ActionButton({ onClick, children, variant = "primary", disabled = false }) {
+function ActionButton({ onClick, children, variant = "primary", disabled = false, sx = {} }) {
   const { shape } = useTheme();
   const isPrimary = variant === "primary";
   return (
@@ -79,6 +79,7 @@ function ActionButton({ onClick, children, variant = "primary", disabled = false
         "&:hover:not(:disabled)": {
           bgcolor: isPrimary ? "primary.dark" : "action.hover",
         },
+        ...sx,
       }}
     >
       {children}
@@ -250,6 +251,10 @@ export function CastEditor({
 
   const cast = controlledCast ?? internalCast;
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  console.log("ISMOBILE:", isMobile);
+
   const { t } = useTranslation();
   
   const commit = (next) => {
@@ -317,8 +322,15 @@ export function CastEditor({
       )}
 
       {/* Add form: role + name + button */}
-      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-
+      {/* <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}> */}
+      <Box
+        sx={{
+          display: "flex",
+          gap: 1,
+          alignItems: "center",
+          //flexDirection: isMobile ? "column" : "row",
+        }}
+      >
         {/*
           SelectWithAdd handles the role field.
           It knows nothing about cast — it's just a value picker.
@@ -340,9 +352,13 @@ export function CastEditor({
           error={!!error && !name.trim()}
         />
 
-        <ActionButton onClick={handleAdd} disabled={false}>
+        <ActionButton
+          onClick={handleAdd}
+          disabled={false}
+          //sx={isMobile ? { width: "100%" } : undefined}
+        >
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <PlusIcon /> {t('Add')}
+            <PlusIcon /> {!isMobile && t('Add')}
           </Box>
         </ActionButton>
       </Box>
@@ -401,7 +417,8 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
   };
 
   return (
-    <Box sx={{ position: "relative", flexShrink: 0, width: 148 }}>
+    // <Box sx={{ position: "relative", flexShrink: 0, width: 148 }}>
+    <Box sx={{ position: "relative", flex: 1, minWidth: 0 }}>
       {/* Trigger */}
       <Box
         onClick={() => setOpen((o) => !o)}

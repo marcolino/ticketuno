@@ -1,6 +1,6 @@
 export type TheaterStatus = 'active' | 'inactive';
 export type SeatStatus = 'available' | 'reserved' | 'booked';
-export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'cancelled';
+export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'canceled';
 
 export interface Theater {
   id: string;

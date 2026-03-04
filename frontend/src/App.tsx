@@ -11,6 +11,7 @@ import { itIT } from '@mui/x-date-pickers/locales';
 import { enUS } from '@mui/x-date-pickers/locales';
 import { frFR } from '@mui/x-date-pickers/locales';
 import AuthProvider from './contexts/AuthContext';
+import { SetupProvider } from './contexts/SetupContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { DialogProvider } from './contexts/DialogContext';
 import { ToastProvider } from './contexts/ToastContext';
@@ -57,27 +58,29 @@ const { i18n } = useTranslation();
       localeText={muiLocale}
       key={adapterLocale(i18n.language)}
     >
-      <ThemeProvider>
-        <LoadingProvider /*minLoadingTime={3000}*/>
-          <LoadingSpinner />
-          <DialogProvider>
-            <ToastProvider>
-              <CssBaseline />
-              <AuthProvider>
-                <Router future={{
-                  v7_startTransition: true,
-                  v7_relativeSplatPath: true,
-                }}>
-                  <ConsentProvider>
-                    <OAuthHandler />
-                    <Routes />
-                  </ConsentProvider>
-                </Router>
-              </AuthProvider>
-            </ToastProvider>
-          </DialogProvider>
-        </LoadingProvider>
-      </ThemeProvider>
+      <SetupProvider>
+        <ThemeProvider>
+          <LoadingProvider /*minLoadingTime={3000}*/>
+            <LoadingSpinner />
+            <DialogProvider>
+              <ToastProvider>
+                <CssBaseline />
+                <AuthProvider>
+                  <Router future={{
+                    v7_startTransition: true,
+                    v7_relativeSplatPath: true,
+                  }}>
+                    <ConsentProvider>
+                      <OAuthHandler />
+                      <Routes />
+                    </ConsentProvider>
+                  </Router>
+                </AuthProvider>
+              </ToastProvider>
+            </DialogProvider>
+          </LoadingProvider>
+        </ThemeProvider>
+      </SetupProvider>
     </LocalizationProvider>
   );
 };

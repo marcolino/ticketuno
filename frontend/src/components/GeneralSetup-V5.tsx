@@ -19,9 +19,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  Typography,
-  Switch,
-  FormControlLabel
+  Typography
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
@@ -31,7 +29,6 @@ import {
 }  from '@mui/icons-material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useToast } from '@/contexts/ToastContext';
-import { useSetupRefresh } from '@/contexts/SetupContext';
 import { setupApi } from '@/services/api';
 import PageHeader from "./PageHeader";
 import { getErrorMessage } from '@/utils/misc';
@@ -46,7 +43,6 @@ const defaultSetup: SetupStatus = {
   time: null,
   apiKey: ''
 };
-
 const currencies = Object.keys(config.app.currencies);
 
 function GeneralSetup() {
@@ -54,7 +50,6 @@ function GeneralSetup() {
   const { t } = useTranslation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const toast = useToast();
-  const refreshSetup = useSetupRefresh();
 
   const [section, setSection] = useState<'app' | 'preferences' | 'security'>('app');
   const [initialStatus, setInitialStatus] = useState<SetupStatus | null>(null);
@@ -84,10 +79,8 @@ function GeneralSetup() {
         setStatus(merged);
         setInitialStatus(merged);
         toast.success(t('Settings loaded'));
-      } catch (error) {
-        const msg = getErrorMessage(error);
-        setSaveError(msg);
-        //toast.error(t('Error loading settings: {{err}}', { err: getErrorMessage(error) }));
+      } catch(error) {
+        toast.error(t('Error loading settings: {{err}}', { err: getErrorMessage(error) }));
       }
     })();
   }, []);
@@ -128,8 +121,7 @@ function GeneralSetup() {
 
       try {
         await setupApi.save(diff);
-        await refreshSetup();
-        setInitialStatus({ ...status });
+        setInitialStatus(status); // Update snapshot AFTER successful save
         setJustSaved(true);
         
         if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
@@ -137,14 +129,13 @@ function GeneralSetup() {
           setJustSaved(false);
         }, 1 * 1000);
 
-      } catch (error) {
-        const msg = getErrorMessage(error);
-        setSaveError(msg);
-        //toast.error(t('Settings could not be saved: {{err}}', {err: msg}));
+      } catch {
+        setSaveError('Failed to save');
+        toast.error(t('Settings could not be saved'));
       } finally {
         setSaving(false);
       }
-    }, (1/3) * 1000);
+    }, (1/3) * 1000); // TODO: to config
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -188,7 +179,7 @@ function GeneralSetup() {
   );
 
   const renderAppSection = () => (
-    <Grid container spacing={2}>
+    <Grid container spacing={3}>
       <Grid item xs={12}>
         <FormControl fullWidth>
           <InputLabel>{t('Currency')}</InputLabel>
@@ -222,39 +213,17 @@ function GeneralSetup() {
     </Grid>
   );
 
-  const renderPreferencesSection = () => (
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={status.enableNotifications}
-              onChange={(e) =>
-                handleChange('enableNotifications', e.target.checked)
-              }
-            />
-          }
-          label={t('Enable notifications')}
-        />
-      </Grid>
-    </Grid>
-  );
-
   return (
-    <Container maxWidth="md" sx={{ py: 2 }}>
+    <Container maxWidth="md" sx={{ py: 4 }}>
       <PageHeader title={t('Settings')} />
 
-      <Paper sx={{ p: 2, borderRadius: 1, backgroundColor: 'background.paper' }}>
+      <Paper sx={{ p: 3, borderRadius: 1 }}>
 
-        <Box sx={{
-          display: "flex",
-          mt: 2,
-          flexDirection: isMobile ? 'column' : 'row',
-        }}>
+        <Box sx={{ display: "flex", mt: 3, flexDirection: isMobile ? 'column' : 'row' }}>
 
           {!isMobile && SidebarContent}
 
-          <Box sx={{ flex: 1, p: 2, }}>
+          <Box sx={{ flex: 1, p: 3 }}>
 
             {/* MOBILE ACCORDION */}
             {isMobile && ['app', 'preferences', 'security'].map((s) => (
@@ -262,98 +231,48 @@ function GeneralSetup() {
                 key={s}
                 expanded={section === s}
                 onChange={() => setSection(s as any)}
-                disableGutters
-                elevation={0}
-                square={false}
                 sx={{
                   mb: 1,
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  '&:before': { display: 'none' }, // remove divider line
+                  backgroundColor:
+                    section === s
+                      ? theme.palette.action.selected
+                      : undefined
                 }}
               >
-                <AccordionSummary
-                  expandIcon={
-                    <ExpandMoreIcon
-                      sx={{
-                        color:
-                          section === s
-                            ? theme.palette.primary.contrastText
-                            : undefined
-                      }}
-                    />
-                  }
-                  sx={{
-                    mb: 1,
-                    backgroundColor:
-                      section === s
-                        ? theme.palette.primary.main
-                        : undefined,
-                    color:
-                      section === s
-                        ? theme.palette.primary.contrastText
-                        : undefined,
-                    borderRadius: 1,
-                    '&.Mui-expanded': {
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                    },
-                  }}
-                >
-                  <Typography fontWeight={600}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <Typography
+                    fontWeight={section === s ? 600 : 400}
+                  >
                     {t(s)}
                   </Typography>
                 </AccordionSummary>
 
-                <AccordionDetails
-                  sx={{
-                    borderBottomLeftRadius: 2,
-                    borderBottomRightRadius: 2,
-                    backgroundColor: theme.palette.background.paper,
-                  }}
-                >
+                <AccordionDetails>
                   {s === 'app' && renderAppSection()}
-                  {s === 'preferences' && renderPreferencesSection()}
                 </AccordionDetails>
               </Accordion>
             ))}
 
             {/* DESKTOP CONTENT */}
             {!isMobile && section === 'app' && renderAppSection()}
-            {!isMobile && section === 'preferences' && renderPreferencesSection()}
 
           </Box>
         </Box>
 
-        <Divider sx={{ my: 2 }} />
+        <Divider sx={{ my: 3 }} />
 
-        <Box display="flex" alignItems="flex-start" justifyContent="space-between">
-
-          {/* STATUS LEFT */}
-          <Box display="flex" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
-            {saveError ? (
-              <>
-                <ErrorIcon color="error" />
-                <Typography
-                  variant="caption"
-                  color="error"
-                  sx={{ wordBreak: 'break-word' }}
-                >
-                  {saveError}
-                </Typography>
-              </>
-            ) : saving ? (
-              <AccessTimeIcon color="info" />
-            ) : justSaved ? (
-              <CheckCircleIcon color="success" />
-            ) : isDirty ? (
-              <AccessTimeIcon color="warning" />
-            ) : (
-              <CheckCircleIcon sx={{ opacity: 0 }} />
-            )}
-          </Box>
-
-          {/* RESET RIGHT */}
+        <Box display="flex" justifyContent="flex-end">
+           {saveError ? (
+          <ErrorIcon color="error" />
+        ) : saving ? (
+          <AccessTimeIcon color="info" />
+        ) : justSaved ? (
+          <CheckCircleIcon color="success" />
+        ) : isDirty ? (
+          <AccessTimeIcon color="info" />
+        ) : (
+          <CheckCircleIcon sx={{ opacity: 0 }} />
+        )}
           <Button
             variant="outlined"
             disabled={!isDirty}
@@ -361,7 +280,6 @@ function GeneralSetup() {
           >
             {t('Reset')}
           </Button>
-
         </Box>
       </Paper>
     </Container>

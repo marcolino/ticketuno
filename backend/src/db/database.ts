@@ -146,6 +146,7 @@ class Database {
         trailer_url TEXT,
         website_url TEXT,
         social_media_links TEXT,
+        canceled INTEGER DEFAULT 0,
         status TEXT DEFAULT 'scheduled',
         cancellation_reason TEXT,
         max_capacity INTEGER,
@@ -830,6 +831,7 @@ class Database {
       websiteUrl: row.website_url as string,
       socialMediaLinks: row.social_media_links as string,
       status: row.status as EventStatus,
+      canceled: row.canceled as number,
       cancellationReason: row.cancellation_reason as string | undefined,
       maxCapacity: row.max_capacity as number,
       contentWarnings: row.content_warnings as string,
@@ -851,7 +853,14 @@ class Database {
     `;
     const params: (string | number)[]  = [];
     const rows = await allQuery(this.db!, sql, params, 'get all events');
-    return rows ? this.mapRowsToEvents(rows) : null;
+    //if (!rows) return null;
+
+    const rowsWithStatus = rows.map(row => {
+      const event = this.mapRowToEvent(row);
+      event.status = this.getEventStatus(event);
+      return event;
+    });
+    return rowsWithStatus;
   }
 
   async getEventById(id: string): Promise<Event | null> {
@@ -977,6 +986,41 @@ class Database {
     return result.changes > 0;
   }
 
+  getEventStatus = (event: Event, now: Date = new Date()): EventStatus => {
+    const { openingDate, closingDate, canceled } = event;
+
+    if (canceled) {
+      return 'canceled';
+    }
+
+    const today = now;
+    const start = openingDate ? new Date(openingDate) : null;
+    const end = closingDate ? new Date(closingDate) : null;
+
+    // Open event: no start & no end
+    if (!start && !end) return 'in progress';
+
+    // Open start, only end defined
+    if (!start && end) {
+      return today <= end ? 'in progress' : 'completed';
+    }
+
+    // Open end, only start defined
+    if (start && !end) {
+      return today < start ? 'scheduled' : 'in progress';
+    }
+
+    // Fully defined start & end
+    if (start && end) {
+      if (today < start) return 'scheduled';
+      if (today >= start && today <= end) return 'in progress';
+      return 'completed';
+    }
+
+    // Fallback
+    return 'scheduled';
+  };
+
   // Performance methods //////////////////////////////////////////////////////////////////////
   private mapRowToPerformance(row: Record<string, unknown>): EventPerformance {
     return {
@@ -989,6 +1033,7 @@ class Database {
       //bookedSeats: row.booked_seats,
       //seatData: row.seat_data,
       status: row.status as EventStatus,
+      canceled: row.canceled as number,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string
     };

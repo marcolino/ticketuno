@@ -2,12 +2,12 @@ import { Router } from 'express';
 import { database } from '../db/database';
 import { getErrorMessage } from '../utils/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
-import config from '../config';
+//import config from '../config';
 
 const router = Router();
 
 // Public: Send an email (text / html / mjml / mjml template)
-router.get('/', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/', async (req, res) => {
   try {
     const setup = await database.loadSetup();
     res.json(setup);

@@ -10,7 +10,7 @@ import {
   Grid,
   Box,
   //CircularProgress,
-  Alert,
+  //Alert,
   Chip,
   CardActions,
   //Avatar,
@@ -29,6 +29,8 @@ import useNavigate from '@/hooks/useNavigate';
 import { eventApi } from '@/services/api';
 import { EventStats } from '@/shared/types/event';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
+import { getErrorMessage } from '@/utils/misc';
 import PageHeader from "./PageHeader";
 //import type { CurrencyCode } from '@/shared/config';
 import config from '@/config';
@@ -37,25 +39,33 @@ import config from '@/config';
 const EventList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOperator} = useAuth();
+  const { isOperator } = useAuth();
+  const toast = useToast();
   const [events, setEvents] = useState<EventStats[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  //const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     //if (isOperator) {
       loadEvents();
+    //} else {
+    //  toast.error(t('You must have at least \'operator\' role to access this page'));
     //}
-  }, []);
+  }, [isOperator]);
 
   const loadEvents = async () => {
     try {
       const response = await eventApi.getAllEvents();
-      console.log('EVENTS:', events);
+      //console.log('EVENTS:', response.data);
       setEvents(response.data);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load events');
-      console.error(err);
+      if (response.data.length === 0) {
+        toast.info(t('No events available'));
+      }
+      //setError(null);
+    } catch (error) {
+      //const msg = getErrorMessage(error);
+      toast.error(getErrorMessage(error));
+      //setError(t('Failed to load events: {{err}}', { err: msg }));
+      //console.error(err);
     }
   };
 
@@ -77,10 +87,11 @@ const EventList: React.FC = () => {
       /*const response = */await eventApi.deleteEvent(id);
       const newEvents = events.filter(event => event.id !== id);
       setEvents(newEvents);
-      setError(null);
-    } catch (err: any) {
+      //setError(null);
+    } catch (error: unknown) {
       // Show the actual server error message
-      setError(err.response?.data?.error || 'Failed to delete event');
+      toast.error(getErrorMessage(error));
+      //setError(error.response?.data?.error || t('Failed to delete event'));
     }
     navigate(`/events`);
   };
@@ -90,12 +101,46 @@ const EventList: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const getEventStatus = (event, now = new Date()) => {
+    const { startDate, endDate, operatorStatus } = event;
+
+    if (operatorStatus === 'canceled') {
+      return 'canceled';
+    }
+
+    if (!startDate && !endDate) {
+      return 'in progress'; // we assume an open event, it is always 'in progress'
+    }
+
+    if (!startDate) { // we asseume an open-start event
+      if (now <= endDate) return 'in progress';
+      if (now > endDate) return 'completed';
+    }
+
+    if (!endDate) { // we asseume an open-end event
+      if (now < startDate) return 'scheduled';
+      if (now >= startDate) return 'in progress';
+    }
+
+    if (now < startDate) {
+      return 'scheduled';
+    }
+
+    if (now >= startDate && now <= endDate) {
+      return 'in progress';
+    }
+
+    if (now > endDate) {
+      return 'completed';
+    }
+  }
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled': return 'primary';
       case 'in progress': return 'success';
       case 'completed': return 'default';
-      case 'cancelled': return 'error';
+      case 'canceled': return 'error';
       default: return 'default';
     }
   };
@@ -112,15 +157,15 @@ const EventList: React.FC = () => {
         onAdd={() => navigate('/event/new')}
       />
 
-      {error && (
+      {/* {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-      )}
+      )} */}
 
-      {!error && events.length === 0 && (
+      {/* {!error && events.length === 0 && (
         <Alert severity="info">{t('No events available')}</Alert>
-      )}
+      )} */}
 
       <Grid container spacing={3}>
         {events.map(event => {
@@ -251,7 +296,7 @@ const EventList: React.FC = () => {
                       <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                       <Typography variant="body2" color="text.secondary">
                         {event.nextPerformanceDate
-                          ? t('Next performance') + ':' + formatDate(event.nextPerformanceDate)
+                          ? t('Next performance') + ': ' + formatDate(event.nextPerformanceDate)
                           : t('No upcoming performances')
                         }
                       </Typography>

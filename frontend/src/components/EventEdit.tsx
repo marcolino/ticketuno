@@ -9,8 +9,10 @@ import {
   Paper,
   TextField,
   Grid,
-  Alert,
+  //Alert,
   FormControl,
+  FormControlLabel,
+  Switch,
   InputLabel,
   Select,
   MenuItem,
@@ -30,10 +32,12 @@ import { Event, EventPerformance } from '@/shared/types/event';
 import { TheaterStats } from '@/shared/types/theater';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
+import { useSetup } from '@/contexts/SetupContext';
+import { getErrorMessage } from '@/utils/misc';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
 import { CastEditor, type CastEntry } from './CastEditor'; 
-import type { CurrencyCode } from '@/shared/config';
+//import type { CurrencyCode } from '@/shared/config';
 import { t } from 'i18next';
 import config from '@/config';
 
@@ -42,12 +46,14 @@ const EventEdit: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { id } = useParams<{ id: string }>();
-  const { isAuthenticated, isOperator } = useAuth();
+  const { isOperator } = useAuth();
 
   const isEditMode = id && id !== 'new';
 
   const isAtLeastMd = useMediaQuery(theme.breakpoints.up('md'));
-  
+
+  const setup = useSetup();
+
   const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -66,7 +72,7 @@ const EventEdit: React.FC = () => {
   const [choreographer, setChoreographer] = useState('');
   const [musicalDirector, setMusicalDirector] = useState('');
   const [cast, setCast] = useState<CastEntry[]>([]);
-
+  const [canceled, setCanceled] = useState(false);
   const [theaterId, setTheaterId] = useState('');
 
   const [openingDate, setOpeningDate] = useState<Dayjs | null>(null);
@@ -77,12 +83,12 @@ const EventEdit: React.FC = () => {
   const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50);
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
   
-  const [currency, setCurrency] = useState<CurrencyCode>(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
+  //const [currency, setCurrency] = useState<CurrencyCode>(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [minimumAge, setMinimumAge] = useState<number>(0);
 
   const [contentWarnings, setContentWarnings] = useState('');
-  const [status, setStatus] = useState<'scheduled' | 'in progress' | 'completed' | 'cancelled'>('scheduled');
+  const [status, setStatus] = useState<'scheduled' | 'in progress' | 'completed' | 'canceled'>('scheduled');
   // Performances
   const [performances, setPerformances] = useState<Partial<EventPerformance>[]>([]);
 
@@ -129,7 +135,7 @@ const EventEdit: React.FC = () => {
       
       setBaseTicketPrice(event.baseTicketPrice);
       setBaseTicketPriceDisplay(event.baseTicketPrice.toFixed(2));
-      setCurrency(event.currency as any);
+      //setCurrency(event.currency as any);
       setSpecialRequirements(event.specialRequirements || '');
       setMinimumAge(event.minimumAge || 0);
       setPosterImage(event.posterImage || null);
@@ -141,8 +147,8 @@ const EventEdit: React.FC = () => {
       }
 
       setError('');
-    } catch (err: any) {
-      setError(t('Failed to load event: {{err}}', { err: err.response?.data?.error }));
+    } catch (error: any) {
+      toast.error(getErrorMessage(error));
     }
   }, [id]);
 
@@ -183,7 +189,7 @@ const EventEdit: React.FC = () => {
         typicalStartTime: typicalStartTime?.format('HH:mm'),
         typicalEndTime: typicalEndTime?.format('HH:mm'),
         baseTicketPrice,
-        currency,
+        //currency,
         specialRequirements,
         minimumAge,
         posterImage: posterImage ?? undefined,
@@ -268,16 +274,16 @@ const EventEdit: React.FC = () => {
   
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Paper elevation={3} sx={{ p: 4 }}>
+      <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 } }}>
         <Typography variant="h4" gutterBottom>
           {isEditMode ? t('Edit Event') : t('Create New Event')}
         </Typography>
 
-        {error && (
+        {/* {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
-        )}
+        )} */}
 
         <Grid container spacing={3}>
           {/* Basic Information */}
@@ -287,7 +293,7 @@ const EventEdit: React.FC = () => {
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12}>
             <TextField
               fullWidth
               label={t("Title")}
@@ -297,7 +303,7 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          {/* <Grid item xs={12} md={4}>
             <FormControl fullWidth required>
               <InputLabel>{t('Status')}</InputLabel>
               <Select
@@ -308,10 +314,11 @@ const EventEdit: React.FC = () => {
                 <MenuItem value="scheduled">{t('Scheduled')}</MenuItem>
                 <MenuItem value="in progress">{t('In Progress')}</MenuItem>
                 <MenuItem value="completed">{t('Completed')}</MenuItem>
-                <MenuItem value="cancelled">{t('Cancelled')}</MenuItem>
+                <MenuItem value="canceled">{t('canceled')}</MenuItem>
               </Select>
             </FormControl>
-          </Grid>
+          </Grid> */}
+          
 
           <Grid item xs={12}>
             <TextField
@@ -493,13 +500,13 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={6}>
             <Stack direction="row" spacing={2}>
               <TimePicker
-                label={t('Typical Start Time')}
+                label={isAtLeastMd ? t('Typical Start Time') : t('Start Time')}
                 value={typicalStartTime}
                 onChange={(newValue) => setTypicalStartTime(newValue as any)}
                 sx={{ width: '100%' }}
               />
               <TimePicker
-                label={t('Typical End Time')}
+                label={isAtLeastMd ? t('Typical End Time') : t('End Time')}
                 value={typicalEndTime}
                 onChange={(newValue) => setTypicalEndTime(newValue as any)}
                 sx={{ width: '100%' }}
@@ -514,7 +521,7 @@ const EventEdit: React.FC = () => {
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={2}>
+          {/* <Grid item xs={12} md={2}>
             <FormControl fullWidth>
               <InputLabel>{t('Currency')}</InputLabel>
               <Select
@@ -526,7 +533,7 @@ const EventEdit: React.FC = () => {
                   <MenuItem key={currency.code} value={currency.code}>
                     {currency.code} ({currency.symbol})
                   </MenuItem>
-                ))} */}
+                ))} * /}
                 {Object.entries(config.app.currencies).map(([code]) => (
                   <MenuItem key={code} value={code}>
                     {code} ({'currency.symbol'})
@@ -534,9 +541,9 @@ const EventEdit: React.FC = () => {
                 ))}
               </Select>
             </FormControl>
-          </Grid>
+          </Grid> */}
 
-          <Grid item xs={12} md={10}>
+          <Grid item xs={8} md={6}>
             <TextField
               fullWidth
               label={t('Base Ticket Price')}
@@ -553,7 +560,7 @@ const EventEdit: React.FC = () => {
                 startAdornment: (
                   //<InputAdornment position="start">{config.app.currencies[currency].symbol}</InputAdornment>,
                   <InputAdornment position="start" sx={{ mt: -0.2 }}>
-                    {config.app.currencies[currency]?.symbol}
+                    {config.app.currencies[setup!.currency]?.symbol}
                   </InputAdornment>
                 )
               }}
@@ -568,7 +575,7 @@ const EventEdit: React.FC = () => {
             </Typography>
           </Grid>
 
-          <Grid item xs={12} md={3}>
+          <Grid item xs={6} md={3}>
             <TextField
               fullWidth
               label={t('Minimum Age')}
@@ -630,6 +637,18 @@ const EventEdit: React.FC = () => {
               onChange={(e) => setContentWarnings(e.target.value)}
               multiline
               rows={2}
+            />
+          </Grid>
+
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={canceled}
+                  onChange={(e) => setCanceled(e.target.checked) }
+                />
+              }
+              label={t('Cancel event')}
             />
           </Grid>
 

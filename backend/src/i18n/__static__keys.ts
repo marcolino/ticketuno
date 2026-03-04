@@ -6,7 +6,7 @@ import { t } from 'i18next';
 t('scheduled');
 t('in progress');
 t('completed');
-t('cancelled');
+t('canceled');
 
 // roles
 t('admin');

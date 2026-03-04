@@ -61,15 +61,15 @@ common:
  - normalize all *List.tsx components as TheatersList, and make same aspect for event with and without poster - OK
  - complete ConsentContext translations (?) - OK
  - in event details, check for login as soon as one seat is selected, to avoid loosing state - OK
+ - settings handling - "React MUI PWA Setup" with ChatGPT - OK
+ - in settings/misc add all currency handling - OK
+ - use currency from settings, and remove currency selection from EventEdit component - OK
  
- - settings handling - "React MUI PWA Setup" with ChatGPT
- - in settings/misc add all currency handling
- - use currency from settings, and remove currency selection from EventEdit component
- - in settings/privacy add Terms and Privacy pages, and link to open consent dialog
- - find if and where to suggest user to open consent dialog to enable missing consent (for pushNotifications for example)
- - handle uniformly isOperator (or isAuthenticated) in components loading
- - in all components, check for setError: always add toast.error, and possibly remove Alert for errors
+ - handle uniformly user's role in components loading - OK
+ - in all components, check for setError: always add toast.error, and possibly remove Alert's for errors
  - add check for changes in all components (when dirty), before navigating away
+ - find if and where to suggest user to open consent dialog to enable missing consent (for pushNotifications for example)
  - add all users profile handling (in settings/admin)
  - add privacy and terms links in the register page
+ - in setup/privacy add Terms and Privacy pages, and link to open consent dialog
  - PWA handling - "PWA setup automation for theater booking system" with Claude

@@ -101,6 +101,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       // console.error('Error data:', error.response?.data);
       // console.error('Error message:', error.response?.data?.error);
       //setError(error.response?.data?.error || t('Login failed'));
+      console.log("ERR:", error);
       toast.warning(error.response?.data?.error || t('Login failed'));
       // }
     } finally {
