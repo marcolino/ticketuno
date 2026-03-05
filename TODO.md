@@ -36,6 +36,8 @@ common:
  - schedule job to backup database daily, in production
  - before using analytics and marketing cookies, always check:
     const { canUseAnalytics, canUseMarketingCookies } = useConsent();
+ - add language field to users table, and check emails arrive in the right language
+ - verify when we accept consent for marketing emails, and then follow the unsubscribe link, we should NOT get "you did already unsubscribe from marketing emails"...
 
  frontend:
  - Design.tsx => Home.tsx - OK
