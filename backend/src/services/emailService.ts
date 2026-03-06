@@ -23,7 +23,7 @@ type SendEmailOptions = { // TODO: put to ../shared/types/email.ts ...
 };
 
 class EmailService {
-  private templatePath = path.join(process.cwd(), 'src/templates/emails');
+  private templatePath = path.join(__dirname, '../templates/emails');
   private partialsRegistered = false;
 
   constructor() {
@@ -35,6 +35,8 @@ class EmailService {
 
     const partialsDir = path.join(this.templatePath, 'partials');
     const files = await fs.readdir(partialsDir);
+
+    //throw new Error("Test entities: \"hellò 'Marco' barra/barra\""); // TODO: DEBUG ONLY
 
     for (const file of files) {
       const content = await fs.readFile(
@@ -89,7 +91,7 @@ class EmailService {
 
       // Load content template
       const contentFile = await fs.readFile(
-        path.join(this.templatePath, 'templates', `${template}.mjml`), 'utf-8'
+        path.join(this.templatePath, 'body', `${template}.mjml`), 'utf-8'
       );
 
       variables.logoUrl = `https://ticketuno.fly.dev/images/logo.png`; // TODO: use config, but always prod url even when developing
@@ -129,7 +131,9 @@ class EmailService {
         t: i18next.getFixedT(finalLang)
       });
 
-      const { html: compiledHtml, errors } = mjml2html(fullMjml);
+      const { html: compiledHtml, errors } = mjml2html(fullMjml, {
+        validationLevel: "soft", // This prevents runtime crashes from minor MJML issues
+      });
 
       if (errors?.length) {
         console.error(errors);

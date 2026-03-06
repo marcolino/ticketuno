@@ -50,7 +50,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '../contexts/DialogContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { ThemePreference } from '@/shared/types/theme';
-import LoginDialog from './LoginDialog';
+import AuthDialog from './AuthDialog';
 import config from '../config';
 
 console.log('CONFIG is:', config);
@@ -71,7 +71,7 @@ const Home: React.FC = () => {
   const { themePreference, setThemePreference, effectiveMode } = useThemeMode();
   //const { themeType, setThemeType, platform } = useThemeMode();
   
-  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   //const [langDialogOpen, setLangDialogOpen] = useState(false);
 
@@ -90,31 +90,31 @@ const Home: React.FC = () => {
     }
   };
 
-  // TODO: DEBUG ONLY!
-  useEffect(() => {
-    console.log('xxx Home mounted');
-    return () => console.log('xxx Home unmounted');
-  }, []);
-  useEffect(() => {
-    console.log('xxx loginDialogOpen changed to:', loginDialogOpen);
-  }, [loginDialogOpen]);
-  useEffect(() => {
-    console.log('xxx isAuthenticated changed to:', isAuthenticated);
-  }, [isAuthenticated]);
-  useEffect(() => {
-    console.log('xxx user changed:', user);
-  }, [user]);
-  useEffect(() => {
-    console.log('xxx Home mounted, path:', window.location.pathname);
-    return () => console.log('xxx Home unmounted, path was:', window.location.pathname);
-  }, []);
+  // // TODO: DEBUG ONLY!
+  // useEffect(() => {
+  //   console.log('xxx Home mounted');
+  //   return () => console.log('xxx Home unmounted');
+  // }, []);
+  // useEffect(() => {
+  //   console.log('xxx authDialogOpen changed to:', authDialogOpen);
+  // }, [authDialogOpen]);
+  // useEffect(() => {
+  //   console.log('xxx isAuthenticated changed to:', isAuthenticated);
+  // }, [isAuthenticated]);
+  // useEffect(() => {
+  //   console.log('xxx user changed:', user);
+  // }, [user]);
+  // useEffect(() => {
+  //   console.log('xxx Home mounted, path:', window.location.pathname);
+  //   return () => console.log('xxx Home unmounted, path was:', window.location.pathname);
+  // }, []);
   
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const shouldOpenLogin = params.get("login") === "true";
 
     if (shouldOpenLogin) {
-      setLoginDialogOpen(true);
+      setAuthDialogOpen(true);
 
       // remove query param but stay in same page
       params.delete("login");
@@ -165,7 +165,7 @@ const Home: React.FC = () => {
 
   // const handleAddTheater = () => {
   //   if (!isAuthenticated) {
-  //     setLoginDialogOpen(true);
+  //     setAuthDialogOpen(true);
   //   } else {
   //     navigate('/theater/new');
   //   }
@@ -267,13 +267,13 @@ const Home: React.FC = () => {
               onClose={handleClose}
               MenuListProps={{ dense: false }}
             >
-              <MenuItem sx={{ fontWeight: 'bold' }}>
+              <MenuItem sx={{ fontWeight: 'bold', pb: 0 }}>
                 <Typography variant="body2">
                   {user?.firstName} {user?.lastName} ({user?.role})
                 </Typography>
               </MenuItem>
 
-              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', mt: -1, }}>
+              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
                 <Typography variant="caption" color="text.primary">
                   {user?.email}
                 </Typography>
@@ -353,16 +353,17 @@ const Home: React.FC = () => {
                   exclusive
                   onChange={handleThemeChange}
                   aria-label={t("Theme selection")}
+                  sx={{ my: -0.5 }}
                 >
-                  <ToggleButton value="system" sx={{ textTransform: 'lowercase' }}>
+                  <ToggleButton value="system" sx={{ py: 0.5, textTransform: 'lowercase' }}>
                     <SettingsSuggestIcon fontSize="small" />{themePreference === 'system' ? ` (${t(effectiveMode)})` : ''}
                   </ToggleButton>
 
-                  <ToggleButton value="light">
+                  <ToggleButton value="light" sx={{py: 0}}>
                     <LightModeIcon fontSize="small" />
                   </ToggleButton>
 
-                  <ToggleButton value="dark">
+                  <ToggleButton value="dark" sx={{py: 0}}>
                     <DarkModeIcon fontSize="small" />
                   </ToggleButton>
 
@@ -373,7 +374,7 @@ const Home: React.FC = () => {
                 <ListItemIcon>
                   <LanguageIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>{t('Language')}</ListItemText>
+                <ListItemText>{t('Language')} &nbsp; {config.app.languages[i18n.language].flag ?? '🏳️' }</ListItemText>
               </MenuItem>
 
               <MenuItem onClick={openGeneralSetup}>
@@ -399,8 +400,8 @@ const Home: React.FC = () => {
             variant="contained"
             size="small"
             color="secondary"
-            onClick={() => setLoginDialogOpen(true)}
-            disabled={loginDialogOpen} 
+            onClick={() => setAuthDialogOpen(true)}
+            disabled={authDialogOpen} 
           >
             {t("Join !")}
           </Button>
@@ -416,9 +417,9 @@ const Home: React.FC = () => {
       <Footer />
 
       {/* Login dialog */}
-      <LoginDialog
-        open={loginDialogOpen}
-        onClose={() => setLoginDialogOpen(false)}
+      <AuthDialog
+        open={authDialogOpen}
+        onClose={() => setAuthDialogOpen(false)}
       />
 
     </Box>

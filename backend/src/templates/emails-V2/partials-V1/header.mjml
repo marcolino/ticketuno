@@ -1,0 +1,24 @@
+<mj-section
+  background-color="#6750A4"
+  padding="0"
+  border-radius="8px 8px 0 0"
+>
+  <mj-column padding="12px 20px">
+
+    <mj-table>
+      <tr>
+        <td width="56">
+          <img src="{{logoUrl}}" width="56" height="56" style="display:block;" />
+        </td>
+
+        <td align="center"
+            style="font-size:24px;font-weight:600;color:#ffffff;">
+          {{appName}}
+        </td>
+
+        <td width="56"></td>
+      </tr>
+    </mj-table>
+
+  </mj-column>
+</mj-section>

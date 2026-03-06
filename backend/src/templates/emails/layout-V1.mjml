@@ -14,20 +14,22 @@
       />
     </mj-attributes>
 
-    <mj-style inline="inline">
-      @media only screen and (max-width:480px) {
-        .header-title {
-          font-size:20px !important;
-          line-height:24px !important;
-        }
+    <mj-raw>
+      <meta name="x-apple-disable-message-reformatting">
+    </mj-raw>
+
+    <mj-style>
+      .card-wrapper {
+        box-shadow:0 2px 8px rgba(0,0,0,0.08);
       }
     </mj-style>
+
   </mj-head>
 
-  <mj-body background-color="#f4f4f6">
+  <mj-body>
 
-    <!-- Outer wrapper to center the email -->
-    <mj-wrapper padding="40px 10px" background-color="#f4f4f6">
+    <!-- center wrapper -->
+    <mj-wrapper padding="40px 10px" css-class="card-wrapper">
 
       {{> header}}
 

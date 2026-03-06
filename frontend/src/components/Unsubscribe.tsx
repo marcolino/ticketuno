@@ -62,8 +62,18 @@ const Unsubscribe: React.FC = () => {
   }, [token]);
 
   const handleUnsubscribe = async () => {
-    if (!token || !profile?.consent) return;
-
+    if (!token) {
+      setError(t(
+        'We can\'t find the  token to identify you, sorry. Possibly it is expired.'
+      ));
+      return;
+    }
+    if (!profile?.consent) {
+      setError(t(
+        'No profile, sorry.'
+      ));
+      return;
+    }
     try {
       setLoading(true);
       setError(null);

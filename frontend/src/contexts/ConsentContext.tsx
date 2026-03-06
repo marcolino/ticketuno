@@ -179,6 +179,16 @@ export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setConsentInitialized(true);
   }, [loading, user, version, consentInitialized, loadTogglesFromConsent]);
 
+  // Sync local consent after login
+  useEffect(() => {
+    if (user && consent) {
+      // Only sync if local consent differs from server
+      if (JSON.stringify(user.consent) !== JSON.stringify(consent)) {
+        syncToServer(consent);
+      }
+    }
+  }, [user, consent]);
+  
   if (loading) return null;
 
   // -----------------------------

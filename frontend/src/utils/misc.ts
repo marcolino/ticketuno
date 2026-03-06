@@ -2,6 +2,7 @@ import { t } from 'i18next';
 import axios from 'axios';
 
 export function getErrorMessage(error: unknown): string {
+  console.error('Error:', error);
   // Handle Axios errors
   if (axios.isAxiosError(error)) {
     // Safely access the custom 'originalError' property

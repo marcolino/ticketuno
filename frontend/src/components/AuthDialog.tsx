@@ -23,6 +23,7 @@ import {
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
+import { getErrorMessage } from '@/utils/misc';
 
 interface LoginDialogProps {
   open: boolean;
@@ -31,12 +32,12 @@ interface LoginDialogProps {
 
 type TabValue = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
-const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
+const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
   const { login, register, verifyEmail, resendVerification, forgotPassword, resetPassword/*, googleLogin*/ } = useAuth();
   const navigate = useNavigate();
 
   const [tab, setTab] = useState<TabValue>('login');
-  const [error, setError] = useState('');
+  //const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [eventPassword, setEventPassword] = useState(false);
   const [eventPasswordConfirmation, setEventPasswordConfirmation] = useState(false);
@@ -69,10 +70,26 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       resetForms();
     }
   }, [open]);
+
+  // // This effect covers production autofill quirks and prevents the “Forgot Password” tab from appearing unexpectedly.
+  // useEffect(() => {
+  //   if (!open) return;
+
+  //   const timer = setTimeout(() => {
+  //     if (tab === 'login') {
+  //       const emailInput = document.querySelector<HTMLInputElement>('input[name="Email"]');
+  //       const passwordInput = document.querySelector<HTMLInputElement>('input[name="Password"]');
+  //       setLoginEmail(emailInput?.value || '');
+  //       setLoginPassword(passwordInput?.value || '');
+  //     }
+  //   }, 100); // small delay
+
+  //   return () => clearTimeout(timer);
+  // }, [open, tab]);
   
   const handleLogin = async () => {
     try {
-      setError('');
+      //setError('');
       setLoading(true);
       const response = await login({
         email: loginEmail,
@@ -101,8 +118,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       // console.error('Error data:', error.response?.data);
       // console.error('Error message:', error.response?.data?.error);
       //setError(error.response?.data?.error || t('Login failed'));
-      console.log("ERR:", error);
-      toast.warning(error.response?.data?.error || t('Login failed'));
+      //console.log("ERR:", error);
+      toast.warning(t('Login failed: {{err}}', { err: getErrorMessage(error) }));
       // }
     } finally {
       setLoading(false);
@@ -111,7 +128,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
   const handleRegister = async () => {
     try {
-      setError('');
+      // setError('');
       setLoading(true);
       const response = await register({
         email: registerEmail,
@@ -130,7 +147,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       setTab('verify');
       toast.success('Registration successful! Please check your email for verification code.');
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Registration failed');
+      //setError(error.response?.data?.error || 'Registration failed');
+      toast.error(t('Registration failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -138,7 +156,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
     const handleVerifyEmail = async () => {
     try {
-      setError('');
+      // setError('');
       setLoading(true);
       await verifyEmail({ email: verifyEmailAddress, code: verifyCode });
       toast.success('Email verified! You are now logged in.');
@@ -146,7 +164,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       resetForms();
       navigate('/', { replace: true });
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Verification failed');
+      //setError(error.response?.data?.error || 'Verification failed');
+      toast.error(t('Email verification failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -154,7 +173,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
   const handleResendCode = async () => {
     try {
-      setError('');
+      // setError('');
       setLoading(true);
       const response = await resendVerification(verifyEmailAddress);
       if (response.verificationCode) { // this happens only in development
@@ -165,7 +184,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       }
       toast.success('Verification code resent! Check your email.');
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to resend code');
+      //setError(error.response?.data?.error || 'Failed to resend code');
+      toast.error(t('Code resend failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -173,7 +193,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
   const handleForgotPassword = async () => {
     try {
-      setError('');
+      // setError('');
       setLoading(true);
       const response = await forgotPassword({ email: forgotEmail });
       if (response.error) { // this happens only in development
@@ -192,7 +212,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       setTab('reset');
       toast.success('Reset code sent! Check your email.');
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to send reset code');
+      //setError(error.response?.data?.error || 'Failed to send reset code');
+      toast.error(t('Reset code failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -200,7 +221,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
   const handleResetPassword = async () => {
     try {
-      setError('');
+      // setError('');
       setLoading(true);
       await resetPassword({ email: resetEmail, code: resetCode, newPassword });
       // TODO: ...
@@ -213,15 +234,45 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       setTab('login');
       toast.success('Password reset successful! Please login.');
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Password reset failed');
+      //setError(error.response?.data?.error || 'Password reset failed');
+      toast.error(t('Password reset failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
   };
 
+  
   const handleGoogleLogin = async () => {
     setLoading(true);
-    setError('');
+    // Open popup synchronously
+    const width = 500, height = 600;
+    const left = window.screenX + (window.outerWidth - width) / 2;
+    const top = window.screenY + (window.outerHeight - height) / 2;
+
+    const popup = window.open('', 'Google Login', `width=${width},height=${height},left=${left},top=${top}`);
+    if (!popup) {
+      toast.error(t('Popup blocked! Please allow popups for this site'));
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Now fetch the URL asynchronously
+      const response = await fetch('/api/v1/users/auth/google');
+      const { authUrl } = await response.json();
+
+      // Navigate popup to auth URL
+      popup.location.href = authUrl;
+    } catch (error: any) {
+      popup.close();
+      toast.error(t('Failed to start Google login: {{err}}', { err: getErrorMessage(error) }));
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLoginV1= async () => {
+    setLoading(true);
+    // setError('');
 
     try {
       // 1. Get the Google auth URL from your backend
@@ -240,13 +291,15 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       );
 
       if (!popup) {
-        setError('Popup blocked! Please allow popups for this site.');
+        //setError('Popup blocked! Please allow popups for this site.');
+        toast.error(t('Popup blocked! Please allow popups for this site'));
         setLoading(false);
         return;
       }
     } catch (error: any) {
       //console.error('Failed to start Google login:', err);
-      setError(t('Failed to start Google login: {{err}}', {err: error.message}));
+      //setError(t('Failed to start Google login: {{err}}', { err: error.message }));
+      toast.error(t('Failed to start Google login: {{err}}', {err: getErrorMessage(error)}));
     } finally {
       setLoading(false);
     }
@@ -261,7 +314,8 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         event.origin !== 'http://localhost:3001' &&  // TODO: from config
         event.origin !== 'https://ticketuno.fly.dev' // TODO: from config
       ) {
-        console.error('Invalid message origin:', event.origin);
+        toast.error(t('Invalid message origin: {{origin}}', {origin: event.origin}));
+        //console.error('Invalid message origin:', event.origin);
         return;
       }
 
@@ -271,19 +325,20 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
 
         try {
           setLoading(true);
-          setError('');
+          // setError('');
           
           // Call login with token
           await login({ token: token });
           
-          console.log('Google login successful');
+          //console.log('Google login successful');
           toast.success('Logged in with Google!');
           onClose();
           resetForms();
           navigate('/', { replace: true });
         } catch (error: any) {
-          console.error('Google login error:', error);
-          setError(error.response?.data?.error || 'Google login failed');
+          //console.error('Google login error:', error);
+          //setError(error.response?.data?.error || 'Google login failed');
+          toast.error(t('Google login error: {{err}}', {err: getErrorMessage(error)}));
           // Clear token if login fails
           localStorage.removeItem('authToken');
           //setAuthToken(null); // TODO ...
@@ -299,8 +354,9 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       }
 
       if (event.data.type === 'GOOGLE_AUTH_ERROR') {
-        console.error('Google auth error from popup:', event.data.error);
-        setError(event.data.error || 'Google login failed');
+        //console.error('Google auth error from popup:', event.data.error);
+        //setError(event.data.error || 'Google login failed');
+        toast.error(t('Google login failed: {{err}}', {err: getErrorMessage(event.data.error)}));
         setLoading(false);
       }
     };
@@ -323,7 +379,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
     setResetEmail('');
     setResetCode('');
     setNewPassword('');
-    setError('');
+    //setError('');
     setEventPassword(false);
     setTab('login');
   };
@@ -374,25 +430,31 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
           mx: { xs: 1, sm: 10 }
         }}
       >
-        {error && (
+        {/* {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
-        )}
+        )} */}
 
+{/* <Box
+  component="form"
+  onSubmit={(e) => e.preventDefault()} // Prevent Chrome autofill “submit”
+  autoComplete="on"
+> */}
         {/* Login Tab */}
         {tab === 'login' && (
           <Box sx={{ pt: 2 }} component="form" autoComplete="on">
             <TextField
-              name="Email"
+              name="loginEmail"
               label={t('Email')}
               type="email"
               value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
+              onChange={(e) => { setLoginEmail(e.target.value) }}
               sx={{ mb: 2 }}
               fullWidth
               autoFocus
               required
+              autoComplete="username"
             />
             <TextField
               name="Password"
@@ -412,11 +474,13 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
                   </InputAdornment>
                 ),
               }}
+              autoComplete="current-password"
             />
             
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
               <Link
                 component="button"
+                type="button" // <-- Thuis is crucial to avoid Android Chrome email autocomplete selection triggers a click!
                 variant="body2"
                 onClick={() => setTab('forgot')}
                 sx={{ cursor: 'pointer' }}
@@ -425,6 +489,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               </Link>
               <Link
                 component="button"
+                type="button" 
                 variant="body2"
                 onClick={() => setTab('register')}
                 sx={{ cursor: 'pointer' }}
@@ -480,22 +545,13 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               fullWidth
             />
             <TextField
-              name="Email"
+              name="Register Email"
               label={t('Email')}
               type="email"
               value={registerEmail}
               onChange={(e) => setRegisterEmail(e.target.value)}
               sx={{ mb: 2 }}
               fullWidth
-            />
-            <TextField
-              name="Phone"
-              label={`${t('Phone')} (${t('optional')})`}
-              value={registerPhone}
-              onChange={(e) => setRegisterPhone(e.target.value)}
-              sx={{ mb: 2 }}
-              fullWidth
-              inputProps={{ autoComplete: 'tel' }} 
             />
             <TextField
               name="Password"
@@ -514,6 +570,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
                   </InputAdornment>
                 ),
               }}
+              autoComplete="new-password"
             />
             <TextField
               name="PasswordConfirmation"
@@ -533,8 +590,22 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
                 ),
               }}
             />
+            <TextField
+              name="Phone"
+              label={`${t('Phone')} (${t('optional')})`}
+              value={registerPhone}
+              onChange={(e) => setRegisterPhone(e.target.value)}
+              sx={{ mb: 2 }}
+              fullWidth
+              autoComplete="phone"
+            />
 
-            <Typography variant="caption" color="text.secondary" sx={{ mb: 2/*, display: 'block' TODO: WHY???*/ }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              component="span" // render as inline element
+              sx={{ display: 'block', mb: 0.5, lineHeight: 1.33 }}
+            >
               {t('A verification code will be sent to your email')}
             </Typography>
 
@@ -577,6 +648,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               fullWidth
               autoFocus
               inputProps={{ maxLength: 6, style: { fontSize: '24px', textAlign: 'center', letterSpacing: '8px' } }}
+              autoComplete=""
             />
 
             <Button
@@ -615,7 +687,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
             </Typography>
             
             <TextField
-              name="Email"
+              name="forgotEmail"
               label={t('Email')}
               type="email"
               value={forgotEmail}
@@ -624,6 +696,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               sx={{ mb: 2 }}
               fullWidth
               autoFocus
+              autoComplete="forgot-email"
             />
 
             <Button
@@ -664,6 +737,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               fullWidth
               autoFocus
               inputProps={{ maxLength: 6 }}
+              autoComplete=""
             />
             
             <TextField
@@ -684,6 +758,7 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
                   </InputAdornment>
                 ),
               }}
+              autoComplete=""
             />
 
             <Button
@@ -707,9 +782,10 @@ const LoginDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
             </Link>
           </Box>
         )}
+{/* </Box> */}
       </DialogContent>
     </Dialog>
   );
 };
 
-export default LoginDialog;
+export default AuthDialog;

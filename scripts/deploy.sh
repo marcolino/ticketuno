@@ -6,8 +6,12 @@ set -e
 
 APP_NAME="ticketuno"
 REGIONS="fra"
+CACHE="true" # Use false or empty string to use cache
 
 echo "🚀 Deploying app \"${APP_NAME}\" to Fly.io..."
+if [ "$CACHE" = "" -o "$CACHE" = "false" ]; then
+  echo "💾 Cache is disabled"
+fi
 
 # Check if the folder name is the same as APP_NAME
 if [ "`basename \"${PWD}\"`" != "${APP_NAME}" ]; then
@@ -51,6 +55,11 @@ fi
 
 # Import secrets from backend .env
 echo "🔐 Importing secrets..."
+
+#echo "🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐"
+#cat backend/.env # TODO: DEBUG ONLY!!!
+#echo "🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐🔐"
+
 cat backend/.env | fly secrets import --app "${APP_NAME}"
 
 # Force dev/prod depending variables to be the production one
@@ -59,9 +68,20 @@ fly secrets set FRONTEND_URL="https://${APP_NAME}.fly.dev" --app "${APP_NAME}"
 fly secrets set NODE_ENV="production" --app "${APP_NAME}"
 fly secrets set PORT="8080" --app "${APP_NAME}" # default fly.io port
 
+# Bump patch versions
+echo "🔢 Bumping backend version..."
+(cd backend && npm version patch --no-git-tag-version)
+
+echo "🔢 Bumping frontend version..."
+(cd frontend && npm version patch --no-git-tag-version)
+
 # Deploy
 echo "🏗️  Building and deploying..."
-fly deploy --app "${APP_NAME}" --regions "${REGIONS}"
+#if [ "$NO_CACHE" != "" ]; then
+if [ "$CACHE" = "" -o "$CACHE" = "false" ]; then
+  CACHE_FLAGS="--no-cache --buildkit"
+fi
+fly deploy --app "${APP_NAME}" --regions "${REGIONS}" ${CACHE_FLAGS}
 
 echo "✅ Deploy complete!"
 echo "🌐 Your app is available at: https://${APP_NAME}.fly.dev"

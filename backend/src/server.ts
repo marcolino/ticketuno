@@ -115,11 +115,11 @@ app.get(`${prefix}/global/version`, (req, res) => {
 //   res.json({ message });
 // });
 
-/**
- * Serve static files (MUST be after API routes, order matters)
- */
-// Serve public assets
-app.use(express.static(path.join(__dirname, '../public')));
+// /**
+//  * Serve static files (MUST be after API routes, order matters)
+//  */
+// // Serve public assets
+// app.use(express.static(path.join(__dirname, '../public')));
 
 // Serve uploaded images
 app.use('/uploads', express.static(config.uploads.path));
@@ -166,16 +166,36 @@ app.use('/api/*', (req, res) => {
 
 
 /* Serve static public files (MUST be after API routes, error and 404 handlers, order matters) */
-if (process.env.NODE_ENV === 'production') { // in production mode
-  app.use(express.static(path.join(__dirname, '../public')));
+if (process.env.NODE_ENV === 'production') {
+  const publicDir = path.join(__dirname, '../public');
+
+  // Cache hashed assets for a long time
+  app.use(express.static(publicDir, {
+    maxAge: '1y',
+    immutable: true,
+    index: false
+  }));
+
+  // Never cache index.html
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../public/index.html'));
+    res.setHeader('Cache-Control', 'no-store');
+    res.sendFile(path.join(publicDir, 'index.html'));
   });
 } else { // 404 non-API in development mode
   app.get('*', (req, res) => {
-    res.status(404).json({ error: 'Use frontend at localhost:3000' }); // TODO: use config
+    res.status(404).json({ error: 'Use frontend at localhost:3000' });
   });
 }
+// if (process.env.NODE_ENV === 'production') { // in production mode
+//   app.use(express.static(path.join(__dirname, '../public')));
+//   app.get('*', (req, res) => {
+//     res.sendFile(path.join(__dirname, '../public/index.html'));
+//   });
+// } else { // 404 non-API in development mode
+//   app.get('*', (req, res) => {
+//     res.status(404).json({ error: 'Use frontend at localhost:3000' }); // TODO: use config
+//   });
+// }
 
 database.initialize().then(() => {
   app.listen(process.env.PORT, () => {

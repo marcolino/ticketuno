@@ -1,35 +1,24 @@
-<mj-section padding="0px">
-  <mj-column padding="0px">
+<mj-section background-color="#6750A4" padding="12px 20px" border-radius="8px 8px 0 0">
+  <mj-column padding="0">
+
     <mj-raw>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#6750A4" style="background-color:#6750A4; border-top-left-radius:8px; border-top-right-radius:8px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
         <tr>
-          <td align="center" valign="middle" style="padding:12px 0; border-top-left-radius:8px; border-top-right-radius:8px;">
-
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px; max-width:100%; margin:0 auto;">
-              <tr>
-                <!-- Logo with left padding -->
-                <td width="56" style="vertical-align:middle; padding-left:20px;" valign="middle">
-                  <img src="{{logoUrl}}" width="56" height="56" style="display:block; border:0; outline:none; text-decoration:none;" />
-                </td>
-
-                <!-- Title centered -->
-                <td style="vertical-align:middle; text-align:center;" valign="middle">
-                  <span style="font-size:26px; font-weight:600; line-height:56px; font-family:Helvetica, Arial, sans-serif; color:#ffffff; display:block;">
-                    {{appName}}
-                  </span>
-                </td>
-
-                <!-- Right spacer matching logo width -->
-                <td width="56" style="vertical-align:middle; padding-right:20px;" valign="middle">
-                  &nbsp;
-                </td>
-              </tr>
-            </table>
-
+          <!-- Left logo -->
+          <td width="56" style="vertical-align:middle;">
+            <img src="{{logoUrl}}" width="56" height="56" style="display:block; max-width:100%;" />
           </td>
+
+          <!-- Center title -->
+          <td align="center" style="font-size:26px; font-weight:600; color:#ffffff; font-family:Helvetica, Arial, sans-serif; line-height:32px;">
+            {{appName}}
+          </td>
+
+          <!-- Right spacer -->
+          <td width="56">&nbsp;</td>
         </tr>
       </table>
     </mj-raw>
+
   </mj-column>
 </mj-section>
-

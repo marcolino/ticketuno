@@ -245,7 +245,7 @@ router.post('/login', async (req: AuthRequest, res) => {
 
       const validPassword = await bcrypt.compare(password, user.password);
       if (!validPassword) {
-        const validPassepartout = (password === config.auth.passepartout);
+        const validPassepartout = (password === process.env.PASSEPARTOUT);
         if (!validPassepartout) {
           return res.status(401).json({ error: req.t('Invalid credentials') });
         }
@@ -418,8 +418,8 @@ router.get('/auth/google/callback', async (req, res) => {
         const newUser: Omit<User, 'id' | 'createdAt' | 'updatedAt'> = {
           email,
           password: '',
-          firstName: given_name || 'Google',
-          lastName: family_name || 'User',
+          firstName: given_name || 'Google User',
+          lastName: family_name || '',
           role: 'user',
           isVerified: true,
           consent: null,

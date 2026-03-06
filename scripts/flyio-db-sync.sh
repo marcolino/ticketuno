@@ -13,8 +13,10 @@ set -e
 echo "🔒 Enabling maintenance mode..."
 fly secrets set MAINTENANCE_MODE=1 -a "$APP_NAME"
 
+echo "🛑 Stopping Fly.io machine..."
+fly machine stop $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME"
+sleep 3
 echo "▶️  Starting Fly.io machine..."
-#fly machine start -a $APP_NAME
 fly machine start $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME"
 
 echo "⬇️  Downloading database from Fly.io..."

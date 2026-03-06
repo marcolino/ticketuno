@@ -1,0 +1,59 @@
+<mjml>
+  <mj-head>
+    <mj-preview>{{preview}}</mj-preview>
+
+    <!-- Global typography -->
+    <mj-attributes>
+      <mj-all font-family="Helvetica, Arial, sans-serif" />
+
+      <mj-text
+        font-size="16px"
+        line-height="24px"
+        color="#222222"
+      />
+
+      <mj-button
+        font-size="16px"
+        border-radius="8px"
+        background-color="#6750A4"
+        color="#ffffff"
+        inner-padding="14px 22px"
+      />
+    </mj-attributes>
+
+    <mj-raw>
+      <meta name="x-apple-disable-message-reformatting">
+    </mj-raw>
+
+    <mj-style inline="inline">
+      @media only screen and (max-width:480px) {
+        .app-title {
+          font-size:18px !important;
+        }
+      }
+      .footer-section {
+        padding-left:0 !important;
+        padding-right:0 !important;
+      }
+    </mj-style>
+  </mj-head>
+
+  <mj-body background-color="transparent">
+
+    {{> header}}
+
+    <!-- Body Card -->
+    <mj-section padding="20px 10px">
+      <mj-column
+        background-color="transparent"
+        border-radius="0px"
+        padding="20px 10px"
+      >
+        {{{body}}}
+      </mj-column>
+    </mj-section>
+
+    {{> footer}}
+
+  </mj-body>
+</mjml>

@@ -4,13 +4,16 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 import HttpBackend from 'i18next-http-backend';
 //import { getCurrentLanguage } from './services/api';
 
+console.log("LANGUAGE 1:", navigator.language);
+
+
 i18n
   .use(HttpBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     fallbackLng: 'en',
-    lng: localStorage.getItem('i18nextLng') || 'en',
+    //lng: localStorage.getItem('i18nextLng') || 'en',
     debug: import.meta.env.MODE === 'development',
 
     // Behavior for empty/missing:

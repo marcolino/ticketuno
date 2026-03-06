@@ -1,0 +1,9 @@
+<mj-text align="center" font-weight="600" font-size="20px">
+  {{t "Confirm your email"}}
+</mj-text>
+<mj-text align="center" padding-top="15px">
+  {{t "The code to confirm your email is"}} <strong>{{code}}</strong>
+</mj-text>
+<mj-text align="center" font-weight="300" font-size="13px" font-style="italic" padding-top="25px">
+  {{t "Please note this code has a validity of {{expirationMinutes}} minutes" expirationMinutes=expirationMinutes}}
+</mj-text>
