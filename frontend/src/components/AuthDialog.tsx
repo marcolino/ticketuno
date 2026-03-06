@@ -154,7 +154,7 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
     }
   };
 
-    const handleVerifyEmail = async () => {
+  const handleVerifyEmail = async () => {
     try {
       // setError('');
       setLoading(true);

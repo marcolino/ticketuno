@@ -15,7 +15,8 @@ i18n
     returnNull: false,
     backend: {
       loadPath: path.join(__dirname, '..', '..', 'shared', 'locales', '{{lng}}', '{{ns}}.json'),
-      addPath: path.join(__dirname, '..', '..', 'shared', 'locales', '{{lng}}', '{{ns}}.missing.json')
+      addPath: path.join(__dirname, '..', '..', 'shared', 'locales', '{{lng}}', '{{ns}}.missing.json'),
+      retries: 0, // Stop retrying on failure
     },
     detection: {
       order: ['header', 'querystring', 'cookie'],

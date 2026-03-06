@@ -10,6 +10,7 @@ set -e
 
 #echo "🛑  Stopping Fly.io web service..."
 #fly scale count 0 -a "$APP_NAME"
+
 echo "🔒 Enabling maintenance mode..."
 fly secrets set MAINTENANCE_MODE=1 -a "$APP_NAME"
 
@@ -41,16 +42,11 @@ NEW_HASH=$(sha256sum "$LOCAL_DB" | awk '{print $1}')
 if [ "$OLD_HASH" != "$NEW_HASH" ]; then
   read -p "Do you want to sync back database to Fly.io? (y/N): " -n 1 -r
   echo
-  if [[ $REPLY =~ ^[Yy]$ ]]; then
-    # Proceed with action
-
-    #echo "📦  Syncing back database to Fly.io..."
-    #fly ssh console -a "$APP_NAME" --command "cp $REMOTE_DB ${REMOTE_DB}.bak"
-
+  if [[ $REPLY =~ ^[Yy]$ ]]; then # Proceed with action
     echo "⬆️  Uploading database back to Fly.io..."
     fly ssh sftp put "$LOCAL_DB" "$REMOTE_DB.new" -a "$APP_NAME"
-    #fly ssh console -a "$APP_NAME" --command "mv $REMOTE_DB.new $REMOTE_DB"
-    fly ssh console -a "$APP_NAME" --command "mv $REMOTE_DB.new $REMOTE_DB && chown fly:fly $REMOTE_DB && chmod 660 $REMOTE_DB"
+    fly ssh console -a "$APP_NAME" --command "sh -c 'mv \"$REMOTE_DB\" \"$REMOTE_DB.bak\" && mv \"$REMOTE_DB.new\" \"$REMOTE_DB\" && chown fly:fly \"$REMOTE_DB\" && chmod 660 \"$REMOTE_DB\"'"
+
     #echo "▶️  Restarting Fly.io web service..."
     #fly scale count 1 -a $APP_NAME
 

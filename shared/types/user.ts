@@ -14,6 +14,7 @@ export interface User {
   resetPasswordCode?: string;
   resetPasswordCodeExpiry?: string;
   googleId?: string;
+  language?: string;
   consent: FullConsent | null;
   createdAt: string;
   updatedAt: string;
@@ -33,6 +34,7 @@ export interface NewUser {
   resetPasswordCodeExpiry?: string;
   consent?: FullConsent | null;
   googleId?: string;
+  language?: string;
 }
 
 interface LoginSuccessResponse {
@@ -124,6 +126,7 @@ export interface UserProfile {
   role: 'admin' | 'operator' | 'user';
   isVerified: boolean;
   consent: FullConsent | null;
+  language?: string;
   createdAt: string;
   updatedAt: string;
 }

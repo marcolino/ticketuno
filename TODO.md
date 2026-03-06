@@ -35,6 +35,9 @@ common:
  - 1 - check if google users can access via standard email/password, or if error is handled correctly
  - 1 - complete tickets buy process, optionally redirecting to stripe for payment
  - 1 - complete tickets buy process, sending an email to user with the ticket (with a QRCode?)
+ - 2 - when logging in with email/pass, if no password in user and a social auth id uis present, return an error code
+         "SOCIAL_USER_LOGGING_WITH_EMAIL", and in frontend tell user she did access originally with socail auth, so
+         she can try with it, or set up a password, with buttons for social auth and for password reset...
  - 2 - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
  - 2 - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
  - 2 - make a script to backup database

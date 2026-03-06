@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { BrowserRouter as Router, /*Routes, Route*/ } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,7 @@ import { ConsentProvider } from './contexts/ConsentContext';
 import OAuthHandler from './components/OAuthHandler';
 import { LoadingSpinner } from './components/LoadingSpinner';
 //import Home from './components/Home';
+import { globalApi } from '@/services/api';
 import Routes from './Routes';
 import config from '@/config';
 
@@ -50,6 +51,25 @@ const { i18n } = useTranslation();
     }
   }, [i18n.language]);
 
+  // useEffect(() => {
+  //   //fetch('/api/v1/health', { timeout: 3000 })
+  //   (async () => {
+  //     try {
+  //       await globalApi.health();
+  //     } catch (error: any) {
+  //       if (error.response?.status === 503) {
+  //         window.location.href = '/maintenance.html';
+  //       }
+  //     }
+  //   })();
+  // }, []);
+  //   fetch('/api/v1/health', { signal: AbortSignal.timeout(3 * 1000) })
+  //     .catch(err => {
+  //       if (err.response?.status === 503) {
+  //         window.location.href = '/maintenance.html';
+  //       }
+  //     });
+  // }, []);
 
   return (
     <LocalizationProvider

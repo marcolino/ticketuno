@@ -23,6 +23,8 @@ const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH; // ?? '/api/'; // TODO
 const API_VERSION = import.meta.env.VITE_API_VERSION; // ?? 'v1'; // TODO: set default from config...
 const API_BASE_URL = `${API_BASE_PATH}${API_VERSION}`;
 
+let redirectingToMaintenance = false;
+
 console.log('API_BASE_URL:', API_BASE_URL); // TODO: DEBUG ONLY
 
 // Create the main API instance
@@ -91,6 +93,24 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// // ======= MAINTENANCE MODE HANDLER =======
+// api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     const status = error.response?.status;
+//     const redirectUrl = error.response?.data?.redirect;
+
+//     if (status === 503 && redirectUrl) {
+//       // Force browser to load maintenance page
+//       //window.location.href = redirectUrl;
+//       window.location.href = redirectUrl || '/maintenance.html';
+//       return new Promise(() => {}); // prevent further promise rejection
+//     }
+
+//     return Promise.reject(error);
+//   }
+// );
 
 // ========== LOADING INTERCEPTORS SETUP ==========
 // Store loading control functions
@@ -202,32 +222,23 @@ api.interceptors.response.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    let message = i18n.t('An unexpected error occurred'); // TODO: check if this translates correctly
-    /*
-    if (error.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error.response?.data?.message) {
-      message = error.response.data.message;
-    } else if (error.response?.status) {
-      // Status-specific default messages
-      const statusMessages: Record<number, string> = {
-        400: i18n.t('Invalid request. Please check your input.'),
-        401: i18n.t('You must be logged in to perform this action.'),
-        403: i18n.t('You do not have permission to perform this action.'),
-        404: i18n.t('The requested resource was not found.'),
-        409: i18n.t('This operation conflicts with existing data.'),
-        422: i18n.t('Validation failed. Please check your input.'),
-        500: i18n.t('Server error. Please try again later.'),
-        502: i18n.t('Bad gateway. Server is temporarily unavailable.'),
-        503: i18n.t('Service unavailable. Please try again later.'),
-      };
-      message = statusMessages[error.response.status] || error.response.statusText || message;
-    } else if (error.message) {
-      message = error.message;
-    } else if (error.request) {
-      message = i18n.t('No response from server. Please check your connection.');
+    // Check maintenance FIRST, before any error normalization
+    if (error.response?.status === 503) {
+      if (!redirectingToMaintenance && window.location.pathname !== '/maintenance') {
+        redirectingToMaintenance = true;
+        window.location.href = '/maintenance';
+        return new Promise(() => {});
+      }
+      //return new Promise(() => { }); // Swallow — never resolve/reject
+      // Already on /maintenance — reject with a clean error, not the raw HTML body
+      return Promise.reject({
+        ...error,
+        message: i18n.t('Service unavailable'),
+        response: { ...error.response, data: { error: 'maintenance mode' } }
+      });
     }
-    */
+
+    let message = i18n.t('An unexpected error occurred');
     const normalizedError = {
       ...error,
       message,
@@ -238,13 +249,55 @@ api.interceptors.response.use(
     return Promise.reject(normalizedError);
   }
 );
+// api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     let message = i18n.t('An unexpected error occurred'); // TODO: check if this translates correctly
+//     /*
+//     if (error.response?.data?.error) {
+//       message = error.response.data.error;
+//     } else if (error.response?.data?.message) {
+//       message = error.response.data.message;
+//     } else if (error.response?.status) {
+//       // Status-specific default messages
+//       const statusMessages: Record<number, string> = {
+//         400: i18n.t('Invalid request. Please check your input.'),
+//         401: i18n.t('You must be logged in to perform this action.'),
+//         403: i18n.t('You do not have permission to perform this action.'),
+//         404: i18n.t('The requested resource was not found.'),
+//         409: i18n.t('This operation conflicts with existing data.'),
+//         422: i18n.t('Validation failed. Please check your input.'),
+//         500: i18n.t('Server error. Please try again later.'),
+//         502: i18n.t('Bad gateway. Server is temporarily unavailable.'),
+//         503: i18n.t('Service unavailable. Please try again later.'),
+//       };
+//       message = statusMessages[error.response.status] || error.response.statusText || message;
+//     } else if (error.message) {
+//       message = error.message;
+//     } else if (error.request) {
+//       message = i18n.t('No response from server. Please check your connection.');
+//     }
+//     */
+//     const normalizedError = {
+//       ...error,
+//       message,
+//       statusCode: error.response?.status,
+//       originalError: error.response?.data,
+//     };
+
+//     return Promise.reject(normalizedError);
+//   }
+// );
 // ========== END ERRORS MANAGEMENT ==========
 
 // ========== API ENDPOINTS ==========
 export const globalApi = {
   
   version: () => // Backend version
-    api.get('/global/version'),
+    api.get('/version'),
+
+  health: () => // Backend version
+    api.get('/health'),
 };
 
 export const userApi = {

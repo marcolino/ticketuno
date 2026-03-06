@@ -76,6 +76,7 @@ class Database {
         reset_password_code_expiry TEXT,
         google_id TEXT UNIQUE,
         consent TEXT,
+        language TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME,
         deleted_at DATETIME
@@ -261,14 +262,14 @@ class Database {
       INSERT INTO users (
         id, email, password, first_name, last_name, phone, role,
         is_verified, verification_code, verification_code_expiry, consent,
-        google_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        google_id, language
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
       id, user.email, user.password, user.firstName, user.lastName, user.phone || '', user.role,
       user.isVerified ? 1 : 0, user.verificationCode ?? '', user.verificationCodeExpiry ?? '',
       user.consent ? JSON.stringify(user.consent) : null,
-      user.googleId ?? null
+      user.googleId ?? null, user.language ?? config.app.defaultLanguage
     ];
     await runQuery(this.db!, sql, params, 'create user');
     return id;
@@ -299,6 +300,7 @@ class Database {
       resetPasswordCode: row.reset_password_code as string,
       resetPasswordCodeExpiry: row.reset_password_code_expiry as string,
       googleId: row.google_id as string,
+      language: row.language as string,
       consent,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
@@ -430,6 +432,7 @@ class Database {
         'admin',
         'Ammini',
         'Stratore',
+        config.app.defaultLanguage,
       );
       await this.createDefaultUserIfNotExists(
         operatorEmail,
@@ -437,6 +440,7 @@ class Database {
         'operator',
         'Opera',
         'Tore',
+        config.app.defaultLanguage,
       );
     } catch (error) {
       console.error('Error creating default users:', error);
@@ -450,6 +454,7 @@ class Database {
     role: string,
     firstName: string,
     lastName: string,
+    language: string,
   ): Promise<void> {
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = this.uuid();
@@ -457,12 +462,12 @@ class Database {
     // INSERT OR IGNORE is atomic — no race condition possible
     const sql = `
       INSERT OR IGNORE INTO users (
-        id, email, password, first_name, last_name, role, is_verified
-      ) VALUES (?, ?, ?, ?, ?, ?, 1)
+        id, email, password, first_name, last_name, role, language, is_verified
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
     `;
 
     const result = await runQuery(this.db!, sql, [
-      id, email, hashedPassword, firstName, lastName, role
+      id, email, hashedPassword, firstName, lastName, role, language
     ], `create default ${role} user`);
 
     if (result.changes > 0) {
@@ -518,6 +523,7 @@ class Database {
       resetPasswordCode: 'reset_password_code',
       resetPasswordCodeExpiry: 'reset_password_code_expiry',
       googleId: 'google_id',
+      language: 'language',
       consent: 'consent',
     };
 

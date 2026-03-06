@@ -31,7 +31,7 @@ const googleClient = new OAuth2Client(
 // Register - Step 1: send verification code
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, firstName, lastName, phone } = req.body;
+    const { email, password, firstName, lastName, phone, language } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: req.t('Email is required') });
@@ -67,6 +67,7 @@ router.post('/register', async (req, res) => {
       verificationCode,
       verificationCodeExpiry,
       consent: null,
+      language: language ?? config.app.defaultLanguage,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -148,6 +149,7 @@ router.post('/verify-email', async (req, res) => {
       role: user.role,
       isVerified: true,
       consent: user.consent,
+      language: user.language,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
@@ -418,8 +420,8 @@ router.get('/auth/google/callback', async (req, res) => {
         const newUser: Omit<User, 'id' | 'createdAt' | 'updatedAt'> = {
           email,
           password: '',
-          firstName: given_name || 'Google User',
-          lastName: family_name || '',
+          firstName: given_name || 'Google',
+          lastName: family_name || 'user',
           role: 'user',
           isVerified: true,
           consent: null,

@@ -4,7 +4,6 @@ import cors from 'cors';
 import path from 'path';
 import multer from 'multer';
 import { i18n, middleware as i18nextMiddleware } from './i18n';
-import globalRoutes from './routes/global';
 import userRoutes from './routes/users';
 import theaterRoutes from './routes/theaters';
 import eventRoutes from './routes/events';
@@ -14,17 +13,17 @@ import imageRoutes from './routes/images';
 import setupRoutes from './routes/setup';
 import { database } from './db/database'; // import database AFTER config
 import config from './config';
-//import pkg from '../package.json';
+import pkg from '../package.json';
 
 const apiPrefix = 'api'; // TODO: to config
 const apiVersion = 'v1'; // TODO: to config
 const prefix = `/${apiPrefix}/${apiVersion}`;
 
-const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
-const frontendPublicDir = path.join(__dirname, '../../', 'frontend', 'public');
-const frontendDistDir = path.join(__dirname, '../../', 'frontend', 'dist');
+const frontendPublicDir = path.join(__dirname, '../frontend/public');
+const frontendDistDir = path.join(__dirname, '../frontend/dist');
 const frontendDir = process.env.NODE_ENV === 'production' ? frontendDistDir : frontendPublicDir;
 const maintenanceFilePath = path.join(frontendDir, 'maintenance.html');
+const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
 
 const app = express();
 
@@ -41,13 +40,58 @@ app.use((req: Request, res: Response, next) => {
   next();
 });
 
-// app.get(`${prefix}/health`, (req, res) => {
-//   res.json({
-//     status: 'ok',
-//     timestamp: new Date().toISOString(),
-//     uptime: process.uptime(),
-//   });
+app.get(`${prefix}/health`, (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+app.use((req, res, next) => {
+  if (process.env.MAINTENANCE_MODE === '1') {
+    const isApi = req.originalUrl.startsWith(`/${apiPrefix}/`);
+    if (!isApi && req.accepts('html')) {
+      const maintenanceFile = maintenanceFilePath;
+      if (fs.existsSync(maintenanceFile)) return res.status(503).sendFile(maintenanceFile);
+      return res.status(503).send('<h1>Maintenance Mode</h1><p>Please try again later.</p>');
+    }
+    return res.status(503).json({ error: 'Maintenance mode' });
+  }
+  next();
+});
+// app.use((req, res, next) => {
+//   if (process.env.MAINTENANCE_MODE === '1') {
+//     if (req.accepts('html')) {
+//       return res.status(503).sendFile(
+//         path.join(__dirname, '../public/maintenance.html')
+//       );
+//     }
+//     return res.status(503).json({
+//       error: 'maintenance mode'
+//     });
+//   }
+//   next();
 // });
+
+if (process.env.NODE_ENV === 'development') {
+  app.use((req, res, next) => {
+    const delayMs = Number(config.server.delayMilliseconds) || 0;
+    if (delayMs) {
+      console.log(`Delaying request by ${delayMs}ms...`);
+    }
+    setTimeout(next, delayMs);
+  });
+}
+
+app.use(`${prefix}/users`, userRoutes);
+app.use(`${prefix}/theaters`, theaterRoutes);
+app.use(`${prefix}/layouts`, layoutRoutes);
+app.use(`${prefix}/events`, eventRoutes);
+app.use(`${prefix}/images`, imageRoutes);
+//app.use(`${prefix}/emails`, emailRoutes);
+app.use(`${prefix}/setup`, setupRoutes);
+
 
 // Serve translation files from shared folder (/shared/locales/{lng}/{ns}.json)
 app.get(`${prefix}/locales/:lng/:ns.json`, (req: Request, res: Response) => {
@@ -74,41 +118,9 @@ app.get(`${prefix}/locales/:lng/:ns.json`, (req: Request, res: Response) => {
   });
 });
 
-app.use((req, res, next) => {
-  if (process.env.MAINTENANCE_MODE === '1') {
-    if (req.accepts('html')) {
-      return res.status(503).sendFile(maintenanceFilePath);
-    }
-    return res.status(503).json({
-      error: 'maintenance mode',
-      redirect: '/maintenance.html',// Frontend interceptor needs this
-    });
-  }
-  next();
+app.get(`${prefix}/global/version`, (req, res) => {
+  res.json({ version: pkg.version });
 });
-
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    const delayMs = Number(config.server.delayMilliseconds) || 0;
-    if (delayMs) {
-      console.log(`Delaying request by ${delayMs}ms...`);
-    }
-    setTimeout(next, delayMs);
-  });
-}
-
-app.use(`${prefix}/`, globalRoutes);
-app.use(`${prefix}/users`, userRoutes);
-app.use(`${prefix}/theaters`, theaterRoutes);
-app.use(`${prefix}/layouts`, layoutRoutes);
-app.use(`${prefix}/events`, eventRoutes);
-app.use(`${prefix}/images`, imageRoutes);
-//app.use(`${prefix}/emails`, emailRoutes);
-app.use(`${prefix}/setup`, setupRoutes);
-
-// app.get(`${prefix}/`, (req, res) => {
-//   res.json({ version: pkg.version });
-// });
 
 // // Example route with translation - TODO: debug only
 // app.get(`${prefix}/test`, (req: any, res) => {
@@ -168,26 +180,51 @@ app.use('/api/*', (req, res) => {
 
 
 /* Serve static public files (MUST be after API routes, error and 404 handlers, order matters) */
+// Catch-all for HTML in production
 if (process.env.NODE_ENV === 'production') {
   const publicDir = path.join(__dirname, '../public');
+  app.use(express.static(publicDir, { maxAge: '1y', immutable: true, index: false }));
 
-  // Cache hashed assets for a long time
-  app.use(express.static(publicDir, {
-    maxAge: '1y',
-    immutable: true,
-    index: false
-  }));
-
-  // Never cache index.html
   app.get('*', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store');
-    res.sendFile(path.join(publicDir, 'index.html'));
+    const isApi = req.originalUrl.startsWith(`/${apiPrefix}/`);
+
+    if (!isApi && process.env.MAINTENANCE_MODE === '1') {
+      const maintenanceFile = maintenanceFilePath;
+      if (fs.existsSync(maintenanceFile)) {
+        return res.status(503).sendFile(maintenanceFile);
+      }
+      return res.status(503).send('<h1>Maintenance Mode</h1><p>Please try again later.</p>');
+    }
+
+    if (!isApi) {
+      res.setHeader('Cache-Control', 'no-store');
+      return res.sendFile(path.join(publicDir, 'index.html'));
+    }
+
+    // API fallback
+    return res.status(404).json({ error: 'API route not found' });
   });
 } else { // 404 non-API in development mode
   app.get('*', (req, res) => {
-    res.status(404).json({ error: 'Use frontend at localhost:3000' });
+    const isApi = req.originalUrl.startsWith(`/${apiPrefix}/`);
+
+    if (process.env.MAINTENANCE_MODE === '1' && !isApi) {
+      const maintenanceFile = maintenanceFilePath;
+      if (fs.existsSync(maintenanceFile)) {
+        console.log('--- Serving maintenance page (dev) ---', maintenanceFile);
+        return res.status(503).sendFile(maintenanceFile);
+      }
+      return res.status(503).send('<h1>Maintenance Mode</h1><p>Please try again later.</p>');
+    }
+
+    if (!isApi) {
+      return res.status(404).json({ error: 'Use frontend at localhost:3000' });
+    }
+
+    return res.status(404).json({ error: 'API route not found' });
   });
 }
+
 // if (process.env.NODE_ENV === 'production') { // in production mode
 //   app.use(express.static(path.join(__dirname, '../public')));
 //   app.get('*', (req, res) => {

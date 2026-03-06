@@ -28,7 +28,7 @@ i18n
       allowMultiLoading: false,
       requestOptions: {
         cache: 'no-cache'
-      }
+      },
     },
 
     // Disable missing translation feature

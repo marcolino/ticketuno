@@ -14,6 +14,7 @@ import Profile from './components/Profile';
 import Unsubscribe from './components/Unsubscribe';
 import ConsentEntry from './components/ConsentEntry';
 import GeneralSetup from './components/GeneralSetup';
+import Maintenance from './components/Maintenance';
 import NotFound from './components/NotFound';
 
 const Routes: React.FC = () => {
@@ -39,6 +40,7 @@ const Routes: React.FC = () => {
         <Route path="/unsubscribe/:token/:type?" element={<Unsubscribe />} />
         <Route path="/consent/:token/:type?" element={<ConsentEntry />} />
         <Route path="/generalSetup" element={<GeneralSetup />} />
+        <Route path="/maintenance" element={<Maintenance />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </ReactRoutes>
