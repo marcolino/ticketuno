@@ -209,7 +209,10 @@ const Home: React.FC = () => {
 
   const getInitials = () => {
     if (user) {
-      return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+      return `
+${(user.firstName && user.firstName.length && user.firstName[0]) ?? '?'}\
+${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
+`.toUpperCase();
     }
     return '';
   };

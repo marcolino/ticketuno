@@ -44,6 +44,7 @@
     "i18n:auto": "npx i18n-auto-translation --from en --to it,fr --filePath ./shared/locales/en/translation.json",
     "maintenance-set": "fly secrets set MAINTENANCE_MODE=1 -a ticketuno",
     "maintenance-reset": "fly secrets set MAINTENANCE_MODE=0 -a ticketuno",
+    "maintenance-print": "fly ssh console -a ticketuno -C \"printenv MAINTENANCE_MODE\"",
     "deploy": "./scripts/deploy.sh && npm run play-ok || npm run play-ko",
     "logs": "fly logs --app ticketuno",
     "status": "fly status --app ticketuno",

@@ -21,10 +21,10 @@ const apiVersion = 'v1'; // TODO: to config
 const prefix = `/${apiPrefix}/${apiVersion}`;
 
 const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
-const frontendPublicDir = path.join(__dirname, '../../', 'frontend', 'public');
-const frontendDistDir = path.join(__dirname, '../../', 'frontend', 'dist');
-const frontendDir = process.env.NODE_ENV === 'production' ? frontendDistDir : frontendPublicDir;
-const maintenanceFilePath = path.join(frontendDir, 'maintenance.html');
+//const frontendPublicDir = path.join(__dirname, '../../', 'frontend', 'public');
+//const frontendDistDir = path.join(__dirname, '../../', 'frontend', 'dist');
+//const frontendDir = process.env.NODE_ENV === 'production' ? frontendDistDir : frontendPublicDir;
+//const maintenanceFilePath = path.join(frontendDir, 'maintenance.html');
 
 const app = express();
 
@@ -74,18 +74,26 @@ app.get(`${prefix}/locales/:lng/:ns.json`, (req: Request, res: Response) => {
   });
 });
 
-app.use((req, res, next) => {
-  if (process.env.MAINTENANCE_MODE === '1') {
-    if (req.accepts('html')) {
-      return res.status(503).sendFile(maintenanceFilePath);
-    }
-    return res.status(503).json({
-      error: 'maintenance mode',
-      redirect: '/maintenance.html',// Frontend interceptor needs this
-    });
-  }
-  next();
-});
+// app.use((req, res, next) => {
+//   if (process.env.MAINTENANCE_MODE === '1') {
+//     if (req.accepts('html')) {
+//       return res.status(503).sendFile(maintenanceFilePath);
+//     }
+//     return res.status(503).json({
+//       error: 'maintenance mode',
+//       redirect: '/maintenance.html',// Frontend interceptor needs this
+//     });
+//   }
+//   next();
+// });
+// app.use((req, res, next) => {
+//   if (process.env.MAINTENANCE_MODE === '1') {
+//     return res.status(503).json({
+//       error: 'maintenance mode',
+//     });
+//   }
+//   next();
+// });
 
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
@@ -96,6 +104,14 @@ if (process.env.NODE_ENV === 'development') {
     setTimeout(next, delayMs);
   });
 }
+
+// Maintenance mode - MUST be before API 404 handler and before other routes
+app.use('/api/*', (req, res, next) => {
+  if (process.env.MAINTENANCE_MODE === '1') {
+    return res.status(503).json({ error: 'maintenance mode' });
+  }
+  next();
+});
 
 app.use(`${prefix}/`, globalRoutes);
 app.use(`${prefix}/users`, userRoutes);
