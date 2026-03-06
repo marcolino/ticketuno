@@ -30,6 +30,8 @@ common:
  - 1 - use i18n.t (or something the like) in server.ts (only in requests) - OK
  - 1 - complete MJML email template system - "MJML Template TicketUno" with chatGPT - OK
 
+ - 1 - add language field to users table, and check emails arrive in the right language
+ - 1 - verify when we accept consent for marketing emails, and then follow the unsubscribe link, we should NOT get "you did already unsubscribe from marketing emails"...
  - 1 - check if google users can access via standard email/password, or if error is handled correctly
  - 1 - complete tickets buy process, optionally redirecting to stripe for payment
  - 1 - complete tickets buy process, sending an email to user with the ticket (with a QRCode?)
