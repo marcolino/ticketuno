@@ -391,7 +391,7 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 <ListItemIcon>
                   <LanguageIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>{t('Language')} &nbsp; {config.app.languages[i18n.language].flag ?? '🏳️' }</ListItemText>
+                <ListItemText>{t('Language')} &nbsp; {config.app.languages[i18n.language ?? config.app.defaultLanguage].flag ?? '🏳️' }</ListItemText>
               </MenuItem>
 
               <MenuItem onClick={openGeneralSetup}>
