@@ -302,13 +302,17 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
               
               <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
                 <Typography variant="caption" color="text.primary">
-                  config.app.languages: {JSON.stringify(config.app.languages)}
-                </Typography>
-                <Typography variant="caption" color="text.primary">
                   i18n.language: {JSON.stringify(i18n.language)}
                 </Typography>
+              </MenuItem>
+              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
                 <Typography variant="caption" color="text.primary">
                   config.app.defaultLanguage: {JSON.stringify(config.app.defaultLanguage)}
+                </Typography>
+              </MenuItem>
+              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
+                <Typography variant="caption" color="text.primary">
+                  config.app.languages: {JSON.stringify(config.app.languages)}
                 </Typography>
               </MenuItem>
               <Divider />
