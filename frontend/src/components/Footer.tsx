@@ -11,14 +11,20 @@ interface FooterProps {
 
 function Footer({ children }: FooterProps) {
   const [backendVersion, setBackendVersion] = useState('...');
+  const [backendLastCommit, setBackendLastCommit] = useState('...');
+  const [backendLastCommitDate, setBackendLastCommitDate] = useState('...');
 
   useEffect(() => {
     (async () => {
       try {
         const response = await globalApi.version();
         setBackendVersion(response?.data?.version ?? '?');
-      } catch (err: any) {
+        setBackendLastCommit(response?.data?.lastCommit ?? '?');
+        setBackendLastCommitDate(response?.data?.lastCommitDate ?? '?');
+     } catch (err: any) {
         setBackendVersion(err?.message ?? '¿');
+        setBackendLastCommit(err?.message ?? '¿');
+        setBackendLastCommitDate(err?.message ?? '¿');
       }
     })();
   });

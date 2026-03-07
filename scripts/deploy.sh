@@ -175,7 +175,9 @@ if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
   git push origin main --tags
 fi
 
-fly secrets set GIT_COMMIT="$(git rev-parse --short HEAD)" --app "${APP_NAME}"
+fly secrets set \
+  GIT_COMMIT="$(git rev-parse --short HEAD)" --app "${APP_NAME}" \
+  GIT_COMMIT_DATE="$(git log -1 --format='%ci' | cut -c1-19)" --app "${APP_NAME}"
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 
@@ -189,13 +191,12 @@ fly deploy --app "${APP_NAME}" --regions "${REGIONS}" ${CACHE_FLAGS}
 # ─── Summary ─────────────────────────────────────────────────────────────────
 
 echo ""
-echo "✅ Deploy complete!"
-echo "🌐 https://${APP_NAME}.fly.dev"
-echo ""
-echo "Deployed versions:"
+echo "Versions:"
 echo "  backend:  v${BACKEND_VERSION}  (tag: $(get_last_tag backend))"
 echo "  frontend: v${FRONTEND_VERSION} (tag: $(get_last_tag frontend))"
 echo ""
+echo "✅ Deploy complete at https://${APP_NAME}.fly.dev"
+# echo ""
 # echo "Useful commands:"
 # echo "  fly logs --app ${APP_NAME}              View logs"
 # echo "  fly ssh console --app ${APP_NAME}       SSH into container"

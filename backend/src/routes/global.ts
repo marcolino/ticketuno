@@ -5,7 +5,11 @@ const router = Router();
 
 // Public: get backend version
 router.get('/version', async (req, res) => {
-  res.json({ version: pkg.version });
+  res.json({
+    version: pkg.version,
+    lastCommit: process.env.GIT_COMMIT,
+    lastCommitDate: process.env.GIT_COMMIT_DATE,
+  });
 });
 
 // Public: get health status

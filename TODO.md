@@ -86,6 +86,7 @@ common:
  - 1 - in all components, check for setError: always add toast.error, and possibly remove Alert's for errors
  - 1 - in all components, always use getErrorMessage() (import { getErrorMessage } from '@/utils/misc';)
  - 1 - PWA handling - "PWA setup automation for theater booking system" with Claude
+ - 2 - in footer print also process.env.GIT_COMMIT_DATE
  - 2 - add check for changes in all components (when dirty), before navigating away
  - 2 - add privacy and terms links in the register page
  - 2 - in setup/privacy add Terms and Privacy pages, and link to open consent dialog

@@ -231,6 +231,9 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
     return '';
   };
 
+  //{config.app.languages[i18n.language ?? config.app.defaultLanguage].flag ?? '🏳️' }
+  const languageFlag = '🏳️';
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -296,6 +299,18 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 </Typography>
               </MenuItem>
 
+              
+              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
+                <Typography variant="caption" color="text.primary">
+                  config.app.languages: {JSON.stringify(config.app.languages)}
+                </Typography>
+                <Typography variant="caption" color="text.primary">
+                  i18n.language: {JSON.stringify(i18n.language)}
+                </Typography>
+                <Typography variant="caption" color="text.primary">
+                  config.app.defaultLanguage: {JSON.stringify(config.app.defaultLanguage)}
+                </Typography>
+              </MenuItem>
               <Divider />
 
               <MenuItem onClick={() => { handleClose(); handleTheaters(); }}>
@@ -391,7 +406,7 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 <ListItemIcon>
                   <LanguageIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>{t('Language')} &nbsp; {config.app.languages[i18n.language ?? config.app.defaultLanguage].flag ?? '🏳️' }</ListItemText>
+                <ListItemText>{t('Language')} &nbsp; {languageFlag}</ListItemText>
               </MenuItem>
 
               <MenuItem onClick={openGeneralSetup}>
