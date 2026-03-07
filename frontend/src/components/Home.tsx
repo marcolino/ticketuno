@@ -50,7 +50,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '../contexts/DialogContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { ThemePreference } from '@/shared/types/theme';
+import { UserProfile } from '@/shared/types/user';
 import AuthDialog from './AuthDialog';
+import { userApi } from '@/services/api';
 import config from '../config';
 
 console.log('CONFIG is:', config);
@@ -65,7 +67,7 @@ const Home: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   //const location = useLocation();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, updateUser, isAuthenticated, logout } = useAuth();
 //  const { mode, toggleMode } = useThemeMode();
   //const { mode, changeThemeMode } = useThemeMode();
   const { themePreference, setThemePreference, effectiveMode } = useThemeMode();
@@ -194,9 +196,21 @@ const Home: React.FC = () => {
     });
   }
 
-  const handleLanguageChange = (lang: string) => {
+  const handleLanguageChange = async (lang: string) => {
     i18n.changeLanguage(lang);
     //setLangDialogOpen(false);
+
+    if (user) {
+      try {
+        const updates: Partial<UserProfile> = {
+          language: lang
+        };
+        await userApi.updateProfile(user.id, updates);
+        updateUser({ ...user, language: lang });
+      } catch (e) {
+        console.error("Failed to update language", e);
+      }
+    }
   };
 
   const openGeneralSetup = () => {

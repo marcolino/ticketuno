@@ -230,11 +230,17 @@ router.post('/login', async (req: AuthRequest, res) => {
       }
 
       user = await database.getUserByEmail(email);
-      if (!user || !user.password) {
+      if (!user /*|| !user.password*/) {
         return res.status(401).json({ error: req.t('Invalid credentials') });
       }
       if (!user.password) {
-        return res.status(401).json({ error: req.t('This user is invalid') });
+        if (user.googleId) { // a social auth registered user did try to login with email/password
+          return res.status(401).json({
+            error: req.t('You should login with Google'),
+            reason: 'RETRY_WITH_GOOGLE_OAUTH',
+          });
+        }
+        return res.status(401).json({ error: req.t('This user is invalid') }); // no password and no social id
       }
 
       if (!user.isVerified) {

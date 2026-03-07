@@ -23,6 +23,7 @@ import {
   ResetPasswordData,
   ResetPasswordResponse,
 } from '@/shared/types/user';
+import { i18n } from '@/i18n';
 
 interface AuthContextType {
   user: User | null;
@@ -77,6 +78,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       setUser(userData);
       setIsAuthenticated(true);
+
+      if (userData.language) {
+        i18n.changeLanguage(userData.language);
+      }
 
       return userData;
     } catch (error) {

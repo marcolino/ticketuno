@@ -152,6 +152,7 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
         }
       }
 
+      
       //const response = await userApi.updateProfile(userId || currentUser?.id, updates);
       const response = await userApi.updateProfile(isSelf ? currentUser?.id : userId, updates);
 

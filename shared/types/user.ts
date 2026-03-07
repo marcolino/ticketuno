@@ -78,6 +78,7 @@ export interface RegisterData {
   firstName: string;
   lastName: string;
   phone?: string;
+  language?: string;
 }
 
 export interface VerificationData {

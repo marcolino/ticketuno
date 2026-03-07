@@ -63,7 +63,7 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   
   useEffect(() => {
     if (!open) {
@@ -114,6 +114,24 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         }
       }
     } catch (error: any) {
+      if (error.response?.data?.reason === 'RETRY_WITH_GOOGLE_OAUTH') {
+        //return toast.warning(t('Retry with Google!'));
+        // TODO: use a showDialog!
+        return toast.withActions(
+          t('Retry with Google or set a password'),
+          [
+            {
+              label: t('Continue with Google'),
+              onClick: () => alert('GOOGLE LOGIN...'),
+            },
+            {
+              label: t('Set a password'),
+              onClick: () => alert('SET A PASSWORD...'),
+            },
+          ],
+          'warning',
+        );
+      }
       // console.error('Login error response:', error.response);
       // console.error('Error data:', error.response?.data);
       // console.error('Error message:', error.response?.data?.error);
@@ -136,6 +154,7 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
         firstName: registerFirstName,
         lastName: registerLastName,
         phone: registerPhone,
+        language: i18n.language,
       });
       if (response.verificationCode) { // this happens only in development
         console.log( // TODO: use a custom function...
@@ -270,7 +289,8 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
     }
   };
 
-  const handleGoogleLoginV1= async () => {
+/*
+  const handleGoogleLoginV1 = async () => {
     setLoading(true);
     // setError('');
 
@@ -304,7 +324,7 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       setLoading(false);
     }
   };
-
+*/
    // Listen for the message FROM the popup
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {

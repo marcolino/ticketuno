@@ -45,7 +45,7 @@ if [ "$OLD_HASH" != "$NEW_HASH" ]; then
   if [[ $REPLY =~ ^[Yy]$ ]]; then # Proceed with action
     echo "⬆️  Uploading database back to Fly.io..."
     fly ssh sftp put "$LOCAL_DB" "$REMOTE_DB.new" -a "$APP_NAME"
-    fly ssh console -a "$APP_NAME" --command "sh -c 'mv \"$REMOTE_DB\" \"$REMOTE_DB.bak\" && mv \"$REMOTE_DB.new\" \"$REMOTE_DB\" && chown fly:fly \"$REMOTE_DB\" && chmod 660 \"$REMOTE_DB\"'"
+    fly ssh console -a "$APP_NAME" --command "sh -c 'mv \"$REMOTE_DB\" \"$REMOTE_DB.bak\" && mv \"$REMOTE_DB.new\" \"$REMOTE_DB\" && chown node:node \"$REMOTE_DB\" && chmod 660 \"$REMOTE_DB\"'"
 
     #echo "▶️  Restarting Fly.io web service..."
     #fly scale count 1 -a $APP_NAME
