@@ -1,6 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Box, Container, Typography } from '@mui/material';
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Box,
+  Container,
+  Typography,
+  IconButton,
+} from '@mui/material';
+import {
+  InfoOutlined as InfoOutlinedIcon
+} from '@mui/icons-material';
+import { useDialog } from '../contexts/DialogContext';
 import { globalApi } from '@/services/api';
 import config from '../config';
 import pkg from '../../package.json';
@@ -13,6 +22,8 @@ function Footer({ children }: FooterProps) {
   const [backendVersion, setBackendVersion] = useState('...');
   const [backendLastCommit, setBackendLastCommit] = useState('...');
   const [backendLastCommitDate, setBackendLastCommitDate] = useState('...');
+  const { t } = useTranslation();
+  const showDialog = useDialog();
 
   useEffect(() => {
     (async () => {
@@ -44,8 +55,29 @@ function Footer({ children }: FooterProps) {
         {children || (
           <>
             <Typography variant="body2" align="center" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
-              © {new Date().getFullYear()} {config.app.name} - 
-              Frontend v{pkg.version}, Backend v{backendVersion}
+              © {new Date().getFullYear()} {config.app.name}
+              <IconButton
+                size="small"
+                onClick={() =>
+                  showDialog({
+                    title: t('Version'),
+                    content: (
+                      <>
+                        <div>Frontend v{pkg.version}</div>
+                        <div>Backend v{backendVersion}</div>
+                        <div>Last commit: #{backendLastCommit}</div>
+                        <div>Last commit date: {backendLastCommitDate}</div>
+                      </>
+                    ),
+                    showCloseIcon: true,
+                    shrinkToContent: true,
+                  })
+                }
+                aria-label="info"
+              >
+                <InfoOutlinedIcon fontSize="small" sx={{fontSize: 14}} />
+              </IconButton>
+              
             </Typography>
           </>
         )

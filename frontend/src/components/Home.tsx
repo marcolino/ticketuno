@@ -232,7 +232,12 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
   };
 
   //{config.app.languages[i18n.language ?? config.app.defaultLanguage].flag ?? '🏳️' }
-  const languageFlag = '🏳️';
+  //const languageFlag = '🏳️';
+  let lang = config.app.languages[i18n.language];
+  if (!lang) {
+    lang = config.app.languages[config.app.defaultLanguage];
+  }
+  const languageFlag = lang.flag ?? '🏳️';
 
   return (
     <Box sx={{ 
@@ -299,8 +304,7 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 </Typography>
               </MenuItem>
 
-              
-              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
+              {/* <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
                 <Typography variant="caption" color="text.primary">
                   i18n.language: {JSON.stringify(i18n.language)}
                 </Typography>
@@ -314,7 +318,8 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 <Typography variant="caption" color="text.primary">
                   config.app.languages: {JSON.stringify(config.app.languages)}
                 </Typography>
-              </MenuItem>
+              </MenuItem> */}
+
               <Divider />
 
               <MenuItem onClick={() => { handleClose(); handleTheaters(); }}>

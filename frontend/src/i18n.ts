@@ -14,6 +14,7 @@ i18n
   .init({
     fallbackLng: 'en',
     //lng: localStorage.getItem('i18nextLng') || 'en',
+    load: 'languageOnly', // 'it-IT' becomes 'it'
     debug: import.meta.env.MODE === 'development',
 
     // Behavior for empty/missing:

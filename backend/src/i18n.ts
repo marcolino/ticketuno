@@ -9,6 +9,7 @@ i18n
   .init({
     fallbackLng: 'en',
     preload: ['en', 'it', 'fr'],
+    load: 'languageOnly', // 'it-IT' becomes 'it'
     ns: ['translation'],
     defaultNS: 'translation',
     returnEmptyString: false,
