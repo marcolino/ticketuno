@@ -6,28 +6,19 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import CheckIcon from '@mui/icons-material/Check';
 import CancelIcon from '@mui/icons-material/Cancel';
+import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import { useTranslation } from 'react-i18next';
 
-type TagSelectorProps =
-  | {
-      multiple: true;
-      value: string[];
-      onChange: (selected: string[]) => void;
-      label: string;
-      storageKey: string;
-      presetOptions: string[];
-      fullWidth?: boolean;
-    }
-  | {
-      multiple?: false;
-      value: string;
-      onChange: (selected: string) => void;
-      label: string;
-      storageKey: string;
-      presetOptions: string[];
-      fullWidth?: boolean;
-    };
+interface TagSelectorProps {
+  label: string;
+  storageKey: string;
+  presetOptions: string[];
+  value: string[];
+  onChange: (selected: string[]) => void;
+  multiple?: boolean;
+  fullWidth?: boolean;
+}
 
 const TagSelector = ({
   label,
@@ -35,7 +26,7 @@ const TagSelector = ({
   presetOptions,
   value,
   onChange,
-  multiple = false,
+  multiple = true,
   fullWidth = false,
 }: TagSelectorProps) => {
   const { t } = useTranslation();
@@ -62,21 +53,7 @@ const TagSelector = ({
 
   const allOptions = [...presetOptions, ...customOptions];
 
-  // Normalise value to string[] internally for uniform logic
-  const selectedArray: string[] = multiple
-    ? (value as string[])
-    : value
-      ? [value as string]
-      : [];
-
-  const emitChange = (next: string[]) => {
-    if (multiple) {
-      (onChange as (v: string[]) => void)(next);
-    } else {
-      (onChange as (v: string) => void)(next[0] ?? '');
-    }
-  };
-
+  // Exit pick mode when focus leaves the whole component
   const handleContainerBlur = () => {
     setTimeout(() => {
       if (containerRef.current && !containerRef.current.contains(document.activeElement)) {
@@ -88,20 +65,15 @@ const TagSelector = ({
     }, 0);
   };
 
-  const handleShowClick = () => {
-    if (mode === 'show') setMode('pick');
-  };
-
   const handleToggle = (option: string) => {
     if (multiple) {
-      emitChange(
-        selectedArray.includes(option)
-          ? selectedArray.filter((v) => v !== option)
-          : [...selectedArray, option]
+      onChange(
+        value.includes(option)
+          ? value.filter((v) => v !== option)
+          : [...value, option]
       );
     } else {
-      emitChange(selectedArray.includes(option) ? [] : [option]);
-      setMode('show');   // ← auto-close on single select
+      onChange(value.includes(option) ? [] : [option]);
     }
   };
 
@@ -120,7 +92,7 @@ const TagSelector = ({
       return;
     }
     setCustomOptions((prev) => [...prev, trimmed]);
-    emitChange(multiple ? [...selectedArray, trimmed] : [trimmed]);
+    onChange(multiple ? [...value, trimmed] : [trimmed]);
     setAdding(false);
     setInputValue('');
     setInputError('');
@@ -140,41 +112,50 @@ const TagSelector = ({
   const handleRemoveCustom = (e: React.MouseEvent, option: string) => {
     e.stopPropagation();
     setCustomOptions((prev) => prev.filter((o) => o !== option));
-    emitChange(selectedArray.filter((v) => v !== option));
+    onChange(value.filter((v) => v !== option));
   };
 
   // ── Show mode ─────────────────────────────────────────────────────────────
   const showContent = (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', py: 0.75, pr: 1.5, width: '100%' }}>
-      {selectedArray.length === 0 ? (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', py: 0.75 }}>
+      {value.length === 0 && (
         <Box component="span" sx={{ color: 'text.disabled', fontSize: '0.875rem' }}>
           {t('None')}
         </Box>
-      ) : (
-        selectedArray.map((option) => (
-          <Chip
-            key={option}
-            label={option}
-            size="small"
-            color={presetOptions.includes(option) ? 'primary' : 'secondary'}
-            variant="filled"
-          />
-        ))
       )}
+      {value.map((option) => (
+        <Chip
+          key={option}
+          label={option}
+          size="small"
+          color={presetOptions.includes(option) ? 'primary' : 'secondary'}
+          variant="filled"
+        />
+      ))}
+      <Tooltip title={t('Edit')}>
+        <IconButton
+          size="small"
+          color="primary"
+          onClick={() => setMode('pick')}
+          sx={{ ml: 0.5 }}
+        >
+          <EditIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
     </Box>
   );
 
   // ── Pick mode ─────────────────────────────────────────────────────────────
   const pickContent = (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', py: 0.75, width: '100%' }}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', py: 0.75 }}>
       {presetOptions.map((option) => (
         <Chip
           key={option}
           label={option}
           size="small"
           onClick={() => handleToggle(option)}
-          color={selectedArray.includes(option) ? 'primary' : 'default'}
-          variant={selectedArray.includes(option) ? 'filled' : 'outlined'}
+          color={value.includes(option) ? 'primary' : 'default'}
+          variant={value.includes(option) ? 'filled' : 'outlined'}
         />
       ))}
 
@@ -184,8 +165,8 @@ const TagSelector = ({
           label={option}
           size="small"
           onClick={() => handleToggle(option)}
-          color={selectedArray.includes(option) ? 'secondary' : 'default'}
-          variant={selectedArray.includes(option) ? 'filled' : 'outlined'}
+          color={value.includes(option) ? 'secondary' : 'default'}
+          variant={value.includes(option) ? 'filled' : 'outlined'}
           onDelete={(e) => handleRemoveCustom(e, option)}
           deleteIcon={
             <Tooltip title={t('Remove option')}>
@@ -207,7 +188,7 @@ const TagSelector = ({
             error={!!inputError}
             title={inputError}
             placeholder={t('New tag...')}
-            sx={{ width: 90, '& input': { fontSize: '0.9rem' } }}
+            sx={{ width: 90, '& input': { fontSize: '0.75rem' } }}
           />
           <Tooltip title={t('Confirm')}>
             <span>
@@ -230,6 +211,7 @@ const TagSelector = ({
         </Tooltip>
       )}
 
+      {/* Close pick mode explicitly */}
       <Tooltip title={t('Done')}>
         <IconButton size="small" onClick={() => setMode('show')} sx={{ ml: 'auto' }}>
           <CloseIcon fontSize="small" />
@@ -246,14 +228,10 @@ const TagSelector = ({
         notched
         label={label}
         readOnly
-        onClick={handleShowClick}
         onBlur={handleContainerBlur}
         inputProps={{ style: { width: 0, padding: 0, height: 0 } }}
         startAdornment={mode === 'show' ? showContent : pickContent}
-        sx={{
-          alignItems: 'flex-start',
-          cursor: mode === 'show' ? 'pointer' : 'default',
-        }}
+        sx={{ alignItems: 'flex-start', cursor: 'default' }}
       />
     </FormControl>
   );

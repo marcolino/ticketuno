@@ -43,8 +43,8 @@ import { t } from 'i18next';
 import config from '@/config';
 
 // TODO: to config
-const GENRE_PRESETS = ['Comedy', 'Drama', 'Opera', 'Musical', 'Tragedy', 'Ballet'];
-const LANGUAGE_PRESETS = ['English', 'Italian', 'French', 'German', 'Spanish'];
+const GENRES_PRESETS = [t('Comedy'), 'Drama', 'Opera', 'Musical', 'Tragedy', 'Ballet']; // TODO: translate
+const LANGUAGES_PRESETS = ['English', 'Italian', 'French', 'German', 'Spanish'];
 
 
 const EventEdit: React.FC = () => {
@@ -71,8 +71,7 @@ const EventEdit: React.FC = () => {
   const [durationMinutes, setDurationMinutes] = useState<number>(120);
   const [intermissionCount, setIntermissionCount] = useState<number>(1);
   const [rating, setRating] = useState('');
-  const [language, setLanguage] = useState('English');
-  //const [languages, setLanguages] = useState<string[]>([]);
+  const [language, setLanguage] = useState<string>('');
   const [director, setDirector] = useState('');
   const [playwright, setPlaywright] = useState('');
   const [producer, setProducer] = useState('');
@@ -124,7 +123,7 @@ const EventEdit: React.FC = () => {
       setDurationMinutes(event.durationMinutes || 120);
       setIntermissionCount(event.intermissionCount || 1);
       setRating(event.rating || '');
-      setLanguage(event.language || 'English');
+      setLanguage(event.language || 'Italian'); // TODO: from config
       setDirector(event.director || '');
       setPlaywright(event.playwright || '');
       setProducer(event.producer || '');
@@ -180,7 +179,7 @@ const EventEdit: React.FC = () => {
       const eventData: Partial<Event> = {
         title,
         description,
-        genres,
+        genres: JSON.stringify(genres),
         durationMinutes,
         intermissionCount,
         rating,
@@ -339,7 +338,7 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid item xs={6}>
             {/* <TextField
               fullWidth
               label={t('Genre')}
@@ -349,8 +348,8 @@ const EventEdit: React.FC = () => {
             /> */}
             <TagSelector
               label={t('Genere')}
-              storageKey="genresCustom"
-              presetOptions={GENRE_PRESETS}
+              storageKey='eventGenresCustom'
+              presetOptions={GENRES_PRESETS}
               value={genres}
               onChange={setGenres}
               multiple
@@ -370,12 +369,20 @@ const EventEdit: React.FC = () => {
             /> */}
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <TextField
+          <Grid item xs={6}>
+            {/* <TextField
               fullWidth
               label={t('Language')}
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
+            /> */}
+            <TagSelector
+              label={t('Language')}
+              storageKey='eventLanguageCustom'
+              presetOptions={LANGUAGES_PRESETS}
+              value={[language]}
+              onChange={setLanguage}
+              multiple={false}
             />
           </Grid>
 

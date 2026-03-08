@@ -21,3 +21,7 @@ t('dark');
 t('app');
 t('preferences');
 t('security');
+
+// events language
+t('Italian');
+// ...

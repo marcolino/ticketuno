@@ -56,6 +56,9 @@ const EventList: React.FC = () => {
     try {
       const response = await eventApi.getAllEvents();
       //console.log('EVENTS:', response.data);
+      if (!Array.isArray(response.data)) { // TODO: safety check only, should not be necessary!
+        throw new Error(t('Error getting events: {{err}}', { err: response.data }));
+      }
       setEvents(response.data);
       if (response.data.length === 0) {
         toast.info(t('No events available'));
@@ -144,6 +147,8 @@ const EventList: React.FC = () => {
       default: return 'default';
     }
   };
+
+  //alert(events.length);
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>

@@ -13,7 +13,7 @@ const router = Router();
 
 // Public: Get all events with stats
 router.get('/', async (req, res) => {
-  const _req = req as any;
+  //const _req = req as any;
   try {
     const events = await database.getAllEvents();
     if (!events) {
@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
         return {
           id: event.id,
           title: event.title,
-          theaterName: theater?.name || _req.t('Unknown'),
+          theaterName: theater?.name || req.t('Unknown'),
           genres: event.genres,
           openingDate: event.openingDate,
           closingDate: event.closingDate,
@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
 
     res.json(stats);
   } catch (error: unknown) { // TODO: error: req.t(...) everywhere...
-    res.status(500).json({ error: _req.t('Failed to fetch events: {{err}}', { err: getErrorMessage(error) })});
+    res.status(500).json({ error: req.t('Failed to fetch events: {{err}}', { err: getErrorMessage(error) })});
   }
 });
 
