@@ -36,7 +36,7 @@ const TagSelector = ({
   value,
   onChange,
   multiple = false,
-  fullWidth = false,
+  fullWidth = true,
 }: TagSelectorProps) => {
   const { t } = useTranslation();
 
@@ -145,7 +145,7 @@ const TagSelector = ({
 
   // ── Show mode ─────────────────────────────────────────────────────────────
   const showContent = (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', py: 0.75, pr: 1.5, width: '100%' }}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', py: 2, pr: 1.5, width: '100%' }}>
       {selectedArray.length === 0 ? (
         <Box component="span" sx={{ color: 'text.disabled', fontSize: '0.875rem' }}>
           {t('None')}
@@ -166,7 +166,7 @@ const TagSelector = ({
 
   // ── Pick mode ─────────────────────────────────────────────────────────────
   const pickContent = (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', py: 0.75, width: '100%' }}>
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center', py: 2, width: '100%' }}>
       {presetOptions.map((option) => (
         <Chip
           key={option}

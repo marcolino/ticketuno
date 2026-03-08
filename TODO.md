@@ -80,6 +80,7 @@ common:
  - 1 - check google login error (Enrica's phone) - OK
  - 1 - check iOS google login error "popup blocked" - OK
  
+ - 1 - on starting, setup must have default values (in GeneralSetup)
  - 1 - in EventEdit, let user create a new theater, as we do in TheaterEdit for Layouts
  - 1 - test iOS google login error "popup blocked" (on appetize.io)
  - 1 - handle uniformly user's permissions in components loading

@@ -104,39 +104,39 @@ const EventList: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const getEventStatus = (event, now = new Date()) => {
-    const { startDate, endDate, operatorStatus } = event;
+  // const getEventStatus = (event, now = new Date()) => {
+  //   const { startDate, endDate, operatorStatus } = event;
 
-    if (operatorStatus === 'canceled') {
-      return 'canceled';
-    }
+  //   if (operatorStatus === 'canceled') {
+  //     return 'canceled';
+  //   }
 
-    if (!startDate && !endDate) {
-      return 'in progress'; // we assume an open event, it is always 'in progress'
-    }
+  //   if (!startDate && !endDate) {
+  //     return 'in progress'; // we assume an open event, it is always 'in progress'
+  //   }
 
-    if (!startDate) { // we asseume an open-start event
-      if (now <= endDate) return 'in progress';
-      if (now > endDate) return 'completed';
-    }
+  //   if (!startDate) { // we asseume an open-start event
+  //     if (now <= endDate) return 'in progress';
+  //     if (now > endDate) return 'completed';
+  //   }
 
-    if (!endDate) { // we asseume an open-end event
-      if (now < startDate) return 'scheduled';
-      if (now >= startDate) return 'in progress';
-    }
+  //   if (!endDate) { // we asseume an open-end event
+  //     if (now < startDate) return 'scheduled';
+  //     if (now >= startDate) return 'in progress';
+  //   }
 
-    if (now < startDate) {
-      return 'scheduled';
-    }
+  //   if (now < startDate) {
+  //     return 'scheduled';
+  //   }
 
-    if (now >= startDate && now <= endDate) {
-      return 'in progress';
-    }
+  //   if (now >= startDate && now <= endDate) {
+  //     return 'in progress';
+  //   }
 
-    if (now > endDate) {
-      return 'completed';
-    }
-  }
+  //   if (now > endDate) {
+  //     return 'completed';
+  //   }
+  // }
   
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -358,7 +358,7 @@ const EventList: React.FC = () => {
                     variant="contained"
                     startIcon={<EventIcon />}
                     onClick={() => handleViewEvent(event.id) }
-                    disabled={!(event.availablePerformances > 0)}
+                    //disabled={!(event.availablePerformances > 0)}
                     sx={{
                       width: { xs: '100%', sm: 'auto' }, // Full width on mobile, auto on desktop
                       //minWidth: 200 // Minimum width for better appearance

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { useMediaQuery, useTheme } from '@mui/material';
 import {
@@ -42,14 +43,11 @@ import { CastEditor, type CastEntry } from './CastEditor';
 import { t } from 'i18next';
 import config from '@/config';
 
-// TODO: to config
-const GENRES_PRESETS = [t('Comedy'), 'Drama', 'Opera', 'Musical', 'Tragedy', 'Ballet']; // TODO: translate
-const LANGUAGES_PRESETS = ['English', 'Italian', 'French', 'German', 'Spanish'];
-
 
 const EventEdit: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { isOperator } = useAuth();
 
@@ -58,6 +56,10 @@ const EventEdit: React.FC = () => {
   const isAtLeastMd = useMediaQuery(theme.breakpoints.up('md'));
 
   const setup = useSetup();
+
+  // TODO: to config
+  const GENRES_PRESETS = [t('Comedy'), 'Drama', 'Opera', 'Musical', 'Tragedy', 'Ballet']; // TODO: translate
+  const LANGUAGES_PRESETS = ['English', 'Italian', 'French', 'German', 'Spanish'];
 
   const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
@@ -71,7 +73,7 @@ const EventEdit: React.FC = () => {
   const [durationMinutes, setDurationMinutes] = useState<number>(120);
   const [intermissionCount, setIntermissionCount] = useState<number>(1);
   const [rating, setRating] = useState('');
-  const [language, setLanguage] = useState<string>('');
+  const [language, setLanguage] = useState<string>(t('Italian')); // TODO: from config.app.events.default.language
   const [director, setDirector] = useState('');
   const [playwright, setPlaywright] = useState('');
   const [producer, setProducer] = useState('');
@@ -689,17 +691,19 @@ const EventEdit: React.FC = () => {
           </Grid>
 
           {/* Performances */}
-          <Grid item xs={12}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 2 }}>
-              <Button
-                startIcon={<TheaterComedyIcon />}
-                onClick={() => navigate(`/event/${id}`) }
-                variant="outlined"
-              >
-                {t('Performances')}
-              </Button>
-            </Box>
-          </Grid>
+          {isEditMode && ( // Show Performances button only when editing event
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 2 }}>
+                <Button
+                  startIcon={<TheaterComedyIcon />}
+                  onClick={() => navigate(`/event/${id}`)}
+                  variant="outlined"
+                >
+                  {t('Performances')}
+                </Button>
+              </Box>
+            </Grid>
+          )}
 
           {/*performances.map((perf, index) => (
             <Grid item xs={12} key={index}>
