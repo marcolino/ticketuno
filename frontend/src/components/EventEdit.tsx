@@ -34,12 +34,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 import { useSetup } from '@/contexts/SetupContext';
 import { getErrorMessage } from '@/utils/misc';
+import TagSelector from './TagSelector';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
 import { CastEditor, type CastEntry } from './CastEditor'; 
 //import type { CurrencyCode } from '@/shared/config';
 import { t } from 'i18next';
 import config from '@/config';
+
+// TODO: to config
+const GENRE_PRESETS = ['Comedy', 'Drama', 'Opera', 'Musical', 'Tragedy', 'Ballet'];
+const LANGUAGE_PRESETS = ['English', 'Italian', 'French', 'German', 'Spanish'];
 
 
 const EventEdit: React.FC = () => {
@@ -56,16 +61,18 @@ const EventEdit: React.FC = () => {
 
   const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  //const [error, setError] = useState('');
 
   // Event fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [genre, setGenre] = useState('');
+  //const [genre, setGenre] = useState('');
+  const [genres, setGenres] = useState<string[]>([]);
   const [durationMinutes, setDurationMinutes] = useState<number>(120);
   const [intermissionCount, setIntermissionCount] = useState<number>(1);
   const [rating, setRating] = useState('');
   const [language, setLanguage] = useState('English');
+  //const [languages, setLanguages] = useState<string[]>([]);
   const [director, setDirector] = useState('');
   const [playwright, setPlaywright] = useState('');
   const [producer, setProducer] = useState('');
@@ -112,7 +119,8 @@ const EventEdit: React.FC = () => {
       
       setTitle(event.title);
       setDescription(event.description || '');
-      setGenre(event.genre || '');
+      //setGenre(event.genre || '');
+      setGenres(JSON.parse(event.genres || ''));
       setDurationMinutes(event.durationMinutes || 120);
       setIntermissionCount(event.intermissionCount || 1);
       setRating(event.rating || '');
@@ -146,7 +154,7 @@ const EventEdit: React.FC = () => {
         setPerformances(event.performances);
       }
 
-      setError('');
+      //setError('');
     } catch (error: any) {
       toast.error(getErrorMessage(error));
     }
@@ -167,12 +175,12 @@ const EventEdit: React.FC = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      setError('');
+      //setError('');
 
       const eventData: Partial<Event> = {
         title,
         description,
-        genre,
+        genres,
         durationMinutes,
         intermissionCount,
         rating,
@@ -223,7 +231,7 @@ const EventEdit: React.FC = () => {
         t('Failed to update event: {{err}}', { err }) :
         t('Failed to create event: {{err}}', { err })
       ;
-      setError(msg);
+      //setError(msg);
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -331,14 +339,35 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
-            <TextField
+          <Grid item xs={12}>
+            {/* <TextField
               fullWidth
               label={t('Genre')}
               value={genre}
               onChange={(e) => setGenre(e.target.value)}
               placeholder={t('Drama, Comedy, Musical, etc.')}
+            /> */}
+            <TagSelector
+              label={t('Genere')}
+              storageKey="genresCustom"
+              presetOptions={GENRE_PRESETS}
+              value={genres}
+              onChange={setGenres}
+              multiple
             />
+            {/* <TagSelector
+              label={t('Genere')}
+              storageKey='genresCustom'
+              value={genres}
+              onChange={setGenres}
+              defaultOptions={[
+                'Comedy',
+                'Drama',
+                'Opera',
+                'Musical',
+                'Tragedy'
+              ]}
+            /> */}
           </Grid>
 
           <Grid item xs={12} md={6}>

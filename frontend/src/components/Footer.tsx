@@ -54,20 +54,25 @@ function Footer({ children }: FooterProps) {
       <Container>
         {children || (
           <>
-            <Typography variant="body2" align="center" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+            <Typography variant="body2" align="center" color="text.secondary">
               © {new Date().getFullYear()} {config.app.name}
               <IconButton
-                size="small"
+               
                 onClick={() =>
                   showDialog({
                     title: t('Version'),
                     content: (
-                      <>
-                        <div>Frontend v{pkg.version}</div>
-                        <div>Backend v{backendVersion}</div>
-                        <div>Last commit: #{backendLastCommit}</div>
-                        <div>Last commit date: {backendLastCommitDate}</div>
-                      </>
+                      <Typography
+                        variant="subtitle1"
+                        color="text.secondary"
+                        component="div" // render as inline element
+                        sx={{ lineHeight: 1.5 }}
+                      >
+                        <div>Frontend: <strong>v{pkg.version}</strong></div>
+                        <div>Backend: <strong>v{backendVersion}</strong></div>
+                        <div>Last commit: <strong>#{backendLastCommit}</strong></div>
+                        <div>Last commit date: <strong>{backendLastCommitDate}</strong></div>
+                      </Typography>
                     ),
                     showCloseIcon: true,
                     shrinkToContent: true,
@@ -75,7 +80,7 @@ function Footer({ children }: FooterProps) {
                 }
                 aria-label="info"
               >
-                <InfoOutlinedIcon fontSize="small" sx={{fontSize: 14}} />
+                <InfoOutlinedIcon sx={{fontSize: 20}} />
               </IconButton>
               
             </Typography>

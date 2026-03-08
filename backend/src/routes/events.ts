@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
           id: event.id,
           title: event.title,
           theaterName: theater?.name || _req.t('Unknown'),
-          genre: event.genre,
+          genres: event.genres,
           openingDate: event.openingDate,
           closingDate: event.closingDate,
           baseTicketPrice: event.baseTicketPrice,
@@ -87,7 +87,7 @@ router.get('/:id', async (req, res) => {
 router.post('/', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
     const {
-      title, description, genre, durationMinutes, intermissionCount, rating, language,
+      title, description, genres, durationMinutes, intermissionCount, rating, language,
       director, playwright, producer, choreographer, musicalDirector, theaterId, stageType,
       openingDate, closingDate, baseTicketPrice, currency, specialRequirements, minimumAge,
       typicalStartTime, typicalEndTime, posterImage, trailerUrl, websiteUrl,
@@ -119,7 +119,7 @@ router.post('/', authenticateToken, requireOperator, async (req: AuthRequest, re
       id: '', //uuidv4(),
       title,
       description,
-      genre,
+      genres,
       durationMinutes,
       intermissionCount: intermissionCount || 1,
       rating,

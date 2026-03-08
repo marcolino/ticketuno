@@ -280,8 +280,8 @@ const EventList: React.FC = () => {
                     </Typography>
                   </Box>
 
-                  {event.genre && (
-                    <Chip label={event.genre} size="small" sx={{ mb: 1 }} />
+                  {event.genres && ( // TODO
+                    <Chip label={event.genres} size="small" sx={{ mb: 1 }} />
                   )}
 
                   <Box sx={{ mt: 2 }}>

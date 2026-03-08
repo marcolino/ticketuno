@@ -119,7 +119,7 @@ class Database {
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
         description TEXT,
-        genre TEXT,
+        genres TEXT,
         duration_minutes INTEGER,
         intermission_count INTEGER DEFAULT 1,
         rating TEXT,
@@ -808,7 +808,7 @@ class Database {
       id: row.id as string,
       title: row.title as string,
       description: row.description as string,
-      genre: row.genre as string,
+      genres: row.genres as string,
       durationMinutes: row.duration_minutes as number,
       intermissionCount: row.intermission_count as number,
       rating: row.rating as string,
@@ -884,7 +884,7 @@ class Database {
     const id = this.uuid();
     const sql = `
       INSERT INTO events (
-        id, title, description, genre, duration_minutes, intermission_count, rating, language,
+        id, title, description, genres, duration_minutes, intermission_count, rating, language,
         director, playwright, producer, choreographer, musical_director, cast_members, theater_id, stage_type,
         opening_date, closing_date, is_active, base_ticket_price, currency, is_sold_out,
         special_requirements, minimum_age, created_by_user_id,
@@ -893,7 +893,7 @@ class Database {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
-      id, event.title, event.description ?? '', event.genre ?? '',
+      id, event.title, event.description ?? '', event.genres ?? '',
       event.durationMinutes ?? '', event.intermissionCount ?? 0,
       event.rating ?? '', event.language ?? '', event.director ?? '',
       event.playwright ?? '', event.producer ?? '', event.choreographer ?? '',
@@ -917,7 +917,7 @@ class Database {
     const fieldMap: Record<string, string> = {
       title: 'title',
       description: 'description',
-      genre: 'genre',
+      genres: 'genres',
       durationMinutes: 'duration_minutes',
       intermissionCount: 'intermission_count',
       rating: 'rating',
