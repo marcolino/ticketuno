@@ -1,11 +1,11 @@
-<mj-text align="center" font-size="18px" font-weight="600">
+<mj-text align="center" font-size="21px" font-weight="600">
   {{t "Hey,"}} {{userName}}
 </mj-text>
-<mj-text align="center" font-size="18px" font-weight="600">
+<mj-text align="center" font-size="21px" font-weight="600">
   {{t "Welcome to"}} {{appName}}!
 </mj-text>
 
-<mj-text align="center" padding-top="15px">
+<mj-text align="center" padding-top="18px">
   {{t "Thanks for joining us."}}
 </mj-text>
 

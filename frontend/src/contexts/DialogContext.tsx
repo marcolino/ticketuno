@@ -160,6 +160,7 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({
                       await btn.onClick();
                       close();
                     }}
+                    sx={{m: 2}}
                   >
                     {btn.text}
                   </Button>

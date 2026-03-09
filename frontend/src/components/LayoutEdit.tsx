@@ -145,7 +145,7 @@ const LayoutEdit: React.FC = () => {
 
   useEffect(() => {
     if (!isOperator) {
-      navigate('/layouts');
+      navigate(-1);
       return;
     }
   }, [isOperator, navigate]);

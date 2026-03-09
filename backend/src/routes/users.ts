@@ -515,6 +515,7 @@ router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       phone: user.phone,
       role: user.role,
       isVerified: user.isVerified,
+      language: user.language,
       consent: user.consent,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
@@ -545,7 +546,7 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       return res.status(403).json({ error: req.t('Insufficient permissions') });
     }
 
-    const { firstName, lastName, phone, email, role } = req.body;
+    const { firstName, lastName, phone, email, role, language } = req.body;
     const updates: Partial<User> = {};
 
     if (firstName) updates.firstName = firstName;
@@ -558,6 +559,7 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       }
       updates.role = role;
     }
+    if (language) updates.language = language;
 
     await database.updateUser(targetId, updates);
     const updated = await database.getUserById(targetId);
@@ -569,6 +571,7 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
       lastName: updated!.lastName,
       phone: updated!.phone,
       role: updated!.role,
+      language: updated!.language,
       isVerified: updated!.isVerified,
       consent: updated!.consent,
       createdAt: updated!.createdAt,

@@ -35,6 +35,11 @@ const TheaterEdit: React.FC = () => {
 
   const isEditMode = id && id !== 'new';
 
+  const { returnTo, eventData } = (location.state || {}) as {
+    returnTo?: string;
+    eventData?: Record<string, unknown>;
+  };
+
   //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -121,7 +126,7 @@ const TheaterEdit: React.FC = () => {
   
   useEffect(() => {
     if (!isOperator) {
-      navigate('-1');
+      navigate(-1);
       return;
     }
 
@@ -147,7 +152,7 @@ const TheaterEdit: React.FC = () => {
         isEditMode ? loadTheater() : Promise.resolve()
       ]);
     })();
-  }, []); // Runs once on mount
+  }, [isOperator]); // Runs once on mount, or when role changes
 
   useEffect(() => {
     const state = location.state as { theaterData?: { selectedLayoutId?: string } };
@@ -237,6 +242,54 @@ const TheaterEdit: React.FC = () => {
       setError(t('Name is required'));
       return;
     }
+    if (!theaterData.currentLayoutId) {
+      setError(t('A layout is required'));
+      return;
+    }
+    try {
+      setSaving(true);
+      setError('');
+
+      let savedId: string;
+      if (isEditMode) {
+        await theaterApi.updateTheaterFull(id, theaterData);
+        savedId = id!;
+        toast.success(t('Theater updated successfully!'));
+      } else {
+        const response = await theaterApi.createTheater(theaterData);
+        savedId = response.data;
+        toast.success(t('Theater created successfully!'));
+      }
+
+      if (returnTo) {
+        navigate(returnTo, {
+          state: {
+            eventData: {
+              ...eventData,
+              selectedTheaterId: savedId,
+            },
+          },
+        });
+      } else {
+        navigate('/theaters');
+      }
+    } catch (err: any) {
+      setError(
+        err.response?.data?.error ||
+          t('Failed to {{action}} theater', {
+            action: isEditMode ? t('update') : t('create'),
+          })
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+/*
+  const handleSave = async () => {
+    if (!theaterData.name.trim()) {
+      setError(t('Name is required'));
+      return;
+    }
 
     if (!theaterData.currentLayoutId) {
       setError(t('A layout is required'));
@@ -253,8 +306,20 @@ const TheaterEdit: React.FC = () => {
         await theaterApi.createTheater(theaterData);
         toast.success(t('Theater created successfully!'));
       }
-      
-      navigate('/theaters');
+
+      if (returnTo) {
+        const savedId = isEditMode ? id : (await theaterApi.createTheater(theaterData)).data.id;
+        navigate(returnTo, {
+          state: {
+            eventData: {
+              ...eventData,
+              selectedTheaterId: savedId,
+            },
+          },
+        });
+      } else {
+        navigate('/theaters');
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || t('Failed to {{action}} theater', { 
         action: isEditMode ? t('update') : t('create')
@@ -263,6 +328,7 @@ const TheaterEdit: React.FC = () => {
       setSaving(false);
     }
   };
+*/
   
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -381,7 +447,7 @@ const TheaterEdit: React.FC = () => {
                 label="Layouts"
                 onChange={(e) => handleLayoutSelect(e.target.value)}
               >
-                <MenuItem value={"<new>"}>&lt;{t('New Layout')}&gt;</MenuItem>
+                <MenuItem value={"<new>"}><i>{t('New Layout')}</i></MenuItem>
                 {layouts.map((layout, index) => (
                   <MenuItem key={index} value={layout.id}>{layout.name}</MenuItem>
                 ))}

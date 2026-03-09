@@ -11,21 +11,34 @@ import {
   Select,
   InputLabel,
   FormControl,
-  Alert,
   Button,
   List,
   ListItemButton,
   ListItemText,
-  useMediaQuery
+  useMediaQuery,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Typography,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import {
+  AccessTime as AccessTimeIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+}  from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useToast } from '@/contexts/ToastContext';
+import { useSetupRefresh } from '@/contexts/SetupContext';
 import { setupApi } from '@/services/api';
 import PageHeader from "./PageHeader";
 import { getErrorMessage } from '@/utils/misc';
 import { SetupStatus } from '@/shared/types/generalSetup';
+import config from '@/config';
 
-const defaultSetup: SetupStatus = { // TODO: from config...
+const defaultSetup: SetupStatus = { 
   currency: 'EUR',
   timeout: 10,
   enableNotifications: true,
@@ -34,20 +47,23 @@ const defaultSetup: SetupStatus = { // TODO: from config...
   apiKey: ''
 };
 
-const currencies = ['EUR', 'USD', 'GBP', 'JPY']; // TODO: from config...
+const currencies = Object.keys(config.app.currencies);
 
 function GeneralSetup() {
   const theme = useTheme();
   const { t } = useTranslation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const toast = useToast();
+  const refreshSetup = useSetupRefresh();
 
   const [section, setSection] = useState<'app' | 'preferences' | 'security'>('app');
-
   const [initialStatus, setInitialStatus] = useState<SetupStatus | null>(null);
   const [status, setStatus] = useState<SetupStatus>(defaultSetup);
   const [saving, setSaving] = useState<boolean>(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [justSaved, setJustSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleChange = <K extends keyof SetupStatus>(
     key: K,
@@ -68,10 +84,11 @@ function GeneralSetup() {
         setStatus(merged);
         setInitialStatus(merged);
         toast.success(t('Settings loaded'));
-      } catch(error) {
-        toast.error(t('Error loading settings: {{err}}', { err: getErrorMessage(error) }));
+      } catch (error) {
+        const msg = getErrorMessage(error);
+        setSaveError(msg);
+        //toast.error(t('Error loading settings: {{err}}', { err: getErrorMessage(error) }));
       }
-      
     })();
   }, []);
 
@@ -96,7 +113,7 @@ function GeneralSetup() {
     return diffObject(status, initialStatus);
   };
 
-  /* Auto save (1s) */
+  /* Auto save */
   useEffect(() => {
     if (!isDirty) return;
 
@@ -107,25 +124,27 @@ function GeneralSetup() {
       if (!Object.keys(diff).length) return;
 
       setSaving(true);
-      const previous = initialStatus;
-
-      // optimistic
-      setInitialStatus(status);
+      setSaveError(null);
 
       try {
         await setupApi.save(diff);
-        toast.success(t('settings.auto_saved'));
-      } catch {
-        // rollback
-        if (previous) {
-          setStatus(previous);
-          setInitialStatus(previous);
-        }
-        toast.error(t('settings.rollback'));
+        await refreshSetup();
+        setInitialStatus({ ...status });
+        setJustSaved(true);
+        
+        if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
+        savedTimeoutRef.current = setTimeout(() => {
+          setJustSaved(false);
+        }, 1 * 1000);
+
+      } catch (error) {
+        const msg = getErrorMessage(error);
+        setSaveError(msg);
+        //toast.error(t('Settings could not be saved: {{err}}', {err: msg}));
       } finally {
         setSaving(false);
       }
-    }, 1 * 1000); // TODO: 1 to config
+    }, (1/3) * 1000);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -135,106 +154,217 @@ function GeneralSetup() {
   const handleReset = () => {
     if (!initialStatus) return;
     setStatus(initialStatus);
-    toast.warning(t('settings.reset'));
+    toast.info(t('Settings have been reset'));
   };
 
-  return (
-      <Container maxWidth="md" sx={{ py: 4 }}>
-        <PageHeader
-          title={t('Settings')}
+  /* Sidebar content desktop */
+  const SidebarContent = (
+    <List sx={{ width: 220 }}>
+      {['app', 'preferences', 'security'].map((s) => (
+        <ListItemButton
+          key={s}
+          selected={section === s}
+          onClick={() => setSection(s as any)}
+          sx={{
+            borderRadius: 1,
+            '&.Mui-selected': {
+              backgroundColor: theme.palette.primary.main,
+              color: theme.palette.primary.contrastText,
+              '&:hover': {
+                backgroundColor: theme.palette.primary.dark,
+              },
+            },
+          }}
+        >
+          <ListItemText
+            primary={t(s)}
+            primaryTypographyProps={{
+              fontWeight: section === s ? 600 : 400
+            }}
+          />
+        </ListItemButton>
+      ))}
+    </List>
+  );
+
+  const renderAppSection = () => (
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        <FormControl fullWidth>
+          <InputLabel>{t('Currency')}</InputLabel>
+          <Select
+            value={status.currency}
+            label={t('Currency')}
+            onChange={(e) =>
+              handleChange('currency', e.target.value)
+            }
+          >
+            {currencies.map((c) => (
+              <MenuItem key={c} value={c}>
+                {c}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Grid>
+
+      <Grid item xs={12}>
+        <TextField
+          label={t('Timeout (todo...)')}
+          type="number"
+          fullWidth
+          value={status.timeout}
+          onChange={(e) =>
+            handleChange('timeout', Number(e.target.value))
+          }
         />
-        <Paper sx={{ p: 3, borderRadius: 1 }}>
-          {saving && (
-            <Alert severity="info" sx={{ mt: 2 }}>
-              {t('Saving settings...')}
-            </Alert>
-          )}
+      </Grid>
+    </Grid>
+  );
 
-          {isDirty && !saving && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              {t('Settings are not saved')}
-            </Alert>
-          )}
+  const renderPreferencesSection = () => (
+    <Grid container spacing={2}>
+      <Grid item xs={12}>
+        <FormControlLabel
+          control={
+            <Switch
+              checked={status.enableNotifications}
+              onChange={(e) =>
+                handleChange('enableNotifications', e.target.checked)
+              }
+            />
+          }
+          label={t('Enable notifications')}
+        />
+      </Grid>
+    </Grid>
+  );
 
-          <Box sx={{ display: "flex", mt: 3 }}>
-            {/* Sidebar Desktop */}
-            {!isMobile && (
-              <List sx={{ width: 220, borderRight: `1px solid ${theme.palette.divider}` }}>
-                {['app', 'preferences', 'security'].map((s) => (
-                  <ListItemButton
-                    key={s}
-                    selected={section === s}
-                    onClick={() => setSection(s as any)}
-                    sx={{
-                      borderRadius: 1,
-                      '&.Mui-selected': {
-                        backgroundColor: theme.palette.primary.main,
-                        color: theme.palette.primary.contrastText,
-                        '&:hover': {
-                          backgroundColor: theme.palette.primary.dark,
-                        },
-                      },
-                    }}
-                  >
-                    <ListItemText primary={t(s)} />
-                  </ListItemButton>
-                ))}
-              </List>
-            )}
+  return (
+    <Container maxWidth="md" sx={{ py: 2 }}>
+      <PageHeader title={t('Settings')} />
 
-            {/* Content */}
-            <Box sx={{ flex: 1, p: 3 }}>
-              {section === 'app' && (
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <FormControl fullWidth>
-                      <InputLabel>{t('Currency')}</InputLabel>
-                      <Select
-                        value={status.currency}
-                        label={t('Currency')}
-                        onChange={(e) =>
-                          handleChange('currency', e.target.value)
-                        }
-                      >
-                        {currencies.map((c) => (
-                          <MenuItem key={c} value={c}>
-                            {c}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
+      <Paper sx={{ p: 2, borderRadius: 1, backgroundColor: 'background.paper' }}>
 
-                  <Grid item xs={12}>
-                    <TextField
-                      label={t('Timeout (todo...)')}
-                      type="number"
-                      fullWidth
-                      value={status.timeout}
-                      onChange={(e) =>
-                        handleChange('timeout', Number(e.target.value))
-                      }
+        <Box sx={{
+          display: "flex",
+          mt: 2,
+          flexDirection: isMobile ? 'column' : 'row',
+        }}>
+
+          {!isMobile && SidebarContent}
+
+          <Box sx={{ flex: 1, p: 2, }}>
+
+            {/* MOBILE ACCORDION */}
+            {isMobile && ['app', 'preferences', 'security'].map((s) => (
+              <Accordion
+                key={s}
+                expanded={section === s}
+                onChange={() => setSection(s as any)}
+                disableGutters
+                elevation={0}
+                square={false}
+                sx={{
+                  mb: 1,
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  '&:before': { display: 'none' }, // remove divider line
+                }}
+              >
+                <AccordionSummary
+                  expandIcon={
+                    <ExpandMoreIcon
+                      sx={{
+                        color:
+                          section === s
+                            ? theme.palette.primary.contrastText
+                            : undefined
+                      }}
                     />
-                  </Grid>
-                </Grid>
-              )}
-            </Box>
+                  }
+                  sx={{
+                    mb: 1,
+                    backgroundColor:
+                      section === s
+                        ? theme.palette.primary.main
+                        : undefined,
+                    color:
+                      section === s
+                        ? theme.palette.primary.contrastText
+                        : undefined,
+                    borderRadius: 1,
+                    '&.Mui-expanded': {
+                      borderBottomLeftRadius: 0,
+                      borderBottomRightRadius: 0,
+                    },
+                  }}
+                >
+                  <Typography fontWeight={600}>
+                    {t(s)}
+                  </Typography>
+                </AccordionSummary>
+
+                <AccordionDetails
+                  sx={{
+                    borderBottomLeftRadius: 2,
+                    borderBottomRightRadius: 2,
+                    backgroundColor: theme.palette.background.paper,
+                  }}
+                >
+                  {s === 'app' && renderAppSection()}
+                  {s === 'preferences' && renderPreferencesSection()}
+                </AccordionDetails>
+              </Accordion>
+            ))}
+
+            {/* DESKTOP CONTENT */}
+            {!isMobile && section === 'app' && renderAppSection()}
+            {!isMobile && section === 'preferences' && renderPreferencesSection()}
+
+          </Box>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Box display="flex" alignItems="flex-start" justifyContent="space-between">
+
+          {/* STATUS LEFT */}
+          <Box display="flex" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
+            {saveError ? (
+              <>
+                <ErrorIcon color="error" />
+                <Typography
+                  variant="caption"
+                  color="error"
+                  sx={{ wordBreak: 'break-word' }}
+                >
+                  {saveError}
+                </Typography>
+              </>
+            ) : saving ? (
+              <AccessTimeIcon color="info" />
+            ) : justSaved ? (
+              <CheckCircleIcon color="success" />
+            ) : isDirty ? (
+              <AccessTimeIcon color="warning" />
+            ) : (
+              <CheckCircleIcon sx={{ opacity: 0 }} />
+            )}
           </Box>
 
-          <Divider sx={{ my: 3 }} />
+          {/* RESET RIGHT */}
+          <Button
+            variant="outlined"
+            disabled={!isDirty}
+            onClick={handleReset}
+          >
+            {t('Reset')}
+          </Button>
 
-          <Box display="flex" justifyContent="flex-end">
-            <Button
-              variant="outlined"
-              disabled={!isDirty}
-              onClick={handleReset}
-            >
-              {t('Reset')}
-            </Button>
-          </Box>
-        </Paper>
-      </Container>
-    //</LocalizationProvider>
+        </Box>
+      </Paper>
+    </Container>
   );
 }
 

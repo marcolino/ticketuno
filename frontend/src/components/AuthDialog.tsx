@@ -21,6 +21,7 @@ import {
   Google as GoogleIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
+import { useDialog } from '@/contexts/DialogContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/utils/misc';
@@ -35,6 +36,7 @@ type TabValue = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
   const { login, register, verifyEmail, resendVerification, forgotPassword, resetPassword/*, googleLogin*/ } = useAuth();
   const navigate = useNavigate();
+  const showDialog = useDialog();
 
   const [tab, setTab] = useState<TabValue>('login');
   //const [error, setError] = useState('');
@@ -117,28 +119,42 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       if (error.response?.data?.reason === 'RETRY_WITH_GOOGLE_OAUTH') {
         //return toast.warning(t('Retry with Google!'));
         // TODO: use a showDialog!
-        return toast.withActions(
-          t('Retry with Google or set a password'),
-          [
+        showDialog({
+          title: t('It looks like you did register via Google'),
+          content: t('Retry to login with Google, or set a password'),
+          // cancelText: t('Cancel'),
+          // confirmText: t('Delete'),
+          // onConfirm: () => confirmDelete(id!, performanceId),
+          buttons: [
             {
-              label: t('Continue with Google'),
-              onClick: () => alert('GOOGLE LOGIN...'),
+              text: 'Continue with Google',
+              onClick: handleGoogleLogin,
+              variant: 'outlined',
             },
             {
-              label: t('Set a password'),
-              onClick: () => alert('SET A PASSWORD...'),
-            },
+              text: 'Set a password',
+              onClick: () => setTab('forgot'),
+              variant: 'outlined',
+            }
           ],
-          'warning',
-        );
+        });
+        // return toast.withActions(
+        //   t('Retry with Google or set a password'),
+        //   [
+        //     {
+        //       label: t('Continue with Google'),
+        //       onClick: () => alert('GOOGLE LOGIN...'),
+        //     },
+        //     {
+        //       label: t('Set a password'),
+        //       onClick: () => alert('SET A PASSWORD...'),
+        //     },
+        //   ],
+        //   'warning',
+        // );
+      } else {
+        toast.warning(t('Login failed: {{err}}', { err: getErrorMessage(error) }));
       }
-      // console.error('Login error response:', error.response);
-      // console.error('Error data:', error.response?.data);
-      // console.error('Error message:', error.response?.data?.error);
-      //setError(error.response?.data?.error || t('Login failed'));
-      //console.log("ERR:", error);
-      toast.warning(t('Login failed: {{err}}', { err: getErrorMessage(error) }));
-      // }
     } finally {
       setLoading(false);
     }

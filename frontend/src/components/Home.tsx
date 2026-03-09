@@ -297,9 +297,9 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
               anchorEl={anchorEl}
               open={menuOpen}
               onClose={handleClose}
-              MenuListProps={{ dense: false }}
+              MenuListProps={{ dense: true }}
             >
-              <MenuItem sx={{ fontWeight: 'bold', pb: 0 }}>
+              <MenuItem sx={{ fontWeight: 'bold', pb: 0, minHeight: 'unset' }}>
                 <Typography variant="body2">
                   {user?.firstName} {user?.lastName} ({user?.role})
                 </Typography>

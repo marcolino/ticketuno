@@ -2,7 +2,7 @@ export interface Event {
   id: string;
   title: string;
   description?: string;
-  genres: string;
+  genres?: string[];
   durationMinutes?: number;
   intermissionCount?: number;
   rating?: string;
@@ -66,7 +66,7 @@ export interface EventStats {
   id: string;
   title: string;
   theaterName: string;
-  genres?: string;
+  genres?: string[];
   openingDate?: string;
   closingDate?: string;
   baseTicketPrice: number;

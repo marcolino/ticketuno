@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
 import { useMediaQuery, useTheme } from '@mui/material';
 import {
   Container,
@@ -40,17 +40,16 @@ import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
 import { CastEditor, type CastEntry } from './CastEditor'; 
 //import type { CurrencyCode } from '@/shared/config';
-import { t } from 'i18next';
 import config from '@/config';
 
 
 const EventEdit: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { isOperator } = useAuth();
-
   const isEditMode = id && id !== 'new';
 
   const isAtLeastMd = useMediaQuery(theme.breakpoints.up('md'));
@@ -58,9 +57,30 @@ const EventEdit: React.FC = () => {
   const setup = useSetup();
 
   // TODO: to config
-  const GENRES_PRESETS = [t('Comedy'), 'Drama', 'Opera', 'Musical', 'Tragedy', 'Ballet']; // TODO: translate
-  const LANGUAGES_PRESETS = ['English', 'Italian', 'French', 'German', 'Spanish'];
+  const GENRES_PRESETS = [
+    t('Comedy'),
+    t('Drama'),
+    t('Opera'),
+    t('Musical'),
+    t('Tragedy'),
+    t('Ballet')
+  ];
+  const LANGUAGES_PRESETS = [
+    t('English'),
+    t('Italian'),
+    t('French'),
+    t('German'),
+    t('Spanish')
+  ];
+  const RATING_PRESETS = [
+    t('G - General Audiences'), t('PG - Parental Guidance Suggested'),
+    t('PG-13 - Parents Strongly Cautioned'),
+    t('R - Restricted'),
+    t('NC-17 - Adults Only')
+  ];
 
+  //const incomingTheaterId = (location.state as any)?.eventData?.selectedTheaterId ?? '';
+  
   const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
   //const [error, setError] = useState('');
@@ -88,7 +108,7 @@ const EventEdit: React.FC = () => {
   const [typicalStartTime, setTypicalStartTime] = useState<Dayjs | null>(null);
   const [typicalEndTime, setTypicalEndTime] = useState<Dayjs | null>(null);
 
-  const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50);
+  const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50); // TODO. to config
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
   
   //const [currency, setCurrency] = useState<CurrencyCode>(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
@@ -103,17 +123,8 @@ const EventEdit: React.FC = () => {
   // Image upload state
   const [posterImage, setPosterImage] = useState<string | null>(null);
   const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
-  
-  const loadTheaters = async () => {
-    try {
-      const response = await theaterApi.getAllTheaters();
-      setTheaters(response.data);
-    } catch (error: any) { // TODO: comnsole.error ???
-      console.error(t('Failed to load theaters: {{err}}', { err: error.response?.data?.error }));
-    }
-  };
 
-  const loadEvent = useCallback(async () => {
+  const loadEvent = useCallback(async (overrideTheaterId?: string) => {
     try {
       const response = await eventApi.getEventById(id!);
       const event = response.data;
@@ -121,7 +132,10 @@ const EventEdit: React.FC = () => {
       setTitle(event.title);
       setDescription(event.description || '');
       //setGenre(event.genre || '');
-      setGenres(JSON.parse(event.genres || ''));
+      //setGenres(JSON.parse(event.genres || ''));
+      if (event.genres) {
+        setGenres(typeof event.genres === 'string' ? JSON.parse(event.genres) : event.genres);
+      }
       setDurationMinutes(event.durationMinutes || 120);
       setIntermissionCount(event.intermissionCount || 1);
       setRating(event.rating || '');
@@ -155,6 +169,8 @@ const EventEdit: React.FC = () => {
         setPerformances(event.performances);
       }
 
+      setTheaterId(overrideTheaterId ?? event.theaterId); // Use override if provided
+
       //setError('');
     } catch (error: any) {
       toast.error(getErrorMessage(error));
@@ -162,17 +178,37 @@ const EventEdit: React.FC = () => {
   }, [id]);
 
   useEffect(() => {
-    if (!isOperator) {
-      navigate(-1);
-      return;
-    }
+    if (!isOperator) { navigate(-1); return; }
 
-    loadTheaters();
-    if (isEditMode) {
-      loadEvent();
-    }
-  }, [isOperator, isEditMode, navigate, loadEvent]);
+    const incomingTheaterId = (location.state as any)?.eventData?.selectedTheaterId as string | undefined;
+
+    (async () => {
+      try {
+        const response = await theaterApi.getAllTheaters();
+        setTheaters(response.data);
+        if (incomingTheaterId) setTheaterId(incomingTheaterId);
+      } catch (error: any) {
+        console.error(t('Failed to load theaters: {{err}}', { err: error.response?.data?.error }));
+      }
+      if (isEditMode) await loadEvent(incomingTheaterId);
+    })();
+  }, [isOperator]);
   
+  // // Pick up selectedTheaterId when returning from TheaterEdit
+  // useEffect(() => {
+  //   const state = location.state as { eventData?: { selectedTheaterId?: string } } | null;
+  //   const selectedTheaterId = state?.eventData?.selectedTheaterId;
+  //   if (!selectedTheaterId) return;
+
+  //   (async () => {
+  //     await Promise.all([
+  //       loadTheaters(),
+  //       isEditMode ? loadEvent() : Promise.resolve(), // Loads old theaterId from server
+  //     ]);
+  //     setTheaterId(selectedTheaterId); // Then override it here, last
+  //   })();
+  // }, [location.state]);
+
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -181,7 +217,7 @@ const EventEdit: React.FC = () => {
       const eventData: Partial<Event> = {
         title,
         description,
-        genres: JSON.stringify(genres),
+        genres,
         durationMinutes,
         intermissionCount,
         rating,
@@ -282,8 +318,8 @@ const EventEdit: React.FC = () => {
   // };
   
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Paper elevation={3} sx={{ p: { xs: 3, sm: 4 } }}>
+    <Container maxWidth="lg" sx={{ p: { xs: 2, sm: 4 }, mt: 4, mb: 4 }}>
+      <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
         <Typography variant="h4" gutterBottom>
           {isEditMode ? t('Edit Event') : t('Create New Event')}
         </Typography>
@@ -305,7 +341,7 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12}>
             <TextField
               fullWidth
-              label={t("Title")}
+              label={t('Title')}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
@@ -382,7 +418,7 @@ const EventEdit: React.FC = () => {
               label={t('Language')}
               storageKey='eventLanguageCustom'
               presetOptions={LANGUAGES_PRESETS}
-              value={[language]}
+              value={language}
               onChange={setLanguage}
               multiple={false}
             />
@@ -411,24 +447,52 @@ const EventEdit: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <TextField
+            {/* <TextField
               fullWidth
               label={t('Rating')}
               value={rating}
               onChange={(e) => setRating(e.target.value)}
               placeholder={t('PG, PG-13, R, etc.')}
+            /> */}
+            <TagSelector
+              label={t('Rating')}
+              storageKey='eventRatingCustom'
+              presetOptions={RATING_PRESETS}
+              value={rating}
+              onChange={setRating}
+              multiple={false}
             />
           </Grid>
 
           {/* Venue Information */}
           <Grid item xs={12}>
             <FormControl fullWidth required>
-              <InputLabel>{t("Theater")}</InputLabel>
+              <InputLabel>{t('Theater')}</InputLabel>
               <Select
                 value={theaterId}
-                label={t("Theater")}
-                onChange={(e) => setTheaterId(e.target.value)}
+                label={t('Theater')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '<new>') {
+                    // Collect current form state so it survives navigation
+                    navigate('/theater/new', {
+                      state: {
+                        returnTo: `/event/${id ?? 'new'}`,
+                        eventData: {
+                          title,
+                          description,
+                          genres,
+                          theaterId,
+                        },
+                      },
+                    });
+                  } else {
+                    setTheaterId(val);
+                  }
+                }}
               >
+                {console.log('[Select render] value:', theaterId, 'options:', theaters.map(t => t.id)) as any}
+                <MenuItem value="<new>"><i>{t('New Theater')}</i></MenuItem>
                 {theaters.map((theater) => (
                   <MenuItem key={theater.id} value={theater.id}>
                     {theater.name}
@@ -517,13 +581,21 @@ const EventEdit: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Stack direction="row" spacing={2}>
+            <Stack direction="row" spacing={1}>
               <DatePicker
                 label={t('Start Date')}
                 value={openingDate}
                 onChange={(newValue) => setOpeningDate(newValue as any)}
                 maxDate={closingDate || undefined}
                 sx={{ width: '100%' }}
+                slotProps={{
+                  inputAdornment: {
+                    sx: { ml: 0 }, // Removes left margin on the icon container
+                  },
+                  openPickerButton: {
+                    sx: { p: '4px' }, // Reduces icon button padding (default is ~8px)
+                  },
+                }}
               />
               <DatePicker
                 label={t('End Date')}
@@ -531,12 +603,20 @@ const EventEdit: React.FC = () => {
                 onChange={(newValue) => setClosingDate(newValue as any)}
                 minDate={openingDate || undefined}
                 sx={{ width: '100%' }}
+                slotProps={{
+                  inputAdornment: {
+                    sx: { ml: 0 }, // Removes left margin on the icon container
+                  },
+                  openPickerButton: {
+                    sx: { p: '4px' }, // Reduces icon button padding (default is ~8px)
+                  },
+                }}
               />
             </Stack>
           </Grid>
 
           <Grid item xs={12} md={6}>
-            <Stack direction="row" spacing={2}>
+            <Stack direction="row" spacing={1}>
               <TimePicker
                 label={isAtLeastMd ? t('Typical Start Time') : t('Start Time')}
                 value={typicalStartTime}

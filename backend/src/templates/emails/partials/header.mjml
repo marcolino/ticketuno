@@ -10,7 +10,7 @@
           </td>
 
           <!-- Center title -->
-          <td align="center" style="font-size:26px; font-weight:600; color:#ffffff; font-family:Helvetica, Arial, sans-serif; line-height:32px;">
+          <td align="center" style="font-size:24px; font-weight:600; color:#ffffff; font-family:Helvetica, Arial, sans-serif; line-height:32px;">
             {{appName}}
           </td>
 

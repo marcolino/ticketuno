@@ -1,5 +1,0 @@
-<mj-section>
-  <mj-column padding="30px 40px">
-    {{{body}}}
-  </mj-column>
-</mj-section>

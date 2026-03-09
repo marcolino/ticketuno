@@ -808,7 +808,7 @@ class Database {
       id: row.id as string,
       title: row.title as string,
       description: row.description as string,
-      genres: row.genres as string,
+      genres: row.genres ? JSON.parse(row.genres as string) : [],
       durationMinutes: row.duration_minutes as number,
       intermissionCount: row.intermission_count as number,
       rating: row.rating as string,
@@ -893,7 +893,7 @@ class Database {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
-      id, event.title, event.description ?? '', event.genres ?? '',
+      id, event.title, event.description ?? '', JSON.stringify(event.genres ?? []),
       event.durationMinutes ?? '', event.intermissionCount ?? 0,
       event.rating ?? '', event.language ?? '', event.director ?? '',
       event.playwright ?? '', event.producer ?? '', event.choreographer ?? '',

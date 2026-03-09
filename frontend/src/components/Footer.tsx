@@ -68,10 +68,14 @@ function Footer({ children }: FooterProps) {
                         component="div" // render as inline element
                         sx={{ lineHeight: 1.5 }}
                       >
-                        <div>Frontend: <strong>v{pkg.version}</strong></div>
-                        <div>Backend: <strong>v{backendVersion}</strong></div>
-                        <div>Last commit: <strong>#{backendLastCommit}</strong></div>
-                        <div>Last commit date: <strong>{backendLastCommitDate}</strong></div>
+                        <div>{t('Frontend')}:&nbsp;<strong>v{pkg.version}</strong></div>
+                        <div>{t('Backend')}:&nbsp;<strong>v{backendVersion}</strong></div>
+                        <div>
+                          {t('Last commit')}:&nbsp;
+                          <strong>#{backendLastCommit}</strong>
+                          &nbsp;{t('on')}&nbsp;<br />
+                          <strong>{backendLastCommitDate}</strong>
+                        </div>
                       </Typography>
                     ),
                     showCloseIcon: true,
