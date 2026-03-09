@@ -18,9 +18,10 @@ import { ToastProvider } from './contexts/ToastContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { ConsentProvider } from './contexts/ConsentContext';
 import OAuthHandler from './components/OAuthHandler';
+import ToastRouteHandler from './components/ToastRouteHandler';
 import { LoadingSpinner } from './components/LoadingSpinner';
 //import Home from './components/Home';
-import { globalApi } from '@/services/api';
+//import { globalApi } from '@/services/api';
 import Routes from './Routes';
 import config from '@/config';
 
@@ -92,6 +93,7 @@ const { i18n } = useTranslation();
                   }}>
                     <ConsentProvider>
                       <OAuthHandler />
+                      <ToastRouteHandler />
                       <Routes />
                     </ConsentProvider>
                   </Router>

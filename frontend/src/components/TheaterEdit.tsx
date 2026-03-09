@@ -128,14 +128,17 @@ const TheaterEdit: React.FC = () => {
     (async () => {
       // Check if returning from layout creation FIRST
       if (location.state?.theaterData?.selectedLayoutId) {
+        // Load layouts first so the new layout is available before rendering
+        await loadLayouts();
+        
         setTheaterData((prev: any) => ({
           ...prev,
           ...location.state.theaterData,  // Merge new layout ID
           selectedLayoutId: location.state.theaterData.selectedLayoutId
         }));
         
-        // Load layouts AFTER setting state (so new layout appears)
-        await loadLayouts();
+        // // Load layouts AFTER setting state (so new layout appears)
+        // await loadLayouts();
         return; // Skip theater load - we're editing existing
       }
 
@@ -149,12 +152,23 @@ const TheaterEdit: React.FC = () => {
   useEffect(() => {
     const state = location.state as { theaterData?: { selectedLayoutId?: string } };
     if (state?.theaterData?.selectedLayoutId) {
-      // When returning from LayoutEdit with a newly created/edited layout
-      //setSelectedLayoutId(state.theaterData.selectedLayoutId);
-      setTheaterData((prev: any) => ({
-        ...prev,
-        currentLayoutId: state.theaterData?.selectedLayoutId
-      }));
+
+      (async () => {
+        // Ensure layouts are loaded before setting the selected ID
+        if (layouts.length === 0) {
+          await loadLayouts();
+        }
+        setTheaterData((prev: any) => ({
+          ...prev,
+          currentLayoutId: state.theaterData?.selectedLayoutId
+        }));
+      })();
+      // // When returning from LayoutEdit with a newly created/edited layout
+      // //setSelectedLayoutId(state.theaterData.selectedLayoutId);
+      // setTheaterData((prev: any) => ({
+      //   ...prev,
+      //   currentLayoutId: state.theaterData?.selectedLayoutId
+      // }));
     }
   }, [location.state]);
   
@@ -352,7 +366,12 @@ const TheaterEdit: React.FC = () => {
               </InputLabel>
               <Select
                 name="selectedLayoutId"
-                value={theaterData.currentLayoutId || ''}
+                //value={theaterData.currentLayoutId || ''}
+                value={
+                  layouts.some(l => l.id === theaterData.currentLayoutId)
+                    ? theaterData.currentLayoutId
+                    : ''  // fallback prevents the MUI out-of-range warning
+                }
                 // value={
                 //   theaterData.selectedLayoutId &&
                 //     layouts.some(layout => layout.id === theaterData.selectedLayoutId)

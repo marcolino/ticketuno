@@ -41,6 +41,7 @@ import {
   SettingsSuggest as SettingsSuggestIcon,
   //Theaters as TheatersIcon,
   Settings as SettingsIcon,
+  ConfirmationNumber as ConfirmationNumberIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import Header from './Header';
@@ -67,7 +68,7 @@ const Home: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   //const location = useLocation();
-  const { user, updateUser, isAuthenticated, logout } = useAuth();
+  const { user, updateUser, isAuthenticated, isOperator, logout } = useAuth();
 //  const { mode, toggleMode } = useThemeMode();
   //const { mode, changeThemeMode } = useThemeMode();
   const { themePreference, setThemePreference, effectiveMode } = useThemeMode();
@@ -153,6 +154,12 @@ const Home: React.FC = () => {
   const handleLayouts = () => {
     handleClose();
     navigate('/layouts');
+  };
+
+  const handleBookings = () => { // TODO: ...
+    alert("Work in progress...");
+    handleClose();
+    //navigate('/bookings');
   };
 
   const handleEvents = () => {
@@ -322,25 +329,38 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
 
               <Divider />
 
-              <MenuItem onClick={() => { handleClose(); handleTheaters(); }}>
-                <ListItemIcon>
-                  <CurtainsIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>{t('Theaters')}</ListItemText>
-              </MenuItem>
+              {isOperator && (
+                <MenuItem onClick={() => { handleClose(); handleTheaters(); }}>
+                  <ListItemIcon>
+                    <CurtainsIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{t('Theaters')}</ListItemText>
+                </MenuItem>
+              )}
 
-              <MenuItem onClick={() => { handleClose(); handleLayouts(); }}>
-                <ListItemIcon>
-                  <ViewCompactIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>{t('Layouts')}</ListItemText>
-              </MenuItem>
+              {isOperator && (
+                <MenuItem onClick={() => { handleClose(); handleLayouts(); }}>
+                  <ListItemIcon>
+                    <ViewCompactIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{t('Layouts')}</ListItemText>
+                </MenuItem>
+              )}
 
               <MenuItem onClick={() => { handleClose(); handleEvents(); }}>
                 <ListItemIcon>
                   <TheaterComedyIcon fontSize="small" />
                 </ListItemIcon>
                 <ListItemText>{t('Events')}</ListItemText>
+              </MenuItem>
+
+              <Divider />
+
+              <MenuItem onClick={() => { handleClose(); handleBookings(); }}>
+                <ListItemIcon>
+                  <ConfirmationNumberIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>{t('My bookings')}</ListItemText>
               </MenuItem>
 
               <Divider />

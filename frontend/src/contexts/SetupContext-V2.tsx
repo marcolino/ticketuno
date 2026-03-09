@@ -8,30 +8,20 @@ import {
 } from "react";
 import { setupApi } from "@/services/api";
 import { SetupStatus } from "@/shared/types/generalSetup";
-//import config from "@/shared/config";
-
-export const defaultSetup: SetupStatus = {
-  currency: 'EUR',
-  timeout: 10,
-  enableNotifications: true,
-  launchDate: null,
-  time: null,
-  apiKey: ''
-};
 
 interface SetupContextType {
-  setup: SetupStatus;
+  setup: SetupStatus | null;
   refresh: () => Promise<void>;
 }
 
 const SetupContext = createContext<SetupContextType | undefined>(undefined);
 
 export const SetupProvider = ({ children }: { children: ReactNode }) => {
-  const [setup, setSetup] = useState<SetupStatus>(defaultSetup);
+  const [setup, setSetup] = useState<SetupStatus | null>(null);
 
   const loadSetup = useCallback(async () => {
     const response = await setupApi.load();
-    setSetup({ ...defaultSetup, ...response.data });
+    setSetup(response.data);
   }, []);
 
   useEffect(() => {

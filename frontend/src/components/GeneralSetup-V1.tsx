@@ -31,12 +31,21 @@ import {
 }  from '@mui/icons-material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useToast } from '@/contexts/ToastContext';
-import { useSetupRefresh, defaultSetup } from '@/contexts/SetupContext';
+import { useSetupRefresh } from '@/contexts/SetupContext';
 import { setupApi } from '@/services/api';
 import PageHeader from "./PageHeader";
 import { getErrorMessage } from '@/utils/misc';
 import { SetupStatus } from '@/shared/types/generalSetup';
 import config from '@/config';
+
+const defaultSetup: SetupStatus = { 
+  currency: 'EUR',
+  timeout: 10,
+  enableNotifications: true,
+  launchDate: null,
+  time: null,
+  apiKey: ''
+};
 
 const currencies = Object.keys(config.app.currencies);
 
@@ -56,9 +65,6 @@ function GeneralSetup() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Captured once on mount — never changes. Reset always goes back here.
-  const entryStatusRef = useRef<SetupStatus | null>(null);
-
   const handleChange = <K extends keyof SetupStatus>(
     key: K,
     value: SetupStatus[K]
@@ -70,29 +76,27 @@ function GeneralSetup() {
     (async () => {
       try {
         const response = await setupApi.load();
-        const merged: SetupStatus = { ...defaultSetup, ...response.data };
+        const data = response.data;
+        const merged: SetupStatus = {
+          ...defaultSetup,
+          ...data
+        };
         setStatus(merged);
         setInitialStatus(merged);
-        entryStatusRef.current = merged;   // lock in the entry snapshot
         toast.success(t('Settings loaded'));
       } catch (error) {
         const msg = getErrorMessage(error);
         setSaveError(msg);
+        //toast.error(t('Error loading settings: {{err}}', { err: getErrorMessage(error) }));
       }
     })();
   }, []);
 
-  /* Dirty detection (vs last-saved, drives auto-save) */
+  /* Dirty detection */
   const isDirty = useMemo(() => {
     if (!initialStatus) return false;
     return JSON.stringify(status) !== JSON.stringify(initialStatus);
   }, [status, initialStatus]);
-
-  /* Reset-button visibility (vs entry snapshot) */
-  const isModifiedSinceEntry = useMemo(() => {
-    if (!entryStatusRef.current) return false;
-    return JSON.stringify(status) !== JSON.stringify(entryStatusRef.current);
-  }, [status]);
 
   function diffObject<T extends object>(current: T, original: T): Partial<T> {
     const diff: Partial<T> = {};
@@ -109,7 +113,7 @@ function GeneralSetup() {
     return diffObject(status, initialStatus);
   };
 
-  /* Auto-save */
+  /* Auto save */
   useEffect(() => {
     if (!isDirty) return;
 
@@ -125,9 +129,9 @@ function GeneralSetup() {
       try {
         await setupApi.save(diff);
         await refreshSetup();
-        setInitialStatus({ ...status });   // advance the last-saved baseline
+        setInitialStatus({ ...status });
         setJustSaved(true);
-
+        
         if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
         savedTimeoutRef.current = setTimeout(() => {
           setJustSaved(false);
@@ -136,10 +140,11 @@ function GeneralSetup() {
       } catch (error) {
         const msg = getErrorMessage(error);
         setSaveError(msg);
+        //toast.error(t('Settings could not be saved: {{err}}', {err: msg}));
       } finally {
         setSaving(false);
       }
-    }, (1 / 3) * 1000);
+    }, (1/3) * 1000);
 
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -147,8 +152,8 @@ function GeneralSetup() {
   }, [status]);
 
   const handleReset = () => {
-    if (!entryStatusRef.current) return;
-    setStatus(entryStatusRef.current);
+    if (!initialStatus) return;
+    setStatus(initialStatus);
     toast.info(t('Settings have been reset'));
   };
 
@@ -190,10 +195,14 @@ function GeneralSetup() {
           <Select
             value={status.currency}
             label={t('Currency')}
-            onChange={(e) => handleChange('currency', e.target.value)}
+            onChange={(e) =>
+              handleChange('currency', e.target.value)
+            }
           >
             {currencies.map((c) => (
-              <MenuItem key={c} value={c}>{c}</MenuItem>
+              <MenuItem key={c} value={c}>
+                {c}
+              </MenuItem>
             ))}
           </Select>
         </FormControl>
@@ -205,7 +214,9 @@ function GeneralSetup() {
           type="number"
           fullWidth
           value={status.timeout}
-          onChange={(e) => handleChange('timeout', Number(e.target.value))}
+          onChange={(e) =>
+            handleChange('timeout', Number(e.target.value))
+          }
         />
       </Grid>
     </Grid>
@@ -218,7 +229,9 @@ function GeneralSetup() {
           control={
             <Switch
               checked={status.enableNotifications}
-              onChange={(e) => handleChange('enableNotifications', e.target.checked)}
+              onChange={(e) =>
+                handleChange('enableNotifications', e.target.checked)
+              }
             />
           }
           label={t('Enable notifications')}
@@ -241,7 +254,7 @@ function GeneralSetup() {
 
           {!isMobile && SidebarContent}
 
-          <Box sx={{ flex: 1, p: 2 }}>
+          <Box sx={{ flex: 1, p: 2, }}>
 
             {/* MOBILE ACCORDION */}
             {isMobile && ['app', 'preferences', 'security'].map((s) => (
@@ -256,19 +269,30 @@ function GeneralSetup() {
                   mb: 1,
                   borderRadius: 1,
                   overflow: 'hidden',
-                  '&:before': { display: 'none' },
+                  '&:before': { display: 'none' }, // remove divider line
                 }}
               >
                 <AccordionSummary
                   expandIcon={
                     <ExpandMoreIcon
-                      sx={{ color: section === s ? theme.palette.primary.contrastText : undefined }}
+                      sx={{
+                        color:
+                          section === s
+                            ? theme.palette.primary.contrastText
+                            : undefined
+                      }}
                     />
                   }
                   sx={{
                     mb: 1,
-                    backgroundColor: section === s ? theme.palette.primary.main : undefined,
-                    color: section === s ? theme.palette.primary.contrastText : undefined,
+                    backgroundColor:
+                      section === s
+                        ? theme.palette.primary.main
+                        : undefined,
+                    color:
+                      section === s
+                        ? theme.palette.primary.contrastText
+                        : undefined,
                     borderRadius: 1,
                     '&.Mui-expanded': {
                       borderBottomLeftRadius: 0,
@@ -276,7 +300,9 @@ function GeneralSetup() {
                     },
                   }}
                 >
-                  <Typography fontWeight={600}>{t(s)}</Typography>
+                  <Typography fontWeight={600}>
+                    {t(s)}
+                  </Typography>
                 </AccordionSummary>
 
                 <AccordionDetails
@@ -308,7 +334,11 @@ function GeneralSetup() {
             {saveError ? (
               <>
                 <ErrorIcon color="error" />
-                <Typography variant="caption" color="error" sx={{ wordBreak: 'break-word' }}>
+                <Typography
+                  variant="caption"
+                  color="error"
+                  sx={{ wordBreak: 'break-word' }}
+                >
                   {saveError}
                 </Typography>
               </>
@@ -326,7 +356,7 @@ function GeneralSetup() {
           {/* RESET RIGHT */}
           <Button
             variant="outlined"
-            disabled={!isModifiedSinceEntry}
+            disabled={!isDirty}
             onClick={handleReset}
           >
             {t('Reset')}

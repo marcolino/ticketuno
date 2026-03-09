@@ -1,8 +1,13 @@
 import { createTheme } from '@mui/material/styles';
 import { PaletteModeRecord } from '../types/theme';
+import { sharedComponentOverrides } from '../sharedComponentOverrides';
 
 export const iosTheme: PaletteModeRecord<ReturnType<typeof createTheme>> = {
   light: createTheme({
+    components: {
+      ...sharedComponentOverrides,
+      // theme-specific overrides here
+    },
     palette: {
       mode: 'light',
       primary: { main: '#035284' },
@@ -20,6 +25,10 @@ export const iosTheme: PaletteModeRecord<ReturnType<typeof createTheme>> = {
   }),
 
   dark: createTheme({
+    components: {
+      ...sharedComponentOverrides,
+      // theme-specific overrides here
+    },
     palette: {
       mode: 'dark',
       primary: { main: '#0A84FF' },

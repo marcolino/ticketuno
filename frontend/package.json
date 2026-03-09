@@ -5,9 +5,9 @@
   "description": "Theater ticket reservation system, frontend",
   "private": true,
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview",
+    "preview": "vite preview --host",
     "test": "echo 'vitest run (TODO)'",
     "eject": "echo \"please manually run: react-scripts eject\" if you really want to eject",
     "lint": "eslint src",

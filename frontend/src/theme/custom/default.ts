@@ -1,8 +1,13 @@
 import { createTheme } from '@mui/material/styles';
 import { PaletteModeRecord } from '../types/theme';
+import { sharedComponentOverrides } from '../sharedComponentOverrides';
 
 export const defaultTheme: PaletteModeRecord<ReturnType<typeof createTheme>> = {
   light: createTheme({
+    components: {
+      ...sharedComponentOverrides,
+      // theme-specific overrides here
+    },
     typography: {
       fontFamily: '"Open Sans", system-ui, -apple-system, sans-serif',
     },
@@ -44,6 +49,10 @@ export const defaultTheme: PaletteModeRecord<ReturnType<typeof createTheme>> = {
   }),
 
   dark: createTheme({
+    components: {
+      ...sharedComponentOverrides,
+      // theme-specific overrides here
+    },
     typography: {
       fontFamily: '"Open Sans", system-ui, -apple-system, sans-serif',
     },
