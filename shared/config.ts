@@ -15,6 +15,7 @@ const config: AppConfig = {
       en: { name: 'English', flag: '🇬🇧' },
       it: { name: 'Italiano', flag: '🇮🇹' },
       fr: { name: 'Français', flag: '🇫🇷' },
+      zh: { name: 'Chinese', flag: '🇨🇳' },
     },
     defaultLanguage: 'it',
     currencies: {

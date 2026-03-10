@@ -32,8 +32,8 @@ import { eventApi, theaterApi, imageApi } from '@/services/api';
 import { Event, EventPerformance } from '@/shared/types/event';
 import { TheaterStats } from '@/shared/types/theater';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
 import { useSetup } from '@/contexts/SetupContext';
+import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/utils/misc';
 import TagSelector from './TagSelector';
 import ImageUploadSection from './ImageUploadSection';
@@ -50,6 +50,7 @@ const EventEdit: React.FC = () => {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const { isOperator } = useAuth();
+  
   const isEditMode = id && id !== 'new';
 
   const isAtLeastMd = useMediaQuery(theme.breakpoints.up('md'));
@@ -101,6 +102,7 @@ const EventEdit: React.FC = () => {
   const [musicalDirector, setMusicalDirector] = useState('');
   const [cast, setCast] = useState<CastEntry[]>([]);
   const [canceled, setCanceled] = useState(false);
+  const [cancelationReason, setCancelationReason] = useState('');
   const [theaterId, setTheaterId] = useState('');
 
   const [openingDate, setOpeningDate] = useState<Dayjs | null>(null);
@@ -108,7 +110,7 @@ const EventEdit: React.FC = () => {
   const [typicalStartTime, setTypicalStartTime] = useState<Dayjs | null>(null);
   const [typicalEndTime, setTypicalEndTime] = useState<Dayjs | null>(null);
 
-  const [baseTicketPrice, setBaseTicketPrice] = useState<number>(50); // TODO. to config
+  const [baseTicketPrice, setBaseTicketPrice] = useState<number>(0); // TODO: to config
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
   
   //const [currency, setCurrency] = useState<CurrencyCode>(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
@@ -125,6 +127,7 @@ const EventEdit: React.FC = () => {
   const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
 
   const loadEvent = useCallback(async (overrideTheaterId?: string) => {
+    toast.info('loading');
     try {
       const response = await eventApi.getEventById(id!);
       const event = response.data;
@@ -175,22 +178,56 @@ const EventEdit: React.FC = () => {
     } catch (error: any) {
       toast.error(getErrorMessage(error));
     }
-  }, [id]);
+  }, [id, toast]);
 
   useEffect(() => {
-    if (!isOperator) { navigate(-1); return; }
+    if (!isOperator) {
+      navigate(-1);
+      return;
+    }
 
+    const state = (location.state as any)?.eventData;
     const incomingTheaterId = (location.state as any)?.eventData?.selectedTheaterId as string | undefined;
 
     (async () => {
       try {
         const response = await theaterApi.getAllTheaters();
         setTheaters(response.data);
-        if (incomingTheaterId) setTheaterId(incomingTheaterId);
+        if (incomingTheaterId) {
+          setTheaterId(incomingTheaterId);
+        }
       } catch (error: any) {
         console.error(t('Failed to load theaters: {{err}}', { err: error.response?.data?.error }));
       }
-      if (isEditMode) await loadEvent(incomingTheaterId);
+      if (incomingTheaterId && state) {
+        // Restore form snapshot: no loadEvent needed, data comes from state
+        if (state.title !== undefined) setTitle(state.title);
+        if (state.description !== undefined) setDescription(state.description);
+        if (state.genres !== undefined) setGenres(state.genres);
+        if (state.durationMinutes !== undefined) setDurationMinutes(state.durationMinutes);
+        if (state.intermissionCount !== undefined) setIntermissionCount(state.intermissionCount);
+        if (state.rating !== undefined) setRating(state.rating);
+        if (state.language !== undefined) setLanguage(state.language);
+        if (state.director !== undefined) setDirector(state.director);
+        if (state.playwright !== undefined) setPlaywright(state.playwright);
+        if (state.producer !== undefined) setProducer(state.producer);
+        if (state.choreographer !== undefined) setChoreographer(state.choreographer);
+        if (state.musicalDirector !== undefined) setMusicalDirector(state.musicalDirector);
+        if (state.cast !== undefined) setCast(state.cast);
+        if (state.openingDate) setOpeningDate(dayjs(state.openingDate));
+        if (state.closingDate) setClosingDate(dayjs(state.closingDate));
+        if (state.typicalStartTime) setTypicalStartTime(dayjs(state.typicalStartTime));
+        if (state.typicalEndTime) setTypicalEndTime(dayjs(state.typicalEndTime));
+        if (state.baseTicketPrice !== undefined) setBaseTicketPrice(state.baseTicketPrice);
+        if (state.specialRequirements !== undefined) setSpecialRequirements(state.specialRequirements);
+        if (state.minimumAge !== undefined) setMinimumAge(state.minimumAge);
+        if (state.posterImage !== undefined) setPosterImage(state.posterImage);
+        if (state.contentWarnings !== undefined) setContentWarnings(state.contentWarnings);
+        if (state.status !== undefined) setStatus(state.status);
+      } else
+        if (isEditMode) {
+          await loadEvent(incomingTheaterId);
+        }
     })();
   }, [isOperator]);
   
@@ -210,6 +247,16 @@ const EventEdit: React.FC = () => {
   // }, [location.state]);
 
   const handleSave = async () => {
+    // verify event feasibility
+    if (!title) {
+      toast.warning(t('Title is mandatory'));
+      return;
+    }
+    if (!theaterId) {
+      toast.warning(t('A theater must be selected'));
+      return;
+    }
+
     try {
       setSaving(true);
       //setError('');
@@ -239,7 +286,9 @@ const EventEdit: React.FC = () => {
         minimumAge,
         posterImage: posterImage ?? undefined,
         contentWarnings,
-        status
+        status,
+        canceled: canceled ? 1 : 0,
+        cancelationReason,
       };
 
       let eventId: string;
@@ -482,8 +531,31 @@ const EventEdit: React.FC = () => {
                           title,
                           description,
                           genres,
+                          durationMinutes,
+                          intermissionCount,
+                          rating,
+                          language,
+                          director,
+                          playwright,
+                          producer,
+                          choreographer,
+                          musicalDirector,
+                          cast,
                           theaterId,
+                          openingDate: openingDate?.toISOString(),
+                          closingDate: closingDate?.toISOString(),
+                          typicalStartTime: typicalStartTime?.toISOString(),
+                          typicalEndTime: typicalEndTime?.toISOString(),
+                          baseTicketPrice,
+                          specialRequirements,
+                          minimumAge,
+                          posterImage,
+                          contentWarnings,
+                          status,
+                          canceled,
+                          cancelationReason,
                         },
+                        replace: true,
                       },
                     });
                   } else {
@@ -758,17 +830,30 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          <Grid item xs={12}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={canceled}
-                  onChange={(e) => setCanceled(e.target.checked) }
-                />
-              }
-              label={t('Cancel event')}
-            />
-          </Grid>
+          {isEditMode && ( // Do not show set canceled switch when creating event
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={canceled}
+                    onChange={(e) => setCanceled(e.target.checked)}
+                  />
+                }
+                label={t('Cancel event')}
+              />
+            </Grid>
+          )}
+
+          {canceled && (
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label={t('Cancelation reason')}
+                value={cancelationReason}
+                onChange={(e) => setCancelationReason(e.target.value)}
+              />
+            </Grid>
+          )}
 
           {/* Performances */}
           {isEditMode && ( // Show Performances button only when editing event

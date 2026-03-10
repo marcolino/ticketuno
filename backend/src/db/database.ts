@@ -149,7 +149,7 @@ class Database {
         social_media_links TEXT,
         canceled INTEGER DEFAULT 0,
         status TEXT DEFAULT 'scheduled',
-        cancellation_reason TEXT,
+        cancelation_reason TEXT,
         max_capacity INTEGER,
         content_warnings TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -838,7 +838,7 @@ class Database {
       socialMediaLinks: row.social_media_links as string,
       status: row.status as EventStatus,
       canceled: row.canceled as number,
-      cancellationReason: row.cancellation_reason as string | undefined,
+      cancelationReason: row.cancelation_reason as string | undefined,
       maxCapacity: row.max_capacity as number,
       contentWarnings: row.content_warnings as string,
       createdAt: row.created_at as string,
@@ -889,7 +889,7 @@ class Database {
         opening_date, closing_date, is_active, base_ticket_price, currency, is_sold_out,
         special_requirements, minimum_age, created_by_user_id,
         typical_start_time, typical_end_time, poster_image, trailer_url, website_url,
-        social_media_links, status, cancellation_reason, max_capacity, content_warnings
+        social_media_links, status, cancelation_reason, max_capacity, content_warnings
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
@@ -903,7 +903,7 @@ class Database {
       event.specialRequirements ?? '', event.minimumAge ?? '', event.createdByUserId ?? '',
       event.typicalStartTime ?? '', event.typicalEndTime ?? '', event.posterImage ?? '',
       event.trailerUrl ?? '', event.websiteUrl ?? '', event.socialMediaLinks ?? '',
-      event.status, event.cancellationReason ?? '', event.maxCapacity ?? '', event.contentWarnings ?? ''
+      event.status, event.cancelationReason ?? '', event.maxCapacity ?? '', event.contentWarnings ?? ''
     ];
     await runQuery(this.db!, sql, params, 'create event');
     return id;
@@ -945,7 +945,8 @@ class Database {
       websiteUrl: 'website_url',
       socialMediaLinks: 'social_media_links',
       status: 'status',
-      cancellationReason: 'cancellation_reason',
+      canceled: 'canceled',
+      cancelationReason: 'cancelation_reason',
       maxCapacity: 'max_capacity',
       contentWarnings: 'content_warnings',
     };
@@ -953,7 +954,7 @@ class Database {
     Object.entries(updates).forEach(([key, value]) => {
       if (fieldMap[key] && value !== undefined) {
         fields.push(`${fieldMap[key]} = ?`);
-        if (key === 'isActive' || key === 'isSoldOut' || key === 'isVerified') {
+        if (key === 'isActive' || key === 'isSoldOut' || key === 'isVerified' || key === 'canceled') {
           // Convert booleans to 0/1
           values.push(value ? 1 : 0);
         } else if (key === 'cast') {

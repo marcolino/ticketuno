@@ -8,7 +8,7 @@ t("Confirm your email");
 t("Hey,");
 t("Manage your consents");
 t("Start using the app!");
-t("Thanks for joining us.");
+t("Your front-row seat to amazing performances starts now.");
 t("The code to confirm your email is");
 t("The code to confirm your password reset is");
 t("Unsubscribe from these emails");

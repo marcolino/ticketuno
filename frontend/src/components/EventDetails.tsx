@@ -560,9 +560,9 @@ const EventDetails: React.FC = () => {
                 }} component="h1">
                   {event.title}
                 </Typography>
-                {event.genres && (
-                  <Chip label={t(event.genres)} sx={{ mr: 1 }} />
-                )}
+                {event.genres && (Array.isArray(event.genres) ? event.genres : [event.genres]).map(genre => (
+                  <Chip key={genre} label={t(genre)} sx={{ mr: 1 }} />
+                ))}
                 {event.rating && (
                   <Chip label={t(event.rating)} variant="outlined" />
                 )}

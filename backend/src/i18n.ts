@@ -8,7 +8,7 @@ i18n
   .use(middleware.LanguageDetector)
   .init({
     fallbackLng: 'en',
-    preload: ['en', 'it', 'fr'],
+    preload: ['en', 'it', 'fr', 'zh'],
     load: 'languageOnly', // 'it-IT' becomes 'it'
     ns: ['translation'],
     defaultNS: 'translation',

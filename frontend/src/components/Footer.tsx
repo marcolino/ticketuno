@@ -55,7 +55,7 @@ function Footer({ children }: FooterProps) {
         {children || (
           <>
             <Typography variant="body2" align="center" color="text.secondary">
-              © {new Date().getFullYear()} {config.app.name}
+              © {new Date().getFullYear()} {t(config.app.name)}
               <IconButton
                
                 onClick={() =>

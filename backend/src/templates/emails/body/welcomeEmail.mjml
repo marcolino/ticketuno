@@ -6,7 +6,7 @@
 </mj-text>
 
 <mj-text align="center" padding-top="18px">
-  {{t "Thanks for joining us."}}
+  {{t "Your front-row seat to amazing performances starts now."}}
 </mj-text>
 
 <mj-button

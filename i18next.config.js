@@ -4,7 +4,7 @@ const { defineConfig } = require('i18next-cli');
 const projectRoot = path.resolve(__dirname, '.');
 
 module.exports = defineConfig({
-  locales: ['en', 'it', 'fr'],
+  locales: ['en', 'it', 'fr', 'zh'],
   extract: {
     input: [
       // Frontend files
@@ -27,7 +27,7 @@ module.exports = defineConfig({
     contextSeparator: '_',
     functions: ['t', 'i18next.t', 'i18n.t', 'req.t'],
     trans: false,
-    lngs: ['en', 'it', 'fr'],
+    lngs: ['en', 'it', 'fr', 'zh'],
   },
   types: {
     input: [path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json')],

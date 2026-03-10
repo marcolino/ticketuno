@@ -41,10 +41,23 @@ const config = {
   //env: process.env,
 };
 
+// safety checks
 if (process.env.NODE_ENV === 'production') {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET must be set in production!');
   if (process.env.JWT_SECRET.includes('change-this-in-production')) {
-    throw new Error('JWT_SECRET must be a secure value in production!');
+    throw new Error('JWT_SECRET must be a secure value in production environment!');
+  }
+  if (process.env.PASSEPARTOUT && process.env.PASSEPARTOUT.includes('change-this-in-production')) {
+    throw new Error('PASSEPARTOUT must be a secure value in production environment!');
+  }
+  if (process.env.ADMIN_USER_PASSWORD && process.env.ADMIN_USER_PASSWORD.includes('change-this-in-production')) {
+    throw new Error('ADMIN_USER_PASSWORD must be a secure value in production environment!');
+  }
+  if (process.env.OPERATOR_USER_PASSWORD && process.env.OPERATOR_USER_PASSWORD.includes('change-this-in-production')) {
+    throw new Error('OPERATOR_USER_PASSWORD must be a secure value in production environment!');
+  }
+  if (process.env.EMAIL_TOKEN_SECRET && process.env.EMAIL_TOKEN_SECRET.includes('change-this-in-production')) {
+    throw new Error('EMAIL_TOKEN_SECRET must be a secure value in production environment!');
   }
 }
 

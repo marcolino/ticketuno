@@ -42,6 +42,7 @@ import {
   //Theaters as TheatersIcon,
   Settings as SettingsIcon,
   ConfirmationNumber as ConfirmationNumberIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import Header from './Header';
@@ -68,7 +69,7 @@ const Home: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   //const location = useLocation();
-  const { user, updateUser, isAuthenticated, isOperator, logout } = useAuth();
+  const { user, updateUser, isAuthenticated, isOperator, isAdmin, logout } = useAuth();
 //  const { mode, toggleMode } = useThemeMode();
   //const { mode, changeThemeMode } = useThemeMode();
   const { themePreference, setThemePreference, effectiveMode } = useThemeMode();
@@ -167,6 +168,12 @@ const Home: React.FC = () => {
     navigate('/events');
   };
 
+  const handleUsers = () => {
+    alert("Work in progress...");
+    handleClose();
+    //navigate('/profile/all');
+  };
+  
   const handleProfile = () => {
     handleClose();
     navigate('/profile');
@@ -261,11 +268,10 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
         >
           <img 
             src="/images/logo.png" 
-            alt={t('Theater')}
+            alt={t('Logo')}
             style={{ 
               width: 48, 
               height: 48,
-              //filter: mode === 'dark' ? 'invert(0) brightness(0.9) contrast(1.7)' : '', // TODO: use different logo.png icons
             }} 
           />
         </IconButton>
@@ -311,22 +317,6 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 </Typography>
               </MenuItem>
 
-              {/* <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
-                <Typography variant="caption" color="text.primary">
-                  i18n.language: {JSON.stringify(i18n.language)}
-                </Typography>
-              </MenuItem>
-              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
-                <Typography variant="caption" color="text.primary">
-                  config.app.defaultLanguage: {JSON.stringify(config.app.defaultLanguage)}
-                </Typography>
-              </MenuItem>
-              <MenuItem sx={{ fontWeight: 'bold', fontStyle: 'italic', py: 0 }}>
-                <Typography variant="caption" color="text.primary">
-                  config.app.languages: {JSON.stringify(config.app.languages)}
-                </Typography>
-              </MenuItem> */}
-
               <Divider />
 
               {isOperator && (
@@ -356,11 +346,24 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
 
               <Divider />
 
+              {isOperator && (
+                <MenuItem onClick={() => { handleClose(); handleUsers(); }}>
+                  <ListItemIcon>
+                    <GroupIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>
+                    {t('Users')}
+                  </ListItemText>
+                </MenuItem>
+              )}
+
               <MenuItem onClick={() => { handleClose(); handleBookings(); }}>
                 <ListItemIcon>
                   <ConfirmationNumberIcon fontSize="small" />
                 </ListItemIcon>
-                <ListItemText>{t('My bookings')}</ListItemText>
+                <ListItemText>
+                  {isOperator || isAdmin ? t('Bookings') : t('My bookings')}
+                </ListItemText>
               </MenuItem>
 
               <Divider />
@@ -371,32 +374,6 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 </ListItemIcon>
                 <ListItemText>{t('Profile')}</ListItemText>
               </MenuItem>
-
-              {/* <MenuItem onClick={toggleMode}>
-                <ListItemIcon>
-                  {mode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-                </ListItemIcon>
-                <ListItemText>{mode === 'dark' ? t('Light Mode') : t('Dark Mode')}</ListItemText>
-              </MenuItem> */}
-
-              {/* <MenuItem>
-                <ListItemIcon>
-                  {mode === 'light' ? <LightModeIcon fontSize="small" /> : mode === 'dark' ? <DarkModeIcon fontSize="small" /> :  <SettingsSuggestIcon fontSize="small" />}
-                </ListItemIcon>
-                <ListItemText>{t('Theme')}</ListItemText>
-                &emsp;
-                <ToggleButtonGroup size="small" onChange={changeThemeMode} aria-label={t("Theme selection")}>
-                  <ToggleButton value="bold" aria-label="bold">
-                    <LightModeIcon fontSize="small" />
-                  </ToggleButton>
-                    <ToggleButton value="bold" aria-label="bold">
-                    <DarkModeIcon fontSize="small" />
-                  </ToggleButton>
-                    <ToggleButton value="bold" aria-label="bold">
-                    <SettingsSuggestIcon fontSize="small" />
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </MenuItem> */}
 
               <MenuItem>
                 <ListItemIcon>
@@ -438,12 +415,14 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 <ListItemText>{t('Language')} &nbsp; {languageFlag}</ListItemText>
               </MenuItem>
 
-              <MenuItem onClick={openGeneralSetup}>
-                <ListItemIcon>
-                  <SettingsIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>{t('Setup')}</ListItemText>
-              </MenuItem>
+              {isOperator && (
+                <MenuItem onClick={openGeneralSetup}>
+                  <ListItemIcon>
+                    <SettingsIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>{t('Setup')}</ListItemText>
+                </MenuItem>
+              )}
 
               <Divider />
 

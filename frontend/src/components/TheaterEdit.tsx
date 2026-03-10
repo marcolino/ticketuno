@@ -226,7 +226,8 @@ const TheaterEdit: React.FC = () => {
           theaterData, 
           returnTo: `/theater/edit/${id || 'new'}`,
           theaterId: id  // pass the theater ID if editing existing theater
-        }
+        },
+        replace: true,
       });
     } else {
       //setSelectedLayoutId(layoutId);
@@ -269,9 +270,10 @@ const TheaterEdit: React.FC = () => {
               selectedTheaterId: savedId,
             },
           },
+          replace: true,
         });
       } else {
-        navigate('/theaters');
+        navigate(-1);
       }
     } catch (err: any) {
       setError(

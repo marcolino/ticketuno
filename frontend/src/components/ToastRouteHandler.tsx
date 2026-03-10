@@ -1,6 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useToaster } from 'react-hot-toast';
+import hotToast from 'react-hot-toast';
 
 /**
  * This component avoids that navigating away from a component when a toast is shown,
@@ -11,10 +11,14 @@ import { useToaster } from 'react-hot-toast';
  */
 const ToastRouteHandler = () => {
   const location = useLocation();
-  const { handlers } = useToaster();
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
-    handlers.endPause();
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    hotToast.dismiss(); // Dismiss all toasts on navigation
   }, [location.pathname]);
 
   return null;

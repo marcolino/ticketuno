@@ -32,7 +32,8 @@ export interface Event {
   websiteUrl?: string;
   socialMediaLinks?: string;
   status: 'scheduled' | 'in progress' | 'completed' | 'cancelled';
-  cancellationReason?: string;
+  canceled?: number;
+  cancelationReason?: string;
   maxCapacity?: number;
   contentWarnings?: string;
 }

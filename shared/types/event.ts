@@ -32,9 +32,9 @@ export interface Event {
   trailerUrl?: string;
   websiteUrl?: string;
   socialMediaLinks?: string;
-  canceled: number,
   status: 'scheduled' | 'in progress' | 'completed' | 'canceled';
-  cancellationReason?: string;
+  canceled: number,
+  cancelationReason?: string;
   maxCapacity?: number;
   contentWarnings?: string;
 }
