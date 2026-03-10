@@ -1,4 +1,3 @@
-// LayoutEdit.tsx (adapted with React Router State)
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +21,7 @@ import {
   ExpandMore as ExpandMoreIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
+  ViewCompact as ViewCompactIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
@@ -37,21 +37,31 @@ interface LocationState {
     name: string;
     location: string;
     selectedLayoutId: string;
-    // other theater fields
   };
   returnTo?: string;
+  parentReturnTo?: string,
+  parentEventData?: string,
   theaterId?: string; // You can also pass theaterId directly
 }
 
 const LayoutEdit: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { id } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const { id } = useParams<{ id: string }>();
 
-  // Get theater data and return path from location state
-  const { theaterData, returnTo, theaterId: theaterIdFromState } = location.state as LocationState || {};
+  const isEditMode = id && id !== 'new';
   
+  // Get theater data and return path from location state
+  //const { theaterData, returnTo, theaterId: theaterIdFromState } = location.state as LocationState || {};
+  const {
+    theaterData,
+    returnTo,
+    theaterId: theaterIdFromState,
+    parentReturnTo,
+    parentEventData
+  } = location.state as LocationState || {};
+
   // Use theaterId from state or params (state takes precedence)
   const [theaterId, setTheaterId] = useState<string | undefined>(
     theaterIdFromState || undefined
@@ -363,8 +373,11 @@ const LayoutEdit: React.FC = () => {
             theaterData: {
               ...theaterData,
               selectedLayoutId: savedLayout.id
-            }
-          }
+            },
+            returnTo: parentReturnTo, // TheaterEdit needs this to find its way back
+            eventData: parentEventData, 
+          },
+          replace: true, 
         });
       } else {
         navigate(-1);
@@ -380,7 +393,8 @@ const LayoutEdit: React.FC = () => {
   const cancel = async () => {
     // Navigate back with original theater data
     navigate(returnTo || '/layouts', {
-      state: { theaterData }
+      state: { theaterData },
+      replace: true, 
     });
     //navigate(returnTo || '/layouts');
   };
@@ -392,32 +406,17 @@ const LayoutEdit: React.FC = () => {
         <Grid item xs={12} md={5}>
           <Paper sx={{ p: 1, maxHeight: '80vh', overflow: 'auto' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-              <Typography variant="h5">{t('Layout Editor')}</Typography>
+              {/* <Typography variant="h5">{t('Layout Editor')}</Typography> */}
+              <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+                <ViewCompactIcon fontSize="large" /> {isEditMode ? t('Edit Layout') : t('Create New Layout')}
+              </Typography>
 
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {error}
                 </Alert>
               )}
-              
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
-                <Button
-                  variant="outlined"
-                  startIcon={<CancelIcon />}
-                  onClick={cancel}
-                  size="small"
-                >
-                  {t('Cancel')}
-                </Button>
-                <Button
-                  variant="contained"
-                  startIcon={<SaveIcon />}
-                  onClick={save}
-                  disabled={saving}
-                >
-                  {saving ? t('Saving...') : t('Save')}
-                </Button>
-              </Box>
+
             </Box>
 
             {/* Theater info */}
@@ -441,6 +440,7 @@ const LayoutEdit: React.FC = () => {
                 value={layoutName}
                 onChange={(e) => setLayoutName(e.target.value)}
                 required
+                autoFocus
               />
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -684,6 +684,26 @@ const LayoutEdit: React.FC = () => {
                 </Accordion>
               ))}
             </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
+              <Button
+                variant="outlined"
+                startIcon={<CancelIcon />}
+                onClick={cancel}
+                size="small"
+              >
+                {t('Cancel')}
+              </Button>
+              <Button
+                variant="contained"
+                startIcon={<SaveIcon />}
+                onClick={save}
+                disabled={saving}
+              >
+                {saving ? t('Saving...') : t('Save')}
+              </Button>
+            </Box>
+            
           </Paper>
         </Grid>
 

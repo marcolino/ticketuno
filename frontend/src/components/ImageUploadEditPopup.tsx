@@ -648,14 +648,6 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
-          {/* Simple mode: Upload button on confirm */}
-          {simpleMode && activeStep === 'confirm' && (
-            <Button variant="contained" onClick={handleSimpleUpload}
-              startIcon={<CloudUpload />} disabled={isLoading} size="small">
-              {isLoading ? t('Uploading...') : t('Upload')}
-            </Button>
-          )}
-
           {/* Simple mode: success step - just close */}
           {simpleMode && activeStep === 'success' && (
             <Button variant="contained" onClick={handleClose} size="small">
@@ -679,12 +671,23 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
           )}
 
           {/* Cancel / Done */}
-          <Button
-            variant={activeStep === 'preview' ? 'contained' : 'outlined'}
-            onClick={handleClose} size="small" disabled={isLoading}
-          >
-            {activeStep === 'preview' ? t('Done') : t('Cancel')}
-          </Button>
+          {!(simpleMode && activeStep === 'success') && (
+            <Button
+              variant={activeStep === 'preview' ? 'contained' : 'outlined'}
+              onClick={handleClose} size="small" disabled={isLoading}
+            >
+              {activeStep === 'preview' ? t('Done') : t('Cancel')}
+            </Button>
+          )}
+
+          {/* Simple mode: Upload button on confirm */}
+          {simpleMode && activeStep === 'confirm' && (
+            <Button variant="contained" onClick={handleSimpleUpload}
+              startIcon={<CloudUpload />} disabled={isLoading} size="small">
+              {isLoading ? t('Uploading...') : t('Upload')}
+            </Button>
+          )}
+
         </Box>
       </DialogActions>
     </Dialog>

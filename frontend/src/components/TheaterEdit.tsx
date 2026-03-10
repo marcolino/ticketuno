@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import {
   Save as SaveIcon,
+  Curtains as CurtainsIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
@@ -225,7 +226,9 @@ const TheaterEdit: React.FC = () => {
         state: { 
           theaterData, 
           returnTo: `/theater/edit/${id || 'new'}`,
-          theaterId: id  // pass the theater ID if editing existing theater
+          theaterId: id,  // pass the theater ID if editing existing theater
+          parentReturnTo: returnTo,
+          parentEventData: eventData,
         },
         replace: true,
       });
@@ -335,8 +338,8 @@ const TheaterEdit: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: 4 }}>
-        <Typography variant="h4" gutterBottom>
-          {isEditMode ? t('Edit Theater') : t('Create New Theater')}
+        <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+          <CurtainsIcon fontSize="large" /> {isEditMode ? t('Edit Theater') : t('Create New Theater')}
         </Typography>
 
         {error && (
@@ -346,13 +349,6 @@ const TheaterEdit: React.FC = () => {
         )}
 
         <Grid container spacing={3}>
-          {/* Basic Information */}
-          <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>
-              Basic Information
-            </Typography>
-          </Grid>
-
           <Grid item xs={12} md={8}>
             <TextField
               name="name"
@@ -463,7 +459,13 @@ const TheaterEdit: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 4 }}>
           <Button
             variant="outlined"
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (returnTo) {
+                navigate(returnTo, { state: { eventData }, replace: true });
+              } else {
+                navigate(-1);
+              }
+            }}
             disabled={saving}
           >
             {t('Cancel')}

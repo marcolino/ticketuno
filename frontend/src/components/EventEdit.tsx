@@ -167,6 +167,8 @@ const EventEdit: React.FC = () => {
       setPosterImage(event.posterImage || null);
       setContentWarnings(event.contentWarnings || '');
       setStatus(event.status);
+      setCanceled(event.canceled === 1);
+      setCancelationReason(event.cancelationReason || '');
 
       if (event.performances) {
         setPerformances(event.performances);
@@ -369,24 +371,14 @@ const EventEdit: React.FC = () => {
   return (
     <Container maxWidth="lg" sx={{ p: { xs: 2, sm: 4 }, mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
-        <Typography variant="h4" gutterBottom>
+        {/* <Typography variant="h4" gutterBottom>
           {isEditMode ? t('Edit Event') : t('Create New Event')}
+        </Typography> */}
+        <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
+          <TheaterComedyIcon fontSize="large" /> {isEditMode ? t('Edit Event') : t('Create New Event')}
         </Typography>
 
-        {/* {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )} */}
-
         <Grid container spacing={3}>
-          {/* Basic Information */}
-          <Grid item xs={12}>
-            <Typography variant="h6" gutterBottom>
-              {t('Basic Information')}
-            </Typography>
-          </Grid>
-
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -555,8 +547,8 @@ const EventEdit: React.FC = () => {
                           canceled,
                           cancelationReason,
                         },
-                        replace: true,
                       },
+                      replace: true,
                     });
                   } else {
                     setTheaterId(val);

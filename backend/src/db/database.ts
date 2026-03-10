@@ -681,11 +681,33 @@ class Database {
     return result.changes > 0;
   }
 
-  async deleteTheater(id: string): Promise<boolean> {
+  //async deleteTheater(id: string): Promise<boolean> {
+  async deleteTheater(id: string): Promise<{ deleted: boolean; reason?: string }> {
+    const linked = await getQuery<{ count: number }>(
+      this.db!, `
+        SELECT (
+          SELECT COUNT(*) FROM layouts WHERE theater_id = ? AND deleted_at IS NULL
+        ) + (
+          SELECT COUNT(*) FROM events WHERE theater_id = ?
+        ) as count
+      `,
+      [id, id], 'check theater dependencies'
+    );
+
+    if ((linked?.count ?? 0) > 0) {
+      return {
+        deleted: false,
+        reason: 'Theater has linked layouts or events'
+      };
+    }
+
     const sql = `DELETE FROM theaters WHERE id = ?`;
     const params = [id];
     const result = await runQuery(this.db!, sql, params, 'delete theater');
-    return result.changes > 0;
+    return {
+      deleted: result.changes > 0,
+      ...(result.changes === 0 && { reason: 'Theater was not found' })
+    };
   }
 
   // Layout methods (IMMUTABLE) //////////////////////////////////////////////////////////////////
@@ -790,15 +812,35 @@ class Database {
     return result.changes > 0;
   }
 
+  // async deleteLayoutSoft_V1(id: string): Promise<boolean> {
+  //   const sql = `
+  //     UPDATE layouts
+  //     SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+  //     WHERE id = ?
+  //     AND id NOT IN (SELECT current_layout_id FROM theaters)
+  //   `;
+  //   const params = [id];
+  //   const result = await runQuery(this.db!, sql, params, 'soft delete layout');
+  //   return result.changes > 0;
+  // }
   async deleteLayoutSoft(id: string): Promise<boolean> {
+    // Soft-delete the layout
     const sql = `
       UPDATE layouts
       SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-      AND id NOT IN (SELECT current_layout_id FROM theaters)
+      WHERE id = ? AND deleted_at IS NULL
     `;
-    const params = [id];
-    const result = await runQuery(this.db!, sql, params, 'soft delete layout');
+    const result = await runQuery(this.db!, sql, [id], 'soft delete layout');
+
+    if (result.changes > 0) { // Unlink from any theater that references it
+      await runQuery(
+        this.db!,
+        `UPDATE theaters SET current_layout_id = NULL WHERE current_layout_id = ?`,
+        [id],
+        'unlink deleted layout from theaters'
+      );
+    }
+
     return result.changes > 0;
   }
 
@@ -855,7 +897,11 @@ class Database {
     const sql = `
       SELECT *
       FROM events
-      ORDER BY opening_date DESC
+      ORDER BY
+        canceled ASC,
+        opening_date DESC,
+        typical_start_time ASC,
+        title DESC
     `;
     const params: (string | number)[]  = [];
     const rows = await allQuery(this.db!, sql, params, 'get all events');
