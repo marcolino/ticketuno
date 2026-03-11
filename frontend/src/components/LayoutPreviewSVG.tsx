@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useMediaQuery, useTheme } from '@mui/material';
 import { LayoutJSON } from '@/shared/types/layout';
-import type { SeatStatus } from '@/shared/types/layoutToSeats';
+import type { SeatStatus, SpecialCondition } from '@/shared/types/layoutToSeats';
 import LayoutSeat from './LayoutSeat';
 
 export interface SeatWithStatus {
@@ -13,6 +13,7 @@ export interface SeatWithStatus {
   x: number;
   y: number;
   status?: SeatStatus;
+  specialCondition?: SpecialCondition;
 }
 
 interface LayoutPreviewSVGProps {
@@ -74,18 +75,28 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
     // });
     
     //const padding = 60;
+    // const paddingX = 60;
+    // const paddingY = isMobile ? 50 : -75;
+    
+    // if (minX === Infinity) {
+    //   return { minX: 0, minY: 0, width: 1000, height: 800 };
+    // }
+    
+    // return {
+    //   minX: minX - paddingX,
+    //   minY: minY - paddingY,
+    //   width: maxX - minX + (2 * paddingX),
+    //   height: maxY - minY + (2 * paddingY)
+    // };
+
     const paddingX = 60;
-    const paddingY = isMobile ? 50 : -75;
-    
-    if (minX === Infinity) {
-      return { minX: 0, minY: 0, width: 1000, height: 800 };
-    }
-    
+    const paddingY = 50;
+
     return {
       minX: minX - paddingX,
       minY: minY - paddingY,
-      width: maxX - minX + (2 * paddingX),
-      height: maxY - minY + (2 * paddingY)
+      width:  maxX - minX + (2 * paddingX),
+      height: maxY - minY + (2 * paddingY)  // background now fully covers all seats
     };
   }, [layout/*, seats*/]); // Only recalculate when layout changes
 
@@ -176,6 +187,7 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
                       width={seatWidth}
                       height={seatHeight}
                       interactive={interactive}
+                      specialCondition={seat.specialCondition}
                       onClick={onSeatClick ? () => onSeatClick(seat.seatId, status) : undefined}
                     />
                   );

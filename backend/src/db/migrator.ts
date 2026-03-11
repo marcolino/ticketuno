@@ -30,6 +30,7 @@ export class Migrator {
         CREATE TABLE IF NOT EXISTS migrations (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT UNIQUE NOT NULL,
+          rejected INTEGER DEFAULT 0,
           applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `, (err) => {
@@ -65,22 +66,48 @@ export class Migrator {
 
     return new Promise((resolve, reject) => {
       this.db.exec(sql, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          this.db.run(
-            'INSERT INTO migrations (name) VALUES (?)',
-            [filename],
-            (err) => {
-              if (err) reject(err);
-              else {
+        const migrationErr = err;
+        // insert  migration into migrations even if it was reject, to avoid trying to apply it forever...
+        this.db.run(
+          //'INSERT INTO migrations (name, rejected) VALUES (?, ?)',
+          `
+            INSERT INTO migrations (name, rejected)
+            SELECT ?, ?
+            WHERE NOT EXISTS (SELECT 1 FROM migrations WHERE name = ?)
+          `,
+          [filename, migrationErr ? 1 : 0, filename],
+          (err) => {
+            if (err) reject(err);
+            else {
+              if (migrationErr) {
+                console.error(`Migration ${filename} was rejected (${migrationErr})`);
+              } else {
                 console.log(`✓ Migration ${filename} applied successfully`);
-                resolve();
               }
+              resolve();
             }
-          );
-        }
+          }
+        );
       });
     });
+    // return new Promise((resolve, reject) => {
+    //   this.db.exec(sql, (err) => {
+    //     if (err) {
+    //       reject(err);
+    //     } else {
+    //       this.db.run(
+    //         'INSERT INTO migrations (name) VALUES (?)',
+    //         [filename],
+    //         (err) => {
+    //           if (err) reject(err);
+    //           else {
+    //             console.log(`✓ Migration ${filename} applied successfully`);
+    //             resolve();
+    //           }
+    //         }
+    //       );
+    //     }
+    //   });
+    // });
   }
 }

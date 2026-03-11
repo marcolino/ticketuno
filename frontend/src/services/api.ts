@@ -233,7 +233,7 @@ api.interceptors.response.use(
       // Already on /maintenance — reject with a clean error, not the raw HTML body
       return Promise.reject({
         ...error,
-        message: i18n.t('Service unavailable'),
+        message: i18n.t('Service unavailable'), // TODO: test this (i18n.t()) is translated !
         response: { ...error.response, data: { error: 'maintenance mode' } }
       });
     }

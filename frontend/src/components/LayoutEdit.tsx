@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -25,9 +25,11 @@ import {
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
+//import { SpecialCondition } from './LayoutSeat';
+import LayoutLegend from './LayoutLegend';
 import { layoutApi, theaterApi } from '@/services/api';
 import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
-import { generateSeats } from '@/shared/types/layoutToSeats';
+import { generateSeats, SpecialCondition } from '@/shared/types/layoutToSeats';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 
@@ -110,6 +112,14 @@ const LayoutEdit: React.FC = () => {
   //const [layout, setLayout] = useState<LayoutJSON>(layoutJSON);
   const seats = generateSeats(layoutJSON); // No status needed
   
+  // seats[0].specialCondition = 'Absent';
+  // seats[1].specialCondition = 'Unavailable';
+  // seats[2].specialCondition = 'RestrictedView';
+  // seats[3].specialCondition = 'Premium';
+  // seats[4].specialCondition = 'Impaired';
+  // seats[5].specialCondition = 'Staff';
+  // seats[6].specialCondition = 'Baby';
+
   // Theater fields from location state
   const [theaterName, setTheaterName] = useState(theaterData?.name || '');
   const [theaterDescription, setTheaterDescription] = useState('');
@@ -398,6 +408,14 @@ const LayoutEdit: React.FC = () => {
     });
     //navigate(returnTo || '/layouts');
   };
+  
+  const activeConditions = useMemo(() => {
+    const found = new Set<SpecialCondition>();
+    seats.forEach(seat => {
+      if (seat.specialCondition) found.add(seat.specialCondition);
+    });
+    return [...found];
+  }, [seats]);
   
   return (
     <Box sx={{ p: 2 }}>
@@ -750,6 +768,11 @@ const LayoutEdit: React.FC = () => {
                   layout={layoutJSON}
                   seats={seats}
                   interactive={false}  // Preview mode
+                />
+                <LayoutLegend
+                  conditions={activeConditions}
+                  showStatusLegend={false}
+                  isEditView={true}
                 />
               </Box>
             </Box>

@@ -24,4 +24,15 @@ t('security');
 
 // events language
 t('Italian');
-// ...
+t('English');
+t('French');
+t('Chinese');
+
+// special seat conditions
+t('Absent');
+t('Unavailable'); 
+t('Restricted view');
+t('Premium');
+t('Impaired');
+t('Staff');
+t('Baby');

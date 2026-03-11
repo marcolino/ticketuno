@@ -23,7 +23,7 @@ import { layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import PageHeader from "./PageHeader";
-import { i18n } from '@/i18n';
+//import { i18n } from '@/i18n';
 
 const LayoutList: React.FC = () => {
   const { t } = useTranslation();
@@ -226,7 +226,7 @@ const LayoutList: React.FC = () => {
                       onClick={(e) => handleEditLayout(layout.id, e)}
                       sx={{ ml: 1 }}
                     >
-                      {i18n.t('Edit')}
+                      {t('Edit')}
                     </Button>
                   )}
                   {isOperator && (
@@ -236,7 +236,7 @@ const LayoutList: React.FC = () => {
                       onClick={(e) => handleDeleteLayout(layout.id, e)}
                       sx={{ ml: 1 }}
                     >
-                      {i18n.t('Delete')}
+                      {t('Delete')}
                     </Button>
                   )}
                 </CardActions>
