@@ -21,7 +21,8 @@ export type SpecialCondition =
   | 'Premium'         // VIP / upsell tier.
   | 'Impaired'        // Reserved for wheelchair users.
   | 'Staff'           // Reserved for staff / press / comps. Booking: hidden.
-  | 'Baby';           // Baby-cradle attachment seat.
+  | 'Baby'            // Baby-cradle attachment seat.
+;
 
 export function generateSeats(layout: LayoutJSON): GeneratedSeat[] {
   const seats: GeneratedSeat[] = [];
@@ -90,20 +91,21 @@ export function generateSeats(layout: LayoutJSON): GeneratedSeat[] {
   return seats;
 }
 
-// // Helper to parse composite seat ID back into parts
-// export function parseSeatId(seatId: string): { 
-//   sectionName: string; 
-//   rowId: string; 
-//   seatNumber: number; 
-// } {
-//   const parts = seatId.split('-');
-//   if (parts.length !== 3) {
-//     throw new Error(`Invalid seat ID format: ${seatId}`);
-//   }
-  
-//   return {
-//     sectionName: parts[0],
-//     rowId: parts[1],
-//     seatNumber: parseInt(parts[2], 10)
-//   };
-// }
+export function applyDisplayNumbers(
+  seats: GeneratedSeat[],
+  conditions: Record<string, string>
+): (GeneratedSeat & { displayNumber: number })[] {
+  const rowCounters: Record<string, number> = {};
+
+  return seats.map(seat => {
+    const rowKey = `${seat.sectionId}|${seat.rowId}`;
+    if (rowCounters[rowKey] === undefined) rowCounters[rowKey] = 1;
+
+    const isAbsent = conditions[seat.seatId] === 'Absent';
+    const displayNumber = isAbsent
+      ? seat.seatNumber
+      : rowCounters[rowKey]++;
+
+    return { ...seat, displayNumber };
+  });
+}

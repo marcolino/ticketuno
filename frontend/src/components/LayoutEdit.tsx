@@ -23,10 +23,12 @@ import {
   Cancel as CancelIcon,
   ViewCompact as ViewCompactIcon,
 } from '@mui/icons-material';
+import { useDialog } from '../contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 //import { SpecialCondition } from './LayoutSeat';
 import LayoutLegend from './LayoutLegend';
+import SeatMarkingToolbar, { MarkingCondition } from './SeatMarkingToolbar';
 import { layoutApi, theaterApi } from '@/services/api';
 import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
 import { generateSeats, SpecialCondition } from '@/shared/types/layoutToSeats';
@@ -54,6 +56,8 @@ const LayoutEdit: React.FC = () => {
 
   const isEditMode = id && id !== 'new';
   
+  const showDialog = useDialog();
+  
   // Get theater data and return path from location state
   //const { theaterData, returnTo, theaterId: theaterIdFromState } = location.state as LocationState || {};
   const {
@@ -72,6 +76,11 @@ const LayoutEdit: React.FC = () => {
   const { isOperator } = useAuth();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  const [isEditable, setIsEditable] = useState(true);
+  
+  const [markingActive, setMarkingActive] = useState(false);
+  const [markingCondition, setMarkingCondition] = useState<MarkingCondition | null>(null);
 
   // Layout fields
   const SECTION_VERTICAL_GAP = 115;
@@ -109,16 +118,36 @@ const LayoutEdit: React.FC = () => {
       },
     ],
   });
-  //const [layout, setLayout] = useState<LayoutJSON>(layoutJSON);
-  const seats = generateSeats(layoutJSON); // No status needed
   
-  // seats[0].specialCondition = 'Absent';
-  // seats[1].specialCondition = 'Unavailable';
-  // seats[2].specialCondition = 'RestrictedView';
-  // seats[3].specialCondition = 'Premium';
-  // seats[4].specialCondition = 'Impaired';
-  // seats[5].specialCondition = 'Staff';
-  // seats[6].specialCondition = 'Baby';
+  //const seats = generateSeats(layoutJSON); // No status needed
+  const seats = useMemo(() => {
+    const raw = generateSeats(layoutJSON);
+    const conditions = layoutJSON.seatConditions || {};
+
+    // Per-row display counter, skipping absent seats
+    const rowCounters: Record<string, number> = {};
+    
+    // return raw.map(seat => ({
+    //   ...seat,
+    //   specialCondition: conditions[seat.seatId] as SpecialCondition | undefined,
+    // }));
+    return raw.map(seat => {
+      const rowKey = `${seat.sectionId}|${seat.rowId}`;
+      const specialCondition = conditions[seat.seatId] as SpecialCondition | undefined;
+
+      if (rowCounters[rowKey] === undefined) rowCounters[rowKey] = 1;
+
+      const displayNumber = specialCondition === 'Absent'
+        ? seat.seatNumber // Absent seat keeps its physical number (for operator reference)
+        : rowCounters[rowKey]++; // Everyone else gets the next display slot
+
+      return {
+        ...seat,
+        specialCondition,
+        displayNumber,
+      };
+    });
+  }, [layoutJSON]);
 
   // Theater fields from location state
   const [theaterName, setTheaterName] = useState(theaterData?.name || '');
@@ -150,7 +179,50 @@ const LayoutEdit: React.FC = () => {
         setLayoutDescription(layout.description || '');
         setLayoutJSON(JSON.parse(layout.json));
         setTheaterId(layout.theaterId);
-        
+        setIsEditable(layout.isEditable ?? true);
+
+        // Disable all inputs and hide marking toolbar when locked:
+        if (!layout.isEditable) { // TODO: handle layout.lockInfo ...
+          toast.warning(t('This layout cannot be modified')); // some active booking is present...
+          if (layout.lockInfo) {
+            const reservedTotal = layout.lockInfo.reduce((sum, lock) => sum + lock.reserved, 0);
+            const bookedTotal = layout.lockInfo.reduce((sum, lock) => sum + lock.booked, 0);
+            showDialog({
+              title: t('This layout cannot be modified'),
+              content: (
+                <Typography
+                  variant="subtitle1"
+                  color="text.secondary"
+                  component="div" // render as inline element
+                  sx={{ lineHeight: 1.5 }}
+                >
+                  <strong>
+                    {reservedTotal > 0 && bookedTotal > 0
+                      ? t('There are these active reservations / bookings')
+                      : reservedTotal > 0
+                        ? t('There are these active reservations')
+                        : t('There are these active bookings')
+                    }:
+                  </strong>
+                  {
+                    layout.lockInfo.map((lock, index) => (
+                      <Box key={index} sx={{ mt: 1, ml: 1 }}>
+                        {t('Event')}: <i>{lock.eventTitle}</i><br />
+                        {t('Performance date')}: <i>{lock.performanceDate} {lock.startTime}</i><br />
+                        {lock.reserved > 0 && <>{t('Reserved seats')}: <i>{lock.reserved}</i><br /></>}
+                        {lock.booked > 0 && <>{t('Booked seats')}: <i>{lock.booked}</i><br /></>}
+                      </Box>
+                    ))
+                  }
+                </Typography>
+              ),
+              confirmText: 'Ok',
+              shrinkToContent: true,
+            });
+          }
+          //console.warn("Layout is read-only:", layout)
+        }
+
         // If we have theaterId from the layout, load theater details
         if (layout.theaterId) {
           loadTheater(layout.theaterId);
@@ -417,6 +489,28 @@ const LayoutEdit: React.FC = () => {
     return [...found];
   }, [seats]);
   
+  const handleMarkingSeatClick = useCallback((seatId: string) => {
+    if (!markingActive || !markingCondition) return;
+
+    setLayoutJSON(prev => {
+      const current = { ...(prev.seatConditions || {}) };
+
+      if (markingCondition === 'Normal') {
+        // Remove any special condition
+        delete current[seatId];
+      } else {
+        // Toggle: clicking the same condition twice clears it
+        if (current[seatId] === markingCondition) {
+          delete current[seatId];
+        } else {
+          current[seatId] = markingCondition as SpecialCondition;
+        }
+      }
+
+      return { ...prev, seatConditions: current };
+    });
+  }, [markingActive, markingCondition]);
+
   return (
     <Box sx={{ p: 2 }}>
       <Grid container spacing={2}>
@@ -703,23 +797,41 @@ const LayoutEdit: React.FC = () => {
               ))}
             </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
-              <Button
-                variant="outlined"
-                startIcon={<CancelIcon />}
-                onClick={cancel}
-                size="small"
-              >
-                {t('Cancel')}
-              </Button>
-              <Button
-                variant="contained"
-                startIcon={<SaveIcon />}
-                onClick={save}
-                disabled={saving}
-              >
-                {saving ? t('Saving...') : t('Save')}
-              </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: 'flex-end' }}>
+                {isEditable && (
+                  <SeatMarkingToolbar
+                    active={markingActive}
+                    selectedCondition={markingCondition}
+                    onToggleActive={() => {
+                      setMarkingActive(v => !v);
+                      setMarkingCondition(null); // Reset selection when toggling
+                    }}
+                    onSelectCondition={setMarkingCondition}
+                  />
+                )}
+              </Box>
+
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<CancelIcon />}
+                  onClick={cancel}
+                  size="small"
+                >
+                  {t('Cancel')}
+                </Button>
+                
+                <Button
+                  variant="contained"
+                  startIcon={<SaveIcon />}
+                  onClick={save}
+                  disabled={!isEditable || saving}
+                  size="small"
+                >
+                  {saving ? t('Saving...') : t('Save')}
+                  </Button>
+              </Box>
             </Box>
             
           </Paper>
@@ -767,7 +879,10 @@ const LayoutEdit: React.FC = () => {
                 <LayoutPreviewSVG
                   layout={layoutJSON}
                   seats={seats}
-                  interactive={false}  // Preview mode
+                  //interactive={false}
+                  interactive={markingActive} // Seats become clickable in marking mode, also while editing
+                  onSeatClick={handleMarkingSeatClick} // Supplies the selected condition
+                  bookingView={false}
                 />
                 <LayoutLegend
                   conditions={activeConditions}

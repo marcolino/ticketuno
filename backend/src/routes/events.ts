@@ -323,6 +323,7 @@ router.post('/:eventId/performances', authenticateToken, requireOperator, async 
     await database.bulkCreateSeats(
       performanceId,
       generatedSeats,
+      layoutJSON.seatConditions,
     );
 
     // Get calculated seat counts for this performance

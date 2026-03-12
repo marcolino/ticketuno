@@ -1,21 +1,36 @@
+import { SpecialCondition } from '../../shared/types/layoutToSeats';
+
+export type LockInfoRow = {
+  eventTitle: string;
+  performanceDate: string;
+  startTime: string;
+  booked: number;
+  reserved: number;
+};
+
 export interface Layout {
   id: string;
   name: string;
   description?: string | null;
   theaterId: string;
   json: string;
+  isEditable?: boolean;
+  lockInfo?: LockInfoRow[];
+}
+
+export interface StageJSON {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label?: string;
 }
 
 export interface LayoutJSON {
   version: 1;
-  stage: {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    label?: string;
-  };
+  stage: StageJSON;
   sections: SectionJSON[];
+  seatConditions?: Record<string, SpecialCondition>;
 }
 
 export interface SectionJSON {

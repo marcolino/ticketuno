@@ -1,30 +1,26 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CONDITION_COLORS } from './LayoutSeat';
-import { SpecialCondition } from '@/shared/types/layoutToSeats';
+import { SpecialCondition } from '../shared/types/layoutToSeats';
 
 interface LayoutLegendProps {
   conditions: SpecialCondition[];
   showStatusLegend?: boolean;
-  isEditView?: boolean;   // true → also show Absent and Staff entries
+  isEditView?: boolean;
 }
-
-// ── Status entries (booking view only) ───────────────────────────────────────
-const STATUS_ENTRIES: { color: string; backrest: string; armrest: string; text: string; label: string }[] = [
-  { color: '#1B5E20', backrest: '#2E7D32', armrest: '#145218', text: '#fff', label: 'Disponibile'  },
-  { color: '#616161', backrest: '#757575', armrest: '#424242', text: '#eee', label: 'Occupato'      },
-  { color: '#F57C00', backrest: '#FB8C00', armrest: '#E65100', text: '#fff', label: 'Riservato'     },
-  { color: '#1565C0', backrest: '#1976D2', armrest: '#0D47A1', text: '#fff', label: 'Selezionato'   },
-];
 
 // Seat dimensions — match LayoutSeat exactly
 const W = 48, H = 48;
 const BASE_H = 32, BASE_W = 40, BACK_H = 16;
-const ARM_W = 4,  ARM_H = 28;
+const ARM_W = 4, ARM_H = 28;
 
-// ── Mini seat SVG — same proportions as the real seat ────────────────────────
+// ── Mini seat — body and armrest colors are independent ───────────────────────
 const MiniSeat: React.FC<{
-  base: string; backrest: string; armrest: string; text: string; number?: number;
+  base: string;
+  backrest: string;
+  armrest: string;   // condition color — always armrest-only
+  text: string;
+  number?: number;
 }> = ({ base, backrest, armrest, text, number = 1 }) => (
   <svg width={W} height={H} viewBox={`${-W/2} ${-H/2} ${W} ${H}`}>
     <g transform="translate(0, -4)">
@@ -52,34 +48,58 @@ const MiniSeat: React.FC<{
 
 // ── Single legend entry ───────────────────────────────────────────────────────
 const LegendEntry: React.FC<{
-  base: string; backrest: string; armrest: string; text: string;
-  label: string; number?: number;
-}> = ({ base, backrest, armrest, text, label, number }) => (
-  <div style={{
-    display:        'flex',
-    flexDirection:  'column',
-    alignItems:     'center',
-    gap:            4,
-    padding:        '8px 12px',
-    borderRadius:   8,
-    background:     'rgba(0,0,0,0.04)',
-    border:         '1px solid rgba(0,0,0,0.10)',
-    minWidth:       64,
-  }}>
-    <MiniSeat base={base} backrest={backrest} armrest={armrest} text={text} number={number} />
-    <span style={{
-      fontSize:      11,
-      fontWeight:    500,
-      color:         'rgba(0,0,0,0.65)',
-      fontFamily:    'system-ui, sans-serif',
-      textAlign:     'center',
-      lineHeight:    1.2,
-      maxWidth:      72,
+  base: string;
+  backrest: string;
+  armrest: string;
+  text: string;
+  label: string;
+  number?: number;
+  // Optional: show a second "example" seat with a different body status
+  // to illustrate condition-on-booked-seat
+  exampleBase?: string;
+  exampleBackrest?: string;
+  exampleText?: string;
+}> = ({ base, backrest, armrest, text, label, number, exampleBase, exampleBackrest, exampleText }) => {
+  return (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 4,
+      padding: '8px 12px',
+      borderRadius: 8,
+      background: 'rgba(0,0,0,0.04)',
+      border: '1px solid rgba(0,0,0,0.10)',
+      minWidth: 64,
     }}>
-      {label}
-    </span>
-  </div>
-);
+      <div style={{ display: 'flex', gap: 4 }}>
+        {/* Primary seat */}
+        <MiniSeat base={base} backrest={backrest} armrest={armrest} text={text} number={number} />
+        {/* Example: same condition on a booked seat — only shown for condition entries */}
+        {exampleBase && (
+          <MiniSeat
+            base={exampleBase}
+            backrest={exampleBackrest!}
+            armrest={armrest}          // same condition armrest
+            text={exampleText!}
+            number={number}
+          />
+        )}
+      </div>
+      <span style={{
+        fontSize: 11,
+        fontWeight: 500,
+        color: 'rgba(0,0,0,0.65)',
+        fontFamily: 'system-ui, sans-serif',
+        textAlign: 'center',
+        lineHeight: 1.2,
+        maxWidth: 88,
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+};
 
 // ── Legend ────────────────────────────────────────────────────────────────────
 const LayoutLegend: React.FC<LayoutLegendProps> = ({
@@ -89,7 +109,15 @@ const LayoutLegend: React.FC<LayoutLegendProps> = ({
 }) => {
   const { t } = useTranslation();
 
-  // In booking view, Absent and Staff are invisible — don't explain them
+  // ── Status entries (booking view) ─────────────────────────────────────────────
+  const STATUS_ENTRIES = [
+    { base: '#1B5E20', backrest: '#2E7D32', armrest: '#145218', text: '#fff', label: t('Available') },
+    { base: '#616161', backrest: '#757575', armrest: '#424242', text: '#eee', label: t('Booked') },
+    //{ base: '#F57C00', backrest: '#FB8C00', armrest: '#E65100', text: '#fff', label: 'Riservato'     },
+    { base: '#1565C0', backrest: '#1976D2', armrest: '#0D47A1', text: '#fff', label: t('Selected') },
+  ];
+  // Important: we do show users the 'reserved' (by other users) seats as 'booked', to reduce confusion...
+
   const visibleConditions = isEditView
     ? conditions
     : conditions.filter(c => c !== 'Absent' && c !== 'Staff');
@@ -110,11 +138,12 @@ const LayoutLegend: React.FC<LayoutLegendProps> = ({
       borderRadius:   '0 0 8px 8px',
     }}>
 
-      {/* Status entries — booking view */}
+      {/* Status entries — booking view only, no example seat needed */}
       {showStatusLegend && STATUS_ENTRIES.map((e, i) => (
         <LegendEntry key={e.label} number={i + 1}
-          base={e.color} backrest={e.backrest} armrest={e.armrest}
-          text={e.text} label={t(e.label)} />
+          base={e.base} backrest={e.backrest} armrest={e.armrest}
+          text={e.text} label={e.label}
+        />
       ))}
 
       {/* Divider */}
@@ -128,10 +157,34 @@ const LayoutLegend: React.FC<LayoutLegendProps> = ({
       {/* Condition entries */}
       {visibleConditions.map((c, i) => {
         const col = CONDITION_COLORS[c];
+
+        // In edit view: full condition colors everywhere (no split needed)
+        if (isEditView) {
+          return (
+            <LegendEntry key={c} number={i + 1}
+              base={col.base} backrest={col.backrest}
+              armrest={col.armrest} text={col.text}
+              label={col.label}
+            />
+          );
+        }
+
+        // In booking view: show two seats side by side —
+        //   left: available body + condition armrest
+        //   right: booked body + same condition armrest
+        // so the user understands armrest = condition, body = status
         return (
           <LegendEntry key={c} number={i + 1}
-            base={col.base} backrest={col.backrest} armrest={col.armrest}
-            text={col.text} label={t(col.label)} />
+            // Available body
+            base="#1B5E20" backrest="#2E7D32"
+            armrest={col.armrest}
+            text="#FFFFFF"
+            label={col.label}
+            // Booked body example
+            exampleBase="#616161"
+            exampleBackrest="#757575"
+            exampleText="#E0E0E0"
+          />
         );
       })}
     </div>

@@ -25,6 +25,7 @@ export interface Event {
   minimumAge?: number;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string;
   createdByUserId?: string;
   typicalStartTime?: string;
   typicalEndTime?: string;

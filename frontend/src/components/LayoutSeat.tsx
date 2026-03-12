@@ -10,51 +10,51 @@ export const CONDITION_COLORS: Record<
   { base: string; backrest: string; armrest: string; text: string; label: string }
 > = {
   Absent: {
-    base:     '#1a1a1a',
-    backrest: '#222222',
-    armrest:  '#111111',
-    text:     '#555555',
-    label:    'Absent',
+    base:     '#1a1a1a',   // near-black body — slot feels "empty"
+    backrest: '#111111',
+    armrest:  '#FF6D00',   // bright warning orange armrest — "this seat is marked"
+    text:     '#FF6D00',   // number in same orange so it's readable
+    label:    'Assente',
   },
   Unavailable: {
-    base:     '#7F0000',   // very deep crimson
+    base:     '#7F0000', // very deep crimson
     backrest: '#B71C1C',
     armrest:  '#4E0000',
     text:     '#FFCDD2',
     label:    'Unavailable',
   },
   RestrictedView: {
-    base:     '#BF360C',   // burnt sienna — "caution, but not danger"
+    base:     '#BF360C', // burnt sienna — "caution, but not danger"
     backrest: '#E64A19',
-    armrest:  '#870000',
+    armrest:  '#bf0606',
     text:     '#FBE9E7',
     label:    'Restricted view',
   },
   Premium: {
-    base:     '#F57F17',   // rich amber gold
+    base:     '#F57F17', // rich amber gold
     backrest: '#FF8F00',
-    armrest:  '#B35900',
-    text:     '#1A1A1A',   // dark text on gold — better contrast
+    armrest:  '#ffd012',
+    text:     '#1A1A1A', // dark text on gold — better contrast
     label:    'Premium',
   },
   Impaired: {
-    base:     '#004D6E',   // deep teal-blue
+    base:     '#004D6E', // deep teal-blue
     backrest: '#006064',
     armrest:  '#002F3E',
     text:     '#B2EBF2',
     label:    'Impaired',
   },
   Staff: {
-    base:     '#311B92',   // deep indigo
-    backrest: '#4527A0',
-    armrest:  '#1A0066',
-    text:     '#EDE7F6',
-    label:    'Staff',
+    base:     '#9E9E9E', // medium grey
+    backrest: '#BDBDBD',
+    armrest:  '#757575',
+    text:     '#424242',
+    label:    'Riservato staff',
   },
   Baby: {
-    base:     '#c310bd',   // deep raspberry / magenta
+    base:     '#c310bd', // deep raspberry / magenta
     backrest: '#ac0b9e',
-    armrest:  '#770a76',
+    armrest:  '#ee22ea',
     text:     '#FCE4EC',
     label:    'Baby',
   },
@@ -68,11 +68,13 @@ interface LayoutSeatProps {
   seatId: string;
   seatNumber: string;
   status: SeatStatus;
+  //resolvedStatus?: SeatStatus;
   onClick?: () => void;
   width?: number;
   height?: number;
   interactive?: boolean;
   specialCondition?: SpecialCondition;
+  bookingView?: boolean;
 }
 
 const LayoutSeat: React.FC<LayoutSeatProps> = ({
@@ -80,14 +82,17 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
   y,
   seatNumber,
   status,
+  resolvedStatus,
   onClick,
   width = 48,
   height = 48,
   interactive = false,
   specialCondition,
+  bookingView = false,
 }) => {
-  // Booking view: absent and staff seats are completely invisible
-  if (interactive && (specialCondition === 'Absent' || specialCondition === 'Staff')) {
+
+  // Hide absent seats completely, but only from the public booking view
+  if (bookingView && specialCondition === 'Absent') {
     return null;
   }
 
@@ -98,27 +103,80 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
   const armrestHeight  = 28;
   const isAbsentInEdit = !interactive && specialCondition === 'Absent';
 
-  const getColors = () => {
-    // Special condition overrides everything
-    if (specialCondition && CONDITION_COLORS[specialCondition]) {
-      return CONDITION_COLORS[specialCondition];
-    }
-    // Edit / preview mode — uniform velvet red
+  // Body colors: always status-based in booking view, always condition-based in edit view
+  const getBodyColors = () => {
     if (!interactive) {
-      return { base: '#730008', backrest: '#8E0A14', armrest: '#3B1F1F', text: '#f0f0f0', label: '' };
+      // Edit view — full condition color everywhere
+      if (specialCondition && CONDITION_COLORS[specialCondition]) {
+        return CONDITION_COLORS[specialCondition];
+      }
+      return { base: '#730008', backrest: '#8E0A14', text: '#f0f0f0' };
     }
-    // Booking mode — status colours
+    // Booking view — status drives the body
     switch (status) {
-      case 'available': return { base: '#1B5E20', backrest: '#2E7D32', armrest: '#145218', text: '#FFFFFF', label: '' };
-      case 'selected':  return { base: '#1565C0', backrest: '#1976D2', armrest: '#0D47A1', text: '#FFFFFF', label: '' };
-      case 'booked':    return { base: '#616161', backrest: '#757575', armrest: '#424242', text: '#E0E0E0', label: '' };
-      case 'reserved':  return { base: '#F57C00', backrest: '#FB8C00', armrest: '#E65100', text: '#FFFFFF', label: '' };
+      case 'available': return { base: '#1B5E20', backrest: '#2E7D32', text: '#FFFFFF' };
+      case 'selected':  return { base: '#1565C0', backrest: '#1976D2', text: '#FFFFFF' };
+      case 'booked':    return { base: '#616161', backrest: '#757575', text: '#E0E0E0' };
+      case 'reserved':  return { base: '#F57C00', backrest: '#FB8C00', text: '#FFFFFF' };
     }
   };
 
-  const colors   = getColors();
-  const isClickable = interactive && !specialCondition &&
-                      (status === 'available' || status === 'selected');
+  // Armrest colors: condition-based when a condition exists, otherwise follow body
+  const getArmrestColor = () => {
+    if (specialCondition && CONDITION_COLORS[specialCondition]) {
+      return CONDITION_COLORS[specialCondition].armrest;
+    }
+    return bodyColors.base; // No condition: match cushion as before
+  };
+
+  const bodyColors  = getBodyColors();
+  const armrestColor = getArmrestColor();
+  
+  // const getColors = () => {
+  //   // Special condition overrides everything
+  //   if (specialCondition && CONDITION_COLORS[specialCondition]) {
+  //     return CONDITION_COLORS[specialCondition];
+  //   }
+  //   // Edit / preview mode — uniform velvet red
+  //   if (!interactive) {
+  //     return { base: '#730008', backrest: '#8E0A14', armrest: '#3B1F1F', text: '#f0f0f0', label: '' };
+  //   }
+  //   // Booking mode — status colours
+  //   switch (status) {
+  //     case 'available': return { base: '#1B5E20', backrest: '#2E7D32', armrest: '#145218', text: '#FFFFFF', label: '' };
+  //     case 'selected':  return { base: '#1565C0', backrest: '#1976D2', armrest: '#0D47A1', text: '#FFFFFF', label: '' };
+  //     case 'booked':    return { base: '#616161', backrest: '#757575', armrest: '#424242', text: '#E0E0E0', label: '' };
+  //     case 'reserved':  return { base: '#F57C00', backrest: '#FB8C00', armrest: '#E65100', text: '#FFFFFF', label: '' };
+  //   }
+  // };
+
+  // const colors = getColors();
+  // const isClickable = interactive && !specialCondition && (
+  //   status === 'available' || status === 'selected'
+  // );
+  // const isClickable = interactive && (
+  //   !status || status === 'available' || status === 'selected'
+  // );
+
+  // const isClickable = interactive
+  //   && specialCondition !== 'Staff'
+  //   && specialCondition !== 'Absent'
+  //   && (!status || status === 'available' || status === 'selected')
+  // ;
+
+  // const haloColor = (() => {
+  //   const s = resolvedStatus ?? status;
+  //   if (specialCondition && s === 'booked')    return '#616161';
+  //   if (specialCondition && s === 'reserved')  return '#F57C00';
+  //   if (specialCondition && s === 'selected')  return '#1565C0';
+  //   return null;
+  // })();
+  
+  const isClickable = interactive
+    && !(bookingView && specialCondition === 'Absent')
+    && !(bookingView && specialCondition === 'Staff')
+    && (!status || status === 'available' || status === 'selected')
+  ;
 
   return (
     <g
@@ -126,56 +184,83 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
       onClick={isClickable ? onClick : undefined}
       className={isClickable ? 'seat-interactive' : ''}
       style={{
-        cursor:  isClickable ? 'pointer' : 'default',
+        cursor: isClickable ? 'pointer' : 'default',
         opacity: isAbsentInEdit ? 0.28 : 1,
       }}
     >
       {/* Hover highlight */}
       {isClickable && (
         <rect
-          x={-width / 2 - 4} y={-height / 2 - 4}
-          width={width + 8}   height={height + 8}
-          rx={8} fill="transparent"
+          x={-width / 2 - 4}
+          y={-height / 2 - 4}
+          width={width + 8}
+          height={height + 8}
+          rx={8}
+          fill="transparent"
           className="seat-hover-bg"
         />
       )}
 
       {/* ── Seat body — shifted up 4 px to fix geometry bias ── */}
       <g className="seat-visual" transform="translate(0, -4)">
+        {/* Halo color
+        {haloColor && (
+          <rect
+            x={-width / 2 - 3}
+            y={-seatBaseHeight / 2 - 3}
+            width={width + 6}
+            height={seatBaseHeight + backrestHeight + 2}
+            rx={8}
+            fill="none"
+            stroke={haloColor}
+            strokeWidth={3.5}
+            opacity={0.85}
+          />
+        )} */}
+
         {/* Cushion */}
         <rect
-          x={-seatBaseWidth / 2} y={-seatBaseHeight / 2}
-          width={seatBaseWidth}  height={seatBaseHeight}
-          rx={6} ry={6}
-          fill={colors.base} stroke={colors.armrest} strokeWidth="1.5"
+          x={-seatBaseWidth / 2}
+          y={-seatBaseHeight / 2}
+          width={seatBaseWidth}
+          height={seatBaseHeight}
+          rx={6}
+          ry={6}
+          fill={bodyColors.base} stroke={armrestColor} strokeWidth="1.5"
         />
         {/* Backrest */}
         <rect
-          x={-seatBaseWidth / 2 + 2} y={seatBaseHeight / 2 - 8}
-          width={seatBaseWidth - 4}   height={backrestHeight}
-          rx={4} ry={4}
-          fill={colors.backrest} stroke={colors.armrest} strokeWidth="1.5"
+          x={-seatBaseWidth / 2 + 2}
+          y={seatBaseHeight / 2 - 8}
+          width={seatBaseWidth - 4}
+          height={backrestHeight}
+          rx={4}
+          ry={4}
+          fill={bodyColors.backrest} stroke={armrestColor} strokeWidth="1.5"
         />
         {/* Left armrest */}
         <rect
           x={-width / 2} y={-armrestHeight / 2}
           width={armrestWidth} height={armrestHeight}
           rx={1} ry={1}
-          fill={colors.armrest} stroke={colors.armrest} strokeWidth="1"
+          fill={armrestColor} stroke={armrestColor} strokeWidth="1"
         />
         {/* Right armrest */}
         <rect
-          x={width / 2 - armrestWidth} y={-armrestHeight / 2}
-          width={armrestWidth}          height={armrestHeight}
+          x={width / 2 - armrestWidth}
+          y={-armrestHeight / 2}
+          width={armrestWidth}
+          height={armrestHeight}
           rx={1} ry={1}
-          fill={colors.armrest} stroke={colors.armrest} strokeWidth="1"
+          fill={armrestColor}
+          stroke={armrestColor} strokeWidth="1"
         />
         {/* Seat number — always full-size, always centered */}
         <text
           x={0} y={5}
           fontSize="14" fontWeight="bold"
           textAnchor="middle"
-          fill={colors.text}
+          fill={bodyColors.text}
           style={{ userSelect: 'none', pointerEvents: 'none' }}
         >
           {seatNumber}
@@ -185,10 +270,13 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
         {isAbsentInEdit && (
           <>
             <rect
-              x={-seatBaseWidth / 2} y={-seatBaseHeight / 2}
-              width={seatBaseWidth}  height={seatBaseHeight}
+              x={-seatBaseWidth / 2}
+              y={-seatBaseHeight / 2}
+              width={seatBaseWidth}
+              height={seatBaseHeight}
               rx={6}
-              fill="none" stroke="#FF5722"
+              fill="none"
+              stroke="#FF5722"
               strokeWidth={2} strokeDasharray="5 3"
             />
             <line x1={-8} y1={-8} x2={8} y2={8}

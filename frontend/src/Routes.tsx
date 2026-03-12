@@ -26,6 +26,7 @@ const Routes: React.FC = () => {
         <Route path="/event/new" element={<EventEdit />} />
         <Route path="/event/:id" element={<EventDetails />} />
         <Route path="/event/edit/:id" element={<PR requireOperator={true}><EventEdit /></PR>} />
+        <Route path="/event/:eventId/performance/:performanceId/book" element={<PerformanceBooking />} />
         <Route path="/theaters" element={<TheaterList />} />
         <Route path="/theater/new" element={<PR requireOperator={true}><TheaterEdit /></PR>} />
         {/* <Route path="/theater/:id" element={<TheaterSeating />} /> */}
@@ -35,7 +36,6 @@ const Routes: React.FC = () => {
         <Route path="/layouts" element={<PR requireOperator={false}><LayoutList /></PR>} />
         {/* <Route path="/layout/:json" element={<PR requireAdmin={true}><LayoutPreviewSVG /></PR>} /> */}
         {/* <Route path="/performance/:eventId/:performanceId" element={<TheaterSeating />} /> */}
-        <Route path="/event/:eventId/performance/:performanceId/book" element={<PerformanceBooking />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/unsubscribe/:token/:type?" element={<Unsubscribe />} />
         <Route path="/consent/:token/:type?" element={<ConsentEntry />} />

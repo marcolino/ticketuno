@@ -176,8 +176,10 @@ const EventDetails: React.FC = () => {
   // Handlers
   const handleAddPerformance = () => {
     
-   let nextDay: Dayjs | null = null;
-  
+    //let nextDay: Dayjs | null = null;
+    // By default we st thje first date of the event
+    let nextDay: Dayjs | null = event?.openingDate ? dayjs(event.openingDate) : null;
+    
     if (performances.length > 0) {
       // Filter out null/undefined dates and convert strings to Dayjs
       const validDates = performances

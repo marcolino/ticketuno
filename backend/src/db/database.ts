@@ -6,9 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { Migrator } from './migrator';
 import { User, NewUser } from '../shared/types/user';
 import { Theater, TheaterStatus, EventStatus, SeatStatus/*, Section*/, Seat } from '../shared/types/theater';
-import { Layout } from '../shared/types/layout';
+import { Layout, LockInfoRow } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
-import { GeneratedSeat } from '../shared/types/layoutToSeats';
+import { GeneratedSeat, SpecialCondition } from '../shared/types/layoutToSeats';
 import { FullConsent } from '../shared/types/consent';
 import config from '../config';
 
@@ -154,6 +154,7 @@ class Database {
         content_warnings TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME,
+        deleted_at DATETIME,
         FOREIGN KEY (theater_id) REFERENCES theaters(id),
         FOREIGN KEY (created_by_user_id) REFERENCES users(id)
       );
@@ -167,9 +168,6 @@ class Database {
         start_time TEXT NOT NULL,
         end_time TEXT,
         status TEXT DEFAULT 'scheduled',
-        -- REMOVED: available_seats INTEGER,
-        -- REMOVED: booked_seats INTEGER,
-        -- REMOVED: seat_data TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME,
         FOREIGN KEY (event_id) REFERENCES events(id)
@@ -194,7 +192,6 @@ class Database {
         FOREIGN KEY (booked_by_user_id) REFERENCES users(id)
       );
     `, 'CREATE seats');
-    //booked_by_user_id TEXT NULL if not booked,
     
     await execQuery(this.db!, `
       CREATE TABLE IF NOT EXISTS tokens (
@@ -612,15 +609,25 @@ class Database {
     return rows.map(row => this.mapRowToTheater(row));
   }
 
+  // TODO: in all get* add `AND !deleted_at` ...
   async getAllTheaters(): Promise<Theater[] | null> {
-    const sql = `SELECT * FROM theaters`;
+    const sql = `
+      SELECT *
+      FROM theaters
+      WHERE deleted_at IS NULL
+    `;
     const params: SqlParam[] = [];
     const rows = await allQuery(this.db!, sql, params, 'get all theaters');
     return rows ? this.mapRowsToTheaters(rows) : null;
   }
 
   async getTheaterById(id: string): Promise<Theater | null> {
-    const sql = `SELECT * FROM theaters WHERE id = ?`;
+    const sql = `
+      SELECT *
+      FROM theaters
+      WHERE id = ?
+      AND deleted_at IS NULL
+    `;
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get theater by id');
     return row ? this.mapRowToTheater(row) : null;
@@ -681,15 +688,10 @@ class Database {
     return result.changes > 0;
   }
 
-  //async deleteTheater(id: string): Promise<boolean> {
   async deleteTheater(id: string): Promise<{ deleted: boolean; reason?: string }> {
     const linked = await getQuery<{ count: number }>(
       this.db!, `
-        SELECT (
-          SELECT COUNT(*) FROM layouts WHERE theater_id = ? AND deleted_at IS NULL
-        ) + (
-          SELECT COUNT(*) FROM events WHERE theater_id = ?
-        ) as count
+        SELECT COUNT(*) FROM events WHERE theater_id = ? AND deleted_at IS NULL
       `,
       [id, id], 'check theater dependencies'
     );
@@ -697,7 +699,7 @@ class Database {
     if ((linked?.count ?? 0) > 0) {
       return {
         deleted: false,
-        reason: 'Theater has linked layouts or events'
+        reason: 'THEATER_HAS_LINKED_EVENTS'
       };
     }
 
@@ -706,7 +708,7 @@ class Database {
     const result = await runQuery(this.db!, sql, params, 'delete theater');
     return {
       deleted: result.changes > 0,
-      ...(result.changes === 0 && { reason: 'Theater was not found' })
+      ...(result.changes === 0 && { reason: 'THEATER_NOT_FOUND' })
     };
   }
 
@@ -751,10 +753,17 @@ class Database {
       SELECT id, name, description, json
       FROM layouts
       WHERE id = ?
+      AND deleted_at is NULL
     `;
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get layout by id');
-    return row ? this.mapRowToLayout(row) : null;
+    if (!row) return null;
+    
+    const layout = this.mapRowToLayout(row);
+    const lock = await this.getLayoutLockInfo(id);
+    layout.isEditable = lock.editable;
+    layout.lockInfo = lock.blockedBy ?? [];
+    return layout;
   }
 
   async getLayoutsByTheaterId(theaterId: string): Promise<Layout | null> {
@@ -762,10 +771,17 @@ class Database {
       SELECT id, name, description, json
       FROM layouts
       WHERE theater_id = ?
+      AND deleted_at is NULL
     `;
     const params = [theaterId];
     const row = await getQuery(this.db!, sql, params, 'get layout by theater id');
-    return row ? this.mapRowToLayout(row) : null;
+    if (!row) return null;
+
+    const layout = this.mapRowToLayout(row);
+    const lock = await this.getLayoutLockInfo(layout.id);
+    layout.isEditable = lock.editable;
+    layout.lockInfo   = lock.blockedBy ?? [];
+    return layout;
   }
 
   async getAllLayouts(): Promise<Array<{ id: string; json: string }> | null> {
@@ -776,13 +792,68 @@ class Database {
     `;
     const params: SqlParam[] = [];
     const rows = await allQuery(this.db!, sql, params, 'get all layouts');
-    return rows ? this.mapRowsToLayouts(rows) : null;
+    if (!rows) return null;
+
+    const layouts = this.mapRowsToLayouts(rows);
+    await Promise.all(layouts.map(async l => {
+      const lock = await this.getLayoutLockInfo(l.id);
+      l.isEditable = lock.editable;
+      l.lockInfo   = lock.blockedBy ?? [];
+    }));
+    return layouts;
   }
 
-  async updateLayout(id: string, updates: Partial<Layout>): Promise<boolean> {
+  async getLayoutLockInfo(layoutId: string): Promise<{
+    editable: boolean;
+    blockedBy?: Array<{ eventTitle: string; performanceDate: string; startTime: string; booked: number; reserved: number; }>
+  }> {
+    const sql = `
+      SELECT
+        e.title            AS eventTitle,
+        p.performance_date AS performanceDate,
+        p.start_time       AS startTime,
+        COUNT(CASE WHEN s.status = 'booked'    THEN 1 END) AS booked,
+        COUNT(CASE WHEN s.status = 'reserved'  THEN 1 END) AS reserved
+      FROM seats s
+      JOIN performances p ON p.id = s.performance_id
+      JOIN events e       ON e.id = p.event_id
+      JOIN theaters t     ON t.id = e.theater_id
+      WHERE t.current_layout_id = ?
+        AND s.status IN ('booked', 'reserved')
+      GROUP BY p.id
+      ORDER BY p.performance_date, p.start_time
+    `;
+    const rows = await allQuery<LockInfoRow>(this.db!, sql, [layoutId], 'get layout lock info');
+
+    if (!rows || rows.length === 0) return { editable: true };
+
+    return {
+      editable: false,
+      blockedBy: rows.map(r => ({
+        eventTitle: r.eventTitle,
+        performanceDate: r.performanceDate,
+        startTime: r.startTime,
+        booked: r.booked,
+        reserved: r.reserved,
+      }))
+    };
+  }
+
+  async updateLayout(id: string, updates: Partial<Layout>): Promise<{ updated: boolean; reason?: string, blockedBy?: LockInfoRow[]}> {
+    // Guard: refuse if layout is locked
+    const lock = await this.getLayoutLockInfo(id);
+    if (!lock.editable) {
+      return {
+        updated: false, // TODO: all 'reason's should be CODEs, and be translated on frontend
+        reason: 'LAYOUT_IS_LOCKED_SINCE_IT_HAS_RESERVED_OR_BOOKED_PERFORMANCE_SEATS',
+        blockedBy: lock.blockedBy,
+      };
+    }
+  
     const fields: string[] = [];
-    const values: (string | number)[] = [];
-    
+    //const values: (string | number)[] = [];
+    const values: (string | number | null)[] = [];
+
     const fieldMap: Record<string, string> = {
       name: 'name',
       description: 'description',
@@ -792,12 +863,14 @@ class Database {
     Object.entries(updates).forEach(([key, value]) => {
       if (fieldMap[key] && value !== undefined) {
         fields.push(`${fieldMap[key]} = ?`);
-        values.push(value!);
+        values.push(toSqlParam(value));
       }
     });
     
     if (fields.length === 0) {
-      return false;
+      return {
+        updated: false,
+      };
     }
 
     // fields.push('updated_at = ?');
@@ -807,22 +880,14 @@ class Database {
     const sql = `
       UPDATE layouts
       SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?`;
+      WHERE id = ?
+    `;
     const result = await runQuery(this.db!, sql, values, 'update layout');
-    return result.changes > 0;
+    return {
+      updated: result.changes > 0,
+    };
   }
 
-  // async deleteLayoutSoft_V1(id: string): Promise<boolean> {
-  //   const sql = `
-  //     UPDATE layouts
-  //     SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-  //     WHERE id = ?
-  //     AND id NOT IN (SELECT current_layout_id FROM theaters)
-  //   `;
-  //   const params = [id];
-  //   const result = await runQuery(this.db!, sql, params, 'soft delete layout');
-  //   return result.changes > 0;
-  // }
   async deleteLayoutSoft(id: string): Promise<boolean> {
     // Soft-delete the layout
     const sql = `
@@ -885,6 +950,7 @@ class Database {
       contentWarnings: row.content_warnings as string,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
+      deletedAt: row.deleted_at as string,
     };
   }
 
@@ -897,6 +963,7 @@ class Database {
     const sql = `
       SELECT *
       FROM events
+      WHERE deleted_at IS NULL
       ORDER BY
         canceled ASC,
         opening_date DESC,
@@ -920,6 +987,7 @@ class Database {
       SELECT *
       FROM events
       WHERE id = ?
+      AND deleted_at IS NULL
     `;
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get event by id');
@@ -1033,9 +1101,12 @@ class Database {
   }
 
   async deleteEvent(id: string): Promise<boolean> {
-    const sql = `DELETE FROM events WHERE id = ?`;
-    const params = [id];
-    const result = await runQuery(this.db!, sql, params, 'delete event');
+    const sql = `
+      UPDATE events
+      SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND deleted_at IS NULL
+    `;
+    const result = await runQuery(this.db!, sql, [id], 'soft delete event');
     return result.changes > 0;
   }
 
@@ -1226,12 +1297,17 @@ class Database {
 
   async bulkCreateSeats(
     performanceId: string,
-    seats: GeneratedSeat[]
+    seats: GeneratedSeat[],
+    seatConditions: Record<string, SpecialCondition> = {} 
   ): Promise<boolean> {
+    // Filter out physically absent seats — they should never be bookable
+    const bookableSeats = seats.filter(
+      s => seatConditions[s.seatId] !== 'Absent'
+    );
     const placeholders = seats.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
     const values: (string | number)[] = [];
     
-    seats.forEach(seat => {
+    bookableSeats.forEach(seat => {
       values.push(
         performanceId,
         seat.seatId,

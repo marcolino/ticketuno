@@ -104,8 +104,24 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
 // Protected: delete theater by id (operator only)
 router.delete('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
-    await database.deleteTheater(req.params.id);
-    res.json({ message: 'Theater deleted successfully' });
+    const response = await database.deleteTheater(req.params.id);
+    let reason;
+    switch (response.reason) {
+      case 'THEATER_HAS_LINKED_EVENTS':
+        reason = req.t('theater has linked events');
+        break;
+      case 'THEATER_NOT_FOUND':
+        reason = req.t('theater was not found');
+        break;
+      default:
+        reason = req.t('unspecified reason');
+        break;
+    }
+    res.json({
+      message: response.deleted ?
+        req.t('Theater deleted successfully') :
+        req.t('Theater could not be deleted: {{reason}}', {reason})
+    });
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to delete theater: {{err}}', { err: getErrorMessage(error) }) });
   }

@@ -7,7 +7,12 @@ common:
  - 2 - change " into ' (in JS, not in HTML) - OK
  - 2 - make a cookies popup (even if we only use localstorage for technical goals, and not cookies?) - OK
  - 1 - translate all to Italian and French and Chinese (use scripts/translate.js) - OK
-
+ - 1 - enforce a layout to be read-only when the layout is assigned to a theater, and that theater
+       is linked to at least one event, and that event has at least one performance where
+       at least one seat has been booked or reserved - OK
+ - 1 - change all reason's in database.ts to be uppercase codes, and handle them in frontend,
+       to be able to translate reasons and keep backend database code lean - OK
+       
  - 1 - remove all comments in code
  - 1 - resolve all TODO's in code
  - 1 - resolve all TypeScript warnings in code

@@ -10,6 +10,7 @@ export interface SeatWithStatus {
   sectionName: string;
   rowId: string;
   seatNumber: number;
+  displayNumber?: number;
   x: number;
   y: number;
   status?: SeatStatus;
@@ -22,6 +23,7 @@ interface LayoutPreviewSVGProps {
   interactive?: boolean;
   onSeatClick?: (seatId: string, currentStatus?: SeatStatus) => void;
   getSeatStatus?: (seat: SeatWithStatus) => SeatStatus;
+  bookingView?: boolean;
 }
 
 const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({ 
@@ -29,13 +31,15 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
   seats,
   interactive = false,
   onSeatClick,
-  getSeatStatus
+  getSeatStatus,
+  bookingView = false,
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // Zoom factor / zoom
-  const zoom = isMobile ? 1.0 : 0.75;
+  //const zoom = isMobile ? 1.0 : 0.75;
+  const zoom = 1;
 
   // Seat dimensions
   const seatWidth = 48;
@@ -182,12 +186,15 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
                       x={seat.x}
                       y={seat.y}
                       seatId={seat.seatId}
-                      seatNumber={seat.seatNumber.toString()}
+                      //seatNumber={seat.seatNumber.toString()}
+                      seatNumber={(seat.displayNumber ?? seat.seatNumber).toString()}
                       status={status}
+                      //resolvedStatus={getSeatStatus ? getSeatStatus(seat) : undefined}
                       width={seatWidth}
                       height={seatHeight}
                       interactive={interactive}
                       specialCondition={seat.specialCondition}
+                      bookingView={bookingView}
                       onClick={onSeatClick ? () => onSeatClick(seat.seatId, status) : undefined}
                     />
                   );

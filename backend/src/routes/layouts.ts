@@ -63,7 +63,25 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
       description: req.body.description,
       json: req.body.json, // Or JSON.stringify(req.body.json) if frontend sends parsed object
     };
-    await database.updateLayout(req.params.id, updates);
+    const response = await database.updateLayout(req.params.id, updates);
+    let reason;
+    switch (response.reason) {
+      case 'LAYOUT_IS_LOCKED_SINCE_IT_HAS_RESERVED_OR_BOOKED_PERFORMANCE_SEATS':
+        reason = req.t('theater has linked events');
+        break;
+      case 'THEATER_NOT_FOUND':
+        reason = req.t('theater was not found');
+        break;
+      default:
+        reason = req.t('unspecified reason');
+        break;
+    }
+    if (!response.updated && response.reason) {
+      return res.status(400).json({
+        message: req.t('Layout could not be updated: {{reason}}', { reason }),
+        blockedBy: response.blockedBy ?? [],
+      });
+    }
     res.sendStatus(204);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update layout: {{err}}', { err: getErrorMessage(error) }) });

@@ -156,13 +156,12 @@ function readJSON(filePath) {
 }
 
 /**
- * Write a JSON file, keys sorted descending-alphabetically
- * (matching the project convention for the source file)
+ * Write a JSON file, keys sorted ascending-alphabetically
  */
 function writeJSON(filePath, obj) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const sorted = Object.fromEntries(
-    Object.entries(obj).sort(([a], [b]) => b.localeCompare(a))
+    Object.entries(obj).sort(([a], [b]) => a.localeCompare(b))
   );
   fs.writeFileSync(filePath, JSON.stringify(sorted, null, 2) + '\n', 'utf8');
 }

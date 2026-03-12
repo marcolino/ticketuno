@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams/*, useNavigate*/ } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -25,14 +25,19 @@ import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
 import { Event, EventPerformance } from '@/shared/types/event';
 import { LayoutJSON } from '@/shared/types/layout';
-import { generateSeats, SeatStatus } from '@/shared/types/layoutToSeats';
+import {
+  generateSeats,
+  SeatStatus,
+  SpecialCondition,
+  applyDisplayNumbers
+} from '@/shared/types/layoutToSeats';
 import LayoutPreviewSVG, { SeatWithStatus } from './LayoutPreviewSVG';
+import LayoutLegend from './LayoutLegend';
 import config from '@/shared/config';
 
 interface SeatData {
   seatId: string;
   status: SeatStatus;
-  // Add other properties that come from API if needed
   [key: string]: any;
 }
 
@@ -49,37 +54,30 @@ const PerformanceBooking: React.FC = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md')); // xs and sm for mobile
-
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const showDialog = useDialog();
-  
-  const [performance, setPerformance] = useState<EventPerformance | null>(null);
-  const [event, setEvent] = useState<Event | null>(null);
-  const [layout, setLayout] = useState<LayoutJSON | null>(null);
-  const [seats, setSeats] = useState<SeatWithStatus[]>([]);
-  const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-//  const [confirmOpen, setConfirmOpen] = useState(false);
-  //const [loginPromptOpen, setLoginPromptOpen] = useState(false);
 
-  // Helper function to flatten nested seat data
+  // ── Raw state — set by loadPerformance only ──────────────────────────────
+  const [performance, setPerformance]       = useState<EventPerformance | null>(null);
+  const [event, setEvent]                   = useState<Event | null>(null);
+  const [layout, setLayout]                 = useState<LayoutJSON | null>(null);
+  const [seatStatusMap, setSeatStatusMap]   = useState<Map<string, SeatData>>(new Map());
+  const [selectedSeats, setSelectedSeats]   = useState<Set<string>>(new Set());
+  const [loading, setLoading]               = useState(true);
+  const [error, setError]                   = useState<string | null>(null);
+
+  // ── Helper ───────────────────────────────────────────────────────────────
   const flattenSeatsData = useCallback((data: PerformanceSeatsResponse): SeatData[] => {
     const allSeats: SeatData[] = [];
-    
-    // Iterate through each section (Galleria, Platea, etc.)
     Object.values(data).forEach(section => {
-      // Iterate through each row (A, B, C, etc.)
       Object.values(section).forEach(rowArray => {
-        // Add all seats from this row
         allSeats.push(...rowArray);
       });
     });
-    
     return allSeats;
   }, []);
 
-  // Load performance and seats
+  // ── Load — only sets raw state, no seat derivation here ─────────────────
   const loadPerformance = useCallback(async () => {
     if (!eventId || !performanceId) {
       setError(t('Missing event or performance ID'));
@@ -89,50 +87,26 @@ const PerformanceBooking: React.FC = () => {
 
     try {
       setLoading(true);
-      
-      // Get performance details
+
       const perfResponse = await eventApi.getPerformance(eventId, performanceId);
-      const performanceData = perfResponse.data;
-      setPerformance(performanceData);
-      
-      // Get event to access theater
+      setPerformance(perfResponse.data);
+
       const eventResponse = await eventApi.getEventById(eventId);
       const eventData = eventResponse.data;
       setEvent(eventData);
-      
+
       if (!eventData.theater?.currentLayoutId) {
         throw new Error('Theater layout not found');
       }
-      
-      // Get layout
+
       const layoutResponse = await layoutApi.getLayoutById(eventData.theater.currentLayoutId);
       const layoutData: LayoutJSON = JSON.parse(layoutResponse.data.json);
       setLayout(layoutData);
-      
-      // Generate seat positions from layout
-      const generatedSeats = generateSeats(layoutData);
-      
-      // Get seat statuses from backend
+
       const seatsResponse = await eventApi.getPerformanceSeats(eventId, performanceId);
-      
-      // Flatten the nested seat data
       const allSeatsData = flattenSeatsData(seatsResponse.data);
-      
-      // Create a map of seatId to status
-      const seatStatuses = new Map(
-        allSeatsData.map((seat: SeatData) => [seat.seatId, seat])
-      );
-      
-      // Merge positions with statuses
-      const seatsWithStatus: SeatWithStatus[] = generatedSeats.map(seat => {
-        const statusData = seatStatuses.get(seat.seatId);
-        return {
-          ...seat,
-          status: (statusData?.status as SeatStatus) || 'available'
-        };
-      });
-      
-      setSeats(seatsWithStatus);
+      setSeatStatusMap(new Map(allSeatsData.map(s => [s.seatId, s])));
+
       setError(null);
     } catch (err: any) {
       console.error('Error loading performance:', err);
@@ -141,16 +115,40 @@ const PerformanceBooking: React.FC = () => {
       setLoading(false);
     }
   }, [eventId, performanceId, t, flattenSeatsData]);
-  
+
   useEffect(() => {
-    if (eventId && performanceId) {
-      loadPerformance();
-    }
+    if (eventId && performanceId) loadPerformance();
   }, [eventId, performanceId, loadPerformance]);
 
-  // Handle seat click
+  // ── Step 1: merge layout positions + specialConditions ───────────────────
+  const generatedSeats = useMemo(() => {
+    if (!layout) return [];
+    const raw = generateSeats(layout);
+    const conditions = layout.seatConditions || {};
+    // return raw.map(seat => ({
+    //   ...seat,
+    //   specialCondition: conditions[seat.seatId] as SpecialCondition | undefined,
+    // }));
+    return applyDisplayNumbers(raw, conditions).map(seat => ({
+      ...seat,
+      specialCondition: conditions[seat.seatId] as SpecialCondition | undefined,
+    }));
+  }, [layout]);
+
+  // ── Step 2: merge with live booking statuses from API ────────────────────
+  const seats: SeatWithStatus[] = useMemo(() => {
+    return generatedSeats.map(seat => {
+      const statusData = seatStatusMap.get(seat.seatId);
+      return {
+        ...seat,
+        status: (statusData?.status as SeatStatus) || 'available',
+      };
+    });
+  }, [generatedSeats, seatStatusMap]);
+
+  // ── Seat interaction ─────────────────────────────────────────────────────
   const handleSeatClick = useCallback(async (seatId: string, currentStatus?: SeatStatus) => {
-     if (!isAuthenticated) {
+    if (!isAuthenticated) {
       await showDialog({
         title: t('Login Required'),
         content: t('You need to login to book seats. Please login or register to continue.'),
@@ -161,38 +159,56 @@ const PerformanceBooking: React.FC = () => {
       });
       return;
     }
-    
+
     if (currentStatus === 'booked' || currentStatus === 'reserved') {
       toast.error(t('This seat is not available'));
       return;
     }
 
     setSelectedSeats(prev => {
-      const newSelected = new Set(prev);
-      if (newSelected.has(seatId)) {
-        newSelected.delete(seatId);
-      } else {
-        newSelected.add(seatId);
-      }
-      return newSelected;
+      const next = new Set(prev);
+      if (next.has(seatId)) next.delete(seatId);
+      else next.add(seatId);
+      return next;
     });
-  }, [isAuthenticated, t, toast]);
+  }, [isAuthenticated, t, toast, navigate, showDialog]);
 
-  // Get seat status including selection
   const getSeatStatus = useCallback((seat: SeatWithStatus): SeatStatus => {
-    if (seat.status === 'booked' || seat.status === 'reserved') {
-      return seat.status;
-    }
-    if (selectedSeats.has(seat.seatId)) {
-      return 'selected';
-    }
+    //if (seat.status === 'booked' || seat.status === 'reserved') return seat.status;
+    // Important: we do show users the 'reserved' (by other users) seats as 'booked', to reduce confusion...
+    if (seat.status === 'booked' || seat.status === 'reserved') return 'booked'; 
+    if (selectedSeats.has(seat.seatId)) return 'selected';
     return 'available';
   }, [selectedSeats]);
-  
-  // Calculate total price
-  const totalPrice = useMemo(() => {
-    return selectedSeats.size * (event?.baseTicketPrice || 0);
-  }, [selectedSeats.size, event?.baseTicketPrice]);
+
+  // ── Derived ──────────────────────────────────────────────────────────────
+  const totalPrice = useMemo(() =>
+    selectedSeats.size * (event?.baseTicketPrice || 0),
+    [selectedSeats.size, event?.baseTicketPrice]
+  );
+
+  const activeConditions = useMemo(() => {
+    const found = new Set<SpecialCondition>();
+    seats.forEach(seat => { if (seat.specialCondition) found.add(seat.specialCondition); });
+    return [...found];
+  }, [seats]);
+
+  // ── Booking ──────────────────────────────────────────────────────────────
+  const confirmBooking = async () => {
+    if (!eventId || !performanceId) {
+      toast.error(t('Missing event or performance ID'));
+      return;
+    }
+    try {
+      await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
+      toast.success(t('Successfully booked {{count}} seats', { count: selectedSeats.size }));
+      setSelectedSeats(new Set());
+      await loadPerformance();
+    } catch (err: any) {
+      console.error('Booking error:', err);
+      toast.error(err.response?.data?.error || err.message || t('Booking failed'));
+    }
+  };
 
   const handleConfirmBooking = () => {
     showDialog({
@@ -205,7 +221,7 @@ const PerformanceBooking: React.FC = () => {
           <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2 }}>
             {Array.from(selectedSeats).join(', ')}
           </Paper>
-          {(config.app.reservations.purchases.gateway !== 'free') && (
+          {config.app.reservations.purchases.gateway !== 'free' && (
             <Typography variant="h6">
               {t('Total amount')}: ${totalPrice.toFixed(2)}
             </Typography>
@@ -217,78 +233,32 @@ const PerformanceBooking: React.FC = () => {
       onConfirm: confirmBooking,
       showCloseIcon: true,
     });
-  }
-
-  // Confirm booking
-  const confirmBooking = async () => {
-    if (!eventId) {
-      toast.error(t('No event id!'));
-      return;
-    }
-    if (!performanceId) {
-      toast.error(t('No performance id!'));
-      return;
-    }
-    
-    try {
-      await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
-      
-      toast.success(t('Successfully booked {{count}} seats', { count: selectedSeats.size }));
-      setSelectedSeats(new Set());
-      //setConfirmOpen(false);
-      
-      // Reload to get updated seat statuses
-      await loadPerformance();
-    } catch (err: any) {
-      console.error('Booking error:', err);
-      toast.error(err.response?.data?.error || err.message || t('Booking failed'));
-    }
   };
 
+  // ── Render ───────────────────────────────────────────────────────────────
   const whiteSeatIcon = <EventSeatIcon sx={{ color: 'white', fill: 'white', stroke: 'white' }} />;
 
-  if (loading) {
-    return null;
-  }
-  // if (loading) {
-  //   return (
-  //     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-  //       <CircularProgress />
-  //     </Box>
-  //   );
-  // }
+  if (loading) return null;
 
   if (error || !layout || !performance) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         <Alert severity="error">{error || t('Performance not found')}</Alert>
-        <Button 
-          startIcon={<ArrowBackIcon />} 
-          onClick={() => navigate(`/event/${eventId}`)} 
-          sx={{ mt: 2 }}
-        >
+        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/event/${eventId}`)} sx={{ mt: 2 }}>
           {t('Back to Event')}
         </Button>
       </Container>
     );
   }
-  
+
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
       <Container maxWidth="xl" sx={{ px: { xs: 0, sm: 4 }, mt: { xs: 2, sm: 4 }, mb: { xs: 2, sm: 4 } }}>
         <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
+
           {/* Header */}
           <Box sx={{ mb: { xs: 2, sm: 4 } }}>
-            {/* TODO: why back to ... ??? We usually use "Cancel", ad bo back ...
-            <Button
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate(`/event/${eventId}`)}
-              sx={{ mb: 2 }}
-            >
-              {t('Back to Event Bookings')}
-            </Button>
-            */}
-            <Typography variant={isMobile ? "h5" : "h4"} gutterBottom>
+            <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom>
               {t('Select Your Seats')}
             </Typography>
             <Typography variant="body1" color="text.secondary">
@@ -296,99 +266,42 @@ const PerformanceBooking: React.FC = () => {
             </Typography>
           </Box>
 
-          {/* Stage Indicator */}
-          {/* <Box
-            sx={{
-              mb: 4,
-              background: 'linear-gradient(to bottom, #fbbf24, #f59e0b)',
-              borderRadius: '100% 100% 0 0 / 30px 30px 0 0',
-              height: 50,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: 2,
-            }}
-          >
-            <Typography variant="h6" sx={{ color: 'rgba(0,0,0,0.7)', fontWeight: 'bold' }}>
-              {layout.stage.label || t('STAGE')}
-            </Typography>
-          </Box> */}
-
-          {/* Interactive Layout */}
-          <Box sx={{ 
-            width: '100%', 
-            mb: 4, 
-            overflowX: 'auto', 
-            overflowY: 'hidden',
-            bgcolor: '#f5f5f5', 
-            borderRadius: 2 
+          {/* Layout */}
+          <Box sx={{
+            width: '100%', mb: 4,
+            overflowX: 'auto', overflowY: 'hidden',
+            bgcolor: '#f5f5f5', borderRadius: 2,
           }}>
-            <Box
-              sx={{
-                minWidth: 600, // Force horizontal scroll on small screens
-                height: '100%',
-              }}
-            >
+            <Box sx={{ minWidth: 600, height: '100%' }}>
               <LayoutPreviewSVG
                 layout={layout}
                 seats={seats}
                 interactive={true}
+                bookingView={true}
                 onSeatClick={handleSeatClick}
                 getSeatStatus={getSeatStatus}
+              />
+              <LayoutLegend
+                conditions={activeConditions}
+                showStatusLegend={true}
+                isEditView={false}
               />
             </Box>
           </Box>
 
-          {/* Legend (desktop only) */}
-          {!isMobile && (
-            <Box sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: 2,
-              mb: 3,
-              flexWrap: 'wrap'
-            }}>
-              <Chip
-                icon={whiteSeatIcon}
-                label={t('Available')}
-                sx={{ bgcolor: '#2E7D32', color: 'white', px: 1 }}
-              />
-              <Chip
-                icon={whiteSeatIcon}
-                label={t('Selected')}
-                sx={{ bgcolor: '#1976D2', color: 'white', px: 1 }}
-              />
-              <Chip
-                icon={whiteSeatIcon}
-                label={t('Booked')}
-                sx={{ bgcolor: '#757575', color: 'white', px: 1 }}
-              />
-            </Box>
-          )}
-
-          {/* Booking Summary */}
+          {/* Booking summary */}
           {selectedSeats.size > 0 && (
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'flex-end', // ⬅ pushes buttons to ends
-                gap: 1,
-                mt: 1,
-              }}
-            >
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mt: 1 }}>
               <Button
-                variant="outlined"
-                color="inherit"
+                variant="outlined" color="inherit"
                 onClick={() => { setSelectedSeats(new Set()); navigate(-1); }}
                 startIcon={<CancelIcon />}
                 sx={{ mx: 2 }}
               >
                 {t('Cancel')}
               </Button>
-
               <Button
                 variant="contained"
-                size="medium"
                 onClick={handleConfirmBooking}
                 startIcon={<CheckCircleIcon />}
               >
@@ -397,84 +310,8 @@ const PerformanceBooking: React.FC = () => {
             </Box>
           )}
 
-          {/* Booking Summary */}
-          {/* {selectedSeats.size > 0 && (
-            <Button
-              fullWidth
-              variant="contained"
-              size="medium"
-              onClick={() => handleConfirmBooking()}
-              startIcon={<CheckCircleIcon />}
-            >
-              {t('Book {{ count }} seats now', { count: selectedSeats.size })}
-            </Button>
-          )} */}
-          {/* {selectedSeats.size > 0 && (
-            <Paper elevation={4} sx={{ 
-              p: 3, 
-              bgcolor: 'primary.light', 
-              position: 'sticky', 
-              bottom: 0 
-            }}>
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={12} md={6}>
-                  <Typography variant="h6" gutterBottom>
-                    {t('{{count}} seats selected', { count: selectedSeats.size })}
-                  </Typography>
-                  <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                    {Array.from(selectedSeats).join(', ')}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Typography variant="h4" align="center" fontWeight="bold">
-                    ${totalPrice.toFixed(2)}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    onClick={() => handleConfirmBooking()}
-                    startIcon={<CheckCircleIcon />}
-                  >
-                    {t('Book Now')}
-                  </Button>
-                </Grid>
-              </Grid>
-            </Paper>
-          )} */}
         </Paper>
       </Container>
-      
-      {/* <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
-        <DialogTitle>{t('Confirm Booking')}</DialogTitle>
-        <DialogContent>
-          <Typography gutterBottom>
-            {t('You are about to book {{count}} seat(s):', { count: selectedSeats.size })}
-          </Typography>
-          <Paper sx={{ p: 2, bgcolor: 'grey.100', mb: 2, fontFamily: 'monospace' }}>
-            {Array.from(selectedSeats).join(', ')}
-          </Paper>
-          <Divider sx={{ my: 2 }} />
-          <Typography variant="h6">
-            {t('Total')}: ${totalPrice.toFixed(2)}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button startIcon={<CancelIcon />} onClick={() => setConfirmOpen(false)}>
-            {t('Cancel')}
-          </Button>
-          <Button
-            startIcon={<CheckCircleIcon />}
-            variant="contained"
-            color="success"
-            onClick={confirmBooking}
-          >
-            {t('Confirm Booking')}
-          </Button>
-        </DialogActions>
-      </Dialog> */}
     </Box>
   );
 };
