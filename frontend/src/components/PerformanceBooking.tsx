@@ -8,15 +8,16 @@ import {
   Button,
   Paper,
   Alert,
-  Chip,
+  IconButton,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import {
-  EventSeat as EventSeatIcon,
+  //EventSeat as EventSeatIcon,
   CheckCircle as CheckCircleIcon,
   ArrowBack as ArrowBackIcon,
   Cancel as CancelIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { eventApi, layoutApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
@@ -236,7 +237,7 @@ const PerformanceBooking: React.FC = () => {
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
-  const whiteSeatIcon = <EventSeatIcon sx={{ color: 'white', fill: 'white', stroke: 'white' }} />;
+  //const whiteSeatIcon = <EventSeatIcon sx={{ color: 'white', fill: 'white', stroke: 'white' }} />;
 
   if (loading) return null;
 
@@ -257,13 +258,30 @@ const PerformanceBooking: React.FC = () => {
         <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
 
           {/* Header */}
-          <Box sx={{ mb: { xs: 2, sm: 4 } }}>
-            <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom>
-              {t('Select Your Seats')}
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              {t('Performance on')} {new Date(performance.performanceDate).toLocaleDateString()} {performance.startTime}
-            </Typography>
+          <Box
+            sx={{
+              mb: { xs: 2, sm: 4 },
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start' // aligns icon to top
+            }}
+          >
+            <Box>
+              <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom>
+                {t('Select Your Seats')}
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {t('Performance on')} {new Date(performance.performanceDate).toLocaleDateString()} {performance.startTime}
+              </Typography>
+            </Box>
+            <IconButton 
+              onClick={() => navigate(-1)}
+              aria-label="close"
+              size="large"
+              sx={{ mt: -1, mr: -1 }} // optional fine‑tuning to align with paper edge
+            >
+              <CloseIcon />
+            </IconButton>
           </Box>
 
           {/* Layout */}

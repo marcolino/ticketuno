@@ -21,6 +21,7 @@ import {
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
+import TagSelector from './TagSelector';
 import { theaterApi, layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,6 +36,15 @@ const TheaterEdit: React.FC = () => {
   const { isOperator } = useAuth();
 
   const isEditMode = id && id !== 'new';
+
+  // TODO: to config
+  const STAGE_PRESETS = [
+    t('Proscenium (Italian style)'),
+    t('Proscenium with Apron (prominent stage)'),
+    t('Arena (Circular o semi-circular)'),
+    t('Thrust '),
+    t('Black Box'),
+  ];
 
   const { returnTo, eventData } = (location.state || {}) as {
     returnTo?: string;
@@ -373,7 +383,17 @@ const TheaterEdit: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <TextField
+            <TagSelector
+              label={t('Stage Type')}
+              storageKey='eventStageCustom'
+              presetOptions={STAGE_PRESETS}
+              value={theaterData.stageType}
+              //onChange={handleInputChange}
+              onChange={(value) =>
+                setTheaterData({ ...theaterData, stageType: value })
+              }
+            />
+            {/* <TextField
               name="stageType"
               label={t('Stage Type')}
               value={theaterData.stageType}
@@ -386,8 +406,8 @@ const TheaterEdit: React.FC = () => {
                 - Arena: Circolare o semicircolare, circondato dal pubblico su più lati, creando maggiore vicinanza.
                 - A Spinta (Thrust): Una piattaforma che si estende nel pubblico, che circonda il palco su tre lati, unendo attori e spettatori.
                 - Scatola Nera (Black Box): Uno spazio scenico versatile, solitamente cubico e dipinto di nero, con il pubblico posizionato in modo flessibile. 
-              */
-            />
+              * /
+            /> */}
           </Grid>
 
           <Grid item xs={12} md={8}>

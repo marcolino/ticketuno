@@ -691,9 +691,12 @@ class Database {
   async deleteTheater(id: string): Promise<{ deleted: boolean; reason?: string }> {
     const linked = await getQuery<{ count: number }>(
       this.db!, `
-        SELECT COUNT(*) FROM events WHERE theater_id = ? AND deleted_at IS NULL
+        SELECT COUNT(*)
+        FROM events
+        WHERE theater_id = ?
+        AND deleted_at IS NULL
       `,
-      [id, id], 'check theater dependencies'
+      [id], 'check theater dependencies'
     );
 
     if ((linked?.count ?? 0) > 0) {
