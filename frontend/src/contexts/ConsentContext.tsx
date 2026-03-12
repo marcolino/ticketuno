@@ -217,11 +217,11 @@ export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ child
             position: 'fixed',
             bottom: 16, // sticky bottom banner style
             // Mobile: stretch with margins; larger screens: center with transform
-            left: { xs: 16, sm: '50%' },
-            right: { xs: 16, sm: 'auto' },
+            left: { xs: 1, sm: '50%' },
+            right: { xs: 1, sm: 'auto' },
             transform: { xs: 'none', sm: 'translateX(-50%)' },
             width: { xs: 'auto', sm: undefined }, // let maxWidth handle sm+
-            p: 3,
+            p: 2,
             boxShadow: 6,
           },
         }}
@@ -237,13 +237,14 @@ export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         <DialogContent dividers>
           {!setup ? (
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ maxHeight: { xs: '25vh', sm: '20vh' }, overflow: 'auto', py: 1 }} >
               {t(
-                'We use cookies and communication tools to improve your experience. You can accept all, reject all, or manage your preferences.'
+                //'We use cookies and communication tools to improve your experience. You can accept all, reject all, or manage your preferences.'
+                'We use cookies and similar technologies to ensure our theater events booking platform works properly, enhance your experience, and provide you with relevant information about upcoming shows. Strictly necessary cookies are always active as they are essential for the website to function. With your consent, we would also like to use analytics cookies to understand how visitors use our site and improve our services, as well as marketing cookies to personalize content and offers. In addition, you can choose to receive marketing emails and push notifications about new events, special promotions, and booking reminders. You can manage your preferences at any time. By clicking “Accept All,” you agree to the use of all cookies and communications. You may “Reject All” non-essential cookies and opt out of communications, or customize your settings below.'
               )}
             </Typography>
           ) : (
-            <>
+            <Box>
               <Box mt={2}>
                 <Typography variant="subtitle2">{t('Cookies')}</Typography>
                 
@@ -303,23 +304,27 @@ export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ child
                   />
                 )}
               </Box>
-            </>
+            </Box>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ justifyContent: 'flex-end', gap: 1 }}>
+        <DialogActions sx={{ justifyContent: 'flex-end', pt: 3}}>
           {!setup ? (
-            <>
-              <Button onClick={acceptAll} variant="contained">
-                {t('Accept All')}
-              </Button>
-              <Button onClick={rejectAll} variant="outlined">
-                {t('Reject All')}
-              </Button>
-              <Button onClick={() => openConsentDialog()} variant="outlined">
-                {t('Manage Preferences')}
-              </Button>
-            </>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <Button onClick={() => acceptAll()} variant="contained" sx={{ px: 4 }}>
+                  {t('Accept All')}
+                </Button>
+                <Button onClick={() => rejectAll()} variant="outlined">
+                  {t('Reject All')}
+                </Button>
+              </Box>
+              <Box sx={{ width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button onClick={() => openConsentDialog()} variant="outlined">
+                  {t('Preferences')}
+                </Button>
+              </Box>
+            </Box>
           ) : (
             <>
               <Button onClick={closeDialog}>{t('Cancel')}</Button>
