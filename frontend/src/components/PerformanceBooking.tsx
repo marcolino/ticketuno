@@ -202,7 +202,22 @@ const PerformanceBooking: React.FC = () => {
     }
     try {
       await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
+
+      // TODO: not a toast, a dialog, to tell success and email and show QRCode
+
       toast.success(t('Successfully booked {{count}} seats', { count: selectedSeats.size }));
+
+      /*
+        const email = user.email;
+        const userName = user.email;
+        const ... = ...;
+        await sendBookingConfirmationEmail(
+          email,
+          userName,
+          //...
+        );
+      */
+      
       setSelectedSeats(new Set());
       await loadPerformance();
     } catch (err: any) {

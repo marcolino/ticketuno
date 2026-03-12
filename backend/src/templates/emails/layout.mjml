@@ -21,6 +21,34 @@
           line-height:24px !important;
         }
       }
+
+      .booking-reference {
+        background-color: #f5f5f5;
+        padding: 10px;
+        border-radius: 5px;
+        font-weight: bold;
+        text-align: center;
+      }
+      .booking-details-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .booking-details-table td {
+        padding: 8px 0;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .booking-details-table tr:last-child td {
+        border-bottom: none;
+      }
+      .booking-label {
+        font-weight: bold;
+        color: #555;
+      }
+      .booking-total {
+        font-size: 18px;
+        font-weight: bold;
+        color: #2c3e50;
+      }
     </mj-style>
   </mj-head>
 

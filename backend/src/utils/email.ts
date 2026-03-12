@@ -8,17 +8,6 @@ import jwt from "jsonwebtoken";
 
 const EMAIL_SECRET = process.env.EMAIL_TOKEN_SECRET!;
 
-// export function generateMarketingUnsubscribeToken(userId: string) {
-//   return jwt.sign(
-//     {
-//       sub: userId,
-//       type: "marketing-unsubscribe"
-//     },
-//     EMAIL_SECRET,
-//     { expiresIn: "90d" }
-//   );
-// }
-
 export function verifyMarketingUnsubscribeToken(token: string) {
   return jwt.verify(token, EMAIL_SECRET) as {
     sub: string;
@@ -27,15 +16,6 @@ export function verifyMarketingUnsubscribeToken(token: string) {
 }
 
 export function generateConsentToken(userId: string, type: string = "consent") {
-  // const token = jwt.sign(
-  //   {
-  //     sub: userId,
-  //     type,
-  //   },
-  //   EMAIL_SECRET,
-  //   { expiresIn: "1h" }
-  // );
-
   try {
     const token = database.createToken(userId, type);
     return token;
@@ -45,10 +25,6 @@ export function generateConsentToken(userId: string, type: string = "consent") {
 }
 
 export function verifyConsentToken(token: string, type: string = "consent") {
-  // return jwt.verify(token, EMAIL_SECRET) as {
-  //   sub: string;
-  //   type: string;
-  // };
   return !!database.getUserByToken(token, type)
 }
 
@@ -68,7 +44,6 @@ export const sendVerificationEmail = async (email: string, code: string): Promis
     appName: config.app.name,
     code,
     expirationMinutes: config.auth.verificationCode.expirationMinutes,
-    //confirmUrl: `${config.app.baseUrl}/`, // TODO ...
   };
   const isMarketing = false;
 
@@ -90,8 +65,7 @@ export const sendWelcomeEmail = async (email: string, userName: string, ctaUrl: 
     appName: config.app.name,
     ctaUrl,
   };
-  //const isMarketing = false;
-  const isMarketing = true; // TODO: DEBUG ONLYYYYYYYYYYYYYYYYYYYYYYYYYY
+  const isMarketing = false;
 
   await emailService.send({
     to,
@@ -110,7 +84,6 @@ export const sendPasswordResetEmail = async (email: string, code: string): Promi
     appName: config.app.name,
     code,
     expirationMinutes: config.auth.verificationCode.expirationMinutes,
-    //confirmUrl: `${config.app.baseUrl}/`, // TODO ...
   };
   const isMarketing = true;
 
@@ -123,8 +96,49 @@ export const sendPasswordResetEmail = async (email: string, code: string): Promi
   });
 }
 
-/*
+export const sendBookingConfirmationEmail = async (
+  email: string,
+  eventName: string,
+  userName: string,
+  bookingReferenceNumber: string,
+  showName: string,
+  dateOfPerformance: string,
+  timeOfPerformance: string,
+  theaterName: string,
+  seatNumbers: string,
+  totalPaidAmount: string,
+  theaterPhone: string,
+  linkToTermsAndConditions: string,
+): Promise<void> => {
+  const to = email;
+  const subject = i18n.t('Your Booking Confirmation for {{eventName}}!', { appName: config.app.name });
+  const template = "bookingConfirmationEmail";
+  const variables = {
+    appName: config.app.name,
+    userName,
+    bookingReferenceNumber,
+    showName,
+    dateOfPerformance,
+    timeOfPerformance,
+    theaterName,
+    seatNumbers,
+    totalPaidAmount,
+    theaterPhone,
+    linkToTermsAndConditions,
+  };
 
+  const isMarketing = false;
+
+  await emailService.send({
+    to,
+    subject,
+    template,
+    variables,
+    isMarketing,
+  });
+}
+
+/*
 // Mock email sender - replace with real service (SendGrid, AWS SES, etc.)
 export const sendEmail = async (to: string, subject: string, body: string): Promise<void> => {
   console.log('===============================================');
@@ -145,21 +159,6 @@ This code will expire in {{expirationMinutes}} minutes.
 
 If you didn't request this, please ignore this email.
 `, {appName: config.app.name, code, expirationMinutes: config.auth.verificationCode.expirationMinutes});
-  
-  //await sendEmail(email, subject, body);
-};
-
-export const sendPasswordResetEmailOLD = async (email: string, code: string): Promise<void> => {
-  const subject = i18n.t('Reset your {{appName}} password', { appName: config.app.name });
-  const body = i18n.t(`
-You requested to reset your password.
-
-Your password reset code is: {{code}}
-
-This code will expire in {{expirationMinutes}} minutes.
-
-If you didn't request this, please ignore this email and your password will remain unchanged.
-`, {code, expirationMinutes: config.auth.verificationCode.expirationMinutes});
   
   //await sendEmail(email, subject, body);
 };
