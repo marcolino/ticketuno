@@ -216,8 +216,11 @@ export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ child
             borderRadius: 2,
             position: 'fixed',
             bottom: 16, // sticky bottom banner style
-            left: '50%',
-            transform: 'translateX(-50%)',
+            // Mobile: stretch with margins; larger screens: center with transform
+            left: { xs: 16, sm: '50%' },
+            right: { xs: 16, sm: 'auto' },
+            transform: { xs: 'none', sm: 'translateX(-50%)' },
+            width: { xs: 'auto', sm: undefined }, // let maxWidth handle sm+
             p: 3,
             boxShadow: 6,
           },
@@ -313,7 +316,7 @@ export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ child
               <Button onClick={rejectAll} variant="outlined">
                 {t('Reject All')}
               </Button>
-              <Button onClick={() => openConsentDialog()}>
+              <Button onClick={() => openConsentDialog()} variant="outlined">
                 {t('Manage Preferences')}
               </Button>
             </>
