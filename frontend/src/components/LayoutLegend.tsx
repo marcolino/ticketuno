@@ -112,9 +112,9 @@ const LayoutLegend: React.FC<LayoutLegendProps> = ({
   // ── Status entries (booking view) ─────────────────────────────────────────────
   const STATUS_ENTRIES = [
     { base: '#1B5E20', backrest: '#2E7D32', armrest: '#145218', text: '#fff', label: t('Available') },
-    { base: '#616161', backrest: '#757575', armrest: '#424242', text: '#eee', label: t('Booked') },
-    //{ base: '#F57C00', backrest: '#FB8C00', armrest: '#E65100', text: '#fff', label: 'Riservato'     },
     { base: '#1565C0', backrest: '#1976D2', armrest: '#0D47A1', text: '#fff', label: t('Selected') },
+  //{ base: '#F57C00', backrest: '#FB8C00', armrest: '#E65100', text: '#fff', label: 'Riservato'     },
+    { base: '#616161', backrest: '#757575', armrest: '#424242', text: '#eee', label: t('Booked') },
   ];
   // Important: we do show users the 'reserved' (by other users) seats as 'booked', to reduce confusion...
 
