@@ -1,7 +1,9 @@
 import { Router, Request, Response } from 'express';
 import QRCode from 'qrcode';
 import multer from "multer";
-import Jimp from 'jimp';
+//import Jimp from 'jimp';
+//import * as Jimp from 'jimp';
+import { Jimp } from 'jimp';
 import jsQR from 'jsqr';
 import { sign, verify } from '../services/hmacService';
 import {
