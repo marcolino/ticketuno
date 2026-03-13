@@ -98,10 +98,9 @@ export const sendPasswordResetEmail = async (email: string, code: string): Promi
 
 export const sendBookingConfirmationEmail = async (
   email: string,
-  eventName: string,
   userName: string,
+  eventName: string,
   bookingReferenceNumber: string,
-  showName: string,
   dateOfPerformance: string,
   timeOfPerformance: string,
   theaterName: string,
@@ -114,10 +113,10 @@ export const sendBookingConfirmationEmail = async (
   const subject = i18n.t('Your Booking Confirmation for {{eventName}}!', { appName: config.app.name });
   const template = "bookingConfirmationEmail";
   const variables = {
-    appName: config.app.name,
+    //appName: config.app.name,
     userName,
+    eventName,
     bookingReferenceNumber,
-    showName,
     dateOfPerformance,
     timeOfPerformance,
     theaterName,

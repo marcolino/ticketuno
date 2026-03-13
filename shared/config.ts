@@ -42,6 +42,11 @@ const config: AppConfig = {
       },
     },
     reservations: {
+      ticketing: {
+        useQrcode: false,
+        qrcode: {
+        },
+      },
       purchases: {
         gateways: {
           'free': {}, // no payment requested

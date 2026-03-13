@@ -43,6 +43,11 @@ export interface AppConfig {
       },
     },
     reservations: {
+      ticketing: {
+        useQrcode: boolean;
+        qrcode: {
+        },
+      },
       purchases: {
         gateways: Record<string, Record<string, unknown>>;
         gateway: string;

@@ -448,6 +448,41 @@ export const eventApi = {
     api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
 };
 
+export const bookingApi = {
+  sendBookingConfirmationEmail: (
+    email: string,
+    userName: string,
+    eventName: string,
+    bookingReferenceNumber: string,
+    dateOfPerformance: string,
+    timeOfPerformance: string,
+    theaterName: string,
+    seatNumbers: string,
+    totalPaidAmount: string,
+    theaterPhone: string,
+    linkToTermsAndConditions: string,
+  ) =>
+    api.post('/emails/send', {
+      to: email,
+      subject: `Your Booking Confirmation for ${eventName}!`,
+      template: 'bookingConfirmationEmail',
+      isMarketing: false,
+      variables: {
+        userName,
+        eventName,
+        bookingReferenceNumber,
+        dateOfPerformance,
+        timeOfPerformance,
+        theaterName,
+        seatNumbers,
+        totalPaidAmount,
+        theaterPhone,
+        linkToTermsAndConditions,
+      },
+    }
+  ),
+};
+
 export const imageApi = {
   upload: (file: File | Blob, imageType: string) => {
     const formData = new FormData();

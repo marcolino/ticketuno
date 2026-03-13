@@ -19,7 +19,7 @@ import {
   Cancel as CancelIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { eventApi, layoutApi } from '@/services/api';
+import { eventApi, layoutApi, bookingApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
@@ -51,7 +51,7 @@ export interface PerformanceSeatsResponse {
 const PerformanceBooking: React.FC = () => {
   const { t } = useTranslation();
   const { eventId, performanceId } = useParams<{ eventId: string; performanceId: string }>();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -203,26 +203,59 @@ const PerformanceBooking: React.FC = () => {
     try {
       await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
 
-      // TODO: not a toast, a dialog, to tell success and email and show QRCode
+      // user
+      // performance
+      // event
+      // layout
+    
+      //toast.success(t('Successfully booked {{count}} seats', { count: selectedSeats.size }));
+      // TODO: get user, event, performance, booking data...
+      const email = user!.email; //'marcosolari@gmail.com';
+      const userName = 'Marco';
+      const eventName = 'La Bisbetica Domata';
+      const bookingReferenceNumber = '324123jnwfdgjkje43';
+      const dateOfPerformance = '01/04/2026';
+      const timeOfPerformance = '20:30';
+      const theaterName = 'Il Regio di Torino';
+      const seatNumbers = 'Platea-C-12';
+      const totalPaidAmount = '52€';
+      const theaterPhone = '+39 333 6480983'; // TODO: put in settings
+      const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: create page, and derive link from config
 
-      toast.success(t('Successfully booked {{count}} seats', { count: selectedSeats.size }));
-
-      /*
-        const email = user.email;
-        const userName = user.email;
-        const ... = ...;
-        await sendBookingConfirmationEmail(
-          email,
-          userName,
-          //...
-        );
-      */
+      const response = await bookingApi.sendBookingConfirmationEmail(
+        email,
+        userName,
+        eventName,
+        bookingReferenceNumber,
+        dateOfPerformance,
+        timeOfPerformance,
+        theaterName,
+        seatNumbers,
+        totalPaidAmount,
+        theaterPhone,
+        linkToTermsAndConditions,
+      );
+      console.log("SEND BOOKING CONFIRMATION EMAIL RESPONSE:", response); // TODO: REMOVE ME
       
+      await showDialog({
+        title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
+        content:
+          t('You will soon receive an email with booking confirmation, and the {{count}} tickets.', { count: selectedSeats.size }) + '\n\n' +
+          (config.app.reservations.ticketing.useQrcode ? t('Each email will have attached the real ticket with a QR code: feel free to print it or show it at the theater on your mobile device.') : ''),
+        onConfirm: () => navigate('/'),
+        confirmText: 'Ok',
+        //shrinkToContent: false,
+      });
+
+      //audit('booking', 'success', ...);
+
       setSelectedSeats(new Set());
-      await loadPerformance();
+      //await loadPerformance();
     } catch (err: any) {
       console.error('Booking error:', err);
       toast.error(err.response?.data?.error || err.message || t('Booking failed'));
+
+      //audit('booking', 'error', ...);
     }
   };
 

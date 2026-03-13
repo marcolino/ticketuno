@@ -21,8 +21,8 @@
 
 <mj-table>
   <tr class="booking-details-table">
-    <td class="booking-label">{{t "Show"}}:</td>
-    <td>{{showName}}</td>
+    <td class="booking-label">{{t "Event"}}:</td>
+    <td>{{eventName}}</td>
   </tr>
   <tr class="booking-details-table">
     <td class="booking-label">{{t "Date"}}:</td>
@@ -37,8 +37,8 @@
     <td>{{theaterName}}</td>
   </tr>
   <tr class="booking-details-table">
-    <td class="booking-label">{{t "Seat"}}:</td>
-    <td>{{seatNumber}}</td>
+    <td class="booking-label">{{t "Seats"}}:</td>
+    <td>{{seatNumbers}}</td>
   </tr>
 </mj-table>
 

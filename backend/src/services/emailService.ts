@@ -111,6 +111,8 @@ class EmailService {
         path.join(this.templatePath, 'body', `${template}.mjml`), 'utf-8'
       );
 
+      variables.seatNumbers = variables.seatNumbers && variables.seatNumbers.toString().replace(',', ',\n');
+      variables.appName = config.app.name;
       variables.logoUrl = `https://ticketuno.fly.dev/images/logo.png`; // TODO: use config, but always prod url even when developing
 
       const contentCompiled = Handlebars.compile(contentFile)({
