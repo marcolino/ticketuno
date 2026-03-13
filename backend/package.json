@@ -4,7 +4,7 @@
   "description": "Theater ticket reservation system, backend",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "NODE_ENV=development PORT=3001 ts-node-dev --respawn src/server.ts",
+    "dev": "NODE_ENV=development PORT=3001 ts-node-dev --respawn --watch src/templates src/server.ts",
     "start": "NODE_ENV=development PORT=3001 node dist/server.js",
     "lint": "eslint src",
     "test": "echo 'vitest run (TODO)'",
