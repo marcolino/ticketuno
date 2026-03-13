@@ -19,9 +19,10 @@ import {
   Cancel as CancelIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { eventApi, layoutApi, bookingApi } from '@/services/api';
+import { eventApi, layoutApi, theaterApi, bookingApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
+import { useSetup } from '@/contexts/SetupContext';
 import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
 import { Event, EventPerformance } from '@/shared/types/event';
@@ -57,6 +58,7 @@ const PerformanceBooking: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const showDialog = useDialog();
+  const setup = useSetup();
 
   // ── Raw state — set by loadPerformance only ──────────────────────────────
   const [performance, setPerformance]       = useState<EventPerformance | null>(null);
@@ -207,22 +209,26 @@ const PerformanceBooking: React.FC = () => {
       // performance
       // event
       // layout
-    
+
+      // Load theater
+      const responseTheater = await theaterApi.getTheaterById(event!.theaterId);
+      const theater = responseTheater.data;
+      
       //toast.success(t('Successfully booked {{count}} seats', { count: selectedSeats.size }));
       // TODO: get user, event, performance, booking data...
-      const email = user!.email; //'marcosolari@gmail.com';
-      const userName = 'Marco';
-      const eventName = 'La Bisbetica Domata';
-      const bookingReferenceNumber = '324123jnwfdgjkje43';
-      const dateOfPerformance = '01/04/2026';
-      const timeOfPerformance = '20:30';
-      const theaterName = 'Il Regio di Torino';
-      const seatNumbers = 'Platea-C-12';
-      const totalPaidAmount = '52€';
-      const theaterPhone = '+39 333 6480983'; // TODO: put in settings
+      const email = user?.email || ''; //'marcosolari@gmail.com';
+      const userName = user?.firstName || '';
+      const eventName = event?.title || '';
+      const dateOfPerformance = performance?.performanceDate || '';
+      const timeOfPerformance = performance?.startTime || '';
+      const theaterName = theater.name || '';
+      const bookingReferenceNumber = '324123jnwfdgjkje43'; // TODO
+      const seatNumbers = 'Platea-C-12'; // TODO
+      const totalPaidAmount = String(totalPrice || 0);
+      const theaterPhone = '+39 333 6480983';  // theater.infoPhone; // TODO: put in theater
       const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: create page, and derive link from config
 
-      const response = await bookingApi.sendBookingConfirmationEmail(
+      const responseSendEmail = await bookingApi.sendBookingConfirmationEmail(
         email,
         userName,
         eventName,
@@ -235,7 +241,7 @@ const PerformanceBooking: React.FC = () => {
         theaterPhone,
         linkToTermsAndConditions,
       );
-      console.log("SEND BOOKING CONFIRMATION EMAIL RESPONSE:", response); // TODO: REMOVE ME
+      console.log("SEND BOOKING CONFIRMATION EMAIL RESPONSE:", responseSendEmail); // TODO: REMOVE ME
       
       await showDialog({
         title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
