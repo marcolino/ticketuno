@@ -10,7 +10,9 @@ import theaterRoutes from './routes/theaters';
 import eventRoutes from './routes/events';
 import layoutRoutes from './routes/layouts';
 import imageRoutes from './routes/images';
-//import emailRoutes from './routes/emails';
+//import qrcodeRoutes from './routes/qrcodes';
+//import ticketRoutes from './routes/tickets';
+import emailRoutes from './routes/emails';
 import setupRoutes from './routes/setup';
 import { database } from './db/database'; // import database AFTER config
 import config from './config';
@@ -119,7 +121,8 @@ app.use(`${prefix}/theaters`, theaterRoutes);
 app.use(`${prefix}/layouts`, layoutRoutes);
 app.use(`${prefix}/events`, eventRoutes);
 app.use(`${prefix}/images`, imageRoutes);
-//app.use(`${prefix}/emails`, emailRoutes);
+//app.use(`${prefix}/tickets`, ticketRoutes);
+app.use(`${prefix}/emails`, emailRoutes);
 app.use(`${prefix}/setup`, setupRoutes);
 
 // app.get(`${prefix}/`, (req, res) => {

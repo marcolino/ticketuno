@@ -1,10 +1,8 @@
 import { Router } from 'express';
-//import resend from '../services/emailService';
 import emailService from '../services/emailService';
-//import { /*verifyConsentToken, verifyMarketingUnsubscribeToken*/ } from '../utils/email';
 import { getErrorMessage } from '../utils/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
-//import config from '../config';
+import config from '../config';
 
 const router = Router();
 
@@ -33,42 +31,43 @@ router.post('/send', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
-// router.post('/verifyMarketingUnsubscribeToken', async (req, res) => {
-//   try {
-//     const { token } = req.body;
+// Public, dev only: Preview email template
+router.get('/preview/:template', async (req, res) => {
+  const template = req.params.template;
+  const to = req.body.to ?? 'marcosolari@gmail.com';
+  const subject = req.body.subject ?? 'Preview Subject';
+  const variables = {
+    appName: config.app.name,
+    userName: 'Marco',
+    bookingReferenceNumber: 'kjgf345lknf3r934',
+    showName: 'La Bisbetica Domata',
+    dateOfPerformance: '01/04/2026',
+    timeOfPerformance: '20:30',
+    theaterName: 'Il Teatro Regio di Torino',
+    seatNumber: 'Platea-12-C',
+    totalPaidAmount: '50€',
+    theaterPhone: '+39 333 6480983',
+    linkToTermsAndConditions: 'https://ticketuno.fly.dev/terms-and-conditions', // TODO...
 
-//     // Validation
-//     if (!token) {
-//       return res.status(400).json({ error: req.t('Token is not set, it is invaid') });
-//     }
+  }; // TODO: these variables depend on template...
+  const lang = req.body.lang ?? 'it';
+  const text = 'Please view this email in HTML format.';
+  const html = '';
+  const isMarketing = false;
+  const options = {
+    to,
+    template,
+    subject,
+    variables,
+    lang,
+    text,
+    html,
+    isMarketing,
+  };
+  const payload = await emailService.prepare(options);
 
-//     verifyMarketingUnsubscribeToken(token);
-
-//     res.json({ message: req.t('Token is valid') });
-//   } catch (error: unknown) {
-//     res.status(500).json({ error: getErrorMessage(error) });
-//   }
-// });
-
-/*
-router.post('/verifyConsentToken/:type', async (req, res) => {
-  try {
-    const { token } = req.body;
-    const { type } = req.params;
-
-    // Validation
-    if (!token) {
-      return res.status(400).json({ error: req.t('Token is not set, it is invaid') });
-    }
-
-    verifyConsentToken(token, type);
-
-    res.json({ message: req.t('Token is valid') });
-  } catch (error: unknown) {
-    res.status(500).json({ error: getErrorMessage(error) });
-  }
+  res.send(payload.html ?? payload.text);
 });
-*/
 
 router.post('/webhook/resend', async (req, res) => {
   try {

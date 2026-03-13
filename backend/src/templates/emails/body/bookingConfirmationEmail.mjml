@@ -1,21 +1,22 @@
-<mj-text align="center" font-size="21px" font-weight="600">
+<mj-text font-size="21px" font-weight="600">
   {{t "Dear"}} {{userName}}!
 </mj-text>
 
-<mj-text align="center" padding-top="18px">
-  {{t "Thank you for booking with us! We are excited to confirm your tickets for the upcoming performance."}}
+<mj-text padding-top="18px">
+  {{t "Thank you for booking with us!"}}
+  {{t "We are excited to confirm your tickets for the upcoming performance."}}
 </mj-text>
 
 <!-- Booking Reference -->
 <mj-text css-class="booking-reference" font-size="18px">
-  {{t "Your Booking Reference Number"}}:<i>{{bookingReferenceNumber}}</i>
+  {{t "Your Booking Ref. Number"}} is <span style="background-color:#d4a373; padding: 5px; border-radius: 5px;">{{bookingReferenceNumber}}</span>
 </mj-text>
 
 <mj-divider border-color="#d4a373" border-width="2px" />
 
 <!-- Performance Details Title -->
 <mj-text font-size="18px" font-weight="bold" color="#2c3e50">
-  <b>{{t "Performance Details"}}</b>
+  <b>{{t "Performance Details"}}:</b>
 </mj-text>
 
 <mj-table>
@@ -35,19 +36,9 @@
     <td class="booking-label">{{t "Venue"}}:</td>
     <td>{{theaterName}}</td>
   </tr>
-</mj-table>
-
-<mj-spacer height="20px" />
-
-<!-- Seat Details -->
-<mj-text font-size="18px" font-weight="bold" color="#2c3e50">
-  {{ t "Seat Details"}}
-</mj-text>
-
-<mj-table>
   <tr class="booking-details-table">
-    <td class="booking-label">{{t "Seats"}}:</td>
-    <td>{{seatNumbers}}</td>
+    <td class="booking-label">{{t "Seat"}}:</td>
+    <td>{{seatNumber}}</td>
   </tr>
 </mj-table>
 
@@ -60,17 +51,19 @@
 <mj-divider border-color="#d4a373" border-width="2px" />
 
 <mj-text font-size="18px" font-weight="bold" color="#2c3e50">
-  📎 {{t "Your Tickets"}}
+  📎 {{t "Your Ticket"}} 
 </mj-text>
 
 <mj-text>
-  {{t "Your e-tickets are attached to this email as a QR-Code"}}.
-  {{t "Please either print them out or have them ready to scan on your mobile device upon arrival at the theater"}}.
+  {{t "Your e-ticket is attached to this email as a QR-Code"}}.<br />
+  {{t "Please either print it out or have it ready to scan on your mobile device upon arrival at the theater"}}.
 </mj-text>
 
+<!--
 <mj-button href="#" background-color="#d4a373">
   {{t "View My Tickets Online"}}
 </mj-button>
+-->
 
 <mj-divider border-color="#d4a373" border-width="2px" />
 
@@ -87,7 +80,7 @@
 <mj-spacer height="10px" />
 
 <mj-text font-size="18px" font-weight="bold" color="#2c3e50">
-  {{t "Cancellation Policy"}}
+  {{t "Cancelation Policy"}}
 </mj-text>
 
 <mj-text>
@@ -100,12 +93,10 @@
 <mj-divider border-color="#d4a373" border-width="2px" />
 
 <mj-text>
-  {{t "We look forward to welcoming you to the theater!"}}
+  {{t "We look forward to welcome you to the theater!"}}
 </mj-text>
 
 <mj-text font-size="18px" font-weight="bold">
-  {{t "Best regards"}},
-</mj-text>
-<mj-text font-size="18px" font-weight="bold">
+  {{t "Best regards"}}, <br />
   {{t "The"}} {{appName}} {{t "team"}}.
 </mj-text>

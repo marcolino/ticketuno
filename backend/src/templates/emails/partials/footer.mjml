@@ -17,7 +17,7 @@
     </mj-text>
 
     <mj-text align="center" font-size="11px" line-height="16px" color="#ffffff" padding="0">
-      © {{copyrightYear}} {{appName}}. {{t "All rights reserved."}}
+      © {{copyrightYear}} {{appName}}. {{t "All rights reserved."}}...
     </mj-text>
   </mj-column>
 </mj-section>

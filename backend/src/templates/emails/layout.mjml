@@ -32,6 +32,7 @@
       .booking-details-table {
         width: 100%;
         border-collapse: collapse;
+        font-size: 16px;
       }
       .booking-details-table td {
         padding: 8px 0;

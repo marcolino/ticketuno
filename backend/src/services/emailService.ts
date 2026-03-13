@@ -6,7 +6,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import Handlebars from 'handlebars';
 import { database } from '../db/database';
-//import { generateConsentToken } from '../utils/email';
 import config from '../config';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
@@ -53,7 +52,25 @@ class EmailService {
     this.partialsRegistered = true;
   }
 
+  // Public: send email
   async send(options: SendEmailOptions & { lang?: string }) {
+    const payload = await this.prepare(options); // Prepare the email payload
+
+    // Call the real email send service
+    try {
+      const response = await resend.emails.send(payload);
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      console.log('Email sent:', response.data?.id);
+      return response.data;
+    } catch (err: unknown) {
+      console.error('Email send failed:', err);
+      throw err;
+    }
+  }
+
+  async prepare(options: SendEmailOptions & { lang?: string }) {
     const {
       to,
       subject,
@@ -66,7 +83,7 @@ class EmailService {
     } = options;
 
     if (!config.email.from) {
-      throw new Error('Email FROM is not defined in environment');
+      throw new Error('Email FROM is not defined in environment'); // TODO: yse i18n.t ???
     }
     
     const recipients = Array.isArray(to) ? to : [to];
@@ -163,18 +180,7 @@ class EmailService {
       }
     ;
     
-    // Call the real email send service
-    try {
-      const response = await resend.emails.send(payload);
-      if (response.error) {
-        throw new Error(response.error.message);
-      }
-      console.log('Email sent:', response.data?.id);
-      return response.data;
-    } catch (err: unknown) {
-      console.error('Email send failed:', err);
-      throw err;
-    }
+    return payload;
   }
 }
 
