@@ -55,6 +55,11 @@
     "play-ko": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/finish.wav"
   },
   "devDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/material": "^7.3.9",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "concurrently": "^8.2.2",
     "i18n-auto-translation": "^1.0.1",
     "i18next-cli": "^1.34.1"

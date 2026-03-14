@@ -22,7 +22,7 @@ import {
 import { eventApi, layoutApi, theaterApi, bookingApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
-import { useSetup } from '@/contexts/SetupContext';
+//import { useSetup } from '@/contexts/SetupContext';
 import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
 import { Event, EventPerformance } from '@/shared/types/event';
@@ -58,7 +58,8 @@ const PerformanceBooking: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const showDialog = useDialog();
-  const setup = useSetup();
+  const [forceLoadPerformance, setForceLoadPerformance] = useState(false);
+  //const setup = useSetup();
 
   // ── Raw state — set by loadPerformance only ──────────────────────────────
   const [performance, setPerformance]       = useState<EventPerformance | null>(null);
@@ -117,7 +118,7 @@ const PerformanceBooking: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [eventId, performanceId, t, flattenSeatsData]);
+  }, [eventId, performanceId, t, flattenSeatsData, forceLoadPerformance]);
 
   useEffect(() => {
     if (eventId && performanceId) loadPerformance();
@@ -203,13 +204,16 @@ const PerformanceBooking: React.FC = () => {
       return;
     }
     try {
-      await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
-
-      // user
-      // performance
-      // event
-      // layout
-
+      const responseBooking = await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
+      const booking = responseBooking.data;
+      console.log("****************** BOOKING:", booking);
+      /*
+        message
+        bookedSeats
+        bookingId
+        unavailableSeats
+      */
+      
       // Load theater
       const responseTheater = await theaterApi.getTheaterById(event!.theaterId);
       const theater = responseTheater.data;
@@ -259,6 +263,29 @@ const PerformanceBooking: React.FC = () => {
       //await loadPerformance();
     } catch (err: any) {
       console.error('Booking error:', err);
+      if (err.originalError && err.originalError.unavailableSeats?.length > 0) {
+        await showDialog({
+          title: t('Attention'),
+          content:
+            t('These seats are not available anymore:\n') +
+            JSON.stringify(err.originalError.unavailableSeats)
+          ,
+          //onConfirm: () => navigate('/'),
+          //cancelText: 'Cancel',
+          confirmText: 'Ok',
+          //shrinkToContent: true,
+        });
+        // toast.warning(t('These seats are not available anymore: ' +
+        //   JSON.stringify(err.originalError.unavailableSeats))
+        // );
+        // Reset all reserved seats
+        setSelectedSeats(new Set());
+
+        // Reload seats to reflect current booking situation
+        setForceLoadPerformance(true);
+
+        return;
+      }
       toast.error(err.response?.data?.error || err.message || t('Booking failed'));
 
       //audit('booking', 'error', ...);

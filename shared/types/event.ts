@@ -1,3 +1,5 @@
+export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'canceled';
+
 export interface Event {
   id: string;
   title: string;
@@ -33,7 +35,7 @@ export interface Event {
   trailerUrl?: string;
   websiteUrl?: string;
   socialMediaLinks?: string;
-  status: 'scheduled' | 'in progress' | 'completed' | 'canceled';
+  status: EventStatus;
   canceled: number,
   cancelationReason?: string;
   maxCapacity?: number;
@@ -46,22 +48,13 @@ export interface EventPerformance {
   performanceDate: string;
   startTime: string;
   endTime?: string;
-  // availableSeats?: number; // Optional (calculated)
-  // bookedSeats?: number; // Optional (calculated)
-  //seatData: string; // JSON string of seat statuses
-  canceled: number,
-  status: 'scheduled' | 'in progress' | 'completed' | 'canceled';
-  //baseTicketPrice: number;
+  canceled: number;
+  status: EventStatus;
   availableSeats?: number;
   bookedSeats?: number;
   createdAt?: string;
   updatedAt?: string;
 }
-
-// export interface EventWithTheater extends Event {
-//   theaterName: string;
-//   totalSeats: number;
-// }
 
 export interface EventStats {
   id: string;

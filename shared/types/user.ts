@@ -1,5 +1,7 @@
 import { FullConsent } from "./consent";
 
+export type UserRoles = 'admin' | 'operator' | 'user';
+
 export interface User {
   id: string;
   email: string;
@@ -7,7 +9,7 @@ export interface User {
   firstName: string;
   lastName: string;
   phone?: string;
-  role: 'admin' | 'operator' | 'user';
+  role: UserRoles;
   isVerified: boolean;
   verificationCode?: string;
   verificationCodeExpiry?: string;
@@ -124,7 +126,7 @@ export interface UserProfile {
   firstName: string;
   lastName: string;
   phone?: string;
-  role: 'admin' | 'operator' | 'user';
+  role: UserRoles;
   isVerified: boolean;
   consent: FullConsent | null;
   language?: string;

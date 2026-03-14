@@ -16,14 +16,9 @@ export interface AppConfig {
     app: {
     codename: string;
     name: string;
-    // apiHost: string;
-    // apiBasePath: string;
-    // apiVersion: string;
     baseUrl: string;
     languages: Record<string, AppLanguage>;
     defaultLanguage: string;
-    // currencies: Record<CurrencyCode, Currency>;
-    // defaultCurrency: CurrencyCode;
     currencies: Record<CurrencyCode, Currency>;
     defaultCurrency: CurrencyCode;
     theme: {

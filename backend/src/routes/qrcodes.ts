@@ -1,8 +1,6 @@
 import { Router, Request, Response } from 'express';
 import QRCode from 'qrcode';
-import multer from "multer";
-//import Jimp from 'jimp';
-//import * as Jimp from 'jimp';
+import multer from 'multer';
 import { Jimp } from 'jimp';
 import jsQR from 'jsqr';
 import { sign, verify } from '../services/hmacService';
@@ -22,7 +20,7 @@ const upload = multer({ // TODO: to config
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max upload
   fileFilter: (_req, file, cb) => {
-    const allowed = ["image/png", "image/jpeg", "image/bmp", "image/gif", "image/tiff"];
+    const allowed = ['image/png', 'image/jpeg', 'image/bmp', 'image/gif', 'image/tiff'];
     if (allowed.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -35,7 +33,7 @@ const upload = multer({ // TODO: to config
 router.post('/encode', encodeQRCode);
 
 // Public: decode QRCode
-router.post("/decode", upload.single("ticket"), decodeQRCode);
+router.post('/decode', upload.single('ticket'), decodeQRCode);
 
 // ─── QR Visual Options ────────────────────────────────────────────────────────
 //
@@ -210,11 +208,11 @@ function parsePayload(raw: string): TicketPayload | null {
 /**
  * POST /qrcode/decode
  *
- * Accepts a multipart upload with the field name "ticket" (a QR code image).
+ * Accepts a multipart upload with the field name 'ticket' (a QR code image).
  * Responds with the parsed ticket data and a VALID / INVALID_SIGNATURE status.
  *
  * Wire up with multer middleware before this handler:
- *   router.post("/qrcode/decode", upload.single("ticket"), decodeQRCode);
+ *   router.post('/qrcode/decode', upload.single('ticket'), decodeQRCode);
  */
 export async function decodeQRCode(req: Request, res: Response): Promise<void> {
   // 1. Check an image was uploaded
@@ -266,7 +264,7 @@ export async function decodeQRCode(req: Request, res: Response): Promise<void> {
     console.log('omitted fields:', _omitted);
 
     const result: DecodeTicketResult = {
-      status: "VALID",
+      status: 'VALID',
       ticket: ticketData,
     };
     res.status(200).json(result);

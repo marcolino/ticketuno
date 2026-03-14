@@ -481,11 +481,16 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     if (!result.success) {
       return res.status(409).json({ 
         error: req.t('Some seats are no longer available'),
-        unavailableSeats: result.unavailableSeats ,
+        unavailableSeats: result.unavailableSeats,
       });
     }
 
-    res.json({ message: req.t('{{count}} seats booked successfully', { count: result.bookedCount }) });
+    res.json({
+      message: req.t('{{count}} seats booked successfully'),
+      bookingId: result.bookingId,
+      unavailableSeats: result.unavailableSeats,
+      bookedSeats: result.bookedCount, // TODO: count => bookedSeats
+    });
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });
   }

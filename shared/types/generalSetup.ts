@@ -6,7 +6,3 @@ export interface SetupStatus {
   time: string | null;
   apiKey: string;
 }
-
-// export interface GeneralSetupProps {
-//   t: (key: string) => string;
-// }

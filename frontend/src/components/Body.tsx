@@ -1,5 +1,5 @@
-import { Box, Container, Toolbar } from '@mui/material';
 import { ReactNode } from 'react';
+import { Box, Container, Toolbar } from '@mui/material';
 import type { Breakpoint } from '@mui/material';
 
 interface BodyProps {
