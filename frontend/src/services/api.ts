@@ -448,7 +448,35 @@ export const eventApi = {
     api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
 };
 
-export const bookingApi = {
+export const ticketApi = {
+  validateTicket: (code: string) =>
+    api.post(`/tickets/${code}/validate`),
+};
+
+export const imageApi = {
+  upload: (file: File | Blob, imageType: string) => {
+    const formData = new FormData();
+    const name = file instanceof File ? file.name : `${imageType}-upload.jpg`;
+    formData.append('imageType', imageType); // imageType BEFORE image ... order matters in multipart streams... :-/
+    formData.append('image', file, name);
+    return api.post<{ filename: string }>('/images/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  delete: (filename: string) =>
+    api.delete(`/images/${filename}`),
+};
+
+// export const emailApi = {
+//   verifyConsentToken: (token: string, type: string = 'consent') =>
+//     api.post(`/emails/verifyConsentToken`, { token, type }),
+
+//   // // TODO: we can avoid this endpoint...
+//   // verifyUnsubscribeToken: (token: string,) =>
+//   //   api.post(`/emails/verifyConsentToken`, { token, type: "communication.marketingEmails" }),
+// };
+export const emailApi = {
   sendBookingConfirmationEmail: (
     email: string,
     userName: string,
@@ -482,30 +510,6 @@ export const bookingApi = {
     }
   ),
 };
-
-export const imageApi = {
-  upload: (file: File | Blob, imageType: string) => {
-    const formData = new FormData();
-    const name = file instanceof File ? file.name : `${imageType}-upload.jpg`;
-    formData.append('imageType', imageType); // imageType BEFORE image ... order matters in multipart streams... :-/
-    formData.append('image', file, name);
-    return api.post<{ filename: string }>('/images/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
-
-  delete: (filename: string) =>
-    api.delete(`/images/${filename}`),
-};
-
-// export const emailApi = {
-//   verifyConsentToken: (token: string, type: string = 'consent') =>
-//     api.post(`/emails/verifyConsentToken`, { token, type }),
-
-//   // // TODO: we can avoid this endpoint...
-//   // verifyUnsubscribeToken: (token: string,) =>
-//   //   api.post(`/emails/verifyConsentToken`, { token, type: "communication.marketingEmails" }),
-// };
 
 export const setupApi = {
   load: () =>

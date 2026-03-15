@@ -43,6 +43,7 @@ import {
   Settings as SettingsIcon,
   ConfirmationNumber as ConfirmationNumberIcon,
   Group as GroupIcon,
+  QrCode as QrCodeIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import Header from './Header';
@@ -173,7 +174,11 @@ const Home: React.FC = () => {
     handleClose();
     //navigate('/profile/all');
   };
-  
+
+  const handleBookingsValidate = () => {
+    handleClose();
+    navigate('/booking/validate');
+  };
   const handleProfile = () => {
     handleClose();
     navigate('/profile');
@@ -257,7 +262,8 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
     <Box sx={{ 
       display: 'flex', 
       flexDirection: 'column', 
-      minHeight: '100vh' // Only set this on the container
+      minHeight: '100vh' // Only set this on the container, to fill viewport
+      //height: '100vh' // Only set this on the container, to fill viewport
     }}>
       <Header>
         <IconButton
@@ -347,14 +353,27 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
               <Divider />
 
               {isOperator && (
-                <MenuItem onClick={() => { handleClose(); handleUsers(); }}>
-                  <ListItemIcon>
-                    <GroupIcon fontSize="small" />
-                  </ListItemIcon>
-                  <ListItemText>
-                    {t('Users')}
-                  </ListItemText>
-                </MenuItem>
+                <>
+                  <MenuItem onClick={() => { handleClose(); handleUsers(); }}>
+                    <ListItemIcon>
+                      <GroupIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>
+                      {t('Users')}
+                    </ListItemText>
+                  </MenuItem>
+
+                  <Divider />
+
+                  <MenuItem onClick={() => { handleClose(); handleBookingsValidate(); }}>
+                    <ListItemIcon>
+                      <QrCodeIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>
+                      {t('Validate Bookings')}
+                    </ListItemText>
+                  </MenuItem>
+                </>
               )}
 
               <MenuItem onClick={() => { handleClose(); handleBookings(); }}>

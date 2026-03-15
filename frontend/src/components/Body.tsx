@@ -13,12 +13,20 @@ function Body({ children, maxWidth = 'xl' }: BodyProps) {
       <Toolbar /> {/* Spacer */}
       <Box 
         component="main" 
-        sx={{ 
-          flexGrow: 1, // Fill available space
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          flexGrow: 1, // Fill remaining vertical space
+          minHeight: 0,
+          overflow: 'hidden',
           py: 3,
         }}
+        
       >
-        <Container maxWidth={maxWidth}>
+        <Container
+          maxWidth={maxWidth}
+          sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
+        >
           {children}
         </Container>
       </Box>

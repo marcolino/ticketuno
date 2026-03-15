@@ -19,7 +19,7 @@ import {
   Cancel as CancelIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { eventApi, layoutApi, theaterApi, bookingApi } from '@/services/api';
+import { eventApi, layoutApi, theaterApi, emailApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 //import { useSetup } from '@/contexts/SetupContext';
@@ -232,7 +232,7 @@ const PerformanceBooking: React.FC = () => {
       const theaterPhone = '+39 333 6480983';  // theater.infoPhone; // TODO: put in theater
       const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: create page, and derive link from config
 
-      const responseSendEmail = await bookingApi.sendBookingConfirmationEmail(
+      const responseSendEmail = await emailApi.sendBookingConfirmationEmail(
         email,
         userName,
         eventName,
