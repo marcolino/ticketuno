@@ -36,6 +36,7 @@ export const isVerificationCodeValid = (expiry: string): boolean => {
   return new Date(expiry) > new Date();
 };
 
+// TODO: move to email controller
 export const sendVerificationEmail = async (email: string, code: string): Promise<void> => {
   const to = email;
   const subject = i18n.t('Verify your {{appName}} email', { appName: config.app.name });

@@ -229,9 +229,10 @@ const PerformanceBooking: React.FC = () => {
       const bookingReferenceNumber = '324123jnwfdgjkje43'; // TODO
       const seatNumbers = 'Platea-C-12'; // TODO
       const totalPaidAmount = String(totalPrice || 0);
-      const theaterPhone = '+39 333 6480983';  // theater.infoPhone; // TODO: put in theater
+      const theaterPhone = '+39 333 6480983';  // theater.infoPhone; // TODO: put in theater form
       const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: create page, and derive link from config
 
+      // TODO: REMOVE ME, WILL SEND THIS ON SERVER...
       const responseSendEmail = await emailApi.sendBookingConfirmationEmail(
         email,
         userName,
@@ -245,13 +246,15 @@ const PerformanceBooking: React.FC = () => {
         theaterPhone,
         linkToTermsAndConditions,
       );
-      console.log("SEND BOOKING CONFIRMATION EMAIL RESPONSE:", responseSendEmail); // TODO: REMOVE ME
-      
+      console.log("SEND BOOKING CONFIRMATION EMAIL RESPONSE:", responseSendEmail);
+      //////////////////////////////////////////////////////////////////////////////
+
       await showDialog({
         title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
         content:
-          t('You will soon receive an email with booking confirmation, and the {{count}} tickets.', { count: selectedSeats.size }) + '\n\n' +
-          (config.app.reservations.ticketing.useQrcode ? t('Each email will have attached the real ticket with a QR code: feel free to print it or show it at the theater on your mobile device.') : ''),
+          t('You will soon receive an email with booking confirmation.', { count: selectedSeats.size }) + '\n\n' +
+          (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: feel free to print it or show it at the theater on your mobile device.') : '')
+        ,
         onConfirm: () => navigate('/'),
         confirmText: 'Ok',
         //shrinkToContent: false,

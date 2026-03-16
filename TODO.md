@@ -41,6 +41,8 @@ common:
          "SOCIAL_USER_LOGGING_WITH_EMAIL", and in frontend tell user she did access originally with socail auth, so
          she can try with it, or set up a password, with buttons for social auth and for password reset - OK
 
+ - 1 - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API..."; make a backup before proceeding with implementation
+ - 1 - check why migrations do fail in production (99999_...)
  - 1 - complete tickets buy process, optionally redirecting to stripe for payment
  - 1 - complete tickets buy process, sending an email to user with the ticket (with a QRCode?)
  - 2 - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
@@ -90,6 +92,8 @@ common:
  - 1 - test iOS google login error "popup blocked" (on appetize.io) - OK
  - 2 - in footer print also process.env.GIT_COMMIT_DATE - OK
 
+ - 1 - in all *List components, ask for confirmation before deleting an asset
+ - 1 - ask Claude (giving it database.ts) why deleting an event an then a theater I get SQLITE ERROR REFERENCE KEY ... (?) Is it correct I get that error? I always do soft-deletes, so I'd expect an error only when trying to delete events with booked performances...
  - 1 - in all components, check for setError: always add toast.error, and possibly remove Alert's for errors
  - 1 - in all components, always use getErrorMessage() (import { getErrorMessage } from '@/utils/misc';)
  - 1 - PWA handling - "PWA setup automation for theater booking system" with Claude

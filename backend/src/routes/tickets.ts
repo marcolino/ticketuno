@@ -1,5 +1,5 @@
-import express, { Request, Response } from 'express'; // TODO: import Request, Response from express in all routes
-import { database } from '../db/database';
+import express, { /*Request,*/ Response } from 'express'; // TODO: import Request, Response from express in all routes
+//import { database } from '../db/database';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { TicketValidationResult, TicketValidationStatus } from '../shared/types/ticket';
 import { getErrorMessage } from '../utils/errorHandler';

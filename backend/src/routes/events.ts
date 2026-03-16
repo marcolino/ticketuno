@@ -2,6 +2,8 @@ import { Router } from 'express';
 //import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
+import { generateTickets } from '../services/ticketService.js';
+import { sendConfirmationEmail } from '../services/emailService.js';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
 import { generateSeats } from '../shared/types/layoutToSeats';
 import { getErrorMessage } from '../utils/errorHandler';
@@ -458,6 +460,11 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       return res.status(400).json({ error: req.t('Seat IDs required') });
     }
 
+    const user = await database.getUserById(userId!);
+    if (!user) {
+      return res.status(401).json({ error: req.t('User not found') });
+    }
+
     const performance = await database.getPerformanceById(performanceId);
 
     if (!performance) {
@@ -475,9 +482,8 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       });
     }
 
-     // Atomic booking transaction
+    // Atomic booking transaction
     const result = await database.bookSeats(performanceId, seatIds, userId!);
-    
     if (!result.success) {
       return res.status(409).json({ 
         error: req.t('Some seats are no longer available'),
@@ -485,6 +491,47 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       });
     }
 
+    const booking = result;
+      // success: boolean;
+      // bookingId?: string;
+      // bookedCount: number;
+      // unavailableSeats
+
+    //  - prepare one PDF ticket per seat (in attachedTickets array)
+    //  - send email to user with attached tickets
+    /*  const responseSendEmail = await emailApi.sendBookingConfirmationEmail(
+        email,
+        userName,
+        eventName,
+        bookingReferenceNumber,
+        dateOfPerformance,
+        timeOfPerformance,
+        theaterName,
+        seatNumbers,
+        totalPaidAmount,
+        theaterPhone,
+        linkToTermsAndConditions,
+        attachedTickets,
+      );
+      console.log("SEND BOOKING CONFIRMATION EMAIL RESPONSE:", responseSendEmail);
+    */
+    // TODO: handle eventName, bookedSeats, isNominal in booking...
+    
+    const [pdfs] = await generateTickets({
+      show: /*booking.show*/ 'SHOW',
+      seats: /*booking.seats,*/[{ seat: 'Platea-A-1' }, { seat: 'Platea-A-2' }],
+      nominal: /*booking.isNominal*/false,
+    });
+
+    await sendConfirmationEmail({
+      to: user.email,
+      attachments: pdfs.map((buf: Buffer) => ({
+        filename: `ticket.pdf`,
+        content: buf,
+        contentType: 'application/pdf',
+      })),
+    });
+    
     res.json({
       message: req.t('{{count}} seats booked successfully'),
       bookingId: result.bookingId,

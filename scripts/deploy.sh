@@ -37,8 +37,12 @@ has_changes() {
     return 0  # No previous tag = first deploy, treat as changed
   fi
 
-  # Also re-deploy if deploy.sh itself changed
-  if ! git diff --quiet "${last_tag}" HEAD -- "${component}/" deploy.sh; then
+  # Include deploy.sh itself, and exclude package lock files
+  if ! git diff --quiet "${last_tag}" HEAD \
+    -- "${component}/" deploy.sh \
+    ":(exclude)${component}/package-lock.json" \
+    ":(exclude)${component}/yarn.lock" \
+    ":(exclude)${component}/pnpm-lock.yaml"
     return 0  # Changed
   fi
 
@@ -122,10 +126,14 @@ if ! fly apps list | grep -q "^${APP_NAME}"; then
   echo "📦 Creating new Fly.io app..."
   fly apps create "${APP_NAME}" --org personal
 
+fi
+
+# Only create the volume if none exists yet
+if ! fly volumes list -a "${APP_NAME}" --json | grep -q "^${APP_NAME}_data"; then
   echo "💾 Creating persistent volume..."
   fly volumes create ticketuno_data --regions "${REGIONS}" --size 1 --app "${APP_NAME}"
 fi
-
+  
 # ─── Secrets ─────────────────────────────────────────────────────────────────
 
 echo "🔐 Importing secrets..."

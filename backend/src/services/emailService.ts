@@ -11,7 +11,24 @@ import config from '../config';
 const resend = new Resend(process.env.RESEND_API_KEY!);
 let handlebarsHelpersRegistered = false;
 
-type SendEmailOptions = { // TODO: put to ../shared/types/email.ts ...
+// type SendEmailOptions = {
+//   to: string | string[];
+//   subject: string;
+//   template?: string;
+//   variables?: Record<string, unknown>;
+//   text?: string;
+//   html?: string;
+//   isMarketing?: boolean;
+// };
+
+// TODO: put to ../shared/types/email.ts ...
+type Attachment = {
+  filename: string;
+  content: Buffer | string; // Buffer for binary files, base64 string also works
+  contentType?: string;     // e.g. 'application/pdf', 'image/png'
+};
+
+type SendEmailOptions = {
   to: string | string[];
   subject: string;
   template?: string;
@@ -19,6 +36,7 @@ type SendEmailOptions = { // TODO: put to ../shared/types/email.ts ...
   text?: string;
   html?: string;
   isMarketing?: boolean;
+  attachments?: Attachment[];
 };
 
 class EmailService {
@@ -80,6 +98,7 @@ class EmailService {
       text = 'Please view this email in HTML format.',
       html,
       isMarketing = false,
+      attachments,
     } = options;
 
     if (!config.email.from) {
@@ -173,12 +192,14 @@ class EmailService {
         subject,
         html: finalHtml,
         ...(finalText ? { text: finalText } : {}),
+        ...(attachments?.length ? { attachments } : {}),
       }
     : {
         from: config.email.from,
         to: recipients,
         subject,
         text: finalText!,
+        ...(attachments?.length ? { attachments } : {}),
       }
     ;
     
