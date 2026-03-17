@@ -476,40 +476,40 @@ export const imageApi = {
 //   // verifyUnsubscribeToken: (token: string,) =>
 //   //   api.post(`/emails/verifyConsentToken`, { token, type: "communication.marketingEmails" }),
 // };
-export const emailApi = {
-  sendBookingConfirmationEmail: (
-    email: string,
-    userName: string,
-    eventName: string,
-    bookingReferenceNumber: string,
-    dateOfPerformance: string,
-    timeOfPerformance: string,
-    theaterName: string,
-    seatNumbers: string,
-    totalPaidAmount: string,
-    theaterPhone: string,
-    linkToTermsAndConditions: string,
-  ) =>
-    api.post('/emails/send', {
-      to: email,
-      subject: `Your Booking Confirmation for ${eventName}!`,
-      template: 'bookingConfirmationEmail',
-      isMarketing: false,
-      variables: {
-        userName,
-        eventName,
-        bookingReferenceNumber,
-        dateOfPerformance,
-        timeOfPerformance,
-        theaterName,
-        seatNumbers,
-        totalPaidAmount,
-        theaterPhone,
-        linkToTermsAndConditions,
-      },
-    }
-  ),
-};
+// export const emailApi = {
+//   sendBookingConfirmationEmail: (
+//     email: string,
+//     userName: string,
+//     eventName: string,
+//     bookingReferenceNumber: string,
+//     dateOfPerformance: string,
+//     timeOfPerformance: string,
+//     theaterName: string,
+//     seatNumbers: string,
+//     totalPaidAmount: string,
+//     theaterPhone: string,
+//     linkToTermsAndConditions: string,
+//   ) =>
+//     api.post('/emails/send', {
+//       to: email,
+//       subject: `Your Booking Confirmation for ${eventName}!`,
+//       template: 'bookingConfirmationEmail',
+//       isMarketing: false,
+//       variables: {
+//         userName,
+//         eventName,
+//         bookingReferenceNumber,
+//         dateOfPerformance,
+//         timeOfPerformance,
+//         theaterName,
+//         seatNumbers,
+//         totalPaidAmount,
+//         theaterPhone,
+//         linkToTermsAndConditions,
+//       },
+//     }
+//   ),
+// };
 
 export const setupApi = {
   load: () =>

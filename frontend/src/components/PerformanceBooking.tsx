@@ -19,7 +19,7 @@ import {
   Cancel as CancelIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { eventApi, layoutApi, theaterApi, emailApi } from '@/services/api';
+import { eventApi, layoutApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 //import { useSetup } from '@/contexts/SetupContext';
@@ -33,26 +33,15 @@ import {
   SpecialCondition,
   applyDisplayNumbers
 } from '@/shared/types/layoutToSeats';
+import { SeatData, PerformanceSeatsResponse } from '@/shared/types/performance'
 import LayoutPreviewSVG, { SeatWithStatus } from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
 import config from '@/shared/config';
 
-interface SeatData {
-  seatId: string;
-  status: SeatStatus;
-  [key: string]: any;
-}
-
-export interface PerformanceSeatsResponse {
-  [section: string]: {
-    [row: string]: SeatData[];
-  };
-}
-
 const PerformanceBooking: React.FC = () => {
   const { t } = useTranslation();
   const { eventId, performanceId } = useParams<{ eventId: string; performanceId: string }>();
-  const { user, isAuthenticated } = useAuth();
+  const { /*user, */isAuthenticated } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -62,13 +51,13 @@ const PerformanceBooking: React.FC = () => {
   //const setup = useSetup();
 
   // ── Raw state — set by loadPerformance only ──────────────────────────────
-  const [performance, setPerformance]       = useState<EventPerformance | null>(null);
-  const [event, setEvent]                   = useState<Event | null>(null);
-  const [layout, setLayout]                 = useState<LayoutJSON | null>(null);
-  const [seatStatusMap, setSeatStatusMap]   = useState<Map<string, SeatData>>(new Map());
-  const [selectedSeats, setSelectedSeats]   = useState<Set<string>>(new Set());
-  const [loading, setLoading]               = useState(true);
-  const [error, setError]                   = useState<string | null>(null);
+  const [performance, setPerformance] = useState<EventPerformance | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [layout, setLayout] = useState<LayoutJSON | null>(null);
+  const [seatStatusMap, setSeatStatusMap] = useState<Map<string, SeatData>>(new Map());
+  const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // ── Helper ───────────────────────────────────────────────────────────────
   const flattenSeatsData = useCallback((data: PerformanceSeatsResponse): SeatData[] => {
@@ -207,47 +196,6 @@ const PerformanceBooking: React.FC = () => {
       const responseBooking = await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
       const booking = responseBooking.data;
       console.log("****************** BOOKING:", booking);
-      /*
-        message
-        bookedSeats
-        bookingId
-        unavailableSeats
-      */
-      
-      // Load theater
-      const responseTheater = await theaterApi.getTheaterById(event!.theaterId);
-      const theater = responseTheater.data;
-      
-      //toast.success(t('Successfully booked {{count}} seats', { count: selectedSeats.size }));
-      // TODO: get user, event, performance, booking data...
-      const email = user?.email || ''; //'marcosolari@gmail.com';
-      const userName = user?.firstName || '';
-      const eventName = event?.title || '';
-      const dateOfPerformance = performance?.performanceDate || '';
-      const timeOfPerformance = performance?.startTime || '';
-      const theaterName = theater.name || '';
-      const bookingReferenceNumber = '324123jnwfdgjkje43'; // TODO
-      const seatNumbers = 'Platea-C-12'; // TODO
-      const totalPaidAmount = String(totalPrice || 0);
-      const theaterPhone = '+39 333 6480983';  // theater.infoPhone; // TODO: put in theater form
-      const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: create page, and derive link from config
-
-      // TODO: REMOVE ME, WILL SEND THIS ON SERVER...
-      const responseSendEmail = await emailApi.sendBookingConfirmationEmail(
-        email,
-        userName,
-        eventName,
-        bookingReferenceNumber,
-        dateOfPerformance,
-        timeOfPerformance,
-        theaterName,
-        seatNumbers,
-        totalPaidAmount,
-        theaterPhone,
-        linkToTermsAndConditions,
-      );
-      console.log("SEND BOOKING CONFIRMATION EMAIL RESPONSE:", responseSendEmail);
-      //////////////////////////////////////////////////////////////////////////////
 
       await showDialog({
         title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),

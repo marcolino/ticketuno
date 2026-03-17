@@ -13,6 +13,7 @@ common:
  - 1 - change all reason's in database.ts to be uppercase codes, and handle them in frontend,
        to be able to translate reasons and keep backend database code lean - OK
        
+ - 1 - move all export interface, export type to /shared/types/
  - 1 - remove all comments in code
  - 1 - resolve all TODO's in code
  - 1 - resolve all TypeScript warnings in code

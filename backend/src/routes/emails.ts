@@ -17,22 +17,20 @@ router.post('/send', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     // Send the email via email service
-    const response = await emailService.send({
+    await emailService.send({
       to,
       subject,
       template,
       variables,
       isMarketing,
     });
-
-    res.json({ message: req.t('Email sent successfully with id {{id}}', {id: response.id}) });
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to send email: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 
-/* TODO: when sendBookingConfirmationEmail will be in email controller, enable this function, to send
-         booking confirmation emails from the backend * /
+
+/*
 router.post('/send-booking-confirmation', authenticateToken, async (req, res) => {
   const { email, userName, eventName, ... } = req.body;
   await sendBookingConfirmationEmail(email, userName, eventName, ...);

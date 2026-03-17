@@ -32,7 +32,6 @@ function buildSignatureInput(fields: Record<string, unknown>): string {
 export function sign(fields: Record<string, unknown>): string {
   const { sig: _excluded, ...signable } = fields as Record<string, unknown>;
   const input = buildSignatureInput(signable);
-  console.log('excluded fields:', _excluded);
 
   return crypto
     .createHmac(HMAC_ALGO, HMAC_SECRET!)

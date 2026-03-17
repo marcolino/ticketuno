@@ -15,7 +15,9 @@ import ticketRoutes from './routes/tickets';
 import emailRoutes from './routes/emails';
 import setupRoutes from './routes/setup';
 import { database } from './db/database'; // import database AFTER config
+import { loadSetup } from './services/setupService';
 import config from './config';
+
 //import pkg from '../package.json';
 
 const apiPrefix = 'api'; // TODO: to config
@@ -219,7 +221,8 @@ if (process.env.NODE_ENV === 'production') {
 //   });
 // }
 
-database.initialize().then(() => {
+database.initialize().then(async () => {
+  await loadSetup();
   app.listen(process.env.PORT, () => {
     console.log(`Server running on port ${process.env.PORT} in ${process.env.NODE_ENV} mode`);
   });

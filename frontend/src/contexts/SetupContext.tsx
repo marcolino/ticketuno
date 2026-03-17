@@ -10,6 +10,7 @@ import { setupApi } from "@/services/api";
 import { SetupStatus } from "@/shared/types/generalSetup";
 //import config from "@/shared/config";
 
+// TODO: use it server side
 export const defaultSetup: SetupStatus = {
   currency: 'EUR',
   timeout: 10,

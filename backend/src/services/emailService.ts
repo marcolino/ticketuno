@@ -1,12 +1,15 @@
 import { Resend } from 'resend';
-import type { CreateEmailOptions } from 'resend';
+import type { CreateEmailOptions, CreateEmailResponse } from 'resend';
 import i18next from 'i18next';
 import mjml2html from 'mjml';
 import fs from 'fs/promises';
 import path from 'path';
 import Handlebars from 'handlebars';
 import { database } from '../db/database';
+import { SendEmailOptions, /*AttachmentWithContentType, Attachment*/ } from '../shared/types/email';
+import { i18n } from '../i18n';
 import config from '../config';
+import { getErrorMessage } from '../utils/errorHandler';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 let handlebarsHelpersRegistered = false;
@@ -20,24 +23,6 @@ let handlebarsHelpersRegistered = false;
 //   html?: string;
 //   isMarketing?: boolean;
 // };
-
-// TODO: put to ../shared/types/email.ts ...
-type Attachment = {
-  filename: string;
-  content: Buffer | string; // Buffer for binary files, base64 string also works
-  contentType?: string;     // e.g. 'application/pdf', 'image/png'
-};
-
-type SendEmailOptions = {
-  to: string | string[];
-  subject: string;
-  template?: string;
-  variables?: Record<string, unknown>;
-  text?: string;
-  html?: string;
-  isMarketing?: boolean;
-  attachments?: Attachment[];
-};
 
 class EmailService {
   private templatePath = path.join(__dirname, '../templates/emails');
@@ -71,19 +56,23 @@ class EmailService {
   }
 
   // Public: send email
-  async send(options: SendEmailOptions & { lang?: string }) {
+  async send(options: SendEmailOptions & { lang?: string }): Promise<CreateEmailResponse> {
+  // sync getAllLayouts(): Promise<Array<{ id: string; json: string }> | null> {
     const payload = await this.prepare(options); // Prepare the email payload
 
     // Call the real email send service
     try {
       const response = await resend.emails.send(payload);
       if (response.error) {
-        throw new Error(response.error.message);
+        throw new Error(response.error.message || i18n.t('Email send error'));
       }
-      console.log('Email sent:', response.data?.id);
-      return response.data;
+      if (!response.data) {
+        throw new Error(i18n.t('Email send failed'));
+      }
+      console.log('Email sent:', response.data.id);
+      return response;
     } catch (err: unknown) {
-      console.error('Email send failed:', err);
+      console.error(i18n.t('Email send failed: {{err}}', { err: getErrorMessage(err) }));
       throw err;
     }
   }

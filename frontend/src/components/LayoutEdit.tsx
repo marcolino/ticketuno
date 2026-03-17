@@ -348,7 +348,7 @@ const LayoutEdit: React.FC = () => {
         }
       }
 
-      // Remove the ref of the deleted section
+      // Remove the reference of the deleted section
       const removedId = prev.sections[index].id;
       delete sectionLabelRefs.current[removedId];
 

@@ -32,7 +32,7 @@ const backendDefaults = {
   },
   email: {
     from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // TODO ...
-  }
+  },
 };
 
 const config = {

@@ -1,15 +1,13 @@
+import jwt from "jsonwebtoken";
 import { i18n } from '../i18n';
 import emailService from '../services/emailService';
 import { getErrorMessage } from '../utils/errorHandler';
 import { database } from '../db/database';
+import { Attachment } from '../shared/types/email';
 import config from '../config';
 
-import jwt from "jsonwebtoken";
-
-const EMAIL_SECRET = process.env.EMAIL_TOKEN_SECRET!;
-
 export function verifyMarketingUnsubscribeToken(token: string) {
-  return jwt.verify(token, EMAIL_SECRET) as {
+  return jwt.verify(token, process.env.EMAIL_TOKEN_SECRET!) as {
     sub: string;
     type: string;
   };
@@ -101,7 +99,7 @@ export const sendBookingConfirmationEmail = async (
   email: string,
   userName: string,
   eventName: string,
-  bookingReferenceNumber: string,
+  bookingRef: string,
   dateOfPerformance: string,
   timeOfPerformance: string,
   theaterName: string,
@@ -109,6 +107,7 @@ export const sendBookingConfirmationEmail = async (
   totalPaidAmount: string,
   theaterPhone: string,
   linkToTermsAndConditions: string,
+  attachedTickets: Attachment[],
 ): Promise<void> => {
   const to = email;
   const subject = i18n.t('Your Booking Confirmation for {{eventName}}!', { appName: config.app.name });
@@ -117,7 +116,7 @@ export const sendBookingConfirmationEmail = async (
     //appName: config.app.name,
     userName,
     eventName,
-    bookingReferenceNumber,
+    bookingRef,
     dateOfPerformance,
     timeOfPerformance,
     theaterName,
@@ -125,6 +124,7 @@ export const sendBookingConfirmationEmail = async (
     totalPaidAmount,
     theaterPhone,
     linkToTermsAndConditions,
+    attachedTickets,
   };
 
   const isMarketing = false;
@@ -135,6 +135,7 @@ export const sendBookingConfirmationEmail = async (
     template,
     variables,
     isMarketing,
+    attachments: attachedTickets,
   });
 }
 

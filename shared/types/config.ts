@@ -1,5 +1,7 @@
 import { ThemeType, ThemePreference } from './theme';
 
+export type TicketFormat = 'A4' | 'A3'; // ...
+
 export interface AppLanguage {
   name: string;
   flag: string;
@@ -42,6 +44,8 @@ export interface AppConfig {
         useQrcode: boolean;
         qrcode: {
         },
+        format: TicketFormat;
+        nominal: false,
       },
       purchases: {
         gateways: Record<string, Record<string, unknown>>;

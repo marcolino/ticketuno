@@ -2,12 +2,17 @@ import { Router } from 'express';
 //import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
-import { generateTickets } from '../services/ticketService.js';
-import { sendConfirmationEmail } from '../services/emailService.js';
+import { generateTickets } from '../services/ticketService';
+import { sendBookingConfirmationEmail } from '../utils/email';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
+import { ShowInfo } from '../shared/types/ticket';
 import { generateSeats } from '../shared/types/layoutToSeats';
+import { PerformanceSeatsResponse, SeatData} from '../shared/types/performance';
 import { getErrorMessage } from '../utils/errorHandler';
+import { formatCurrency } from '../utils/misc';
+import { getSetup } from '../services/setupService';
 import config from '../config';
+
 
 const router = Router();
 
@@ -483,64 +488,148 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     }
 
     // Atomic booking transaction
-    const result = await database.bookSeats(performanceId, seatIds, userId!);
-    if (!result.success) {
-      return res.status(409).json({ 
+    const booking = await database.bookSeats(performanceId, seatIds, userId!);
+    if (!booking.success) {
+      return res.status(409).json({
         error: req.t('Some seats are no longer available'),
-        unavailableSeats: result.unavailableSeats,
+        unavailableSeats: booking.unavailableSeats,
       });
     }
 
-    const booking = result;
-      // success: boolean;
-      // bookingId?: string;
-      // bookedCount: number;
-      // unavailableSeats
+    if (booking.seats.length === 0) {
+      return res.status(400).json({ 
+        error: req.t('No seat!'),
+      });
+    }
+   
+    const event = await database.getEventById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: req.t('Event not found') });
+    }
+    const theater = await database.getTheaterById(event.theaterId);
+    if (!theater) {
+      return res.status(404).json({ error: req.t('Theater not found') });
+    }
+    const performanceSeats = await database.getSeatsByPerformanceIdGroupedBySection(performanceId);
+    if (!performanceSeats) {
+      return res.status(404).json({ error: req.t('Performance seats not found') });
+    }
 
-    //  - prepare one PDF ticket per seat (in attachedTickets array)
-    //  - send email to user with attached tickets
-    /*  const responseSendEmail = await emailApi.sendBookingConfirmationEmail(
-        email,
-        userName,
-        eventName,
-        bookingReferenceNumber,
-        dateOfPerformance,
-        timeOfPerformance,
-        theaterName,
-        seatNumbers,
-        totalPaidAmount,
-        theaterPhone,
-        linkToTermsAndConditions,
-        attachedTickets,
-      );
-      console.log("SEND BOOKING CONFIRMATION EMAIL RESPONSE:", responseSendEmail);
-    */
+    const showInfo: ShowInfo = {
+      theater: theater.name ?? '',
+      titleLine1: event.title ?? '',
+      titleLine2: event.playwright ? req.t('By {{playwright}}', { playwright: event.playwright }) : '',
+      subtitle: event.producer ? req.t('Produced by {{producer}}', { producer: event.producer }) : '',
+      date: performance.performanceDate,
+      dayOfWeek: "Friday", // TODO ...
+      time: performance.startTime,
+      duration: "2h 45m", // TODO...
+      venue: theater.description ?? '', // TODO: venue => theater
+      address: theater.address ?? '',
+      lead: 'lead...', // TODO - event.cast?[0].name ?? '',
+      leadRole: 'leadRole...', // TODO - event.cast?[0].role ?? req.t('Lead role'),
+      supporting: 'supporting...', // TODO - event.cast?[1].name ?? '',
+      doorsOpen: "6:45 PM...", // TODO: performance.startTime - setup.doorsOpenBefore
+      dress: "Smart Casual...", // TODO: performance.dress,
+    };
+
+    const setup = getSetup();
+
+    const seatsInfo = booking.seats.map(seat => {
+      const seatInfo = findSeatById(seat, performanceSeats);
+      /*
+        seatId: 'Galleria-A-1',
+        sectionName: 'Galleria',
+        rowId: 'A',
+        seatNumber: 1,
+        status: 'available'
+      */
+      return {
+        bookingRef: booking.bookingRef ?? req.t('UNKNOWN'),
+        seat,
+        row: seatInfo!.rowId, // TODO: seatInfo! ???
+        tier: seatInfo!.sectionName,
+        gate: '', // TODO: remove gate from ticket, or handle it in seats...
+        price: formatCurrency(
+          event.baseTicketPrice, // TODO: performance.ticketPrice or seat.ticketPrice ..., handle price in form and table
+          user.language ?? config.app.defaultLanguage,
+          setup.currency, // TODO: event.currency, handle event currency in form and table
+          // config.app.defaultCurrency
+        ),
+        holderName: 'Enrica', /** Required when `nominal` is true */
+      };
+    });
+
+    // Generate one PDF ticket per seat (in attachedTickets array)
+    const pdfs = await generateTickets({
+      show: showInfo,
+      seats: seatsInfo,
+      nominal: /*booking.isNominal*/config.app.reservations.ticketing.nominal,
+    });
+
+    // Send email to user with attached tickets
+    // TODO ...
+    const email = user.email;
+    const userName = `${user.firstName} ${user.lastName}`;
+    const eventName = showInfo.titleLine1;
+    const bookingRef = booking.bookingRef ?? '?';
+    const dateOfPerformance = showInfo.date;
+    const timeOfPerformance = showInfo.time;
+    const theaterName = showInfo.theater;
+    const seatNumbers = '1, 2, 3';
+    const totalPaidAmount = '€ 185';
+    const theaterPhone = '+39 333 33333333';
+    const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions';
+
     // TODO: handle eventName, bookedSeats, isNominal in booking...
-    
-    const [pdfs] = await generateTickets({
-      show: /*booking.show*/ 'SHOW',
-      seats: /*booking.seats,*/[{ seat: 'Platea-A-1' }, { seat: 'Platea-A-2' }],
-      nominal: /*booking.isNominal*/false,
-    });
+    const attachedTickets = pdfs.map((buf: Buffer, i: number) => ({
+      filename: `ticket-${booking.seats![i]/*.bookingRef*/}.pdf`, // Unique name per seat
+      //contentType: 'application/pdf',
+      content: buf,
+    }));
 
-    await sendConfirmationEmail({
-      to: user.email,
-      attachments: pdfs.map((buf: Buffer) => ({
-        filename: `ticket.pdf`,
-        content: buf,
-        contentType: 'application/pdf',
-      })),
-    });
-    
+    await sendBookingConfirmationEmail(
+      email,
+      userName,
+      eventName,
+      bookingRef,
+      dateOfPerformance,
+      timeOfPerformance,
+      theaterName,
+      seatNumbers,
+      totalPaidAmount,
+      theaterPhone,
+      linkToTermsAndConditions,
+      attachedTickets,
+    );
+
     res.json({
       message: req.t('{{count}} seats booked successfully'),
-      bookingId: result.bookingId,
-      unavailableSeats: result.unavailableSeats,
-      bookedSeats: result.bookedCount, // TODO: count => bookedSeats
+      bookingRef: booking.bookingRef,
+      unavailableSeats: booking.unavailableSeats,
+      bookedSeats: booking.bookedCount, // TODO: count => bookedSeats
     });
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
+
+export const findSeatById = (
+  seatId: string,
+  performanceSeats: PerformanceSeatsResponse
+): SeatData | null => {
+  // Loop over sections with keys
+  for (const section of Object.values<PerformanceSeatsResponse[string]>(performanceSeats)) {
+    // section is typed as { [row: string]: SeatData[] }
+    for (const row of Object.values<SeatData[]>(section)) {
+      const found = row.find((seat: SeatData) => seat.seatId === seatId);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return null;
+};
 
 export default router;

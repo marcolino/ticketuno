@@ -46,6 +46,8 @@ const config: AppConfig = {
         useQrcode: false,
         qrcode: {
         },
+        format: 'A4',
+        nominal: false, // to set to true must be implemented the attendees name request when booking...
       },
       purchases: {
         gateways: {

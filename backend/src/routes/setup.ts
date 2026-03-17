@@ -2,26 +2,32 @@ import { Router } from 'express';
 import { database } from '../db/database';
 import { getErrorMessage } from '../utils/errorHandler';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { loadSetup, refreshSetup, getSetup } from '../services/setupService';
 //import config from '../config';
 
 const router = Router();
 
-// Public: Send an email (text / html / mjml / mjml template)
+// Public: Get setup
 router.get('/', async (req, res) => {
   try {
-    const setup = await database.loadSetup();
+    const setup = await loadSetup(); // Use service
     res.json(setup);
   } catch (error) {
-    res.status(500).json({ error: req.t('Failed to load  setup: {{err}}', { err: req.t(getErrorMessage(error)) }) });
+    res.status(500).json({
+      error: req.t('Failed to load setup: {{err}}', {
+        err: req.t(getErrorMessage(error))
+      })
+    });
   }
-  
 });
 
+// Private: Update setup
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const setup = req.body;
     await database.saveSetup(setup);
-    res.json({ message: req.t('Setup saved successfully'), setup });
+    await refreshSetup(); // Keep backend in sync
+    res.json({ message: req.t('Setup saved successfully'), setup: getSetup() });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to save general setup: {{err}}', { err: req.t(getErrorMessage(error)) }) });
   }

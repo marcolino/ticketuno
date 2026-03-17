@@ -17,43 +17,103 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import { sign } from './hmacService';
 import { i18n } from '../i18n';
-import { ShowInfo, SeatInfo, BookingRequest } from '../shared/types/ticket';
-import config from '../config';
+
+// ─── Domain types ─────────────────────────────────────────────────────────────
+// TODO: to types...
+export interface ShowInfo {
+  /** e.g. "ROYAL OPERA HOUSE" */
+  theater: string;
+  /** Main title line, e.g. "La Traviata" */
+  titleLine1: string;
+  /** Sub-title line, e.g. "by Verdi" */
+  titleLine2: string;
+  /** Subtitle/tagline, e.g. "A New Production" */
+  subtitle: string;
+  /** e.g. "April 18, 2025" */
+  date: string;
+  /** e.g. "Friday" */
+  dayOfWeek: string;
+  /** e.g. "7:30" (the "PM Sharp" suffix is appended automatically) */
+  time: string;
+  /** e.g. "2h 45m" */
+  duration: string;
+  /** Full venue name */
+  venue: string;
+  /** Street / city address */
+  address: string;
+  /** Lead performer name */
+  lead: string;
+  /** Lead performer role */
+  leadRole: string;
+  /** Supporting performer line */
+  supporting: string;
+  /** e.g. "6:45 PM" */
+  doorsOpen: string;
+  /** e.g. "Smart Casual" */
+  dress: string;
+}
+
+export interface SeatInfo {
+  /** Unique booking reference, used in the QR payload */
+  bookingRef: string;
+  /** e.g. "D14" */
+  seat: string;
+  /** e.g. "Premium Stalls" */
+  row: string;
+  /** e.g. "Circle" */
+  tier: string;
+  /** e.g. "Gate B" */
+  gate: string;
+  /** e.g. "£ 185.00" */
+  price: string;
+  /** Required when `nominal` is true */
+  holderName?: string;
+}
+
+export interface BookingRequest {
+  show: ShowInfo;
+  seats: SeatInfo[];
+  /**
+   * When `true`, the ticket holder's name is printed on every ticket.
+   * When `false` (default), the holder chip is omitted entirely.
+   */
+  nominal?: boolean;
+}
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
 const C = {
-  gold:      '#B8912A',
+  gold: '#B8912A',
   goldLight: '#D4A830',
-  goldDim:   '#8A6010',
-  text:      '#1A1A1A',
-  textMid:   '#444444',
+  goldDim: '#8A6010',
+  text: '#1A1A1A',
+  textMid: '#444444',
   textLight: '#666666',
-  white:     '#FFFFFF',
-  offWhite:  '#FAFAF8',
-  stubBg:    '#F5F0E8',
-  border:    '#D4A830',
-  perf:      '#CCCCCC',
+  white: '#FFFFFF',
+  offWhite: '#FAFAF8',
+  stubBg: '#F5F0E8',
+  border: '#D4A830',
+  perf: '#CCCCCC',
 } as const;
 
 // ─── Layout constants (points — 1 pt = 1/72 inch) ────────────────────────────
 
-const PAGE_W  = 595;
-const PAGE_H  = 842;
-const MARGIN  = 40;
-const TKT_W   = PAGE_W - MARGIN * 2;  // 515 pt
-const TKT_H   = 292;                  // increased from 260 to prevent chip overflow
-const TKT_X   = MARGIN;
-const TKT_Y   = (PAGE_H - TKT_H) / 2;
-const STUB_W  = 170;
-const MAIN_W  = TKT_W - STUB_W;       // 345 pt
-const PERF_X  = TKT_X + MAIN_W;
-const STUB_X  = PERF_X + 4;
-const RADIUS  = 6;
+const PAGE_W = 595;
+const PAGE_H = 842;
+const MARGIN = 40;
+const TKT_W = PAGE_W - MARGIN * 2; // 515 pt
+const TKT_H = 260;
+const TKT_X = MARGIN;
+const TKT_Y = (PAGE_H - TKT_H) / 2;
+const STUB_W = 170;
+const MAIN_W = TKT_W - STUB_W; // 345 pt
+const PERF_X = TKT_X + MAIN_W;
+const STUB_X = PERF_X + 4;
+const RADIUS = 6;
 
 // ─── Drawing helpers ──────────────────────────────────────────────────────────
 
-/** Renders a horizontal gradient gold bar */
+/** Renders a horizontal gradient gold bar across the full ticket width */
 function goldBar(doc: PDFKit.PDFDocument, x: number, y: number, w: number, h = 4): void {
   const steps = 60;
   for (let i = 0; i < steps; i++) {
@@ -71,56 +131,14 @@ function goldBar(doc: PDFKit.PDFDocument, x: number, y: number, w: number, h = 4
 /** Draws a hairline rule */
 function rule(
   doc: PDFKit.PDFDocument,
-  x: number,
-  y: number,
-  w: number,
+  x: number, y: number, w: number,
   color = C.border,
   opacity = 0.25,
 ): void {
-  doc.save()
-    .opacity(opacity)
-    .moveTo(x, y)
-    .lineTo(x + w, y)
-    .lineWidth(0.5)
-    .strokeColor(color)
-    .stroke()
-    .restore()
-  ;
-}
-
-/**
- * Decorative section divider.
- * Uses only lines and filled rectangles — no Unicode glyphs — so it renders
- * correctly in every PDF viewer regardless of embedded font coverage.
- * (Replaces the former ◆ ◇ ◆ ornament which rendered as "%Æ %Ç" in some viewers.)
- */
-function ornament(doc: PDFKit.PDFDocument, y: number): void {
-  const cx = TKT_X + MAIN_W / 2;
-  const sq = 3; // Accent square size
-  const gap = 7; // Half-gap around the centre accent
-
-  doc.save().opacity(0.35);
-
-  // Left rule
-  doc.moveTo(TKT_X + 22, y).lineTo(cx - gap - sq, y)
-     .lineWidth(0.5).strokeColor(C.goldDim).stroke();
-
-  // Right rule
-  doc.moveTo(cx + gap + sq, y).lineTo(TKT_X + MAIN_W - 22, y)
-     .lineWidth(0.5).strokeColor(C.goldDim).stroke();
-
-  // Three diamond accents (rotated squares) at centre and ±55 pt
-  for (const dx of [-55, 0, 55]) {
-    doc.save()
-      .translate(cx + dx, y)
-      .rotate(45)
-      .rect(-sq / 2, -sq / 2, sq, sq)
-      .fill(C.goldDim)
-      .restore()
-    ;
-  }
-
-  doc.restore();
+  doc.save().opacity(opacity)
+     .moveTo(x, y).lineTo(x + w, y)
+     .lineWidth(0.5).strokeColor(color).stroke()
+     .restore();
 }
 
 /** Renders a small-caps field label */
@@ -130,8 +148,14 @@ function drawLabel(
   color = C.goldDim,
 ): void {
   doc.fontSize(6.5).font('Helvetica').fillColor(color)
-    .text(text.toUpperCase(), x, y, { characterSpacing: 1.5 })
-  ;
+     .text(text.toUpperCase(), x, y, { characterSpacing: 1.5 });
+}
+
+/** Renders ornamental centred diamonds inside the main body column */
+function ornament(doc: PDFKit.PDFDocument, y: number): void {
+  doc.fontSize(9).font('Helvetica').fillColor(C.goldDim)
+     .opacity(0.45).text('◆  ◇  ◆', TKT_X, y, { width: MAIN_W, align: 'center' })
+     .opacity(1);
 }
 
 /** Generates a QR code PNG as an in-memory Buffer */
@@ -156,102 +180,92 @@ async function drawTicket(
   const y0 = TKT_Y;
 
   // ── Shell ─────────────────────────────────────────────────────────────────
-  doc.save()
-    .opacity(0.07)
-    .roundedRect(TKT_X + 4, y0 + 7, TKT_W, TKT_H, RADIUS).fill('#000000')
-    .restore()
-  ;
+  // Drop shadow
+  doc.save().opacity(0.07)
+     .roundedRect(TKT_X + 4, y0 + 7, TKT_W, TKT_H, RADIUS).fill('#000000')
+     .restore();
 
+  // Background panels
   doc.roundedRect(TKT_X, y0, TKT_W, TKT_H, RADIUS).fill(C.white);
   doc.rect(TKT_X, y0, MAIN_W, TKT_H).fill(C.offWhite);
-  doc.roundedRect(TKT_X, y0, TKT_W, TKT_H, RADIUS)
-    .lineWidth(1).strokeColor(C.border).stroke()
-  ;
 
-  // Gold bars clipped to rounded corners
-  doc.save()
-    .roundedRect(TKT_X, y0, TKT_W, TKT_H, RADIUS)
-    .clip()
-  ;
-  goldBar(doc, TKT_X, y0, TKT_W);
+  // Outer border
+  doc.roundedRect(TKT_X, y0, TKT_W, TKT_H, RADIUS)
+     .lineWidth(1).strokeColor(C.border).stroke();
+
+  // Gold bars — clipped so they don't bleed past rounded corners
+  doc.save().roundedRect(TKT_X, y0, TKT_W, TKT_H, RADIUS).clip();
+  goldBar(doc, TKT_X, y0,              TKT_W);
   goldBar(doc, TKT_X, y0 + TKT_H - 4, TKT_W);
   doc.restore();
 
-  // ── Perforation — dashed line, no punch-hole circles ─────────────────────
-  doc.save().opacity(0.28);
-  for (let dy = y0 + 8; dy < y0 + TKT_H - 8; dy += 11) {
-    doc.moveTo(PERF_X, dy)
-      .lineTo(PERF_X, dy + 6)
-      .lineWidth(0.8)
-      .strokeColor(C.perf)
-      .stroke()
-    ;
+  // ── Perforation ───────────────────────────────────────────────────────────
+  doc.save().opacity(0.35);
+  for (let dy = y0 + 14; dy < y0 + TKT_H - 14; dy += 11) {
+    doc.moveTo(PERF_X, dy).lineTo(PERF_X, dy + 6)
+       .lineWidth(0.8).strokeColor(C.perf).stroke();
   }
   doc.restore();
+
+  // Punch holes
+  for (const py of [y0 + 7, y0 + TKT_H - 7]) {
+    doc.circle(PERF_X, py, 9).fill(C.white)
+       .circle(PERF_X, py, 9).lineWidth(0.5).strokeColor(C.perf).stroke();
+  }
 
   // ── Stub panel ────────────────────────────────────────────────────────────
   doc.save().roundedRect(TKT_X, y0, TKT_W, TKT_H, RADIUS).clip();
   doc.rect(STUB_X, y0, STUB_W, TKT_H).fill(C.stubBg);
   doc.restore();
 
-  doc.save()
-    .opacity(0.18)
-    .moveTo(STUB_X, y0 + 10)
-    .lineTo(STUB_X, y0 + TKT_H - 10)
-    .lineWidth(0.5)
-    .strokeColor(C.border)
-    .stroke()
-    .restore()
-  ;
+  doc.save().opacity(0.18)
+     .moveTo(STUB_X, y0 + 10).lineTo(STUB_X, y0 + TKT_H - 10)
+     .lineWidth(0.5).strokeColor(C.border).stroke()
+     .restore();
 
   // ── Main body ─────────────────────────────────────────────────────────────
-  let cy = y0 + 12;
+  let cy = y0 + 14;
 
-  // Theater name + rule
+  // Theater name
   doc.fontSize(7).font('Helvetica').fillColor(C.gold)
      .text(show.theater.toUpperCase(), TKT_X, cy,
-       { width: MAIN_W, align: 'center', characterSpacing: 3 })
-  ;
-  rule(doc, TKT_X + 20, cy + 10, MAIN_W - 40);
-  cy += 18;
-
-  // Title line 1 — main, large italic
-  doc.fontSize(28).font('Helvetica-BoldOblique').fillColor(C.text)
-     .text(show.titleLine1, TKT_X, cy, { width: MAIN_W, align: 'center', lineGap: -2 });
-  cy += 32;
-
-  // Title line 2 — "by Author": reduced to 15pt so it reads as a subtitle,
-  // not a co-equal title
-  doc.fontSize(15).font('Helvetica-Oblique').fillColor(C.goldLight)
-     .text(show.titleLine2, TKT_X, cy, { width: MAIN_W, align: 'center' });
+       { width: MAIN_W, align: 'center', characterSpacing: 3 });
+  rule(doc, TKT_X + 20, cy + 10, MAIN_W - 40/*, C.goldDim, 0.3*/);
   cy += 20;
 
-  // Tagline
+  // Title
+  doc.fontSize(30).font('Helvetica-BoldOblique').fillColor(C.text)
+     .text(show.titleLine1, TKT_X, cy, { width: MAIN_W, align: 'center', lineGap: -2 });
+  cy += 35;
+
+  doc.fontSize(26).font('Helvetica-Oblique').fillColor(C.goldLight)
+     .text(show.titleLine2, TKT_X, cy, { width: MAIN_W, align: 'center' });
+  cy += 30;
+
+  // Subtitle
   doc.fontSize(6.5).font('Helvetica').fillColor(C.textLight)
      .text(show.subtitle.toUpperCase(), TKT_X, cy,
        { width: MAIN_W, align: 'center', characterSpacing: 2 });
-  cy += 13;
+  cy += 14;
 
   ornament(doc, cy);
-  cy += 12;
+  cy += 14;
 
-  // ── Date / Time / Duration ────────────────────────────────────────────────
+  // ── Date / Time / Duration cells ──────────────────────────────────────────
   interface Cell { lbl: string; val: string; sub: string }
   const cellW = (MAIN_W - 20) / 3;
-  const cellBoxH = 50;
   const cells: Cell[] = [
     { lbl: i18n.t('Date'), val: show.date, sub: show.dayOfWeek },
     { lbl: i18n.t('Time'), val: show.time, sub: i18n.t('PM Sharp') },
     { lbl: i18n.t('Duration'), val: show.duration, sub: i18n.t('Incl. Interval') },
   ];
 
+  // Cell grid
   doc.save().opacity(0.15)
-    .rect(TKT_X + 10, cy, MAIN_W - 20, cellBoxH)
-    .lineWidth(0.5).strokeColor(C.goldDim).stroke()
-  ;
+     .rect(TKT_X + 10, cy, MAIN_W - 20, 54).lineWidth(0.5).strokeColor(C.goldDim).stroke();
   ([1, 2] as const).forEach(i =>
-    doc.moveTo(TKT_X + 10 + cellW * i, cy + 5)
-       .lineTo(TKT_X + 10 + cellW * i, cy + cellBoxH - 5)
+    doc.moveTo(TKT_X + 10 + cellW * i, cy + 6)
+       .lineTo(TKT_X + 10 + cellW * i, cy + 48)
        .lineWidth(0.5).strokeColor(C.goldDim).stroke()
   );
   doc.restore();
@@ -259,80 +273,60 @@ async function drawTicket(
   cells.forEach(({ lbl, val, sub }, i) => {
     const cx = TKT_X + 10 + cellW * i;
     doc.fontSize(6).font('Helvetica').fillColor(C.goldDim)
-       .text(lbl.toUpperCase(), cx, cy + 5, { width: cellW, align: 'center', characterSpacing: 1.5 });
-    doc.fontSize(14).font('Helvetica-BoldOblique').fillColor(C.text)
-       .text(val, cx, cy + 16, { width: cellW, align: 'center' });
+       .text(lbl.toUpperCase(), cx, cy + 6,  { width: cellW, align: 'center', characterSpacing: 1.5 });
+    doc.fontSize(15).font('Helvetica-BoldOblique').fillColor(C.text)
+       .text(val,               cx, cy + 17, { width: cellW, align: 'center' });
     doc.fontSize(7).font('Helvetica').fillColor(C.textLight)
-       .text(sub, cx, cy + 34, { width: cellW, align: 'center' });
+       .text(sub,               cx, cy + 36, { width: cellW, align: 'center' });
   });
-  cy += cellBoxH + 8;
+  cy += 62;
 
   // ── Venue / Cast ──────────────────────────────────────────────────────────
   const halfW = (MAIN_W - 30) / 2;
   const col2X = TKT_X + 15 + halfW + 10;
 
-  // Both labels on the same cy, then advance once
   drawLabel(doc, i18n.t('Venue'), TKT_X + 15, cy);
-  drawLabel(doc, i18n.t('Starring'), col2X, cy);
-  cy += 9;
-
-  doc.fontSize(9).font('Helvetica-Bold').fillColor(C.text)
-     .text(show.venue, TKT_X + 15, cy, { width: halfW });
-  doc.fontSize(9).font('Helvetica-Bold').fillColor(C.text)
-     .text(show.lead,  col2X, cy, { width: halfW });
-
+  cy += 10;
+  doc.fontSize(9.5).font('Helvetica-Bold').fillColor(C.text)
+     .text(show.venue,   TKT_X + 15, cy,      { width: halfW });
   doc.fontSize(7.5).font('Helvetica').fillColor(C.textMid)
      .text(show.address, TKT_X + 15, cy + 12, { width: halfW });
-  doc.fontSize(7.5).font('Helvetica').fillColor(C.textMid)
-     .text(show.leadRole, col2X, cy + 12, { width: halfW });
-  doc.fontSize(7.5).font('Helvetica').fillColor(C.textMid)
-     .text(show.supporting, col2X, cy + 22, { width: halfW });
-  cy += 38;
 
+  drawLabel(doc, 'Starring', col2X, cy - 10);
+  doc.fontSize(9.5).font('Helvetica-Bold').fillColor(C.text)
+     .text(show.lead,        col2X, cy,      { width: halfW });
+  doc.fontSize(7.5).font('Helvetica').fillColor(C.textMid)
+     .text(show.leadRole,    col2X, cy + 12, { width: halfW });
+  doc.fontSize(7.5).font('Helvetica').fillColor(C.textMid)
+     .text(show.supporting,  col2X, cy + 22, { width: halfW });
+
+  cy += 44;
   rule(doc, TKT_X + 10, cy, MAIN_W - 20);
   cy += 8;
 
-  // ── Booking chips (fixed 4: ref / seat / row / price) ─────────────────────
+  // ── Booking chips ─────────────────────────────────────────────────────────
   interface Chip { lbl: string; val: string }
   const chips: Chip[] = [
     { lbl: i18n.t('Booking Ref'), val: seat.bookingRef },
     { lbl: i18n.t('Seat'), val: seat.seat },
     { lbl: i18n.t('Row'), val: seat.row },
     { lbl: i18n.t('Price'), val: seat.price },
+    ...(nominal && seat.holderName
+      ? [{ lbl: i18n.t('Ticket Holder'), val: seat.holderName }]
+      : []),
   ];
 
-  const chipH = 32;
   const chipW = (MAIN_W - 20 - (chips.length - 1) * 5) / chips.length;
 
   chips.forEach(({ lbl, val }, i) => {
     const cx = TKT_X + 10 + i * (chipW + 5);
-    doc.save().opacity(0.07).rect(cx, cy, chipW, chipH).fill(C.goldDim).restore();
-    doc.rect(cx, cy, chipW, chipH).lineWidth(0.5).strokeColor(C.border).stroke();
+    doc.save().opacity(0.07).rect(cx, cy, chipW, 36).fill(C.goldDim).restore();
+    doc.rect(cx, cy, chipW, 36).lineWidth(0.5).strokeColor(C.border).stroke();
     doc.fontSize(6).font('Helvetica').fillColor(C.goldDim)
-       .text(lbl.toUpperCase(), cx + 4, cy + 4, { width: chipW - 8, characterSpacing: 1 });
-    doc.fontSize(9).font('Helvetica-Bold').fillColor(C.text)
-       .text(val, cx + 4, cy + 15, { width: chipW - 8 });
+       .text(lbl.toUpperCase(), cx + 4, cy + 5,  { width: chipW - 8, characterSpacing: 1 });
+    doc.fontSize(lbl === i18n.t('Ticket Holder') ? 7.5 : 9).font('Helvetica-Bold').fillColor(C.text)
+       .text(val,                cx + 4, cy + 17, { width: chipW - 8 });
   });
-  cy += chipH + 5;
-
-  // ── Nominal attendee name ─────────────────────────────────────────────────
-  // Shown only when nominal is true. Uses a full-width single row so the name
-  // always has room; avoids squeezing a 5th chip into the same row.
-  if (nominal && seat.holderName) {
-    const holderH = 26;
-    const hx = TKT_X + 10;
-    const hw = MAIN_W - 20;
-
-    doc.save().opacity(0.06).rect(hx, cy, hw, holderH).fill(C.gold).restore();
-    doc.rect(hx, cy, hw, holderH).lineWidth(0.5).strokeColor(C.border).stroke();
-
-    doc.fontSize(6).font('Helvetica').fillColor(C.goldDim)
-      .text(i18n.t('Ticket Holder').toUpperCase(), hx + 6, cy + 4, { characterSpacing: 1 })
-    ;
-    doc.fontSize(9).font('Helvetica-Bold').fillColor(C.text)
-      .text(seat.holderName, hx, cy + 14, { width: hw, align: 'center' })
-    ;
-  }
 
   // ── Stub ──────────────────────────────────────────────────────────────────
   const stubCX = STUB_X + STUB_W / 2;
@@ -344,60 +338,68 @@ async function drawTicket(
     seat: seat.seat,
     row: seat.row,
   };
-  const sig = sign(raw);
+  const sig = sign(raw); // sign the raw payload
+  // Serialize as a query-string so the scanner gets a plain string
   const qrString = new URLSearchParams({ ...raw, sig }).toString();
   const qrBuf = await makeQR(qrString);
+  /**
+   * The resulting QR encodes something like:
+   *   ref = TKT-001 & row=Premium + Stalls & seat=D14 & title=La + Traviata & sig=3a9f...
+   */
+  // const qrBuf = await makeQR(`${seat.bookingRef}|${show.titleLine1}|${seat.seat}|${seat.row}`);
 
   const qrX = stubCX - qrSize / 2;
-  const qrY = y0 + 20;
+  const qrY = y0 + 22;
 
+  // QR frame + image
   doc.rect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 10)
      .lineWidth(1).strokeColor(C.gold).fill(C.white);
   doc.image(qrBuf, qrX, qrY, { width: qrSize, height: qrSize });
 
+  // Scan prompt
   doc.fontSize(6).font('Helvetica').fillColor(C.gold)
      .text(i18n.t('SCAN TO VERIFY'), STUB_X, qrY + qrSize + 8,
-       { width: STUB_W, align: 'center', characterSpacing: 1.5 })
-  ;
+       { width: STUB_W, align: 'center', characterSpacing: 1.5 });
   doc.fontSize(7).font('Helvetica').fillColor(C.textMid)
      .text(seat.bookingRef, STUB_X, qrY + qrSize + 18,
-       { width: STUB_W, align: 'center' })
-  ;
+       { width: STUB_W, align: 'center' });
 
-  rule(doc, STUB_X + 10, qrY + qrSize + 30, STUB_W - 20/*, C.goldDim, 0.3*/);
+  rule(doc, STUB_X + 10, qrY + qrSize + 32, STUB_W - 20/*, C.goldDim, 0.3*/);
 
+  // Stub detail rows
   const stubRows: [string, string][] = [
-    [i18n.t('Tier'), seat.tier],
-    [i18n.t('Gate'), seat.gate],
+    [i18n.t('Tier'), seat.tier ],
+    [i18n.t('Gate'), seat.gate ],
     [i18n.t('Doors'), show.doorsOpen],
-    [i18n.t('Dress'), show.dress],
+    [i18n.t('Dress'), show.dress ],
   ];
-  let sy = qrY + qrSize + 38;
+  let sy = qrY + qrSize + 40;
   for (const [lbl, val] of stubRows) {
     doc.fontSize(6).font('Helvetica').fillColor(C.gold)
-      .text(lbl.toUpperCase(), STUB_X, sy,
-        { width: STUB_W, align: 'center', characterSpacing: 1.5 })
-    ;
+       .text(lbl.toUpperCase(), STUB_X, sy,
+         { width: STUB_W, align: 'center', characterSpacing: 1.5 });
     doc.fontSize(8).font('Helvetica-Bold').fillColor(C.text)
-      .text(val, STUB_X, sy + 8, { width: STUB_W, align: 'center' })
-    ;
-    sy += 23;
+       .text(val, STUB_X, sy + 8, { width: STUB_W, align: 'center' });
+    sy += 25;
   }
 
   // Footer disclaimer
   doc.fontSize(6).font('Helvetica').fillColor(C.textLight)
-    .text(
+     .text(
        i18n.t('Non-transferable') + '  ·  ' +
        i18n.t('Present QR at entrance') + '  ·  ' +
        i18n.t('No re-admission after start time'),
        TKT_X, y0 + TKT_H + 10,
        { width: TKT_W, align: 'center', characterSpacing: 0.5 },
-    )
-  ;
+     );
 }
 
 // ─── Buffer helper ────────────────────────────────────────────────────────────
 
+/**
+ * Serialises a PDFDocument to an in-memory Buffer without touching the
+ * filesystem.  The document is ended inside this helper.
+ */
 function pdfToBuffer(
   doc: PDFKit.PDFDocument,
   drawFn: (d: PDFKit.PDFDocument) => Promise<void>,
@@ -409,8 +411,7 @@ function pdfToBuffer(
     doc.on('error', (err: Error) => reject(err));
     drawFn(doc)
       .then(() => doc.end())
-      .catch(reject)
-    ;
+      .catch(reject);
   });
 }
 
@@ -432,7 +433,7 @@ function pdfToBuffer(
  *     filename:    `ticket-${booking.seats[i].bookingRef}.pdf`,
  *     content:     buf,
  *     contentType: 'application/pdf',
- *     encoding:    'base64',
+ *     encoding:    'base64',            // Nodemailer will base64-encode it
  *   }));
  *
  * @example
@@ -449,10 +450,7 @@ export async function generateTickets(booking: BookingRequest): Promise<Buffer[]
     const missing = seats.filter(s => !s.holderName).map(s => s.bookingRef);
     if (missing.length > 0) {
       throw new Error(
-        i18n.t(
-          'ticket is nominal but holder name is missing for booking refs: {{miss}}',
-          { miss: missing.join(', ') },
-        ),
+        i18n.t('ticket is nominal but holder name is missing for booking refs: {{miss}}', { miss: missing.join(', ') })
       );
     }
   }
@@ -460,7 +458,7 @@ export async function generateTickets(booking: BookingRequest): Promise<Buffer[]
   return Promise.all(
     seats.map(seat => {
       const doc = new PDFDocument({
-        size: config.app.reservations.ticketing.format,
+        size: 'A4',
         margin: 0,
         info: {
           Title: `${show.titleLine1} ${show.titleLine2} — ${seat.bookingRef}`,
