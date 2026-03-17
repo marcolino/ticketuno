@@ -133,7 +133,7 @@ fi
 if ! fly volumes list -a "${APP_NAME}" --json | grep -q "^${APP_NAME}_data"; then
   echo "💾 Creating persistent volume..."
   set -x
-  fly volumes create "${APP_NAME}_data" --regions "${REGIONS}" --size 1 --app "${APP_NAME}"
+  fly volumes create "${APP_NAME}_data" --region "${REGIONS}" --size 1 --app "${APP_NAME}"
 fi
   
 # ─── Secrets ─────────────────────────────────────────────────────────────────
