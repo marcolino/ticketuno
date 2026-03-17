@@ -43,6 +43,7 @@ has_changes() {
     ":(exclude)${component}/package-lock.json" \
     ":(exclude)${component}/yarn.lock" \
     ":(exclude)${component}/pnpm-lock.yaml"
+  then
     return 0  # Changed
   fi
 
