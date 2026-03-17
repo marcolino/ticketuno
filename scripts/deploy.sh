@@ -132,7 +132,6 @@ fi
 # Only create the volume if none exists yet
 if ! fly volumes list -a "${APP_NAME}" --json | grep -q "^${APP_NAME}_data"; then
   echo "💾 Creating persistent volume..."
-  set -x
   fly volumes create "${APP_NAME}_data" --region "${REGIONS}" --size 1 --app "${APP_NAME}"
 fi
   
@@ -140,11 +139,12 @@ fi
 
 echo "🔐 Importing secrets..."
 cat backend/.env | fly secrets import --app "${APP_NAME}"
+set -x
 fly secrets set \
-  BACKEND_URL="https://${APP_NAME}.fly.dev"  \
+  BACKEND_URL="https://${APP_NAME}.fly.dev" \
   FRONTEND_URL="https://${APP_NAME}.fly.dev" \
-  NODE_ENV="production"                       \
-  PORT="8080"                                 \
+  NODE_ENV="production" \
+  PORT="8080" \
   --app "${APP_NAME}"
 
 # ─── Version bumps ────────────────────────────────────────────────────────────
