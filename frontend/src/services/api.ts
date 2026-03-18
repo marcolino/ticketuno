@@ -15,7 +15,7 @@ import type { Event, EventStats, EventPerformance, EventWithDetails } from '@/sh
 import type { FullConsent } from '@/shared/types/consent';
 import { PerformanceSeatsResponse } from '@/shared/types/performance';
 import { Layout } from '@/shared/types/layout';
-import { SetupStatus } from '@/shared/types/generalSetup';
+import { GeneralSetupType } from '@/shared/types/generalSetup';
 import { i18n }  from '@/i18n'; 
 
 //const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
@@ -513,8 +513,8 @@ export const imageApi = {
 
 export const setupApi = {
   load: () =>
-    api.get<SetupStatus>('/setup'),
+    api.get<GeneralSetupType>('/setup'),
 
-  save: (payload: Partial<SetupStatus>) =>
-    api.post<SetupStatus>('/setup', payload),
+  save: (payload: Partial<GeneralSetupType>) =>
+    api.post<GeneralSetupType>('/setup', payload),
 };

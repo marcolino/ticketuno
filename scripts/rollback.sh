@@ -6,15 +6,15 @@
 
 set -e
 
-COMPONENT=$1
-VERSION=$2
+COMPONENT="$1"
+VERSION="$2"
 TAG="${COMPONENT}-v${VERSION}"
 
 if [ -z "$COMPONENT" ] || [ -z "$VERSION" ]; then
   echo "Usage: ./rollback.sh <backend|frontend> <version>"
   echo ""
-  echo "Available backend versions:  $(git tag --list 'backend-v*'  --sort=-version:refname | tr '\n' ' ')"
-  echo "Available frontend versions:  $(git tag --list 'frontend-v*' --sort=-version:refname | tr '\n' ' ')"
+  echo "Available backend versions:  $(git tag --list 'backend-v*'  --sort=-version:refname )" #| tr '\n' ' ')"
+  echo "Available frontend versions:  $(git tag --list 'frontend-v*' --sort=-version:refname )" #| tr '\n' ' ')"
   exit 1
 fi
 

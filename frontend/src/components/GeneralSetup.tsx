@@ -35,7 +35,7 @@ import { useSetupRefresh, defaultSetup } from '@/contexts/SetupContext';
 import { setupApi } from '@/services/api';
 import PageHeader from "./PageHeader";
 import { getErrorMessage } from '@/utils/misc';
-import { SetupStatus } from '@/shared/types/generalSetup';
+import { GeneralSetupType } from '@/shared/types/generalSetup';
 import config from '@/config';
 
 const currencies = Object.keys(config.app.currencies);
@@ -48,8 +48,8 @@ function GeneralSetup() {
   const refreshSetup = useSetupRefresh();
 
   const [section, setSection] = useState<'app' | 'preferences' | 'security'>('app');
-  const [initialStatus, setInitialStatus] = useState<SetupStatus | null>(null);
-  const [status, setStatus] = useState<SetupStatus>(defaultSetup);
+  const [initialStatus, setInitialStatus] = useState<GeneralSetupType | null>(null);
+  const [status, setStatus] = useState<GeneralSetupType>(defaultSetup);
   const [saving, setSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
@@ -57,17 +57,17 @@ function GeneralSetup() {
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Captured once on mount — never changes. Reset always goes back here.
-  const entryStatusRef = useRef<SetupStatus | null>(null);
+  const entryStatusRef = useRef<GeneralSetupType | null>(null);
 
-  const handleChange = (key: keyof SetupStatus, value: unknown) => {
-    setStatus((prev) => ({ ...prev, [key]: value as SetupStatus[typeof key] }));
+  const handleChange = (key: keyof GeneralSetupType, value: unknown) => {
+    setStatus((prev) => ({ ...prev, [key]: value as GeneralSetupType[typeof key] }));
   };
   
   useEffect(() => {
     (async () => {
       try {
         const response = await setupApi.load();
-        const merged: SetupStatus = { ...defaultSetup, ...response.data };
+        const merged: GeneralSetupType = { ...defaultSetup, ...response.data };
         setStatus(merged);
         setInitialStatus(merged);
         entryStatusRef.current = merged;   // lock in the entry snapshot
@@ -101,7 +101,7 @@ function GeneralSetup() {
     return diff;
   }
 
-  const getDiff = (): Partial<SetupStatus> => {
+  const getDiff = (): Partial<GeneralSetupType> => {
     if (!initialStatus) return {};
     return diffObject(status, initialStatus);
   };

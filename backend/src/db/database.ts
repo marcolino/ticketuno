@@ -11,7 +11,7 @@ import { Event, EventPerformance } from '../shared/types/event';
 import { GeneratedSeat, SpecialCondition } from '../shared/types/layoutToSeats';
 import { FullConsent } from '../shared/types/consent';
 import { Booking, BookingStatus } from '../shared/types/booking';
-import { SetupStatus } from '../shared/types/generalSetup';
+import { GeneralSetupType } from '../shared/types/generalSetup';
 import config from '../config';
 
 class Database {
@@ -137,6 +137,7 @@ class Database {
         opening_date TEXT,
         closing_date TEXT,
         is_active INTEGER DEFAULT 1,
+        currency TEXT,
         base_ticket_price REAL NOT NULL,
         currency TEXT DEFAULT 'USD',
         is_sold_out INTEGER DEFAULT 0,
@@ -764,7 +765,7 @@ class Database {
     const layout = this.mapRowToLayout(row);
     const lock = await this.getLayoutLockInfo(layout.id);
     layout.isEditable = lock.editable;
-    layout.lockInfo   = lock.blockedBy ?? [];
+    layout.lockInfo = lock.blockedBy ?? [];
     return layout;
   }
 
@@ -782,7 +783,7 @@ class Database {
     await Promise.all(layouts.map(async l => {
       const lock = await this.getLayoutLockInfo(l.id);
       l.isEditable = lock.editable;
-      l.lockInfo   = lock.blockedBy ?? [];
+      l.lockInfo = lock.blockedBy ?? [];
     }));
     return layouts;
   }
@@ -793,15 +794,15 @@ class Database {
   }> {
     const sql = `
       SELECT
-        e.title            AS eventTitle,
+        e.title AS eventTitle,
         p.performance_date AS performanceDate,
-        p.start_time       AS startTime,
-        COUNT(CASE WHEN s.status = 'booked'    THEN 1 END) AS booked,
-        COUNT(CASE WHEN s.status = 'reserved'  THEN 1 END) AS reserved
+        p.start_time AS startTime,
+        COUNT(CASE WHEN s.status = 'booked' THEN 1 END) AS booked,
+        COUNT(CASE WHEN s.status = 'reserved' THEN 1 END) AS reserved
       FROM seats s
       JOIN performances p ON p.id = s.performance_id
-      JOIN events e       ON e.id = p.event_id
-      JOIN theaters t     ON t.id = e.theater_id
+      JOIN events e ON e.id = p.event_id
+      JOIN theaters t ON t.id = e.theater_id
       WHERE t.current_layout_id = ?
         AND s.status IN ('booked', 'reserved')
       GROUP BY p.id
@@ -978,11 +979,11 @@ class Database {
       INSERT INTO events (
         id, title, description, genres, duration_minutes, intermission_count, rating, language,
         director, playwright, producer, choreographer, musical_director, cast_members, theater_id, stage_type,
-        opening_date, closing_date, is_active, base_ticket_price, currency, is_sold_out,
+        opening_date, closing_date, is_active, currency, base_ticket_price, currency, is_sold_out,
         special_requirements, minimum_age, created_by_user_id,
         typical_start_time, typical_end_time, poster_image, trailer_url, website_url,
         social_media_links, status, cancelation_reason, max_capacity, content_warnings
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
       id, event.title, event.description ?? '', JSON.stringify(event.genres ?? []),
@@ -991,7 +992,7 @@ class Database {
       event.playwright ?? '', event.producer ?? '', event.choreographer ?? '',
       event.musicalDirector ?? '', JSON.stringify(event.cast ?? []),
       event.theaterId, event.stageType ?? '', event.openingDate ?? '', event.closingDate ?? '',
-      event.isActive ? 1 : 0, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
+      event.isActive ? 1 : 0, event.currency, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
       event.specialRequirements ?? '', event.minimumAge ?? '', event.createdByUserId ?? '',
       event.typicalStartTime ?? '', event.typicalEndTime ?? '', event.posterImage ?? '',
       event.trailerUrl ?? '', event.websiteUrl ?? '', event.socialMediaLinks ?? '',
@@ -1024,8 +1025,9 @@ class Database {
       openingDate: 'opening_date',
       closingDate: 'closing_date',
       isActive: 'is_active',
-      baseTicketPrice: 'base_ticket_price',
       currency: 'currency',
+      baseTicketPrice: 'base_ticket_price',
+
       isSoldOut: 'is_sold_out',
       specialRequirements: 'special_requirements',
       minimumAge: 'minimum_age',
@@ -1658,7 +1660,7 @@ class Database {
   }
 
   // Setup table methods /////////////////////////////////////////////////////////
-  async loadSetup(): Promise<SetupStatus | null> {
+  async loadSetup(): Promise<GeneralSetupType | null> {
     const sql = `
       SELECT data
       FROM setup
@@ -1668,7 +1670,7 @@ class Database {
     if (!row) return null;
 
     try {
-      return JSON.parse(row.data) as SetupStatus;
+      return JSON.parse(row.data) as GeneralSetupType;
     } catch {
       return null;
     }

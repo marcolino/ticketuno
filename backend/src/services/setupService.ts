@@ -1,7 +1,7 @@
 import { database } from '../db/database';
-import { SetupStatus } from '../shared/types/generalSetup';
+import { GeneralSetupType } from '../shared/types/generalSetup';
 
-let cachedSetup: SetupStatus | null = null;
+let cachedSetup: GeneralSetupType | null = null;
 
 export const loadSetup = async () => {
   if (!cachedSetup) {

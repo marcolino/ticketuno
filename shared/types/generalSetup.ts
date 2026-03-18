@@ -1,4 +1,4 @@
-export interface SetupStatus {
+export interface GeneralSetupType {
   currency: string;
   timeout: number;
   enableNotifications: boolean;

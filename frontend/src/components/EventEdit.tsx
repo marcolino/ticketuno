@@ -110,10 +110,11 @@ const EventEdit: React.FC = () => {
   const [typicalStartTime, setTypicalStartTime] = useState<Dayjs | null>(null);
   const [typicalEndTime, setTypicalEndTime] = useState<Dayjs | null>(null);
 
+  //const [currency, setCurrency] = useState<CurrencyCode>(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
+  const [currency, setCurrency] = useState(config.app.defaultCurrency);
   const [baseTicketPrice, setBaseTicketPrice] = useState<number>(0); // TODO: to config
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
   
-  //const [currency, setCurrency] = useState<CurrencyCode>(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [minimumAge, setMinimumAge] = useState<number>(0);
 
@@ -159,6 +160,7 @@ const EventEdit: React.FC = () => {
       if (event.typicalStartTime) setTypicalStartTime(dayjs(event.typicalStartTime, 'HH:mm'));
       if (event.typicalEndTime) setTypicalEndTime(dayjs(event.typicalEndTime, 'HH:mm'));
       
+      setCurrency(event.currency);
       setBaseTicketPrice(event.baseTicketPrice);
       setBaseTicketPriceDisplay(event.baseTicketPrice.toFixed(2));
       //setCurrency(event.currency as any);
@@ -220,6 +222,7 @@ const EventEdit: React.FC = () => {
         if (state.closingDate) setClosingDate(dayjs(state.closingDate));
         if (state.typicalStartTime) setTypicalStartTime(dayjs(state.typicalStartTime));
         if (state.typicalEndTime) setTypicalEndTime(dayjs(state.typicalEndTime));
+        if (state.currency !== undefined) setCurrency(state.currency);
         if (state.baseTicketPrice !== undefined) setBaseTicketPrice(state.baseTicketPrice);
         if (state.specialRequirements !== undefined) setSpecialRequirements(state.specialRequirements);
         if (state.minimumAge !== undefined) setMinimumAge(state.minimumAge);
@@ -282,8 +285,8 @@ const EventEdit: React.FC = () => {
         closingDate: closingDate?.format('YYYY-MM-DD'),
         typicalStartTime: typicalStartTime?.format('HH:mm'),
         typicalEndTime: typicalEndTime?.format('HH:mm'),
+        currency,
         baseTicketPrice,
-        //currency,
         specialRequirements,
         minimumAge,
         posterImage: posterImage ?? undefined,
@@ -538,6 +541,7 @@ const EventEdit: React.FC = () => {
                           closingDate: closingDate?.toISOString(),
                           typicalStartTime: typicalStartTime?.toISOString(),
                           typicalEndTime: typicalEndTime?.toISOString(),
+                          currency,
                           baseTicketPrice,
                           specialRequirements,
                           minimumAge,
@@ -703,7 +707,7 @@ const EventEdit: React.FC = () => {
             </Typography>
           </Grid>
 
-          {/* <Grid item xs={12} md={2}>
+          <Grid item xs={12} md={2}>
             <FormControl fullWidth>
               <InputLabel>{t('Currency')}</InputLabel>
               <Select
@@ -711,19 +715,24 @@ const EventEdit: React.FC = () => {
                 label={t('Currency')}
                 onChange={(e) => setCurrency(e.target.value as any)}
               >
-                {/* {Object.values(config.app.currencies).map((currency) => (
-                  <MenuItem key={currency.code} value={currency.code}>
-                    {currency.code} ({currency.symbol})
+                <MenuItem key={'none'} value={''}>
+                  {t('none')}
+                </MenuItem>
+                {/*
+                {Object.values(config.app.currencies).map((currency) => (
+                  <MenuItem key={currency.name} value={currency.symbol}>
+                    {currency.symbol} ({currency.name})
                   </MenuItem>
-                ))} * /}
-                {Object.entries(config.app.currencies).map(([code]) => (
-                  <MenuItem key={code} value={code}>
-                    {code} ({'currency.symbol'})
+                ))}
+                */}
+                {Object.entries(config.app.currencies).map(([key, currency]) => (
+                  <MenuItem key={key} value={key}>
+                    {currency.symbol} ({currency.name})
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
-          </Grid> */}
+          </Grid>
 
           <Grid item xs={8} md={6}>
             <TextField
@@ -735,18 +744,27 @@ const EventEdit: React.FC = () => {
                 setBaseTicketPriceDisplay(e.target.value);
                 setBaseTicketPrice(parseFloat(e.target.value) || 0)
               }}
-              onFocus={() => setBaseTicketPriceDisplay(baseTicketPrice.toString())}
-              onBlur={() => setBaseTicketPriceDisplay(baseTicketPrice.toFixed(2))}
+              onFocus={() => {
+                if (baseTicketPrice === 0) {
+                  setBaseTicketPriceDisplay('');
+                } else {
+                  setBaseTicketPriceDisplay(baseTicketPrice.toString());
+                }
+              }}
+              onBlur={() => {
+                setBaseTicketPriceDisplay(baseTicketPrice.toFixed(2))
+              }}
               required
               InputProps={{
                 startAdornment: (
                   //<InputAdornment position="start">{config.app.currencies[currency].symbol}</InputAdornment>,
                   <InputAdornment position="start" sx={{ mt: -0.2 }}>
-                    {config.app.currencies[setup!.currency]?.symbol}
+                    {config.app.currencies[currency]?.symbol}
                   </InputAdornment>
                 )
               }}
               inputProps={{ min: 0, step: 1 }}
+              disabled={currency === ''}
             />
           </Grid>
 
