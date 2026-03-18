@@ -1,3 +1,7 @@
+#!/usr/bin/env bash
+#
+# Show missing i18n keys
+
 # Navigate to your locales directory
 cd dist/locales
 

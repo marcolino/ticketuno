@@ -139,7 +139,6 @@ fi
 
 echo "🔐 Importing secrets..."
 cat backend/.env | fly secrets import --app "${APP_NAME}"
-set -x
 fly secrets set \
   BACKEND_URL="https://${APP_NAME}.fly.dev" \
   FRONTEND_URL="https://${APP_NAME}.fly.dev" \

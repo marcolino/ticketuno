@@ -1,6 +1,4 @@
-import { Router, Request, Response } from 'express';
 import QRCode from 'qrcode';
-import multer from 'multer';
 import { Jimp } from 'jimp';
 import jsQR from 'jsqr';
 import { sign, verify } from '../services/hmacService';
@@ -11,29 +9,6 @@ import {
 } from '../shared/types/ticket';
 import { i18n } from '../i18n';
 import { getErrorMessage } from '../utils/errorHandler';
-
-const router = Router();
-
-// Memory storage is fine here — we only hold the buffer long enough to read
-// the QR code and then discard it. For large-scale use, stream to a temp file.
-const upload = multer({ // TODO: to config
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB max upload
-  fileFilter: (_req, file, cb) => {
-    const allowed = ['image/png', 'image/jpeg', 'image/bmp', 'image/gif', 'image/tiff'];
-    if (allowed.includes(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error(`Unsupported file type: ${file.mimetype}`));
-    }
-  },
-});
-
-// Public: encode QRCode
-router.post('/encode', encodeQRCode);
-
-// Public: decode QRCode
-router.post('/decode', upload.single('ticket'), decodeQRCode);
 
 // ─── QR Visual Options ────────────────────────────────────────────────────────
 //
@@ -89,21 +64,19 @@ function validateRequest(body: Partial<EncodeTicketRequest>): string | null {
   return null; // all good
 }
 
-// ─── Payload Builder ─────────────────────────────────────────────────────────
-
-function buildPayload(body: EncodeTicketRequest): TicketPayload {
+function buildPayload(data: EncodeTicketRequest): TicketPayload {
   // Unsigned payload — every field that should be tamper-proof goes here
   const unsigned: Omit<TicketPayload, 'sig'> = {
-    rid:  body.reservationId,
-    cName: body.customerName,
-    cEmail: body.customerEmail,
-    org: body.companyName,
-    event: body.eventName,
-    venue: body.venue,
-    date: body.eventDate,
-    time: body.eventTime,
-    seat: body.seat,
-    type: body.ticketType,
+    rid: data.reservationId,
+    cName: data.customerName,
+    cEmail: data.customerEmail,
+    org: data.companyName,
+    event: data.eventName,
+    theater: data.theater, // TODO: theater id? theter name ?
+    date: data.eventDate,
+    time: data.eventTime,
+    seat: data.seat,
+    type: data.ticketType,
     iat: Math.floor(Date.now() / 1000), // unix seconds
   };
 
@@ -113,35 +86,28 @@ function buildPayload(body: EncodeTicketRequest): TicketPayload {
   };
 }
 
-// ─── Controller ───────────────────────────────────────────────────────────────
-
-export async function encodeQRCode(req: Request, res: Response): Promise<void> {
-  // 1. Validate input
-  const validationError = validateRequest(req.body);
+export async function encodeQRCode(payload: TicketPayload): Promise<Buffer<ArrayBufferLike>> {
+  // Validate input
+  const validationError = validateRequest(payload);
   if (validationError) {
-    res.status(400).json({ error: validationError });
-    return;
+    throw new Error(validationError);
   }
 
   try {
-    // 2. Build signed payload
-    const payload = buildPayload(req.body as EncodeTicketRequest);
+    // Build signed payload
+    const ticketPayload = buildPayload(payload as EncodeTicketRequest);
 
-    // 3. Encode payload as compact JSON string → QR code PNG buffer
-    const qrBuffer = await QRCode.toBuffer(
-      JSON.stringify(payload),
+    // Encode payload as compact JSON string to QR code PNG buffer
+    const qrcodeBuffer = await QRCode.toBuffer(
+      JSON.stringify(ticketPayload),
       QR_OPTIONS,
     );
 
-    // 4. Return PNG image directly — the client can display or print it
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Disposition', `inline; filename="${payload.rid}-${payload.seat}.png"`);
-    res.setHeader('X-Reservation-Id', payload.rid);
-    res.setHeader('X-Seat', payload.seat);
-    res.status(200).send(qrBuffer);
+    // Return a buffer with PNG image
+    return qrcodeBuffer;
 
   } catch (error) {
-    res.status(500).json({ error: i18n.t('QR generation failed: {{err}}', { err: getErrorMessage(error) }) });
+    throw new Error(error);
   }
 }
 
@@ -202,8 +168,6 @@ function parsePayload(raw: string): TicketPayload | null {
     return null;  // not valid JSON
   }
 }
- 
-// ─── Controller ───────────────────────────────────────────────────────────────
  
 /**
  * POST /qrcode/decode
