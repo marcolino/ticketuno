@@ -9,7 +9,7 @@
 
 <!-- Booking Reference -->
 <mj-text css-class="booking-reference" font-size="18px">
-  {{t "Your Booking Ref. Number"}} is <span style="background-color:#d4a373; padding: 5px; border-radius: 5px;">{{bookingReferenceNumber}}</span>
+  {{t "Your Booking Ref. Number"}} is <span style="background-color:#d4a373; padding: 5px; border-radius: 5px;">{{bookingRef}}</span>
 </mj-text>
 
 <mj-divider border-color="#d4a373" border-width="2px" />

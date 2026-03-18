@@ -128,7 +128,7 @@ const EventEdit: React.FC = () => {
   const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
 
   const loadEvent = useCallback(async (overrideTheaterId?: string) => {
-    toast.info('loading');
+    //toast.info('loading');
     try {
       const response = await eventApi.getEventById(id!);
       const event = response.data;
@@ -738,19 +738,26 @@ const EventEdit: React.FC = () => {
             <TextField
               fullWidth
               label={t('Base Ticket Price')}
-              type="number"
+              type="text"
               value={baseTicketPriceDisplay}
               onChange={(e) => {
                 setBaseTicketPriceDisplay(e.target.value);
                 setBaseTicketPrice(parseFloat(e.target.value) || 0)
               }}
-              onFocus={() => {
-                if (baseTicketPrice === 0) {
-                  setBaseTicketPriceDisplay('');
-                } else {
-                  setBaseTicketPriceDisplay(baseTicketPrice.toString());
-                }
-              }}
+              onFocus={() => {}}
+              // onFocus={() => { // BAD!!!
+              //   if (baseTicketPrice === 0) {
+              //     setBaseTicketPriceDisplay('');
+              //   } else {
+              //     setBaseTicketPriceDisplay(baseTicketPrice.toString());
+              //   }
+              // }}
+              // onFocus={() => {
+              //   const newValue = baseTicketPrice === 0 ? '' : baseTicketPrice.toString();
+              //   if (newValue !== baseTicketPriceDisplay) {
+              //     setBaseTicketPriceDisplay(newValue);
+              //   }
+              // }}
               onBlur={() => {
                 setBaseTicketPriceDisplay(baseTicketPrice.toFixed(2))
               }}

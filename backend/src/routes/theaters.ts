@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
@@ -102,8 +102,11 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
 });
 
 // Protected: delete theater by id (operator only)
-router.delete('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireOperator, async (req: Request, res) => {
   try {
+    await database.deleteTheater(req.params.id);
+    res.json({ message: 'Theater deleted successfully' });
+    /*
     const response = await database.deleteTheater(req.params.id);
     let reason;
     switch (response.reason) {
@@ -117,11 +120,12 @@ router.delete('/:id', authenticateToken, requireOperator, async (req: AuthReques
         reason = req.t('unspecified reason');
         break;
     }
-    res.json({
-      message: response.deleted ?
-        req.t('Theater deleted successfully') :
-        req.t('Theater could not be deleted: {{reason}}', {reason})
-    });
+    if (response.deleted) {
+      res.json({ message: req.t('Theater deleted successfully') });
+    } else {
+      res.status(400).json({ error: req.t('Theater could not be deleted: {{reason}}', getErrorMessage() { reason }) });
+    }
+    */
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to delete theater: {{err}}', { err: getErrorMessage(error) }) });
   }

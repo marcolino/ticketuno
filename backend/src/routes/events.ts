@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 //import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
@@ -455,7 +455,7 @@ router.get('/:eventId/performances/:performanceId/seats/:sectionName', async (re
 });
 
 // Protected: Book seats for a performance
-router.post('/:eventId/performances/:performanceId/book', authenticateToken, async (req: AuthRequest, res) => {
+router.post('/:eventId/performances/:performanceId/book', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const { seatIds } = req.body;
     const { eventId, performanceId } = req.params;
@@ -550,13 +550,19 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
         row: seatInfo!.rowId, // TODO: seatInfo! ???
         tier: seatInfo!.sectionName,
         gate: '', // TODO: remove gate from ticket, or handle it in seats...
-        price: formatCurrency(
-          event.baseTicketPrice, // TODO: performance.ticketPrice or seat.ticketPrice ..., handle price in form and table
-          user.language ?? config.app.defaultLanguage,
-          setup.currency, // TODO: event.currency, handle event currency in form and table
-          // config.app.defaultCurrency
-        ),
-        holderName: 'Enrica', /** Required when `nominal` is true */
+        price: event.currency ?
+          formatCurrency(
+            event.baseTicketPrice, // TODO: performance.ticketPrice or seat.ticketPrice ..., handle price in form and table
+            user.language ?? config.app.defaultLanguage,
+            setup.currency, // TODO: event.currency, handle event currency in form and table
+            // config.app.defaultCurrency
+          ) :
+          req.t(''),
+        holderName:
+          config.app.reservations.ticketing.nominal ?
+            'Enrica' /** Required when `nominal` is true - TODO: add an attendee name in booking info and in booking form */
+          :
+            req.t('The seats are not nominal'),
       };
     });
 
@@ -568,7 +574,6 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     });
 
     // Send email to user with attached tickets
-    // TODO ...
     const email = user.email;
     const userName = `${user.firstName} ${user.lastName}`;
     const eventName = showInfo.titleLine1;
@@ -576,10 +581,10 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     const dateOfPerformance = showInfo.date;
     const timeOfPerformance = showInfo.time;
     const theaterName = showInfo.theater;
-    const seatNumbers = '1, 2, 3';
-    const totalPaidAmount = '€ 185';
-    const theaterPhone = '+39 333 33333333';
-    const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions';
+    const seatNumbers = booking.seats.join(', ');
+    const totalPaidAmount = event.currency ? (`${event.currency} ${event.baseTicketPrice * booking.seats.length}`) : ''; // TODO: define (in ../utils/misc) and use formatMoney() function, and handle ticket price in performance, possibly per seat...
+    const theaterPhone = '+39 333 33333333'; // TODO: handle phone number in TheaterEdit ...
+    const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: to config (and create terms and conditions page)
 
     // TODO: handle eventName, bookedSeats, isNominal in booking...
     const attachedTickets = pdfs.map((buf: Buffer, i: number) => ({

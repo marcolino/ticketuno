@@ -29,6 +29,7 @@ import useNavigate from '@/hooks/useNavigate';
 import { eventApi } from '@/services/api';
 import { EventStats } from '@/shared/types/event';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/utils/misc';
 import PageHeader from "./PageHeader";
@@ -41,6 +42,7 @@ const EventList: React.FC = () => {
   const navigate = useNavigate();
   const { isOperator } = useAuth();
   const toast = useToast();
+  const showDialog = useDialog();
   const [events, setEvents] = useState<EventStats[]>([]);
   //const [error, setError] = useState<string | null>(null);
 
@@ -84,19 +86,23 @@ const EventList: React.FC = () => {
   const handleDeleteEvent = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
 
-    // TODO: ask for confirmation...
-
-    try {
-      /*const response = */await eventApi.deleteEvent(id);
-      const newEvents = events.filter(event => event.id !== id);
-      setEvents(newEvents);
-      //setError(null);
-    } catch (error: unknown) {
-      // Show the actual server error message
-      toast.error(getErrorMessage(error));
-      //setError(error.response?.data?.error || t('Failed to delete event'));
-    }
-    navigate(`/events`);
+    showDialog({
+      title: t('Delete an event'),
+      content: t('Are you sure you want to delete this event?'),
+      cancelText: t('Cancel'),
+      confirmText: t('Delete'),
+      onConfirm: async () => {
+        try {
+          await eventApi.deleteEvent(id);
+          const newEvents = events.filter(event => event.id !== id);
+          setEvents(newEvents);
+        } catch (error) {
+          // Show the actual server error message
+          toast.error(getErrorMessage(error));
+        }
+        navigate(`/events`);
+      }
+    });
   };
 
   const formatDate = (dateString?: string) => {

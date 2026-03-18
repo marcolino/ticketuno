@@ -110,7 +110,7 @@ export const sendBookingConfirmationEmail = async (
   attachedTickets: Attachment[],
 ): Promise<void> => {
   const to = email;
-  const subject = i18n.t('Your Booking Confirmation for {{eventName}}!', { appName: config.app.name });
+  const subject = i18n.t('Your Booking Confirmation for {{eventName}}!', { eventName });
   const template = "bookingConfirmationEmail";
   const variables = {
     //appName: config.app.name,

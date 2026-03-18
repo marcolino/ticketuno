@@ -22,16 +22,19 @@ import useNavigate from '@/hooks/useNavigate';
 import { layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '@/contexts/DialogContext';
+import { toast } from '@/contexts/ToastContext';
 import PageHeader from "./PageHeader";
+import { getErrorMessage } from '@/utils/misc';
 //import { i18n } from '@/i18n';
 
 const LayoutList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-
+  const showDialog = useDialog();
   const { isOperator } = useAuth();
   const [layouts, setLayouts] = useState<Layout[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  //const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOperator) {
@@ -43,11 +46,12 @@ const LayoutList: React.FC = () => {
     try {
       const response = await layoutApi.getAllLayouts();
       setLayouts(response.data);
-      setError(null);
-    } catch (err: any) {
+      // setError(null);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
       // Show the actual server error message
-      setError(err.response?.data?.error || 'Failed to load layouts');
-      console.error(err.response?.data || err);
+      // setError(err.response?.data?.error || 'Failed to load layouts');
+      //console.error(err.response?.data || err);
     }
   };
 
@@ -63,17 +67,32 @@ const LayoutList: React.FC = () => {
   
   const handleDeleteLayout = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-
-    // TODO: ask for confirmation...
-    
+    showDialog({
+      title: t('Delete a layout'),
+      content: t('Are you sure you want to delete this event?'),
+      cancelText: t('Cancel'),
+      confirmText: t('Delete'),
+      onConfirm: async () => {
+        try {
+          await layoutApi.deleteLayout(id);
+          const newLayouts = layouts.filter(layout => layout.id !== id);
+          setLayouts(newLayouts);
+        } catch (error: unknown) {
+          // Show the actual server error message
+          toast.error(getErrorMessage(error));
+        }
+        navigate(`/layouts`);
+      }
+    });
     try {
       /*const response = */await layoutApi.deleteLayout(id);
       const newLayouts = layouts.filter(layout => layout.id !== id);
       setLayouts(newLayouts);
-      setError(null);
-    } catch (err: any) {
+      // setError(null);
+    } catch (error: any) {
       // Show the actual server error message
-      setError(err.response?.data?.error || 'Failed to delete layout');
+      //setError(err.response?.data?.error || 'Failed to delete layout');
+      toast.error(getErrorMessage(error));
     }
     navigate(`/layouts`);
   };
@@ -95,13 +114,13 @@ const LayoutList: React.FC = () => {
         onAdd={() => navigate('/layout/new')}
       />
 
-      {error && (
+      {/* {error && (
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-      )}
+      )} */}
 
-      {!error && layouts.length === 0 && (
+      {layouts.length === 0 && (
         <Alert severity="info">{t('No layouts available')}</Alert>
       )}
       
@@ -127,124 +146,122 @@ const LayoutList: React.FC = () => {
         <Alert severity="info">No layouts available</Alert>
       ) : ( */}
 
-      {!error && (
-        <Grid container spacing={3}>
-          {layouts.map((layout) => (
-            <Grid item xs={12} sm={6} md={4} key={layout.id}>
-              <Card
+      <Grid container spacing={3}>
+        {layouts.map((layout) => (
+          <Grid item xs={12} sm={6} md={4} key={layout.id}>
+            <Card
+              sx={{
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'transform 0.2s',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 4,
+                },
+              }}
+            >
+              <CardMedia
+                component="div"
                 sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 4,
-                  },
+                  pt: '56.25%',
+                  bgcolor: 'primary.main',
+                  position: 'relative',
                 }}
               >
-                <CardMedia
-                  component="div"
+                <Box
                   sx={{
-                    pt: '56.25%',
-                    bgcolor: 'primary.main',
-                    position: 'relative',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                   }}
                 >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <ViewCompactIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
-                  </Box>
-                </CardMedia>
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
-                    <Typography variant="h5" component="div">
-                      {layout.name}
+                  <ViewCompactIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
+                </Box>
+              </CardMedia>
+              <CardContent sx={{ flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
+                  <Typography variant="h5" component="div">
+                    {layout.name}
+                  </Typography>
+                  {/* <Chip
+                    label={layout.status}
+                    color={getStatusColor(layout.status)}
+                    size="small"
+                  /> */}
+                </Box>
+
+                {/* {layout.genre && (
+                  <Chip label={layout.genre} size="small" sx={{ mb: 1 }} />
+                )} */}
+
+                <Box sx={{ mt: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {layout.description}
                     </Typography>
-                    {/* <Chip
-                      label={layout.status}
-                      color={getStatusColor(layout.status)}
-                      size="small"
-                    /> */}
                   </Box>
 
-                  {/* {layout.genre && (
-                    <Chip label={layout.genre} size="small" sx={{ mb: 1 }} />
-                  )} */}
+                  {/* <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      {layout.nextPerformanceDate 
+                        ? `Next: ${formatDate(layout.nextPerformanceDate)}`
+                        : 'No upcoming performances'}
+                    </Typography>
+                  </Box> */}
 
-                  <Box sx={{ mt: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        {layout.description}
-                      </Typography>
-                    </Box>
+                  {/* <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <MoneyIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Typography variant="body2" color="text.secondary">
+                      From {layout.currency} {layout.baseTicketPrice}
+                    </Typography>
+                  </Box> */}
 
-                    {/* <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {layout.nextPerformanceDate 
-                          ? `Next: ${formatDate(layout.nextPerformanceDate)}`
-                          : 'No upcoming performances'}
-                      </Typography>
-                    </Box> */}
-
-                    {/* <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <MoneyIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        From {layout.currency} {layout.baseTicketPrice}
-                      </Typography>
-                    </Box> */}
-
-                    {/* <Typography variant="body2" color="success.main">
-                      {layout.availablePerformances} performance{layout.availablePerformances !== 1 ? 's' : ''} available
-                    </Typography> */}
-                  </Box>
-                </CardContent>
-                <CardActions sx={{ p: 2, pt: 0 }}>
-                  {/* <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={() => handleViewLayout(layout.id)}
-                    disabled={layout.availablePerformances === 0}
+                  {/* <Typography variant="body2" color="success.main">
+                    {layout.availablePerformances} performance{layout.availablePerformances !== 1 ? 's' : ''} available
+                  </Typography> */}
+                </Box>
+              </CardContent>
+              <CardActions sx={{ p: 2, pt: 0 }}>
+                {/* <Button
+                  fullWidth
+                  variant="contained"
+                  onClick={() => handleViewLayout(layout.id)}
+                  disabled={layout.availablePerformances === 0}
+                >
+                  View Performances
+                </Button> */}
+                {isOperator && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<EditIcon />}
+                    onClick={(e) => handleEditLayout(layout.id, e)}
+                    sx={{ ml: 1 }}
                   >
-                    View Performances
-                  </Button> */}
-                  {isOperator && (
-                    <Button
-                      variant="outlined"
-                      startIcon={<EditIcon />}
-                      onClick={(e) => handleEditLayout(layout.id, e)}
-                      sx={{ ml: 1 }}
-                    >
-                      {t('Edit')}
-                    </Button>
-                  )}
-                  {isOperator && (
-                    <Button
-                      variant="outlined"
-                      startIcon={<DeleteIcon />}
-                      onClick={(e) => handleDeleteLayout(layout.id, e)}
-                      sx={{ ml: 1 }}
-                    >
-                      {t('Delete')}
-                    </Button>
-                  )}
-                </CardActions>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      )}
+                    {t('Edit')}
+                  </Button>
+                )}
+                {isOperator && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<DeleteIcon />}
+                    onClick={(e) => handleDeleteLayout(layout.id, e)}
+                    sx={{ ml: 1 }}
+                  >
+                    {t('Delete')}
+                  </Button>
+                )}
+              </CardActions>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
     </Container>
   );
 };

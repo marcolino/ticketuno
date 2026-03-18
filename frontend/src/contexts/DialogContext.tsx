@@ -141,7 +141,7 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({
             )}
 
             {(options.confirmText || options.cancelText || options.buttons?.some(opt => opt.text)) && (
-              <DialogActions>
+              <DialogActions sx={{m: 2}}>
                 {/* Cancel */}
                 {options.cancelText && (
                   <Button onClick={handleCancel}>

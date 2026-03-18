@@ -16,6 +16,6 @@ BEGIN
   WHERE id = OLD.id;
 END;
 
--- Ensure default row exists
-INSERT OR IGNORE INTO setup (id, data)
-VALUES (1, '{}');
+-- -- Ensure default row exists
+-- INSERT OR IGNORE INTO setup (id, data)
+-- VALUES (1, '{}');

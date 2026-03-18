@@ -198,22 +198,22 @@ class Database {
 
     await execQuery(this.db!, `
       CREATE TABLE IF NOT EXISTS seats (
-        performance_id    TEXT NOT NULL,
-        seat_id           TEXT NOT NULL,
-        section_name      TEXT NOT NULL,
-        row_id            TEXT NOT NULL,
-        seat_number       INTEGER NOT NULL,
-        status            TEXT NOT NULL DEFAULT 'available',
-        booking_id        TEXT,                          -- ← links seat to its booking
+        performance_id TEXT NOT NULL,
+        seat_id TEXT NOT NULL,
+        section_name TEXT NOT NULL,
+        row_id TEXT NOT NULL,
+        seat_number INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'available',
+        booking_id TEXT, -- links seat to its booking
         booked_by_user_id TEXT,
-        booked_at         DATETIME,
-        reserved_until    TEXT,
-        created_at        DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at        DATETIME,
+        booked_at DATETIME,
+        reserved_until TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME,
         PRIMARY KEY (performance_id, seat_id),
-        FOREIGN KEY (performance_id)    REFERENCES performances(id) ON DELETE CASCADE,
+        FOREIGN KEY (performance_id) REFERENCES performances(id) ON DELETE CASCADE,
         FOREIGN KEY (booked_by_user_id) REFERENCES users(id),
-        FOREIGN KEY (booking_id)        REFERENCES bookings(id)
+        FOREIGN KEY (booking_id) REFERENCES bookings(id)
       );
     `, 'CREATE seats');
     
@@ -671,30 +671,48 @@ class Database {
   }
 
   async deleteTheater(id: string): Promise<{ deleted: boolean; reason?: string }> {
-    const linked = await getQuery<{ count: number }>(
-      this.db!, `
-        SELECT COUNT(*)
-        FROM events
-        WHERE theater_id = ?
-        AND deleted_at IS NULL
-      `,
-      [id], 'check theater dependencies'
-    );
+    const sql = `
+      UPDATE theaters
+      SET deleted_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND deleted_at IS NULL
+    `;
 
-    if ((linked?.count ?? 0) > 0) {
-      return {
-        deleted: false,
-        reason: 'THEATER_HAS_LINKED_EVENTS'
-      };
-    }
-
-    const sql = `DELETE FROM theaters WHERE id = ?`;
     const params = [id];
-    const result = await runQuery(this.db!, sql, params, 'delete theater');
+    const result = await runQuery(this.db!, sql, params, 'soft delete theater');
+
     return {
       deleted: result.changes > 0,
       ...(result.changes === 0 && { reason: 'THEATER_NOT_FOUND' })
     };
+
+    // const linked = await getQuery<{ count: number }>(
+    //   this.db!, `
+    //     SELECT COUNT(*) AS count
+    //     FROM events
+    //     WHERE theater_id = ?
+    //     AND deleted_at IS NULL
+    //   `,
+    //   [id], 'check theater dependencies'
+    // );
+
+    // if ((linked?.count ?? 0) > 0) {
+    //   return {
+    //     deleted: false,
+    //     reason: 'THEATER_HAS_LINKED_EVENTS'
+    //   };
+    // }
+
+    // const sql = `
+    //   DELETE
+    //   FROM theaters
+    //   WHERE id = ?
+    // `;
+    // const params = [id];
+    // const result = await runQuery(this.db!, sql, params, 'delete theater');
+    // return {
+    //   deleted: result.changes > 0,
+    //   ...(result.changes === 0 && { reason: 'THEATER_NOT_FOUND' })
+    // };
   }
 
   // Layout methods (IMMUTABLE) //////////////////////////////////////////////////////////////////
@@ -1393,7 +1411,7 @@ class Database {
    */
   async performanceHasBookings(performanceId: string): Promise<boolean> {
     const sql = `
-      SELECT COUNT(*) as count 
+      SELECT COUNT(*) AS count 
       FROM seats 
       WHERE performance_id = ? AND status = 'booked'
     `;
@@ -1442,9 +1460,9 @@ class Database {
   /**
    * Atomic booking transaction.
    *
-   * 1. Verifies all requested seats are 'available'
-   * 2. Creates a booking record
-   * 3. Stamps each seat with booking_id, booked_by_user_id, status = 'booked'
+   * - Verifies all requested seats are 'available'
+   * - Creates a booking record
+   * - Stamps each seat with booking_id, booked_by_user_id, status = 'booked'
    *
    * Returns the new bookingId on success, or the list of unavailable seat IDs on failure.
    */
@@ -1521,7 +1539,8 @@ class Database {
                 WHERE performance_id = ? AND seat_id IN (${placeholders})
               `;
 
-              db.run(updateSeatsSql, [bookingRef, userId, performanceId, ...seatIds], (err) => {
+              const params = [bookingRef, userId, performanceId, ...seatIds];
+              db.run(updateSeatsSql, params, (err) => {
                 if (err) {
                   db.run('ROLLBACK');
                   return reject(err);

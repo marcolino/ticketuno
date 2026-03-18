@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { TFunction } from 'i18next';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
 import config from '../config';
 
 export interface AuthRequest extends Request {
@@ -25,8 +25,10 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     if (!decoded || typeof decoded === 'string') {
       return res.status(403).json({ error: 'Invalid token' });
     }
-    req.userId = decoded.userId;
-    req.userRole = decoded.role;
+    // req.userId = decoded.userId;
+    // req.userRole = decoded.role;
+    req.userId = (decoded as JwtPayload & { userId: string; role: string }).userId;
+    req.userRole = (decoded as JwtPayload & { userId: string; role: string }).role;
     next();
   });
 };

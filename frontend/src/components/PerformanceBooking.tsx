@@ -36,12 +36,13 @@ import {
 import { SeatData, PerformanceSeatsResponse } from '@/shared/types/performance'
 import LayoutPreviewSVG, { SeatWithStatus } from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
+import { localizedDate } from '@/utils/misc';
 import config from '@/shared/config';
 
 const PerformanceBooking: React.FC = () => {
   const { t } = useTranslation();
   const { eventId, performanceId } = useParams<{ eventId: string; performanceId: string }>();
-  const { /*user, */isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -249,7 +250,8 @@ const PerformanceBooking: React.FC = () => {
       content: (
         <Box>
           <Typography>
-            {t('You are about to book {{count}} seats:', { count: selectedSeats.size })}
+            {t('You are about to book {{count}} seats', { count: selectedSeats.size })}
+            &nbsp;{t('for')} {localizedDate({ dateString: performance?.performanceDate, locale: user!.language })}:
           </Typography>
           <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2 }}>
             {Array.from(selectedSeats).join(', ')}

@@ -20,21 +20,24 @@ import {
 
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { theaterApi, layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { Theater } from '@/shared/types/theater';
+import { getErrorMessage } from '@/utils/misc';
 import PageHeader from "./PageHeader";
 
 const TheaterList: React.FC = () => {
   const { t } = useTranslation();
   const { isOperator } = useAuth();
   const navigate = useNavigate();
+  const showDialog = useDialog();
   //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [theaters, setTheaters] = useState<Theater[] | null>(null); // ← null = not loaded
   const [layouts, setLayouts] = useState<Layout[] | null>(null); // ← null = not loaded
   //const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null); // TODO ... do we use error ?
+  //const [error, setError] = useState<string | null>(null); // TODO ... do we use error ?
 
   useEffect(() => {
     if (isOperator) {
@@ -48,11 +51,11 @@ const TheaterList: React.FC = () => {
       const response = await theaterApi.getAllTheaters();
       setTheaters(response.data);
       //console.log('THEATERS:', response.data);
-      setError(null);
-    } catch (err: any) {
+      // setError(null);
+    } catch (error: any) {
       setTheaters(null);
-      setError(err.response?.data?.error);
-      toast.error(err.response?.data?.error);
+      // setError(err.response?.data?.error);
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -66,12 +69,12 @@ const TheaterList: React.FC = () => {
     try {
       const response = await layoutApi.getAllLayouts();
       setLayouts(response.data);
-      setError(null);
-    } catch (err: any) {
+      // setError(null);
+    } catch (error) {
       // Show the actual server error message
       setLayouts(null);
-      setError(err.response?.data?.error);
-      toast.error(err.response?.data?.error);
+      // setError(err.response?.data?.error);
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -91,23 +94,32 @@ const TheaterList: React.FC = () => {
   
   const handleDeleteTheater = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (theaters) {
-      try {
-          /*const response = */await theaterApi.deleteTheater(id);
-        const newTheaters = theaters.filter(theater => theater.id !== id);
-        setTheaters(newTheaters);
-        setError(null);
-      } catch (err: any) {
-        // Show the actual server error message
-        setError(err.response?.data?.error);
-        toast.error(err.response?.data?.error);
-      }
-    }
+    showDialog({
+      title: t('Delete a theater'),
+      content: t('Are you sure you want to delete this theater?'),
+      cancelText: t('Cancel'),
+      confirmText: t('Delete'),
+      onConfirm: async () => {
+        if (theaters) {
+          try {
+            await theaterApi.deleteTheater(id);
+            const newTheaters = theaters.filter(theater => theater.id !== id);
+            setTheaters(newTheaters);
+            // setError(null);
+          } catch (error) {
+            // Show the actual server error message
+            // setError(err.response?.data?.error);
+            toast.error(getErrorMessage(error));
+          }
+          navigate(`/theaters`);
+        }
+      },
+    });
   };
 
-  if (error) {
-    return error; // TODO...
-  }
+  // if (error) {
+  //   return error; // TODO...
+  // }
   
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
