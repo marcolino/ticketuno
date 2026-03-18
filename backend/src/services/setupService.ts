@@ -3,9 +3,9 @@ import { SetupStatus } from '../shared/types/generalSetup';
 
 let cachedSetup: SetupStatus | null = null;
 
-export const loadSetup = async (): Promise<SetupStatus> => {
+export const loadSetup = async () => {
   if (!cachedSetup) {
-    const setup = await database.loadSetup<SetupStatus>();
+    const setup = await database.loadSetup();
     if (!setup) {
       throw new Error("Setup not found");
     }
@@ -14,8 +14,8 @@ export const loadSetup = async (): Promise<SetupStatus> => {
   return cachedSetup;
 };
 
-export const refreshSetup = async (): Promise<SetupStatus> => {
-  const setup = await database.loadSetup<SetupStatus>();
+export const refreshSetup = async () => {
+  const setup = await database.loadSetup();
   if (!setup) {
     throw new Error("Setup not found");
   }
@@ -23,7 +23,7 @@ export const refreshSetup = async (): Promise<SetupStatus> => {
   return cachedSetup;
 };
 
-export const getSetup = (): SetupStatus => {
+export const getSetup = () => {
   if (!cachedSetup) {
     throw new Error("Setup not loaded yet");
   }

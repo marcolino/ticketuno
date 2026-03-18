@@ -1658,7 +1658,7 @@ class Database {
   }
 
   // Setup table methods /////////////////////////////////////////////////////////
-  async loadSetup<T = unknown>(): Promise<SetupStatus | null> {
+  async loadSetup(): Promise<SetupStatus | null> {
     const sql = `
       SELECT data
       FROM setup

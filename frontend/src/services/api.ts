@@ -13,7 +13,7 @@ import {
 import { Theater } from '@/shared/types/theater';
 import type { Event, EventStats, EventPerformance, EventWithDetails } from '@/shared/types/event';
 import type { FullConsent } from '@/shared/types/consent';
-import { PerformanceSeatsResponse } from '@/components/PerformanceBooking';
+import { PerformanceSeatsResponse } from '@/shared/types/performance';
 import { Layout } from '@/shared/types/layout';
 import { SetupStatus } from '@/shared/types/generalSetup';
 import { i18n }  from '@/i18n'; 

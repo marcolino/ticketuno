@@ -59,13 +59,10 @@ function GeneralSetup() {
   // Captured once on mount — never changes. Reset always goes back here.
   const entryStatusRef = useRef<SetupStatus | null>(null);
 
-  const handleChange = <K extends keyof SetupStatus>(
-    key: K,
-    value: SetupStatus[K]
-  ) => {
-    setStatus((prev) => ({ ...prev, [key]: value }));
+  const handleChange = (key: keyof SetupStatus, value: unknown) => {
+    setStatus((prev) => ({ ...prev, [key]: value as SetupStatus[typeof key] }));
   };
-
+  
   useEffect(() => {
     (async () => {
       try {
