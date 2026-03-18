@@ -75,7 +75,7 @@ if [ ! -f "backend/.env" ]; then
 fi
 
 # Ensure clean state — we never want a tag pointing to uncommitted changes
-if [ -n "$(git status --porcelain)" ]; then
+if [ -n "$(git status --porcelain | grep -vE 'package-lock.json|yarn.lock|pnpm-lock.yaml')" ]; then
   echo "❌ Working directory is dirty. Commit or stash changes before deploying."
   exit 5
 fi

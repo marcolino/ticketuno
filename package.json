@@ -51,6 +51,7 @@
     "status": "fly status --app ticketuno",
     "ssh": "fly ssh console --app ticketuno",
     "db:backup": "fly ssh console --app ticketuno -C 'cat /data/ticketuno.db' > backup-$(date +%Y%m%d-%H%M%S).db",
+    "destroy": "scripts/destroy.sh",
     "play-ok": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/trumpet.wav",
     "play-ko": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/finish.wav"
   },
