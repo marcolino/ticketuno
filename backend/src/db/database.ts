@@ -139,7 +139,6 @@ class Database {
         is_active INTEGER DEFAULT 1,
         currency TEXT,
         base_ticket_price REAL NOT NULL,
-        currency TEXT DEFAULT 'USD',
         is_sold_out INTEGER DEFAULT 0,
         special_requirements TEXT,
         minimum_age INTEGER,
