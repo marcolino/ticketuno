@@ -1,0 +1,24 @@
+<mj-section background-color="#6750A4" padding="12px 20px" border-radius="8px 8px 0 0">
+  <mj-column padding="0">
+
+    <mj-raw>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <!-- Left logo -->
+          <td width="56" style="vertical-align:middle;">
+            <img src="{{logoUrl}}" width="56" height="56" style="display:block; max-width:100%;" />
+          </td>
+
+          <!-- Center title -->
+          <td align="center" style="font-size:24px; font-weight:600; color:#ffffff; font-family:Helvetica, Arial, sans-serif; line-height:32px;">
+            {{appName}}
+          </td>
+
+          <!-- Right spacer -->
+          <td width="56">&nbsp;</td>
+        </tr>
+      </table>
+    </mj-raw>
+
+  </mj-column>
+</mj-section>

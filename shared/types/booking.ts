@@ -11,8 +11,8 @@ export interface Booking {
   seatCount: number;
   seatIds: string[]; // parsed from seat_ids JSON column
   bookedAt: string;
-  usedAt: Date | null;
-  usedBy: string | null;
+  scannedAt: Date | null;
+  scannedBy: string | null;
   updatedAt?: string;
   cancelledAt?: string;
 }

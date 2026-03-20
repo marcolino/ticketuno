@@ -9,6 +9,8 @@ export interface Theater {
   stageType?: string;
   address?: string;
   websiteUrl?: string;
+  contactPhone?: string,
+  contactEmail?: string,
   status: TheaterStatus;
   currentLayoutId?: string;
   createdAt?: string;
@@ -22,6 +24,8 @@ export interface TheaterStats { // TODO: dispose TheaterStats, use Theater...
   stageType?: string;
   address?: string;
   websiteUrl?: string;
+  constactPhone?: string,
+  constactEmail?: string,
   status: TheaterStatus;
 }
 

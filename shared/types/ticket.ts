@@ -6,6 +6,7 @@ export interface TicketValidationResult {
   code?: string;
   status: TicketValidationStatus;
   label: string; // Human-readable message from the server
+  ref?: string;
   detail?: { // Only present on `valid` — useful for display
     holderName?: string;
     seat: string;
@@ -19,6 +20,7 @@ export interface TicketScanEntry {
   code: string;
   status: TicketValidationStatus;
   label: string;
+  ref?: string;
   timestamp: Date;
   duplicateCount: number; // How many consecutive re-scans of this same code
   pending: boolean; // True while the server call is in flight
@@ -65,36 +67,24 @@ export interface DecodeTicketResult {
 }
 
 export interface ShowInfo {
-  /** e.g. "ROYAL OPERA HOUSE" */
   theater: string;
-  /** Main title line, e.g. "La Traviata" */
   titleLine1: string;
-  /** Sub-title line, e.g. "by Verdi" */
   titleLine2: string;
-  /** Subtitle/tagline, e.g. "A New Production" */
   subtitle: string;
-  /** e.g. "April 18, 2025" */
+  poster: string;
   date: string;
-  /** e.g. "Friday" */
   dayOfWeek: string;
-  /** e.g. "7:30" (the "PM Sharp" suffix is appended automatically) */
   time: string;
-  /** e.g. "2h 45m" */
   duration: string;
-  /** Full venue name */
   venue: string;
-  /** Street / city address */
   address: string;
-  /** Lead performer name */
+  contactPhone: string,
+  contactEmail: string,
   lead: string;
-  /** Lead performer role */
   leadRole: string;
-  /** Supporting performer line */
-  supporting: string;
-  /** e.g. "6:45 PM" */
-  doorsOpen: string;
-  /** e.g. "Smart Casual" */
-  dress: string;
+  supporting?: string;
+  doorsOpen?: string;
+  dress?: string;
 }
 
 export interface SeatInfo {
@@ -107,7 +97,7 @@ export interface SeatInfo {
   /** e.g. "Circle" */
   tier: string;
   /** e.g. "Gate B" */
-  gate: string;
+  gate?: string;
   /** e.g. "£ 185.00" */
   price: string;
   /** Required when `nominal` is true */
@@ -118,4 +108,7 @@ export interface BookingRequest {
   show: ShowInfo;
   seats: SeatInfo[];
   nominal?: boolean; // When true the ticket holder's name is printed on ticket, otherwise it is omitted
+  bookingIsPaid?: boolean;
+  useQrcode?: boolean;
+  language: string;
 }

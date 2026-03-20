@@ -1,10 +1,9 @@
 <mjml>
   <mj-head>
-
     <mj-preview>{{preview}}</mj-preview>
 
     <mj-attributes>
-      <mj-all font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" />
+      <mj-all font-family="Helvetica, Arial, sans-serif" />
       <mj-text font-size="16px" line-height="24px" color="#222222" />
       <mj-button
         font-size="16px"
@@ -15,8 +14,14 @@
       />
     </mj-attributes>
 
-    <!-- Base styles (inlined where possible) -->
     <mj-style inline="inline">
+      @media only screen and (max-width:480px) {
+        .header-title {
+          font-size:20px !important;
+          line-height:24px !important;
+        }
+      }
+
       .booking-reference {
         background-color: #f5f5f5;
         padding: 10px;
@@ -27,12 +32,11 @@
       .booking-details-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 15px;
+        font-size: 16px;
       }
       .booking-details-table td {
-        padding: 7px 0;
+        padding: 8px 0;
         border-bottom: 1px solid #e0e0e0;
-        vertical-align: top;
       }
       .booking-details-table tr:last-child td {
         border-bottom: none;
@@ -40,9 +44,6 @@
       .booking-label {
         font-weight: bold;
         color: #555;
-        white-space: nowrap;
-        padding-right: 12px;
-        width: 1%;
       }
       .booking-total {
         font-size: 18px;
@@ -50,32 +51,11 @@
         color: #2c3e50;
       }
     </mj-style>
-
-    <!-- Media queries must stay in a non-inlined style block -->
-    <mj-style>
-      @media only screen and (max-width: 480px) {
-        .header-title {
-          font-size: 20px !important;
-          line-height: 24px !important;
-        }
-        /* Reduce body section horizontal padding on mobile */
-        .body-section > div > div {
-          padding-left: 12px !important;
-          padding-right: 12px !important;
-        }
-        /* Slightly smaller table text on mobile to prevent wrapping */
-        .booking-details-table {
-          font-size: 13px !important;
-        }
-        .booking-total {
-          font-size: 15px !important;
-        }
-      }
-    </mj-style>
   </mj-head>
 
   <mj-body background-color="#f4f4f6">
 
+    <!-- Outer wrapper to center the email -->
     <mj-wrapper padding="40px 10px" background-color="#f4f4f6">
 
       {{> header}}

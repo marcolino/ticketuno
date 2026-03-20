@@ -18,6 +18,7 @@ const config: AppConfig = {
       zh: { name: 'Chinese', flag: '🇨🇳' },
     },
     defaultLanguage: 'it',
+    defaultTimezone: 'Europe/Rome',
     currencies: {
       EUR: { symbol: '€', name: 'Euro' },
       USD: { symbol: '$', name: 'US Dollar' },
@@ -43,7 +44,7 @@ const config: AppConfig = {
     },
     reservations: {
       ticketing: {
-        useQrcode: false,
+        useQrcode: true,
         qrcode: {
         },
         format: 'A4',

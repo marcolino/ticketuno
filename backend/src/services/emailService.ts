@@ -57,6 +57,8 @@ class EmailService {
 
   // Public: send email
   async send(options: SendEmailOptions & { lang?: string }): Promise<CreateEmailResponse> {
+    const t = i18n.getFixedT(options.lang ?? config.app.defaultLanguage);
+    
   // sync getAllLayouts(): Promise<Array<{ id: string; json: string }> | null> {
     const payload = await this.prepare(options); // Prepare the email payload
 

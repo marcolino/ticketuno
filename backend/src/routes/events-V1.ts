@@ -503,11 +503,11 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       });
     }
 
-    // if (!booking.bookingRef) {
-    //   return res.status(400).json({ 
-    //     error: req.t('No booking reference!'),
-    //   });
-    // }
+    if (!booking.bookingRef) {
+      return res.status(400).json({ 
+        error: req.t('No booking reference!'),
+      });
+    }
    
     const event = await database.getEventById(eventId);
     if (!event) {
@@ -550,18 +550,33 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
 
     //const setup = getSetup();
 
-    const seatsInfo = booking.seats.map(({ seatId, bookingRef }) => {
-      const seatInfo = findSeatById(seatId, performanceSeats);
+    const seatsInfo = booking.seats.map(seat => {
+      const seatInfo = findSeatById(seat, performanceSeats);
+      /*
+        seatId: 'Galleria-A-1',
+        sectionName: 'Galleria',
+        rowId: 'A',
+        seatNumber: 1,
+        status: 'available'
+      */
       return {
-        bookingRef, // Unique reference per seat
-        seat: seatId,
-        row: seatInfo!.rowId,
+        bookingRef: booking.bookingRef ?? req.t('UNKNOWN'),
+        seat,
+        row: seatInfo!.rowId, // TODO: seatInfo! ???
         tier: seatInfo!.sectionName,
-        gate: '',
-        price: event.currency
-          ? formatMoney(event.baseTicketPrice, user.language, event.currency)
-          : req.t(''),
-        holderName: config.app.reservations.ticketing.nominal ? '--' : req.t('The seats are not nominal'),
+        gate: '', // TODO: handle gate in performance if needed
+        price: event.currency ?
+          formatMoney(
+            /*seat.ticketPrice*/event.baseTicketPrice, // TODO: handle price in form and table
+            user.language, // ?? config.app.defaultLanguage,
+            event.currency,
+          ) :
+          req.t(''),
+        holderName:
+          config.app.reservations.ticketing.nominal ?
+            '--' //seatInfo!.attendeeName, // TODO: add an attendee name in booking info and in booking form */
+          :
+            req.t('The seats are not nominal'),
       };
     });
 
@@ -582,7 +597,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     const email = user.email;
     const userName = `${user.firstName} ${user.lastName}`;
     const eventName = showInfo.titleLine1;
-    //const bookingRef = booking.bookingRef;
+    const bookingRef = booking.bookingRef;
     const dateOfPerformance = showInfo.date;
     const timeOfPerformance = showInfo.time;
     const theaterName = showInfo.theater;
@@ -597,7 +612,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
 
     // TODO: handle eventName, bookedSeats, isNominal in booking...
     const attachedTickets = pdfs.map((buf: Buffer, i: number) => ({
-      filename: `ticket-${booking.seats[i].bookingRef}.pdf`, // Unique name per seat
+      filename: `ticket-${booking.seats![i]/*.bookingRef*/}.pdf`, // Unique name per seat
       //contentType: 'application/pdf',
       content: buf,
     }));
@@ -606,7 +621,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       email,
       userName,
       eventName,
-      booking.seats.map(s => s.bookingRef).join(', '),
+      bookingRef,
       dateOfPerformance,
       timeOfPerformance,
       theaterName,
@@ -622,9 +637,9 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
 
     res.json({
       message: req.t('{{count}} seats booked successfully'),
-      bookingRefs: booking.seats.map(s => s.bookingRef),  // array now
-      bookedSeats: booking.bookedCount,
+      bookingRef: booking.bookingRef,
       unavailableSeats: booking.unavailableSeats,
+      bookedSeats: booking.bookedCount, // TODO: count => bookedSeats
     });
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });

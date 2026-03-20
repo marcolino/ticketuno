@@ -177,7 +177,6 @@ class Database {
         status TEXT DEFAULT 'scheduled',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME,
-        deleted_at DATETIME,
         FOREIGN KEY (event_id) REFERENCES events(id)
       );
     `, 'CREATE performances');
@@ -247,7 +246,7 @@ class Database {
     await execQuery(this.db!, `
       CREATE INDEX IF NOT EXISTS idx_layouts_active
       ON layouts(theater_id)
-      WHERE deleted_at IS NULL
+      WHERE deleted_at IS NULL;
     `, 'INDEX layouts_active');
 
     await execQuery(this.db!, `
@@ -1171,24 +1170,14 @@ class Database {
   }
 
   async getPerformancesByEventId(eventId: string): Promise<EventPerformance[] | null> {
-    const sql = `
-      SELECT *
-      FROM performances
-      WHERE event_id = ?
-      AND deleted_at IS NULL
-    `;
+    const sql = `SELECT * FROM performances WHERE event_id = ?`;
     const params = [eventId];
     const rows = await allQuery(this.db!, sql, params, 'get performances by event id');
     return rows ? this.mapRowsToPerformances(rows) : null;
   }
 
   async getPerformanceById(id: string): Promise<EventPerformance | null> {
-    const sql = `
-      SELECT *
-      FROM performances
-      WHERE id = ?
-      AND deleted_at IS NULL
-    `;
+    const sql = `SELECT * FROM performances WHERE id = ?`;
     const params = [id];
     const row = await getQuery(this.db!, sql, params, 'get performance by id');
     return row ? this.mapRowToPerformance(row) : null;
@@ -1243,14 +1232,9 @@ class Database {
   }
 
   async deletePerformanceById(performanceId: string): Promise<boolean> {
-    //const sql = `DELETE FROM performances WHERE id = ?`;
-    const sql = `
-      UPDATE performances
-      SET deleted_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND deleted_at IS NULL
-    `;
+    const sql = `DELETE FROM performances WHERE id = ?`;
     const params = [performanceId];
-    const result = await runQuery(this.db!, sql, params, 'soft delete performance for event');
+    const result = await runQuery(this.db!, sql, params, 'delete performance for event');
     return result.changes > 0;
   }
 
@@ -1536,62 +1520,57 @@ class Database {
             });
           }
 
-          // One booking ref per seat
-          const perSeat = seatIds.map(seatId => ({
-            seatId,
-            bookingRef: generateBookingRef(),
-            bookingId: this.uuid(),
-          }));
-
-          // Insert one booking row per seat
+          // Create the booking record
+          const bookingRef = generateBookingRef();
+          const status = 'confirmed';
           const insertBookingSql = `
-            INSERT INTO bookings (id, booking_ref, user_id, performance_id, status, total_price, seat_count, seat_ids)
-            VALUES (?, ?, ?, ?, 'confirmed', ?, 1, ?)
+            INSERT INTO bookings (booking_ref, user_id, performance_id, status, total_price, seat_count, seat_ids)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
           `;
 
-          let insertedCount = 0;
-          let insertError: Error | null = null;
+          db.run(
+            insertBookingSql,
+            [bookingRef, userId, performanceId, status, totalPrice, seatIds.length, JSON.stringify(seatIds)],
+            (err) => {
+              if (err) {
+                db.run('ROLLBACK');
+                return reject(err);
+              }
 
-          const onInsertDone = () => {
-            if (insertError) { db.run('ROLLBACK'); return reject(insertError); }
-            if (++insertedCount < perSeat.length) return; // wait for all
+              // Stamp seats with the bookingRef
+              const updateSeatsSql = `
+                UPDATE seats 
+                SET
+                  status = 'booked',
+                  booking_ref = ?,
+                  booked_by_user_id = ?,
+                  booked_at = CURRENT_TIMESTAMP,
+                  updated_at = CURRENT_TIMESTAMP
+                WHERE performance_id = ? AND seat_id IN (${placeholders})
+              `;
 
-            // Stamp each seat with its own booking_ref
-            let updatedCount = 0;
-            for (const { seatId, bookingRef, bookingId } of perSeat) {
-              db.run(
-                `UPDATE seats
-                SET status = 'booked', booking_id = ?, booking_ref = ?,
-                    booked_by_user_id = ?, booked_at = CURRENT_TIMESTAMP,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE performance_id = ? AND seat_id = ?`,
-                [bookingId, bookingRef, userId, performanceId, seatId],
-                (err) => {
-                  if (err) insertError = err;
-                  if (++updatedCount < perSeat.length) return;
-                  if (insertError) { db.run('ROLLBACK'); return reject(insertError); }
-
-                  db.run('COMMIT', (err) => {
-                    if (err) return reject(err);
-                    resolve({
-                      success: true,
-                      bookedCount: perSeat.length,
-                      seats: perSeat.map(({ seatId, bookingRef }) => ({ seatId, bookingRef })),
-                      unavailableSeats: [],
-                    });
-                  });
+              const params = [bookingRef, userId, performanceId, ...seatIds];
+              db.run(updateSeatsSql, params, (err) => {
+                if (err) {
+                  db.run('ROLLBACK');
+                  return reject(err);
                 }
-              );
-            }
-          };
 
-          for (const { bookingId, bookingRef, seatId } of perSeat) {
-            db.run(
-              insertBookingSql,
-              [bookingId, bookingRef, userId, performanceId, totalPrice / seatIds.length, JSON.stringify([seatId])],
-              (err) => { if (err) insertError = err; onInsertDone(); }
-            );
-          }
+                db.run('COMMIT', (err) => {
+                  if (err) {
+                    return reject(err);
+                  }
+                  resolve({
+                    success: true,
+                    bookingRef,
+                    bookedCount: seatIds.length,
+                    seats: seatIds,
+                    unavailableSeats: [],
+                  });
+                });
+              });
+            }
+          );
         });
       });
     });

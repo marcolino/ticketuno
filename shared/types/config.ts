@@ -21,6 +21,7 @@ export interface AppConfig {
     baseUrl: string;
     languages: Record<string, AppLanguage>;
     defaultLanguage: string;
+    defaultTimezone: string;
     currencies: Record<CurrencyCode, Currency>;
     defaultCurrency: CurrencyCode;
     theme: {

@@ -29,15 +29,6 @@ router.post('/send', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
-
-/*
-router.post('/send-booking-confirmation', authenticateToken, async (req, res) => {
-  const { email, userName, eventName, ... } = req.body;
-  await sendBookingConfirmationEmail(email, userName, eventName, ...);
-  res.json({ message: 'Email sent' });
-});
-*/
-
 // Public, dev only: Preview email template
 router.get('/preview/:template', async (req, res) => {
   const template = req.params.template;

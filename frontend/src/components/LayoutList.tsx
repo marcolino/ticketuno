@@ -69,7 +69,7 @@ const LayoutList: React.FC = () => {
     e.stopPropagation();
     showDialog({
       title: t('Delete a layout'),
-      content: t('Are you sure you want to delete this event?'),
+      content: t('Are you sure you want to delete this layout?'),
       cancelText: t('Cancel'),
       confirmText: t('Delete'),
       onConfirm: async () => {
@@ -84,16 +84,16 @@ const LayoutList: React.FC = () => {
         navigate(`/layouts`);
       }
     });
-    try {
-      /*const response = */await layoutApi.deleteLayout(id);
-      const newLayouts = layouts.filter(layout => layout.id !== id);
-      setLayouts(newLayouts);
-      // setError(null);
-    } catch (error: any) {
-      // Show the actual server error message
-      //setError(err.response?.data?.error || 'Failed to delete layout');
-      toast.error(getErrorMessage(error));
-    }
+    // try {
+    //   /*const response = */await layoutApi.deleteLayout(id);
+    //   const newLayouts = layouts.filter(layout => layout.id !== id);
+    //   setLayouts(newLayouts);
+    //   // setError(null);
+    // } catch (error: any) {
+    //   // Show the actual server error message
+    //   //setError(err.response?.data?.error || 'Failed to delete layout');
+    //   toast.error(getErrorMessage(error));
+    // }
     navigate(`/layouts`);
   };
 

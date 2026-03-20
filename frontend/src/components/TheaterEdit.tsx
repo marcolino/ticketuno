@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useParams  } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  useTheme,
   Container,
   Box,
   Typography,
@@ -9,7 +10,6 @@ import {
   Paper,
   TextField,
   Grid,
-  Alert,
   FormControl,
   InputLabel,
   Select,
@@ -19,19 +19,25 @@ import {
   Save as SaveIcon,
   Curtains as CurtainsIcon,
 } from '@mui/icons-material';
+import PhoneInput from 'react-phone-input-2';
+import 'react-phone-input-2/lib/material.css';
 import useNavigate from '@/hooks/useNavigate';
 import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
+// import TextFieldPhone from './TextFieldPhone';
 import TagSelector from './TagSelector';
 import { theaterApi, layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { getErrorMessage } from '@/utils/misc';
+import config from '@/shared/config';
 
 const TheaterEdit: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
   const toast = useToast();
+  const theme = useTheme();
   const { id } = useParams<{ id: string }>();
   const { isOperator } = useAuth();
 
@@ -53,7 +59,7 @@ const TheaterEdit: React.FC = () => {
 
   //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  //const [error, setError] = useState('');
 
   // Theater fields
   const [theaterData, setTheaterData] = useState(() => {
@@ -66,6 +72,8 @@ const TheaterEdit: React.FC = () => {
       description: '',
       stageType: '',
       address: '',
+      contactPhone: '',
+      contactEmail: '',
       websiteUrl: '',
       status: 'active',
       currentLayoutId: '',
@@ -107,7 +115,9 @@ const TheaterEdit: React.FC = () => {
 
       setTheaterData({
         ...theater,
-        currentLayoutId: theater.currentLayoutId || '' // Ensure currentLayoutId is set
+        currentLayoutId: theater.currentLayoutId || '', // Ensure currentLayoutId is set
+        contactPhone: theater.contactPhone || '', // Ensure contactPhone is set
+        contactEmail: theater.contactEmail || '', // Ensure contactEmail is set
       });
       // // Load current layout for this theater
       // const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
@@ -115,9 +125,10 @@ const TheaterEdit: React.FC = () => {
       //   ...theater,
       //   selectedLayoutId: layoutResponse.data?.id || ''
       // });
-      setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load theater');
+      //setError('');
+    } catch (error) {
+      //setError(err.response?.data?.error || 'Failed to load theater');
+      toast.error(getErrorMessage(error));
     }
   }, [id]);
 
@@ -127,11 +138,9 @@ const TheaterEdit: React.FC = () => {
       const layouts = response.data;
       console.log('getAllLayouts layouts:', layouts);
       setLayouts(layouts);
-      setError('');
-    } catch (err: any) {
-      // Show the actual server error message
-      setError(err.response?.data?.error || 'Failed to load layouts');
-      console.error(err.response?.data || err);
+      //setError('');
+    } catch (error) {
+      toast.error(getErrorMessage(error));
     }
   };
   
@@ -251,18 +260,25 @@ const TheaterEdit: React.FC = () => {
     }
   };
   
+  const contactPhoneValidate = (value: string) => {
+  // E.164 format requires at least 8 digits including country code
+  if (!value || value.length < 8) {
+    //setError('Enter a valid international phone number');
+    toast.warning(t('Enter a valid international phone number'));
+  }
+};
   const handleSave = async () => {
     if (!theaterData.name.trim()) {
-      setError(t('Name is required'));
+      toast.warning(t('Name is required'));
       return;
     }
     if (!theaterData.currentLayoutId) {
-      setError(t('A layout is required'));
+      toast.warning(t('A layout is required'));
       return;
     }
     try {
       setSaving(true);
-      setError('');
+      //setError('');
 
       let savedId: string;
       if (isEditMode) {
@@ -288,62 +304,15 @@ const TheaterEdit: React.FC = () => {
       } else {
         navigate(-1);
       }
-    } catch (err: any) {
-      setError(
-        err.response?.data?.error ||
-          t('Failed to {{action}} theater', {
-            action: isEditMode ? t('update') : t('create'),
-          })
+    } catch (error) {
+      toast.error(
+        getErrorMessage(error) ||
+        t('Failed to {{action}} theater', { action: isEditMode ? t('update') : t('create') })
       );
     } finally {
       setSaving(false);
     }
   };
-/*
-  const handleSave = async () => {
-    if (!theaterData.name.trim()) {
-      setError(t('Name is required'));
-      return;
-    }
-
-    if (!theaterData.currentLayoutId) {
-      setError(t('A layout is required'));
-      return;
-    }
-    try {
-      setSaving(true);
-      setError('');
-
-      if (isEditMode) {
-        await theaterApi.updateTheaterFull(id, theaterData);
-        toast.success(t('Theater updated successfully!'));
-      } else {
-        await theaterApi.createTheater(theaterData);
-        toast.success(t('Theater created successfully!'));
-      }
-
-      if (returnTo) {
-        const savedId = isEditMode ? id : (await theaterApi.createTheater(theaterData)).data.id;
-        navigate(returnTo, {
-          state: {
-            eventData: {
-              ...eventData,
-              selectedTheaterId: savedId,
-            },
-          },
-        });
-      } else {
-        navigate('/theaters');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.error || t('Failed to {{action}} theater', { 
-        action: isEditMode ? t('update') : t('create')
-      }));
-    } finally {
-      setSaving(false);
-    }
-  };
-*/
   
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -352,11 +321,11 @@ const TheaterEdit: React.FC = () => {
           <CurtainsIcon fontSize="large" /> {isEditMode ? t('Edit Theater') : t('Create New Theater')}
         </Typography>
 
-        {error && (
+        {/* {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
-        )}
+        )} */}
 
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
@@ -426,6 +395,117 @@ const TheaterEdit: React.FC = () => {
               onChange={handleInputChange}
               fullWidth
             />
+          </Grid>
+
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <Box sx={{
+                width: '100%',
+                '& .react-tel-input .form-control': {
+                  width: '100%',
+                  height: '56px',
+                  borderRadius: `${theme.shape.borderRadius}px`,
+                  borderColor: theme.palette.mode === 'dark'
+                    ? 'rgba(255,255,255,0.23)'
+                    : 'rgba(0,0,0,0.23)',
+                  fontFamily: theme.typography.fontFamily,
+                  fontSize: theme.typography.body1.fontSize,
+                  color: theme.palette.text.primary,
+                  backgroundColor: 'transparent',
+                  '&:hover': {
+                    borderColor: theme.palette.text.primary,
+                  },
+                  '&:focus': {
+                    borderColor: theme.palette.primary.main,
+                    borderWidth: '2px',
+                    boxShadow: 'none',
+                  },
+                },
+                '& .react-tel-input .flag-dropdown': {
+                  borderRadius: `${theme.shape.borderRadius}px 0 0 ${theme.shape.borderRadius}px`,
+                  borderColor: theme.palette.mode === 'dark'
+                    ? 'rgba(255,255,255,0.23)'
+                    : 'rgba(0,0,0,0.23)',
+                  backgroundColor: 'transparent',
+                  '&:hover, &.open': {
+                    backgroundColor: theme.palette.action.hover,
+                  },
+                },
+                '& .react-tel-input .selected-flag': {
+                  borderRadius: `${theme.shape.borderRadius}px 0 0 ${theme.shape.borderRadius}px`,
+                  backgroundColor: 'transparent !important',
+                },
+                '& .react-tel-input .country-list': {
+                  backgroundColor: theme.palette.background.paper,
+                  boxShadow: theme.shadows[8],
+                  borderRadius: `${theme.shape.borderRadius}px`,
+                },
+                '& .react-tel-input .country-list .country': {
+                  display: 'flex !important',
+                  alignItems: 'center !important',
+                  paddingTop: '5px !important',
+                  paddingBottom: '5px !important',
+                  paddingLeft: '8px !important',    // control left padding explicitly
+                  paddingRight: '8px !important',
+                  gap: '0 !important',              // remove gap, use flag margin instead
+                  '&:hover': {
+                    backgroundColor: `${theme.palette.action.hover} !important`,
+                  },
+                  '&.highlight': {
+                    backgroundColor: `${theme.palette.action.selected} !important`,
+                  },
+                },
+                '& .react-tel-input .country-list .flag': {
+                  flexShrink: '0 !important',
+                  marginTop: '0 !important',
+                  marginRight: '20px !important', // space between flag and country name
+                  marginLeft: '0 !important',
+                  position: 'relative !important',
+                  top: '0 !important',
+                },
+                '& .react-tel-input .country-list .country-name': {
+                  color: `${theme.palette.text.primary} !important`,
+                  marginRight: '4px !important',
+                  lineHeight: '1 !important',
+                },
+                '& .react-tel-input .country-list .dial-code': {
+                  color: `${theme.palette.text.secondary} !important`,
+                  lineHeight: '1 !important',
+                },
+              }}>
+                <PhoneInput
+                  country={config.app.defaultLanguage}
+                  value={theaterData.contactPhone}
+                  onChange={(value) => {
+                    setTheaterData(prev => ({ ...prev, contactPhone: value }));
+                    //contactPhoneValidate(value);
+                  }}
+                  onBlur={(e) => {
+                    // If focus moved to somewhere inside the phone widget (e.g. flag dropdown),
+                    // don't validate — the user is still interacting with the field
+                    const relatedTarget = e?.relatedTarget as HTMLElement | null;
+                    const container = (e?.target as HTMLElement)?.closest('.react-tel-input');
+                    if (container?.contains(relatedTarget)) return;
+
+                    //if (!phoneTouched) return;
+                    contactPhoneValidate(theaterData.contactPhone)
+                  }}
+                  specialLabel={t('Contact phone number')}
+                />
+              </Box>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <FormControl fullWidth>
+              <TextField
+                name="contactEmail"
+                type="email"
+                label="Contact email"
+                value={theaterData.contactEmail}
+                onChange={handleInputChange}
+                fullWidth={false}
+              />
+            </FormControl>
           </Grid>
 
           <Grid item xs={12} md={2}>

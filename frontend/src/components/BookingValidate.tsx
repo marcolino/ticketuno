@@ -35,12 +35,21 @@ import { QrCodeScanner, playSuccessSound, playFailureSound } from './QrCodeScann
 import { useNavigate } from 'react-router-dom'; 
 import { ticketApi } from '@/services/api';
 import { useDialog } from '@/contexts/DialogContext';
+import { getErrorMessage } from '@/utils/misc';
 // ─── Fake API (replace with your real fetch) ──────────────────────────────────
 
 async function validateTicket(code: string): Promise<TicketValidationResult> {
   const encodedCode = encodeURIComponent(code);
-  const response = await ticketApi.validateTicket(encodedCode);
-  return response.data;
+  try {
+    const response = await ticketApi.validateTicket(encodedCode);
+    return response.data;
+  } catch (error) {
+    return {
+      status: 'error',
+      label: getErrorMessage(error),
+    };
+  }
+
 }
 
 // ─── Status helpers ───────────────────────────────────────────────────────────
@@ -118,7 +127,7 @@ const ScanRow: React.FC<{ entry: TicketScanEntry; isNew: boolean }> = ({ entry, 
               overflowWrap: 'anywhere', // ← fallback for older engines
             }}
           >
-            {entry.code}
+            {/*entry.code*/}{entry.ref}
           </Typography>
           <Typography variant="caption" color="text.secondary">
             {statusLabel(entry, t)}
@@ -216,6 +225,7 @@ export const BookingValidate: React.FC = () => {
           ...prev[idx],
           status: result.status,
           label: result.label,
+          ref: result.ref,
           pending: false,
         };
         return [...prev.slice(0, idx), updated, ...prev.slice(idx + 1)];
