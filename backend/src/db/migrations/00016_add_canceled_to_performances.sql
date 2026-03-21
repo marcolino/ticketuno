@@ -1,0 +1,1 @@
+ALTER TABLE performances ADD COLUMN canceled INTEGER DEFAULT 0;

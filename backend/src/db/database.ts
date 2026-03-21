@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { Migrator } from './migrator';
 import { User, NewUser } from '../shared/types/user';
-import { Theater, TheaterStatus, EventStatus, SeatStatus/*, Section*/, Seat } from '../shared/types/theater';
+import { Theater, TheaterStatus, EventStatus, SeatStatus, Seat } from '../shared/types/theater';
 import { Layout, LockInfoRow } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
 import { GeneratedSeat, SpecialCondition } from '../shared/types/layoutToSeats';
@@ -14,10 +14,36 @@ import { Booking, BookingStatus } from '../shared/types/booking';
 import { GeneralSetupType } from '../shared/types/generalSetup';
 import config from '../config';
 
-class Database {
-  private db: sqlite3.Database | null = null;
+// ---------------------------------------------------------------------------
+// Query option types
+// ---------------------------------------------------------------------------
 
-  uuid() {
+export interface EventQueryOptions {
+  /** Include past events (closing_date < today). NULL closing_date = never expires. Default: false */
+  pastToo?: boolean;
+  /** Include canceled events. Default: false */
+  canceledToo?: boolean;
+}
+
+export interface PerformanceQueryOptions {
+  /** Include past performances (performance_date < today). Default: false */
+  pastToo?: boolean;
+  /** Include performances with status = 'canceled'. Default: false */
+  canceledToo?: boolean;
+}
+
+// ---------------------------------------------------------------------------
+
+class Database {
+  private _db: sqlite3.Database | null = null;
+
+  /** Safe accessor — throws if initialize() has not been called yet. */
+  private get db(): sqlite3.Database {
+    if (!this._db) throw new Error('Database not initialized. Call initialize() first.');
+    return this._db;
+  }
+
+  uuid(): string {
     const fullUuid = uuidv4().replace(/-/g, '');
     const buffer = Buffer.from(fullUuid, 'hex');
     return buffer
@@ -26,46 +52,41 @@ class Database {
       .replace(/\//g, '_')
       .replace(/=+$/, '');
   }
-  
-  async initialize() {
+
+  async initialize(): Promise<void> {
     const dir = path.dirname(config.db.path);
     await fs.mkdir(dir, { recursive: true });
 
-    //const ret = new Promise<void>((resolve, reject) => {
     return new Promise<void>((resolve, reject) => {
-      this.db = new sqlite3.Database(config.db.path, async (err) => {
+      this._db = new sqlite3.Database(config.db.path, async (err) => {
         if (err) {
           reject(err);
         } else {
           try {
-            // Run all initialization tasks in sequence
             await this.initSchema();
             await this.runMigrations();
             await this.createDefaultUsers();
             await this.createDefaultSetup();
-            resolve(); // Single resolve call after ALL tasks complete
+            resolve();
           } catch (error) {
             reject(error);
           }
         }
       });
     });
-    //await this.createDefaultSetup();
-    //return ret;
   }
-  
-  // Helper method for migrations
+
   private async runMigrations(): Promise<void> {
     const migrationsPath = path.join(__dirname, 'migrations');
-    const migrator = new Migrator(this.db!, migrationsPath);
+    const migrator = new Migrator(this.db, migrationsPath);
     await migrator.migrate();
   }
 
   private async initSchema(): Promise<void> {
-    await execQuery(this.db!, `PRAGMA foreign_keys = ON;`, 'PRAGMA foreign_keys');
-    await execQuery(this.db!, `PRAGMA foreign_key_check;`, 'PRAGMA foreign_key_check');
+    await execQuery(this.db, `PRAGMA foreign_keys = ON;`, 'PRAGMA foreign_keys');
+    await execQuery(this.db, `PRAGMA foreign_key_check;`, 'PRAGMA foreign_key_check');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         email TEXT UNIQUE NOT NULL,
@@ -88,7 +109,7 @@ class Database {
       );
     `, 'CREATE users');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS theaters (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
@@ -107,7 +128,7 @@ class Database {
       );
     `, 'CREATE theaters');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS layouts (
         id TEXT PRIMARY KEY,
         theater_id TEXT,
@@ -121,7 +142,7 @@ class Database {
       );
     `, 'CREATE layouts');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS events (
         id TEXT PRIMARY KEY,
         title TEXT NOT NULL,
@@ -167,7 +188,7 @@ class Database {
       );
     `, 'CREATE events');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS performances (
         id TEXT PRIMARY KEY,
         event_id TEXT NOT NULL,
@@ -175,6 +196,7 @@ class Database {
         start_time TEXT NOT NULL,
         end_time TEXT,
         status TEXT DEFAULT 'scheduled',
+        canceled INTEGER DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME,
         deleted_at DATETIME,
@@ -182,27 +204,27 @@ class Database {
       );
     `, 'CREATE performances');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS bookings (
         id TEXT PRIMARY KEY,
         booking_ref TEXT NOT NULL,
         user_id TEXT NOT NULL,
         performance_id TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'confirmed', -- confirmed | cancelled | refunded
-        total_price  REAL NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'confirmed', -- confirmed | canceled | refunded
+        total_price REAL NOT NULL DEFAULT 0,
         seat_count INTEGER NOT NULL DEFAULT 0,
         seat_ids TEXT NOT NULL DEFAULT '[]', -- JSON array, denormalised for quick ticket lookup
         booked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         scanned_at DATETIME,
         scanned_by TEXT,
         updated_at DATETIME,
-        cancelled_at DATETIME,
+        canceled_at DATETIME,
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (performance_id) REFERENCES performances(id)
       );
     `, 'CREATE bookings');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS seats (
         performance_id TEXT NOT NULL,
         seat_id TEXT NOT NULL,
@@ -210,7 +232,8 @@ class Database {
         row_id TEXT NOT NULL,
         seat_number INTEGER NOT NULL,
         status TEXT NOT NULL DEFAULT 'available',
-        booking_id TEXT, -- links seat to its booking
+        booking_id TEXT,
+        booking_ref TEXT,          -- unique ticket reference, set when seat is booked
         booked_by_user_id TEXT,
         booked_at DATETIME,
         reserved_until TEXT,
@@ -222,8 +245,8 @@ class Database {
         FOREIGN KEY (booking_id) REFERENCES bookings(id)
       );
     `, 'CREATE seats');
-    
-    await execQuery(this.db!, `
+
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS tokens (
         id TEXT PRIMARY KEY,
         token TEXT UNIQUE NOT NULL,
@@ -235,7 +258,7 @@ class Database {
       );
     `, 'CREATE tokens');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS setup (
         id INTEGER PRIMARY KEY CHECK (id = 1),
         data TEXT NOT NULL,
@@ -244,61 +267,62 @@ class Database {
       );
     `, 'CREATE setup');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_layouts_active
       ON layouts(theater_id)
       WHERE deleted_at IS NULL
     `, 'INDEX layouts_active');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_seats_performance ON seats(performance_id);
     `, 'INDEX seats_performance');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_seats_section ON seats(performance_id, section_name);
     `, 'INDEX seats_section');
-    
-    await execQuery(this.db!, `
+
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_seats_status ON seats(performance_id, status);
     `, 'INDEX seats_status');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_seats_user ON seats(booked_by_user_id);
     `, 'INDEX seats_user');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_seats_booking ON seats(booking_id);
     `, 'INDEX seats_booking');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_ref ON bookings(booking_ref);
     `, 'INDEX bookings_ref');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_bookings_user ON bookings(user_id);
     `, 'INDEX bookings_user');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_bookings_performance ON bookings(performance_id);
     `, 'INDEX bookings_performance');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE UNIQUE INDEX IF NOT EXISTS idx_tokens_token ON tokens(token);
     `, 'INDEX tokens_token');
 
-    await execQuery(this.db!, `
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
     `, 'INDEX tokens_user');
   }
-  
-  // User methods //////////////////////////////////////////////////////////////////////
-  async getAllUsers(): Promise<User[] | null> {
-    const sql = `SELECT * FROM users`;
-    const params: SqlParam[] = [];
-    const rows = await allQuery(this.db!, sql, params, 'get all users');
-    return rows ? this.mapRowsToUsers(rows) : null;
+
+  // ---------------------------------------------------------------------------
+  // User methods
+  // ---------------------------------------------------------------------------
+
+  async getAllUsers(): Promise<User[]> {
+    const rows = await allQuery(this.db, `SELECT * FROM users`, [], 'get all users');
+    return this.mapRowsToUsers(rows);
   }
-  
+
   async createUser(user: NewUser): Promise<string> {
     const id = this.uuid();
     const sql = `
@@ -309,25 +333,20 @@ class Database {
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
-      id, user.email, user.password, user.firstName, user.lastName, user.phone || '', user.role,
-      user.isVerified ? 1 : 0, user.verificationCode ?? '', user.verificationCodeExpiry ?? '',
+      id, user.email, user.password, user.firstName, user.lastName, user.phone || null, user.role,
+      user.isVerified ? 1 : 0, user.verificationCode ?? null, user.verificationCodeExpiry ?? null,
       user.consent ? JSON.stringify(user.consent) : null,
-      user.googleId ?? null, user.language ?? config.app.defaultLanguage
+      user.googleId ?? null, user.language ?? config.app.defaultLanguage,
     ];
-    await runQuery(this.db!, sql, params, 'create user');
+    await runQuery(this.db, sql, params, 'create user');
     return id;
   }
 
   private mapRowToUser(row: Record<string, unknown>): User {
     let consent: FullConsent | null = null;
-    if (row.consent && typeof row.consent === "string") {
-      try {
-        consent = JSON.parse(row.consent);
-      } catch {
-        consent = null;
-      }
+    if (row.consent && typeof row.consent === 'string') {
+      try { consent = JSON.parse(row.consent); } catch { consent = null; }
     }
-    
     return {
       id: row.id as string,
       email: row.email as string,
@@ -335,7 +354,7 @@ class Database {
       firstName: row.first_name as string,
       lastName: row.last_name as string,
       phone: row.phone as string,
-      role: (["admin", "operator", "user"].includes(row.role as string) ? row.role : "user") as User["role"],
+      role: (['admin', 'operator', 'user'].includes(row.role as string) ? row.role : 'user') as User['role'],
       isVerified: row.is_verified === 1,
       verificationCode: row.verification_code as string,
       verificationCodeExpiry: row.verification_code_expiry as string,
@@ -353,40 +372,11 @@ class Database {
     return rows.map(row => this.mapRowToUser(row));
   }
 
-  // Get user by Google ID
   async getUserByGoogleId(googleId: string): Promise<User | null> {
-    const sql = `SELECT * FROM users WHERE google_id = ?`;
-    const params = [googleId];
-    const row = await getQuery<Record<string, unknown>>(this.db!, sql, params, 'create user');
+    const row = await getQuery<Record<string, unknown>>(
+      this.db, `SELECT * FROM users WHERE google_id = ?`, [googleId], 'get user by google id'
+    );
     return row ? this.mapRowToUser(row) : null;
-  }
-
-  async createDefaultAdminUser_DO_NOT_USE(): Promise<string|undefined> {
-    try {
-      // First, check if an admin user already exists
-      const adminUsers = await this.getUsersByRole('admin');
-      // If no admin exists, create one
-      if (!adminUsers || adminUsers.length === 0) {
-        const hashedPassword = await bcrypt.hash(process.env.ADMIN_USER_PASSWORD!, 10);
-        const adminUser: User = {
-          id: '',
-          email: process.env.ADMIN_USER_EMAIL!,
-          password: hashedPassword,
-          firstName: 'Charles',
-          lastName: 'Darwin',
-          phone: undefined,
-          role: 'admin',
-          isVerified: true,
-          consent: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        return await this.createUser(adminUser);
-      }
-    } catch (error) {
-      console.error('Error creating default admin user:', error);
-      throw error;
-    }
   }
 
   async createDefaultUsers(): Promise<void> {
@@ -394,6 +384,7 @@ class Database {
     const adminPassword = process.env.ADMIN_USER_PASSWORD;
     const operatorEmail = process.env.OPERATOR_USER_EMAIL;
     const operatorPassword = process.env.OPERATOR_USER_PASSWORD;
+
     if (!adminEmail || !adminPassword) {
       throw new Error('ADMIN_USER_EMAIL and ADMIN_USER_PASSWORD must be set in environment!');
     }
@@ -402,22 +393,8 @@ class Database {
     }
 
     try {
-      await this.createDefaultUserIfNotExists(
-        adminEmail,
-        adminPassword,
-        'admin',
-        'Ammini',
-        'Stratore',
-        config.app.defaultLanguage,
-      );
-      await this.createDefaultUserIfNotExists(
-        operatorEmail,
-        operatorPassword,
-        'operator',
-        'Opera',
-        'Tore',
-        config.app.defaultLanguage,
-      );
+      await this.createDefaultUserIfNotExists(adminEmail, adminPassword, 'admin', 'Ammini', 'Stratore', config.app.defaultLanguage);
+      await this.createDefaultUserIfNotExists(operatorEmail, operatorPassword, 'operator', 'Opera', 'Tore', config.app.defaultLanguage);
     } catch (error) {
       console.error('Error creating default users:', error);
       throw error;
@@ -425,79 +402,59 @@ class Database {
   }
 
   private async createDefaultUserIfNotExists(
-    email: string,
-    password: string,
-    role: string,
-    firstName: string,
-    lastName: string,
-    language: string,
+    email: string, password: string, role: string,
+    firstName: string, lastName: string, language: string,
   ): Promise<void> {
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = this.uuid();
-
-    // INSERT OR IGNORE is atomic, no race condition possible
-    const sql = `
-      INSERT OR IGNORE INTO users (
-        id, email, password, first_name, last_name, role, language, is_verified
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 1)
-    `;
-
-    const result = await runQuery(this.db!, sql, [
-      id, email, hashedPassword, firstName, lastName, role, language
-    ], `create default ${role} user`);
-
+    const result = await runQuery(
+      this.db,
+      `INSERT OR IGNORE INTO users (id, email, password, first_name, last_name, role, language, is_verified)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
+      [id, email, hashedPassword, firstName, lastName, role, language],
+      `create default ${role} user`
+    );
     if (result.changes > 0) {
       console.log(`Default ${role} user created successfully`);
     }
-    // If changes === 0, the row already existed, silently skip
+    // If changes === 0, the row already existed — silently skip.
   }
 
   private async createDefaultSetup(): Promise<void> {
     await runQuery(
-      this.db!, `
-        INSERT OR IGNORE INTO setup (id, data)
-        VALUES (1, ?);
-      `, [
-        JSON.stringify(
-          {
-            currency: config.app.defaultCurrency,
-            timeout: 10,
-            enableNotifications: true,
-            launchDate: null,
-            time: null,
-            apiKey: "",
-          }
-        ),
-      ],
+      this.db,
+      `INSERT OR IGNORE INTO setup (id, data) VALUES (1, ?)`,
+      [JSON.stringify({
+        currency: config.app.defaultCurrency,
+        timeout: 10,
+        enableNotifications: true,
+        launchDate: null,
+        time: null,
+        apiKey: '',
+      })],
       'INSERT default setup row'
     );
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    const sql = `SELECT * FROM users WHERE email = ?`;
-    const params = [email];
-    const row = await getQuery(this.db!, sql, params, 'get user by email');
+    const row = await getQuery(this.db, `SELECT * FROM users WHERE email = ?`, [email], 'get user by email');
     return row ? this.mapRowToUser(row) : null;
   }
 
   async getUserById(id: string): Promise<User | null> {
-    const sql = `SELECT * FROM users WHERE id = ?`;
-    const params = [id];
-    const row = await getQuery(this.db!, sql, params, 'get user by id');
+    const row = await getQuery(this.db, `SELECT * FROM users WHERE id = ?`, [id], 'get user by id');
     return row ? this.mapRowToUser(row) : null;
   }
 
-  async getUsersByRole(role: string): Promise<User[] | null> {
-    const sql = `SELECT * FROM users WHERE role = ?`;
-    const params = [role];
-    const rows = await allQuery(this.db!, sql, params, 'get user by id');
-    return rows ? this.mapRowsToUsers(rows) : null;
+  async getUsersByRole(role: string): Promise<User[]> {
+    const rows = await allQuery(this.db, `SELECT * FROM users WHERE role = ?`, [role], 'get users by role');
+    return this.mapRowsToUsers(rows);
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<boolean> {
     const fields: string[] = [];
     const values: (string | number | null)[] = [];
-    
+
     const fieldMap: Record<string, string> = {
       firstName: 'first_name',
       lastName: 'last_name',
@@ -527,59 +484,50 @@ class Database {
         }
       }
     });
-    
-    if (fields.length === 0) {
-      return false;
-    }
+
+    if (fields.length === 0) return false;
 
     values.push(id);
-    
-    const sql = `
-      UPDATE users
-      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-    const result = await runQuery(this.db!, sql, values, 'update user');
+    const result = await runQuery(
+      this.db,
+      `UPDATE users SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      values,
+      'update user'
+    );
     return result.changes > 0;
   }
 
-  // Create a new token for a user (returns the token string)
   async createToken(userId: string, type: string, expiresInDays: number = 7): Promise<string> { // TODO: 7 in config
-    const id = this.uuid(); // primary key
-    const token = this.uuid(); // the actual token (unique)
+    const id = this.uuid();
+    const token = this.uuid();
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + expiresInDays);
 
-    const sql = `
-      INSERT INTO tokens (id, token, user_id, type, expires_at)
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    await runQuery(this.db!, sql, [id, token, userId, type, expiresAt.toISOString()], 'create token');
+    await runQuery(
+      this.db,
+      `INSERT INTO tokens (id, token, user_id, type, expires_at) VALUES (?, ?, ?, ?, ?)`,
+      [id, token, userId, type, expiresAt.toISOString()],
+      'create token'
+    );
     return token;
   }
 
   async getUserByToken(token: string, type?: string): Promise<User | null> {
-    let sql = `
-      SELECT user_id
-      FROM tokens
-      WHERE
-        token = ? AND
-        expires_at > CURRENT_TIMESTAMP
-    `;
+    let sql = `SELECT user_id FROM tokens WHERE token = ? AND expires_at > CURRENT_TIMESTAMP`;
     const params: SqlParam[] = [token];
     if (type) {
       sql += ` AND type = ?`;
       params.push(type);
     }
-
-    const row = await getQuery<{ user_id: string }>(this.db!, sql, params, 'get user by token');
-    if (!row) {
-      return null;
-    }
+    const row = await getQuery<{ user_id: string }>(this.db, sql, params, 'get user by token');
+    if (!row) return null;
     return this.getUserById(row.user_id);
   }
 
-  // Theater methods //////////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
+  // Theater methods
+  // ---------------------------------------------------------------------------
+
   private mapRowToTheater(row: Record<string, unknown>): Theater {
     return {
       id: row.id as string,
@@ -601,27 +549,19 @@ class Database {
     return rows.map(row => this.mapRowToTheater(row));
   }
 
-  // TODO: in all get* add `AND !deleted_at` ...
-  async getAllTheaters(): Promise<Theater[] | null> {
-    const sql = `
-      SELECT *
-      FROM theaters
-      WHERE deleted_at IS NULL
-    `;
-    const params: SqlParam[] = [];
-    const rows = await allQuery(this.db!, sql, params, 'get all theaters');
-    return rows ? this.mapRowsToTheaters(rows) : null;
+  async getAllTheaters(): Promise<Theater[]> {
+    const rows = await allQuery(
+      this.db, `SELECT * FROM theaters WHERE deleted_at IS NULL`, [], 'get all theaters'
+    );
+    return this.mapRowsToTheaters(rows);
   }
 
   async getTheaterById(id: string): Promise<Theater | null> {
-    const sql = `
-      SELECT *
-      FROM theaters
-      WHERE id = ?
-      AND deleted_at IS NULL
-    `;
-    const params = [id];
-    const row = await getQuery(this.db!, sql, params, 'get theater by id');
+    const row = await getQuery(
+      this.db,
+      `SELECT * FROM theaters WHERE id = ? AND deleted_at IS NULL`,
+      [id], 'get theater by id'
+    );
     return row ? this.mapRowToTheater(row) : null;
   }
 
@@ -630,25 +570,23 @@ class Database {
     const sql = `
       INSERT INTO theaters (
         id, name, description, stage_type, address,
-        website_url, contact_phone, contact_email, status,
-        current_layout_id
+        website_url, contact_phone, contact_email, status, current_layout_id
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
-      id, theater.name, theater.description ?? '', theater.stageType ?? '',
-      theater.address ?? '', theater.websiteUrl ?? '',
-      theater.contactPhone || '', theater.contactEmail || '',
-      theater.status,
-      theater.currentLayoutId ?? ''
+      id, theater.name, theater.description ?? null, theater.stageType ?? null,
+      theater.address ?? null, theater.websiteUrl ?? null,
+      theater.contactPhone || null, theater.contactEmail || null,
+      theater.status, theater.currentLayoutId ?? null,
     ];
-    await runQuery(this.db!, sql, params, 'create theater');
+    await runQuery(this.db, sql, params, 'create theater');
     return id;
   }
 
   async updateTheaterFull(id: string, updates: Partial<Theater>): Promise<boolean> {
     const fields: string[] = [];
     const values: (string | number)[] = [];
-    
+
     const fieldMap: Record<string, string> = {
       name: 'name',
       description: 'description',
@@ -667,68 +605,34 @@ class Database {
         values.push(value);
       }
     });
-    
-    if (fields.length === 0) {
-      return false;
-    }
+
+    if (fields.length === 0) return false;
 
     values.push(id);
-
-    const sql = `
-      UPDATE theaters
-      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-    const result = await runQuery(this.db!, sql, values, 'update theater full');
+    const result = await runQuery(
+      this.db,
+      `UPDATE theaters SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      values, 'update theater full'
+    );
     return result.changes > 0;
   }
 
   async deleteTheater(id: string): Promise<{ deleted: boolean; reason?: string }> {
-    const sql = `
-      UPDATE theaters
-      SET deleted_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-
-    const params = [id];
-    const result = await runQuery(this.db!, sql, params, 'soft delete theater');
-
+    const result = await runQuery(
+      this.db,
+      `UPDATE theaters SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL`,
+      [id], 'soft delete theater'
+    );
     return {
       deleted: result.changes > 0,
-      ...(result.changes === 0 && { reason: 'THEATER_NOT_FOUND' })
+      ...(result.changes === 0 && { reason: 'THEATER_NOT_FOUND' }),
     };
-
-    // const linked = await getQuery<{ count: number }>(
-    //   this.db!, `
-    //     SELECT COUNT(*) AS count
-    //     FROM events
-    //     WHERE theater_id = ?
-    //     AND deleted_at IS NULL
-    //   `,
-    //   [id], 'check theater dependencies'
-    // );
-
-    // if ((linked?.count ?? 0) > 0) {
-    //   return {
-    //     deleted: false,
-    //     reason: 'THEATER_HAS_LINKED_EVENTS'
-    //   };
-    // }
-
-    // const sql = `
-    //   DELETE
-    //   FROM theaters
-    //   WHERE id = ?
-    // `;
-    // const params = [id];
-    // const result = await runQuery(this.db!, sql, params, 'delete theater');
-    // return {
-    //   deleted: result.changes > 0,
-    //   ...(result.changes === 0 && { reason: 'THEATER_NOT_FOUND' })
-    // };
   }
 
-  // Layout methods (IMMUTABLE) //////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
+  // Layout methods (IMMUTABLE)
+  // ---------------------------------------------------------------------------
+
   private mapRowToLayout(row: Record<string, unknown>): Layout {
     return {
       id: row.id as string,
@@ -742,38 +646,25 @@ class Database {
   private mapRowsToLayouts(rows: Record<string, unknown>[]): Layout[] {
     return rows.map(row => this.mapRowToLayout(row));
   }
-  
+
   async createLayout(layout: Layout): Promise<string> {
     const id = this.uuid();
-    const sql = `
-      INSERT INTO layouts (
-        id, theater_id, name, description, json
-      ) VALUES (
-        ?, ?, ?, ?, ?
-      )
-    `;
-    const params = [
-      id,
-      layout.theaterId ?? null,
-      layout.name ?? '',
-      layout.description ?? '',
-      layout.json,
-    ];
-    await runQuery(this.db!, sql, params, 'create layout');
+    await runQuery(
+      this.db,
+      `INSERT INTO layouts (id, theater_id, name, description, json) VALUES (?, ?, ?, ?, ?)`,
+      [id, layout.theaterId ?? null, layout.name ?? null, layout.description ?? null, layout.json],
+      'create layout'
+    );
     return id;
   }
 
   async getLayoutById(id: string): Promise<Layout | null> {
-    const sql = `
-      SELECT id, name, description, json
-      FROM layouts
-      WHERE id = ?
-      AND deleted_at is NULL
-    `;
-    const params = [id];
-    const row = await getQuery(this.db!, sql, params, 'get layout by id');
+    const row = await getQuery(
+      this.db,
+      `SELECT id, theater_id, name, description, json FROM layouts WHERE id = ? AND deleted_at IS NULL`,
+      [id], 'get layout by id'
+    );
     if (!row) return null;
-    
     const layout = this.mapRowToLayout(row);
     const lock = await this.getLayoutLockInfo(id);
     layout.isEditable = lock.editable;
@@ -782,16 +673,12 @@ class Database {
   }
 
   async getLayoutsByTheaterId(theaterId: string): Promise<Layout | null> {
-     const sql = `
-      SELECT id, name, description, json
-      FROM layouts
-      WHERE theater_id = ?
-      AND deleted_at is NULL
-    `;
-    const params = [theaterId];
-    const row = await getQuery(this.db!, sql, params, 'get layout by theater id');
+    const row = await getQuery(
+      this.db,
+      `SELECT id, theater_id, name, description, json FROM layouts WHERE theater_id = ? AND deleted_at IS NULL`,
+      [theaterId], 'get layout by theater id'
+    );
     if (!row) return null;
-
     const layout = this.mapRowToLayout(row);
     const lock = await this.getLayoutLockInfo(layout.id);
     layout.isEditable = lock.editable;
@@ -799,16 +686,12 @@ class Database {
     return layout;
   }
 
-  async getAllLayouts(): Promise<Array<{ id: string; json: string }> | null> {
-     const sql = `
-      SELECT id, name, description, json
-      FROM layouts
-      WHERE deleted_at is NULL
-    `;
-    const params: SqlParam[] = [];
-    const rows = await allQuery(this.db!, sql, params, 'get all layouts');
-    if (!rows) return null;
-
+  async getAllLayouts(): Promise<Layout[]> {
+    const rows = await allQuery(
+      this.db,
+      `SELECT id, theater_id, name, description, json FROM layouts WHERE deleted_at IS NULL`,
+      [], 'get all layouts'
+    );
     const layouts = this.mapRowsToLayouts(rows);
     await Promise.all(layouts.map(async l => {
       const lock = await this.getLayoutLockInfo(l.id);
@@ -818,9 +701,13 @@ class Database {
     return layouts;
   }
 
+  /**
+   * A layout is considered locked only when it has booked or reserved seats in
+   * performances that are TODAY or in the FUTURE (past performances are ignored).
+   */
   async getLayoutLockInfo(layoutId: string): Promise<{
     editable: boolean;
-    blockedBy?: Array<{ eventTitle: string; performanceDate: string; startTime: string; booked: number; reserved: number; }>
+    blockedBy?: Array<{ eventTitle: string; performanceDate: string; startTime: string; booked: number; reserved: number }>;
   }> {
     const sql = `
       SELECT
@@ -835,12 +722,14 @@ class Database {
       JOIN theaters t ON t.id = e.theater_id
       WHERE t.current_layout_id = ?
         AND s.status IN ('booked', 'reserved')
+        AND p.performance_date >= DATE('now')
+        AND p.deleted_at IS NULL
       GROUP BY p.id
       ORDER BY p.performance_date, p.start_time
     `;
-    const rows = await allQuery<LockInfoRow>(this.db!, sql, [layoutId], 'get layout lock info');
+    const rows = await allQuery<LockInfoRow>(this.db, sql, [layoutId], 'get layout lock info');
 
-    if (!rows || rows.length === 0) return { editable: true };
+    if (rows.length === 0) return { editable: true };
 
     return {
       editable: false,
@@ -850,21 +739,22 @@ class Database {
         startTime: r.startTime,
         booked: r.booked,
         reserved: r.reserved,
-      }))
+      })),
     };
   }
 
-  async updateLayout(id: string, updates: Partial<Layout>): Promise<{ updated: boolean; reason?: string, blockedBy?: LockInfoRow[]}> {
-    // Guard: refuse if layout is locked
+  async updateLayout(id: string, updates: Partial<Layout>): Promise<{
+    updated: boolean; reason?: string; blockedBy?: LockInfoRow[]
+  }> {
     const lock = await this.getLayoutLockInfo(id);
     if (!lock.editable) {
       return {
-        updated: false, // TODO: all 'reason's should be CODEs, and be translated on frontend
+        updated: false,
         reason: 'LAYOUT_IS_LOCKED_SINCE_IT_HAS_RESERVED_OR_BOOKED_PERFORMANCE_SEATS',
         blockedBy: lock.blockedBy,
       };
     }
-  
+
     const fields: string[] = [];
     const values: (string | number | null)[] = [];
 
@@ -880,47 +770,56 @@ class Database {
         values.push(toSqlParam(value));
       }
     });
-    
-    if (fields.length === 0) {
+
+    if (fields.length === 0) return { updated: false };
+
+    values.push(id);
+    const result = await runQuery(
+      this.db,
+      `UPDATE layouts SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      values, 'update layout'
+    );
+    return { updated: result.changes > 0 };
+  }
+
+  async deleteLayoutSoft(id: string): Promise<{
+    deleted: boolean; reason?: string; blockedBy?: LockInfoRow[]
+  }> {
+    // Guard: refuse deletion if layout is locked by active (non-past) performances
+    const lock = await this.getLayoutLockInfo(id);
+    if (!lock.editable) {
       return {
-        updated: false,
+        deleted: false,
+        reason: 'LAYOUT_IS_LOCKED_SINCE_IT_HAS_RESERVED_OR_BOOKED_PERFORMANCE_SEATS',
+        blockedBy: lock.blockedBy,
       };
     }
 
-    values.push(id);
+    const result = await runQuery(
+      this.db,
+      `UPDATE layouts SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND deleted_at IS NULL`,
+      [id], 'soft delete layout'
+    );
 
-    const sql = `
-      UPDATE layouts
-      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-    const result = await runQuery(this.db!, sql, values, 'update layout');
-    return {
-      updated: result.changes > 0,
-    };
-  }
-
-  async deleteLayoutSoft(id: string): Promise<boolean> {
-    const sql = `
-      UPDATE layouts
-      SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-    const result = await runQuery(this.db!, sql, [id], 'soft delete layout');
-
-    if (result.changes > 0) { // Unlink from any theater that references it
+    if (result.changes > 0) {
       await runQuery(
-        this.db!,
+        this.db,
         `UPDATE theaters SET current_layout_id = NULL WHERE current_layout_id = ?`,
-        [id],
-        'unlink deleted layout from theaters'
+        [id], 'unlink deleted layout from theaters'
       );
     }
 
-    return result.changes > 0;
+    return {
+      deleted: result.changes > 0,
+      ...(result.changes === 0 && { reason: 'LAYOUT_NOT_FOUND' }),
+    };
   }
 
-  // Event methods //////////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
+  // Event methods
+  // ---------------------------------------------------------------------------
+
   private mapRowToEvent(row: Record<string, unknown>): Event {
     return {
       id: row.id as string,
@@ -969,38 +868,88 @@ class Database {
     return rows.map(row => this.mapRowToEvent(row));
   }
 
-  async getAllEvents(): Promise<Event[] | null> {
-    const sql = `
-      SELECT *
-      FROM events
-      WHERE deleted_at IS NULL
-      ORDER BY
-        canceled ASC,
-        opening_date DESC,
-        typical_start_time ASC,
-        title DESC
-    `;
-    const params: (string | number)[]  = [];
-    const rows = await allQuery(this.db!, sql, params, 'get all events');
+  /**
+   * Derives the computed status from an event's dates.
+   * The stored status column is always overwritten by this on read.
+   */
+  private getEventStatus(event: Event, now: Date = new Date()): EventStatus {
+    const { openingDate, closingDate, canceled } = event;
 
-    const rowsWithStatus = rows.map(row => {
+    if (canceled) return 'canceled';
+
+    const start = openingDate ? new Date(openingDate) : null;
+    const end = closingDate ? new Date(closingDate) : null;
+
+    if (!start && !end) return 'in progress';
+    if (!start && end) return now <= end ? 'in progress' : 'completed';
+    if (start && !end) return now < start ? 'scheduled' : 'in progress';
+
+    // Both start and end are defined
+    if (now < start!) return 'scheduled';
+    if (now <= end!) return 'in progress';
+    return 'completed';
+  }
+
+  /**
+   * Builds additional WHERE clauses for event queries based on the provided options.
+   *
+   * pastToo: false (default) — excludes events whose closing_date is in the past.
+   *   Events with no closing_date are NEVER considered past (they never expire).
+   *
+   * canceledToo: false (default) — excludes events where canceled = 1.
+   */
+  private buildEventFilterClauses(options: EventQueryOptions): string[] {
+    const clauses: string[] = [];
+    if (!options.pastToo) {
+      clauses.push(`(closing_date IS NULL OR closing_date >= DATE('now'))`);
+    }
+    if (!options.canceledToo) {
+      clauses.push(`canceled = 0`);
+    }
+    return clauses;
+  }
+
+  /**
+   * Builds additional WHERE clauses for performance queries based on the provided options.
+   *
+   * pastToo: false (default) — excludes performances whose performance_date is before today.
+   * canceledToo: false (default) — excludes performances with status = 'canceled'.
+   */
+  private buildPerformanceFilterClauses(options: PerformanceQueryOptions): string[] {
+    const clauses: string[] = [];
+    if (!options.pastToo) {
+      clauses.push(`performance_date >= DATE('now')`);
+    }
+    if (!options.canceledToo) {
+      clauses.push(`status != 'canceled'`);
+    }
+    return clauses;
+  }
+
+  async getAllEvents(options: EventQueryOptions = {}): Promise<Event[]> {
+    const filterClauses = this.buildEventFilterClauses(options);
+    const where = [`deleted_at IS NULL`, ...filterClauses].join(' AND ');
+    const sql = `
+      SELECT * FROM events
+      WHERE ${where}
+      ORDER BY canceled ASC, opening_date DESC, typical_start_time ASC, title DESC
+    `;
+    const rows = await allQuery(this.db, sql, [], 'get all events');
+    return rows.map(row => {
       const event = this.mapRowToEvent(row);
       event.status = this.getEventStatus(event);
       return event;
     });
-    return rowsWithStatus;
   }
 
-  async getEventById(id: string): Promise<Event | null> {
-    const sql = `
-      SELECT *
-      FROM events
-      WHERE id = ?
-      AND deleted_at IS NULL
-    `;
-    const params = [id];
-    const row = await getQuery(this.db!, sql, params, 'get event by id');
-    return row ? this.mapRowToEvent(row) : null;
+  async getEventById(id: string, options: EventQueryOptions = {}): Promise<Event | null> {
+    const filterClauses = this.buildEventFilterClauses(options);
+    const where = [`id = ?`, `deleted_at IS NULL`, ...filterClauses].join(' AND ');
+    const row = await getQuery(this.db, `SELECT * FROM events WHERE ${where}`, [id], 'get event by id');
+    if (!row) return null;
+    const event = this.mapRowToEvent(row);
+    event.status = this.getEventStatus(event);
+    return event;
   }
 
   async createEvent(event: Event): Promise<string> {
@@ -1008,27 +957,28 @@ class Database {
     const sql = `
       INSERT INTO events (
         id, title, description, genres, duration_minutes, intermission_count, rating, language,
-        director, playwright, producer, choreographer, musical_director, cast_members, theater_id, stage_type,
-        opening_date, closing_date, is_active, currency, base_ticket_price, currency, is_sold_out,
-        special_requirements, minimum_age, created_by_user_id,
+        director, playwright, producer, choreographer, musical_director, cast_members,
+        theater_id, stage_type, opening_date, closing_date, is_active, currency,
+        base_ticket_price, is_sold_out, special_requirements, minimum_age, created_by_user_id,
         typical_start_time, typical_end_time, poster_image, trailer_url, website_url,
         social_media_links, status, cancelation_reason, max_capacity, content_warnings
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const params: SqlParam[] = [
-      id, event.title, event.description ?? '', JSON.stringify(event.genres ?? []),
-      event.durationMinutes ?? '', event.intermissionCount ?? 0,
-      event.rating ?? '', event.language ?? '', event.director ?? '',
-      event.playwright ?? '', event.producer ?? '', event.choreographer ?? '',
-      event.musicalDirector ?? '', JSON.stringify(event.cast ?? []),
-      event.theaterId, event.stageType ?? '', event.openingDate ?? '', event.closingDate ?? '',
-      event.isActive ? 1 : 0, event.currency, event.baseTicketPrice, event.currency, event.isSoldOut ? 1 : 0,
-      event.specialRequirements ?? '', event.minimumAge ?? '', event.createdByUserId ?? '',
-      event.typicalStartTime ?? '', event.typicalEndTime ?? '', event.posterImage ?? '',
-      event.trailerUrl ?? '', event.websiteUrl ?? '', event.socialMediaLinks ?? '',
-      event.status, event.cancelationReason ?? '', event.maxCapacity ?? '', event.contentWarnings ?? ''
+      id, event.title, event.description ?? null, JSON.stringify(event.genres ?? []),
+      event.durationMinutes ?? null, event.intermissionCount ?? 0,
+      event.rating ?? null, event.language ?? null, event.director ?? null,
+      event.playwright ?? null, event.producer ?? null, event.choreographer ?? null,
+      event.musicalDirector ?? null, JSON.stringify(event.cast ?? []),
+      event.theaterId, event.stageType ?? null, event.openingDate ?? null, event.closingDate ?? null,
+      event.isActive ? 1 : 0, event.currency, event.baseTicketPrice,
+      event.isSoldOut ? 1 : 0, event.specialRequirements ?? null, event.minimumAge ?? null,
+      event.createdByUserId ?? null, event.typicalStartTime ?? null, event.typicalEndTime ?? null,
+      event.posterImage ?? null, event.trailerUrl ?? null, event.websiteUrl ?? null,
+      event.socialMediaLinks ?? null, event.status, event.cancelationReason ?? null,
+      event.maxCapacity ?? null, event.contentWarnings ?? null,
     ];
-    await runQuery(this.db!, sql, params, 'create event');
+    await runQuery(this.db, sql, params, 'create event');
     return id;
   }
 
@@ -1076,82 +1026,41 @@ class Database {
     Object.entries(updates).forEach(([key, value]) => {
       if (fieldMap[key] && value !== undefined) {
         fields.push(`${fieldMap[key]} = ?`);
-        if (key === 'isActive' || key === 'isSoldOut' || key === 'isVerified' || key === 'canceled') {
-          // Convert booleans to 0/1
+        if (key === 'isActive' || key === 'isSoldOut' || key === 'canceled') {
           values.push(value ? 1 : 0);
-        } else if (key === 'cast') {
-          // Always JSON-stringify arrays/objects for SQL
-          values.push(JSON.stringify(value));
-        } else if (Array.isArray(value) || typeof value === 'object') {
-          // Safeguard: stringify anything else that's object/array
+        } else if (Array.isArray(value) || (typeof value === 'object' && value !== null)) {
           values.push(JSON.stringify(value));
         } else {
-          // string | number | null
-          //values.push(value);
           values.push(toSqlParam(value));
         }
       }
     });
-    
-    if (fields.length === 0) {
-      return false;
-    }
+
+    if (fields.length === 0) return false;
 
     values.push(id);
-
-    const sql = `
-      UPDATE events
-      SET ${ fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-    const result = await runQuery(this.db!, sql, values, 'update event');
+    const result = await runQuery(
+      this.db,
+      `UPDATE events SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      values, 'update event'
+    );
     return result.changes > 0;
   }
 
   async deleteEvent(id: string): Promise<boolean> {
-    const sql = `
-      UPDATE events
-      SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-    const result = await runQuery(this.db!, sql, [id], 'soft delete event');
+    const result = await runQuery(
+      this.db,
+      `UPDATE events SET deleted_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND deleted_at IS NULL`,
+      [id], 'soft delete event'
+    );
     return result.changes > 0;
   }
 
-  getEventStatus = (event: Event, now: Date = new Date()): EventStatus => {
-    const { openingDate, closingDate, canceled } = event;
+  // ---------------------------------------------------------------------------
+  // Performance methods
+  // ---------------------------------------------------------------------------
 
-    if (canceled) {
-      return 'canceled';
-    }
-
-    const today = now;
-    const start = openingDate ? new Date(openingDate) : null;
-    const end = closingDate ? new Date(closingDate) : null;
-
-    // Open event: no start & no end
-    if (!start && !end) return 'in progress';
-    // Open start, only end defined
-    if (!start && end) {
-      return today <= end ? 'in progress' : 'completed';
-    }
-
-    // Open end, only start defined
-    if (start && !end) {
-      return today < start ? 'scheduled' : 'in progress';
-    }
-
-    // Fully defined start & end
-    if (start && end) {
-      if (today < start) return 'scheduled';
-      if (today >= start && today <= end) return 'in progress';
-      return 'completed';
-    }
-
-    return 'scheduled';
-  };
-
-  // Performance methods //////////////////////////////////////////////////////////////////////
   private mapRowToPerformance(row: Record<string, unknown>): EventPerformance {
     return {
       id: row.id as string,
@@ -1162,7 +1071,7 @@ class Database {
       status: row.status as EventStatus,
       canceled: row.canceled as number,
       createdAt: row.created_at as string,
-      updatedAt: row.updated_at as string
+      updatedAt: row.updated_at as string,
     };
   }
 
@@ -1170,49 +1079,37 @@ class Database {
     return rows.map(row => this.mapRowToPerformance(row));
   }
 
-  async getPerformancesByEventId(eventId: string): Promise<EventPerformance[] | null> {
-    const sql = `
-      SELECT *
-      FROM performances
-      WHERE event_id = ?
-      AND deleted_at IS NULL
-    `;
-    const params = [eventId];
-    const rows = await allQuery(this.db!, sql, params, 'get performances by event id');
-    return rows ? this.mapRowsToPerformances(rows) : null;
+  async getPerformancesByEventId(eventId: string, options: PerformanceQueryOptions = {}): Promise<EventPerformance[]> {
+    const filterClauses = this.buildPerformanceFilterClauses(options);
+    const where = [`event_id = ?`, `deleted_at IS NULL`, ...filterClauses].join(' AND ');
+    const rows = await allQuery(this.db, `SELECT * FROM performances WHERE ${where}`, [eventId], 'get performances by event id');
+    return this.mapRowsToPerformances(rows);
   }
 
-  async getPerformanceById(id: string): Promise<EventPerformance | null> {
-    const sql = `
-      SELECT *
-      FROM performances
-      WHERE id = ?
-      AND deleted_at IS NULL
-    `;
-    const params = [id];
-    const row = await getQuery(this.db!, sql, params, 'get performance by id');
+  async getPerformanceById(id: string, options: PerformanceQueryOptions = {}): Promise<EventPerformance | null> {
+    const filterClauses = this.buildPerformanceFilterClauses(options);
+    const where = [`id = ?`, `deleted_at IS NULL`, ...filterClauses].join(' AND ');
+    const row = await getQuery(this.db, `SELECT * FROM performances WHERE ${where}`, [id], 'get performance by id');
     return row ? this.mapRowToPerformance(row) : null;
   }
 
   async createPerformance(performance: EventPerformance): Promise<string> {
     const id = this.uuid();
-    const sql = `
-      INSERT INTO performances (
-        id, event_id, performance_date, start_time, end_time, status
-      ) VALUES (?, ?, ?, ?, ?, ?)
-    `;
-    const params: SqlParam[] = [
-      id, performance.eventId, performance.performanceDate, performance.startTime,
-      performance.endTime ?? '', performance.status,
-    ];
-    await runQuery(this.db!, sql, params, 'create performance');
+    await runQuery(
+      this.db,
+      `INSERT INTO performances (id, event_id, performance_date, start_time, end_time, status)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, performance.eventId, performance.performanceDate, performance.startTime,
+       performance.endTime ?? null, performance.status],
+      'create performance'
+    );
     return id;
   }
 
   async updatePerformance(id: string, updates: Partial<EventPerformance>): Promise<boolean> {
     const fields: string[] = [];
     const values: (string | number)[] = [];
-    
+
     const fieldMap: Record<string, string> = {
       performanceDate: 'performance_date',
       startTime: 'start_time',
@@ -1226,35 +1123,31 @@ class Database {
         values.push(value);
       }
     });
-    
-    if (fields.length === 0) {
-      return false;
-    }
+
+    if (fields.length === 0) return false;
 
     values.push(id);
-
-    const sql = `
-      UPDATE performances
-      SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `;
-    const result = await runQuery(this.db!, sql, values, 'update performance');
+    const result = await runQuery(
+      this.db,
+      `UPDATE performances SET ${fields.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      values, 'update performance'
+    );
     return result.changes > 0;
   }
 
   async deletePerformanceById(performanceId: string): Promise<boolean> {
-    //const sql = `DELETE FROM performances WHERE id = ?`;
-    const sql = `
-      UPDATE performances
-      SET deleted_at = CURRENT_TIMESTAMP
-      WHERE id = ? AND deleted_at IS NULL
-    `;
-    const params = [performanceId];
-    const result = await runQuery(this.db!, sql, params, 'soft delete performance for event');
+    const result = await runQuery(
+      this.db,
+      `UPDATE performances SET deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND deleted_at IS NULL`,
+      [performanceId], 'soft delete performance'
+    );
     return result.changes > 0;
   }
 
-  // Seat management methods //////////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
+  // Seat management methods
+  // ---------------------------------------------------------------------------
+
   private mapRowToSeat(row: Record<string, unknown>): Seat {
     return {
       seatId: row.seat_id as string,
@@ -1263,6 +1156,7 @@ class Database {
       seatNumber: row.seat_number as number,
       status: row.status as SeatStatus,
       bookingId: row.booking_id as string | undefined,
+      bookingRef: row.booking_ref as string | null,
       bookedByUserId: row.booked_by_user_id as string,
       bookedAt: row.booked_at as string,
       reservedUntil: row.reserved_until as string,
@@ -1276,188 +1170,124 @@ class Database {
 
   async getSeatsByPerformanceId(performanceId: string): Promise<Seat[]> {
     const sql = `
-      SELECT 
-        seat_id,
-        section_name,
-        row_id,
-        seat_number,
-        status,
-        booked_by_user_id,
-        reserved_until,
-        price
-      FROM seats 
+      SELECT seat_id, section_name, row_id, seat_number, status,
+             booking_id, booking_ref, booked_by_user_id, reserved_until, price
+      FROM seats
       WHERE performance_id = ?
       ORDER BY section_name, row_id, seat_number
     `;
-    const params = [performanceId];
-    const rows = await allQuery(this.db!, sql, params, 'get seats by performance');
-    return rows ? this.mapRowsToSeats(rows) : [];
+    const rows = await allQuery(this.db, sql, [performanceId], 'get seats by performance');
+    return this.mapRowsToSeats(rows);
   }
 
   async releaseExpiredReservations(): Promise<boolean> {
-    const sql = `
-      UPDATE seats 
-      SET status = 'available', reserved_until = NULL, updated_at = CURRENT_TIMESTAMP
-      WHERE status = 'reserved' AND reserved_until < CURRENT_TIMESTAMP
-    `;
-    const result = await runQuery(this.db!, sql, [], 'release expired seat reservations');
+    const result = await runQuery(
+      this.db,
+      `UPDATE seats SET status = 'available', reserved_until = NULL, updated_at = CURRENT_TIMESTAMP
+       WHERE status = 'reserved' AND reserved_until < CURRENT_TIMESTAMP`,
+      [], 'release expired seat reservations'
+    );
     return result.changes > 0;
   }
 
   async bulkCreateSeats(
     performanceId: string,
     seats: GeneratedSeat[],
-    seatConditions: Record<string, SpecialCondition> = {} 
+    seatConditions: Record<string, SpecialCondition> = {}
   ): Promise<boolean> {
     // Filter out physically absent seats — they should never be bookable
-    const bookableSeats = seats.filter(
-      s => seatConditions[s.seatId] !== 'Absent'
-    );
+    const bookableSeats = seats.filter(s => seatConditions[s.seatId] !== 'Absent');
     const placeholders = bookableSeats.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
     const values: (string | number)[] = [];
-    
+
     bookableSeats.forEach(seat => {
-      values.push(
-        performanceId,
-        seat.seatId,
-        seat.sectionName,
-        seat.rowId,
-        seat.seatNumber,
-        'available'
-      );
+      values.push(performanceId, seat.seatId, seat.sectionName, seat.rowId, seat.seatNumber, 'available');
     });
 
-    const sql = `
-      INSERT OR IGNORE INTO seats (
-        performance_id, seat_id, section_name, row_id, seat_number, status
-      ) VALUES ${placeholders}
-    `;
-    
-    const result = await runQuery(this.db!, sql, values, 'bulk create seats');
+    const result = await runQuery(
+      this.db,
+      `INSERT OR IGNORE INTO seats (performance_id, seat_id, section_name, row_id, seat_number, status)
+       VALUES ${placeholders}`,
+      values, 'bulk create seats'
+    );
     return result.changes > 0;
   }
 
   /**
-   * Get seats grouped by section for UI
+   * Get seats grouped by section → row for UI rendering.
    */
   async getSeatsByPerformanceIdGroupedBySection(performanceId: string): Promise<{
     [sectionName: string]: { [rowId: string]: Seat[] }
   }> {
     const sql = `
-      SELECT 
-        seat_id,
-        section_name,
-        row_id,
-        seat_number,
-        status,
-        booked_by_user_id,
-        reserved_until
-      FROM seats 
+      SELECT seat_id, section_name, row_id, seat_number, status,
+             booking_id, booking_ref, booked_by_user_id, reserved_until
+      FROM seats
       WHERE performance_id = ?
       ORDER BY section_name, row_id, seat_number
     `;
-    
-    const rows = await allQuery<Record<string, unknown>>(this.db!, sql, [performanceId], 'get seats grouped');
+    const rows = await allQuery<Record<string, unknown>>(this.db, sql, [performanceId], 'get seats grouped');
     const seats = this.mapRowsToSeats(rows);
-    
-    // Group by section, then by row
+
     const grouped: { [section: string]: { [row: string]: Seat[] } } = {};
-    
     seats.forEach(seat => {
-      if (!grouped[seat.sectionName]) {
-        grouped[seat.sectionName] = {};
-      }
-      if (!grouped[seat.sectionName][seat.rowId]) {
-        grouped[seat.sectionName][seat.rowId] = [];
-      }
+      if (!grouped[seat.sectionName]) grouped[seat.sectionName] = {};
+      if (!grouped[seat.sectionName][seat.rowId]) grouped[seat.sectionName][seat.rowId] = [];
       grouped[seat.sectionName][seat.rowId].push(seat);
     });
-    
     return grouped;
   }
 
-  // Get seats for a specific section
-  async getSeatsBySection(
-    performanceId: string, 
-    sectionName: string
-  ): Promise<Seat[]> {
+  async getSeatsBySection(performanceId: string, sectionName: string): Promise<Seat[]> {
     const sql = `
-      SELECT 
-        seat_id,
-        section_name,
-        row_id,
-        seat_number,
-        status,
-        booked_by_user_id,
-        reserved_until,
-        price
-      FROM seats 
+      SELECT seat_id, section_name, row_id, seat_number, status,
+             booking_id, booking_ref, booked_by_user_id, reserved_until, price
+      FROM seats
       WHERE performance_id = ? AND section_name = ?
       ORDER BY section_name, row_id, seat_number
     `;
-    
-    const rows = await allQuery(
-      this.db!, 
-      sql, 
-      [performanceId, sectionName], 
-      'get seats by section'
-    );
+    const rows = await allQuery(this.db, sql, [performanceId, sectionName], 'get seats by section');
     return this.mapRowsToSeats(rows);
-  }
-  
-  /**
-   * Get seat counts for a performance (calculated from seats table)
-   */
-  async getSeatCountsByPerformanceId(
-    performanceId: string
-  ): Promise<{ available: number; booked: number; reserved: number }> {
-    const sql = `
-      SELECT 
-        COUNT(CASE WHEN status = 'available' THEN 1 END) as available,
-        COUNT(CASE WHEN status = 'booked' THEN 1 END) as booked,
-        COUNT(CASE WHEN status = 'reserved' THEN 1 END) as reserved
-      FROM seats 
-      WHERE performance_id = ?
-    `;
-    const params = [performanceId];
-    //const row = await getQuery(this.db!, sql, params, 'get seat counts');
-    const row = await getQuery<{
-      available: number
-      booked: number
-      reserved: number
-    }>(this.db!, sql, params, 'get seat counts');
-    return {
-      available: row?.available || 0,
-      booked: row?.booked || 0,
-      reserved: row?.reserved || 0
-    };
   }
 
   /**
-   * Check if a performance has any booked seats
+   * Get seat counts for a performance (calculated from the seats table).
    */
+  async getSeatCountsByPerformanceId(performanceId: string): Promise<{
+    available: number; booked: number; reserved: number
+  }> {
+    const row = await getQuery<{ available: number; booked: number; reserved: number }>(
+      this.db,
+      `SELECT
+         COUNT(CASE WHEN status = 'available' THEN 1 END) AS available,
+         COUNT(CASE WHEN status = 'booked'    THEN 1 END) AS booked,
+         COUNT(CASE WHEN status = 'reserved'  THEN 1 END) AS reserved
+       FROM seats WHERE performance_id = ?`,
+      [performanceId], 'get seat counts'
+    );
+    return { available: row?.available || 0, booked: row?.booked || 0, reserved: row?.reserved || 0 };
+  }
+
   async performanceHasBookings(performanceId: string): Promise<boolean> {
-    const sql = `
-      SELECT COUNT(*) AS count 
-      FROM seats 
-      WHERE performance_id = ? AND status = 'booked'
-    `;
-    const params = [performanceId];
-    const row = await getQuery<{ count: number }>(this.db!, sql, params, 'check performance bookings');
+    const row = await getQuery<{ count: number }>(
+      this.db,
+      `SELECT COUNT(*) AS count FROM seats WHERE performance_id = ? AND status = 'booked'`,
+      [performanceId], 'check performance bookings'
+    );
     return (row?.count || 0) > 0;
   }
 
-  /**
-   * Delete seats for a performance
-   */
   async deleteSeatsForPerformance(performanceId: string): Promise<boolean> {
-    const sql = `DELETE FROM seats WHERE performance_id = ?`;
-    const params = [performanceId];
-    const result = await runQuery(this.db!, sql, params, 'delete seats for performance');
+    const result = await runQuery(
+      this.db, `DELETE FROM seats WHERE performance_id = ?`, [performanceId], 'delete seats for performance'
+    );
     return result.changes > 0;
   }
 
-  // Booking methods //////////////////////////////////////////////////////////////////////
+  // ---------------------------------------------------------------------------
+  // Booking methods
+  // ---------------------------------------------------------------------------
+
   private mapRowToBooking(row: Record<string, unknown>): Booking {
     let seatIds: string[] = [];
     if (row.seat_ids && typeof row.seat_ids === 'string') {
@@ -1476,7 +1306,7 @@ class Database {
       scannedAt: row.scanned_at as Date | null,
       scannedBy: row.scanned_by as string | null,
       updatedAt: row.updated_at as string | undefined,
-      cancelledAt: row.cancelled_at as string | undefined,
+      canceledAt: row.canceled_at as string | undefined,
     };
   }
 
@@ -1487,11 +1317,11 @@ class Database {
   /**
    * Atomic booking transaction.
    *
-   * - Verifies all requested seats are 'available'
-   * - Creates a booking record
-   * - Stamps each seat with booking_id, booked_by_user_id, status = 'booked'
+   * - Verifies all requested seats are 'available'.
+   * - Creates one booking record per seat (each with a unique booking_ref).
+   * - Stamps each seat with booking_id, booking_ref, booked_by_user_id, status = 'booked'.
    *
-   * Returns the new bookingId on success, or the list of unavailable seat IDs on failure.
+   * Returns booked seats with their refs on success, or the unavailable seat IDs on failure.
    */
   async bookSeats(
     performanceId: string,
@@ -1504,147 +1334,105 @@ class Database {
     seats: Array<{ seatId: string; bookingRef: string }>;
     unavailableSeats?: string[];
   }> {
-    return new Promise((resolve, reject) => {
-      const db = this.db!;
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
+    await runQuery(this.db, 'BEGIN TRANSACTION', [], 'bookSeats begin');
+    try {
+      // Check all seats are available
+      const placeholders = seatIds.map(() => '?').join(', ');
+      const rows = await allQuery<{ seat_id: string; status: string }>(
+        this.db,
+        `SELECT seat_id, status FROM seats WHERE performance_id = ? AND seat_id IN (${placeholders})`,
+        [performanceId, ...seatIds], 'bookSeats check availability'
+      );
 
-        // Check all seats are available
-        const placeholders = seatIds.map(() => '?').join(',');
-        const checkSql = `
-          SELECT seat_id, status 
-          FROM seats 
-          WHERE performance_id = ? AND seat_id IN (${placeholders})
-        `;
+      const seatStatuses = new Map(rows.map(r => [r.seat_id, r.status]));
+      const unavailable = seatIds.filter(id => seatStatuses.get(id) !== 'available');
+      if (unavailable.length > 0) {
+        await runQuery(this.db, 'ROLLBACK', [], 'bookSeats rollback unavailable');
+        return { success: false, bookedCount: 0, seats: [], unavailableSeats: unavailable };
+      }
 
-        db.all(checkSql, [performanceId, ...seatIds], (err, rows: Record<string, unknown>[]) => {
-          if (err) {
-            db.run('ROLLBACK');
-            return reject(err);
-          }
+      // One booking record + one unique booking_ref per seat
+      const perSeat = seatIds.map(seatId => ({
+        seatId,
+        bookingRef: generateBookingRef(),
+        bookingId: this.uuid(),
+      }));
 
-          // Find unavailable seats
-          const seatStatuses = new Map(rows.map(r => [r.seat_id, r.status]));
-          const unavailable = seatIds.filter(id => seatStatuses.get(id) !== 'available');
-          if (unavailable.length > 0) {
-            db.run('ROLLBACK');
-            return resolve({
-              success: false,
-              bookedCount: 0,
-              seats: [],
-              unavailableSeats: unavailable,
-            });
-          }
+      for (const { bookingId, bookingRef, seatId } of perSeat) {
+        await runQuery(
+          this.db,
+          `INSERT INTO bookings (id, booking_ref, user_id, performance_id, status, total_price, seat_count, seat_ids)
+           VALUES (?, ?, ?, ?, 'confirmed', ?, 1, ?)`,
+          [bookingId, bookingRef, userId, performanceId, totalPrice / seatIds.length, JSON.stringify([seatId])],
+          'bookSeats insert booking'
+        );
+      }
 
-          // One booking ref per seat
-          const perSeat = seatIds.map(seatId => ({
-            seatId,
-            bookingRef: generateBookingRef(),
-            bookingId: this.uuid(),
-          }));
+      for (const { seatId, bookingRef, bookingId } of perSeat) {
+        await runQuery(
+          this.db,
+          `UPDATE seats
+           SET status = 'booked', booking_id = ?, booking_ref = ?,
+               booked_by_user_id = ?, booked_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+           WHERE performance_id = ? AND seat_id = ?`,
+          [bookingId, bookingRef, userId, performanceId, seatId],
+          'bookSeats update seat'
+        );
+      }
 
-          // Insert one booking row per seat
-          const insertBookingSql = `
-            INSERT INTO bookings (id, booking_ref, user_id, performance_id, status, total_price, seat_count, seat_ids)
-            VALUES (?, ?, ?, ?, 'confirmed', ?, 1, ?)
-          `;
-
-          let insertedCount = 0;
-          let insertError: Error | null = null;
-
-          const onInsertDone = () => {
-            if (insertError) { db.run('ROLLBACK'); return reject(insertError); }
-            if (++insertedCount < perSeat.length) return; // wait for all
-
-            // Stamp each seat with its own booking_ref
-            let updatedCount = 0;
-            for (const { seatId, bookingRef, bookingId } of perSeat) {
-              db.run(
-                `UPDATE seats
-                SET status = 'booked', booking_id = ?, booking_ref = ?,
-                    booked_by_user_id = ?, booked_at = CURRENT_TIMESTAMP,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE performance_id = ? AND seat_id = ?`,
-                [bookingId, bookingRef, userId, performanceId, seatId],
-                (err) => {
-                  if (err) insertError = err;
-                  if (++updatedCount < perSeat.length) return;
-                  if (insertError) { db.run('ROLLBACK'); return reject(insertError); }
-
-                  db.run('COMMIT', (err) => {
-                    if (err) return reject(err);
-                    resolve({
-                      success: true,
-                      bookedCount: perSeat.length,
-                      seats: perSeat.map(({ seatId, bookingRef }) => ({ seatId, bookingRef })),
-                      unavailableSeats: [],
-                    });
-                  });
-                }
-              );
-            }
-          };
-
-          for (const { bookingId, bookingRef, seatId } of perSeat) {
-            db.run(
-              insertBookingSql,
-              [bookingId, bookingRef, userId, performanceId, totalPrice / seatIds.length, JSON.stringify([seatId])],
-              (err) => { if (err) insertError = err; onInsertDone(); }
-            );
-          }
-        });
-      });
-    });
+      await runQuery(this.db, 'COMMIT', [], 'bookSeats commit');
+      return {
+        success: true,
+        bookedCount: perSeat.length,
+        seats: perSeat.map(({ seatId, bookingRef }) => ({ seatId, bookingRef })),
+        unavailableSeats: [],
+      };
+    } catch (err) {
+      await runQuery(this.db, 'ROLLBACK', [], 'bookSeats rollback on error');
+      throw err;
+    }
   }
 
   async getBookingById(bookingId: string): Promise<Booking | null> {
-    const sql = `SELECT * FROM bookings WHERE id = ?`;
-    const row = await getQuery(this.db!, sql, [bookingId], 'get booking by id');
+    const row = await getQuery(this.db, `SELECT * FROM bookings WHERE id = ?`, [bookingId], 'get booking by id');
     return row ? this.mapRowToBooking(row) : null;
   }
 
   async getBookingByRef(ref: string): Promise<Booking | null> {
-    const sql = `SELECT * FROM bookings WHERE booking_ref = ?`;
-    const row = await getQuery(this.db!, sql, [ref], 'get booking by ref');
+    const row = await getQuery(this.db, `SELECT * FROM bookings WHERE booking_ref = ?`, [ref], 'get booking by ref');
     return row ? this.mapRowToBooking(row) : null;
   }
 
   async getBookingsByUserId(userId: string): Promise<Booking[]> {
-    const sql = `
-      SELECT * FROM bookings
-      WHERE user_id = ?
-      ORDER BY booked_at DESC
-    `;
-    const rows = await allQuery(this.db!, sql, [userId], 'get bookings by user');
+    const rows = await allQuery(
+      this.db,
+      `SELECT * FROM bookings WHERE user_id = ? ORDER BY booked_at DESC`,
+      [userId], 'get bookings by user'
+    );
     return this.mapRowsToBookings(rows);
   }
 
   async getBookingsByPerformanceId(performanceId: string): Promise<Booking[]> {
-    const sql = `
-      SELECT * FROM bookings
-      WHERE performance_id = ?
-      ORDER BY booked_at DESC
-    `;
-    const rows = await allQuery(this.db!, sql, [performanceId], 'get bookings by performance');
+    const rows = await allQuery(
+      this.db,
+      `SELECT * FROM bookings WHERE performance_id = ? ORDER BY booked_at DESC`,
+      [performanceId], 'get bookings by performance'
+    );
     return this.mapRowsToBookings(rows);
   }
 
   /**
- * Atomically marks a booking as used.
- * Returns the row if it was just now marked, null if already used or not found.
- */
+   * Atomically marks a booking as used.
+   * Returns true if it was just now marked; false if already scanned, canceled, or not found.
+   */
   async markBookingUsed(ref: string, byDevice?: string): Promise<boolean> {
-    const sql = `
-      UPDATE bookings
-      SET
-        scanned_at = CURRENT_TIMESTAMP,
-        scanned_by = ?
-      WHERE booking_ref = ?
-      AND scanned_at IS NULL
-      AND status = 'confirmed' -- never admit a cancelled/refunded ticket
-    `;
-    const values = [byDevice ?? null, ref];
-    const result = await runQuery(this.db!, sql, values, 'mark booking used');
+    const result = await runQuery(
+      this.db,
+      `UPDATE bookings
+       SET scanned_at = CURRENT_TIMESTAMP, scanned_by = ?
+       WHERE booking_ref = ? AND scanned_at IS NULL AND status = 'confirmed'`,
+      [byDevice ?? null, ref], 'mark booking used'
+    );
     return result.changes > 0;
   }
 
@@ -1652,103 +1440,80 @@ class Database {
    * Cancel a booking and release its seats back to 'available'.
    * Only the owning user (or an admin, enforced at the route level) should call this.
    */
-  async cancelBooking(bookingId: string): Promise<{
-    success: boolean;
-    reason?: string;
-  }> {
-    return new Promise((resolve, reject) => {
-      const db = this.db!;
-      db.serialize(() => {
-        db.run('BEGIN TRANSACTION');
-
-        // Fetch the booking first to validate it exists and is cancellable
-        db.get(
-          `SELECT id, status FROM bookings WHERE id = ?`,
-          [bookingId],
-          (err, row: Record<string, unknown> | undefined) => {
-            if (err) { db.run('ROLLBACK'); return reject(err); }
-            if (!row) {
-              db.run('ROLLBACK');
-              return resolve({ success: false, reason: 'BOOKING_NOT_FOUND' });
-            }
-            if (row.status !== 'confirmed') {
-              db.run('ROLLBACK');
-              return resolve({ success: false, reason: 'BOOKING_ALREADY_CANCELLED_OR_REFUNDED' });
-            }
-
-            // Mark booking as cancelled
-            db.run(
-              `UPDATE bookings
-               SET status = 'cancelled', cancelled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-               WHERE id = ?`,
-              [bookingId],
-              (err) => {
-                if (err) { db.run('ROLLBACK'); return reject(err); }
-
-                // Release seats back to available
-                db.run(
-                  `UPDATE seats
-                   SET status = 'available', booking_id = NULL,
-                       booked_by_user_id = NULL, booked_at = NULL, updated_at = CURRENT_TIMESTAMP
-                   WHERE booking_id = ?`,
-                  [bookingId],
-                  (err) => {
-                    if (err) { db.run('ROLLBACK'); return reject(err); }
-                    db.run('COMMIT', (err) => {
-                      if (err) return reject(err);
-                      resolve({ success: true });
-                    });
-                  }
-                );
-              }
-            );
-          }
-        );
-      });
-    });
-  }
-
-  // Setup table methods /////////////////////////////////////////////////////////
-  async loadSetup(): Promise<GeneralSetupType | null> {
-    const sql = `
-      SELECT data
-      FROM setup
-      WHERE id = 1
-    `;
-    const row = await getQuery<{ data: string }>(this.db!, sql, [], 'load setup');
-    if (!row) return null;
-
+  async cancelBooking(bookingId: string): Promise<{ success: boolean; reason?: string }> {
+    await runQuery(this.db, 'BEGIN TRANSACTION', [], 'cancelBooking begin');
     try {
-      return JSON.parse(row.data) as GeneralSetupType;
-    } catch {
-      return null;
+      const booking = await getQuery<{ id: string; status: string }>(
+        this.db,
+        `SELECT id, status FROM bookings WHERE id = ?`,
+        [bookingId], 'cancelBooking fetch'
+      );
+
+      if (!booking) {
+        await runQuery(this.db, 'ROLLBACK', [], 'cancelBooking rollback not found');
+        return { success: false, reason: 'BOOKING_NOT_FOUND' };
+      }
+      if (booking.status !== 'confirmed') {
+        await runQuery(this.db, 'ROLLBACK', [], 'cancelBooking rollback already canceled');
+        return { success: false, reason: 'BOOKING_ALREADY_CANCELED_OR_REFUNDED' };
+      }
+
+      await runQuery(
+        this.db,
+        `UPDATE bookings
+         SET status = 'canceled', canceled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+         WHERE id = ?`,
+        [bookingId], 'cancelBooking update status'
+      );
+      await runQuery(
+        this.db,
+        `UPDATE seats
+         SET status = 'available', booking_id = NULL, booking_ref = NULL,
+             booked_by_user_id = NULL, booked_at = NULL, updated_at = CURRENT_TIMESTAMP
+         WHERE booking_id = ?`,
+        [bookingId], 'cancelBooking release seats'
+      );
+
+      await runQuery(this.db, 'COMMIT', [], 'cancelBooking commit');
+      return { success: true };
+    } catch (err) {
+      await runQuery(this.db, 'ROLLBACK', [], 'cancelBooking rollback on error');
+      throw err;
     }
   }
 
-  async saveSetup(data: unknown): Promise<void> {
-    const json = JSON.stringify(data);
+  // ---------------------------------------------------------------------------
+  // Setup methods
+  // ---------------------------------------------------------------------------
 
-    const sql = `
-      INSERT INTO setup (id, data)
-      VALUES (1, ?)
-      ON CONFLICT(id)
-      DO UPDATE SET
-        data = excluded.data,
-        updated_at = CURRENT_TIMESTAMP
-    `;
-    await runQuery(this.db!, sql, [json], 'save setup');
+  async loadSetup(): Promise<GeneralSetupType | null> {
+    const row = await getQuery<{ data: string }>(
+      this.db, `SELECT data FROM setup WHERE id = 1`, [], 'load setup'
+    );
+    if (!row) return null;
+    try { return JSON.parse(row.data) as GeneralSetupType; }
+    catch { return null; }
+  }
+
+  async saveSetup(data: unknown): Promise<void> {
+    await runQuery(
+      this.db,
+      `INSERT INTO setup (id, data) VALUES (1, ?)
+       ON CONFLICT(id) DO UPDATE SET data = excluded.data, updated_at = CURRENT_TIMESTAMP`,
+      [JSON.stringify(data)], 'save setup'
+    );
   }
 }
 
+// ---------------------------------------------------------------------------
+// Query helpers
+// ---------------------------------------------------------------------------
+
 /**
- * Execute SQL script without parameters
- * Use for: CREATE TABLE, ALTER TABLE, multiple statements, schema initialization
+ * Execute a SQL script without parameters.
+ * Use for: CREATE TABLE, ALTER TABLE, multiple statements, schema initialization.
  */
-const execQuery = (
-  db: sqlite3.Database,
-  sql: string,
-  context: string = '',
-): Promise<void> =>
+const execQuery = (db: sqlite3.Database, sql: string, context = ''): Promise<void> =>
   new Promise((resolve, reject) => {
     db.exec(sql, err => {
       if (err) reject(new Error(`${context}: ${err.message}`));
@@ -1757,16 +1522,13 @@ const execQuery = (
   });
 
 /**
- * Run parameterized query (INSERT, UPDATE, DELETE)
- * Returns RunResult with lastID and changes
+ * Run a parameterized query (INSERT, UPDATE, DELETE).
+ * Returns RunResult with lastID and changes.
  */
 type SqlParam = string | number | Buffer | null;
 
 const runQuery = (
-  db: sqlite3.Database,
-  sql: string,
-  params: SqlParam[] = [],
-  context = ''
+  db: sqlite3.Database, sql: string, params: SqlParam[] = [], context = ''
 ): Promise<sqlite3.RunResult> =>
   new Promise((resolve, reject) => {
     db.run(sql, params, function (err) {
@@ -1776,10 +1538,7 @@ const runQuery = (
   });
 
 const getQuery = <T extends Record<string, unknown> = Record<string, unknown>>(
-  db: sqlite3.Database,
-  sql: string,
-  params: SqlParam[] = [],
-  context = ''
+  db: sqlite3.Database, sql: string, params: SqlParam[] = [], context = ''
 ): Promise<T | undefined> =>
   new Promise((resolve, reject) => {
     db.get(sql, params, (err, row) => {
@@ -1789,10 +1548,7 @@ const getQuery = <T extends Record<string, unknown> = Record<string, unknown>>(
   });
 
 const allQuery = <T extends Record<string, unknown> = Record<string, unknown>>(
-  db: sqlite3.Database,
-  sql: string,
-  params: SqlParam[] = [],
-  context = ''
+  db: sqlite3.Database, sql: string, params: SqlParam[] = [], context = ''
 ): Promise<T[]> =>
   new Promise((resolve, reject) => {
     db.all(sql, params, (err, rows) => {
@@ -1809,15 +1565,11 @@ function toSqlParam(value: unknown): string | number | null {
 
 function generateBookingRef(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
-  const id = Array.from({ length: 7 }, () =>
-    chars[Math.floor(Math.random() * chars.length)]
-  ).join('');
+  const id = Array.from({ length: 7 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   return `TK-${id}`;
 }
 
-// release expired reservations, continuously
-setInterval(async () => { // TODO: move to /backend/src/scheduled/jobs.ts
-  await database.releaseExpiredReservations();
-}, 60 * 1000); // TODO: to config
- 
+// TODO: move to /backend/src/scheduled/jobs.ts
+// setInterval(() => database.releaseExpiredReservations(), 60_000);
+
 export const database = new Database();

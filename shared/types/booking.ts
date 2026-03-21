@@ -1,4 +1,4 @@
-export type BookingStatus = 'confirmed' | 'cancelled' | 'refunded';
+export type BookingStatus = 'confirmed' | 'canceled' | 'refunded';
 
 export interface Booking {
   id: string;
@@ -14,5 +14,5 @@ export interface Booking {
   scannedAt: Date | null;
   scannedBy: string | null;
   updatedAt?: string;
-  cancelledAt?: string;
+  canceledAt?: string;
 }

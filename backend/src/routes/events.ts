@@ -586,9 +586,9 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     const dateOfPerformance = showInfo.date;
     const timeOfPerformance = showInfo.time;
     const theaterName = showInfo.theater;
-    const seatNumbers = booking.seats.join(', ');
+    const seatNumbers = booking.seats.map(seat => seat.seatId).join(', ');
     const totalPaidAmount = event.currency ?
-      formatMoney(1234.56, event.currency, user.language ?? config.app.defaultLanguage) :
+      formatMoney(event.baseTicketPrice, user.language ?? config.app.defaultLanguage, event.currency) :
       ''
     ;
     const contactPhone = showInfo.contactPhone;

@@ -36,6 +36,7 @@ export interface Seat {
   seatNumber: number; // 1
   status: SeatStatus;
   bookingId?: string;
+  bookingRef: string | null; 
   bookedByUserId?: string;
   bookedAt?: string;
   reservedUntil?: string;

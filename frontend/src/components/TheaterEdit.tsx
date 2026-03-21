@@ -336,6 +336,7 @@ const TheaterEdit: React.FC = () => {
               onChange={handleInputChange}
               fullWidth
               required
+              autoFocus
             />
           </Grid>
 

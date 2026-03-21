@@ -9,12 +9,7 @@
 
 <!-- Booking Reference -->
 <mj-text css-class="booking-reference" font-size="18px" padding-top="12px">
-  🔑 {{t "Your booking reference number"}} is:<br /><br />
-  <div style="text-align: center;">
-    <span style="background-color:#d4a373; padding:5px; border-radius:5px; display:inline-block;">
-      {{bookingRef}}
-    </span>
-  </div>
+  🔑 {{t "Your booking reference number are on the tickets"}}<br /><br />
 </mj-text>
 <mj-divider border-color="#d4a373" border-width="2px" />
 
@@ -104,5 +99,5 @@
 </mj-text>
 <mj-text font-size="18px" font-weight="bold">
   {{t "Best regards"}}! <br />
-  {{t "The"}} {{appName}} {{t "team"}}.
+  {{t "The team of"}} {{appName}} .
 </mj-text>
