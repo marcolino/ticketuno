@@ -752,7 +752,7 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               onClick={() => setTab('login')}
               sx={{ cursor: 'pointer' }}
             >
-              {t('Back to Login')}
+              ⬅ {t('Back to Login')}
             </Link>
           </Box>
         )}
@@ -814,7 +814,7 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
               onClick={() => setTab('login')}
               sx={{ cursor: 'pointer' }}
             >
-              {t('Back to Login')}
+              ⬅ {t('Back to Login')}
             </Link>
           </Box>
         )}

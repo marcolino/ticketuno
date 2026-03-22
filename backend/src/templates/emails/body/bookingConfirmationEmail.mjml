@@ -99,5 +99,5 @@
 </mj-text>
 <mj-text font-size="18px" font-weight="bold">
   {{t "Best regards"}}! <br />
-  {{t "The team of"}} {{appName}} .
+  {{t "The team of"}} {{appName}}
 </mj-text>

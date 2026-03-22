@@ -389,6 +389,7 @@ const EventEdit: React.FC = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
+              autoFocus
             />
           </Grid>
 
@@ -873,7 +874,7 @@ const EventEdit: React.FC = () => {
           )}
 
           {/* Performances */}
-          {isEditMode && ( // Show Performances button only when editing event
+          {/* {isEditMode && ( // Show Performances button only when editing event
             <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 2 }}>
                 <Button
@@ -885,7 +886,7 @@ const EventEdit: React.FC = () => {
                 </Button>
               </Box>
             </Grid>
-          )}
+          )} */}
 
           {/*performances.map((perf, index) => (
             <Grid item xs={12} key={index}>

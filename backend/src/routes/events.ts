@@ -4,11 +4,11 @@ import path from 'path';
 import { database } from '../db/database';
 import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
 import { generateTickets } from '../services/ticketService';
-import { notifySlack } from '../services/notificationService';
+import { notify } from '../services/notificationService';
 import { sendBookingConfirmationEmail } from '../utils/email';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
 import { ShowInfo } from '../shared/types/ticket';
-import { generateSeats } from '../shared/types/layoutToSeats';
+import { generateSeats, applyDisplayNumbers } from '../shared/types/layoutToSeats';
 import { PerformanceSeatsResponse, SeatData} from '../shared/types/performance';
 import { getErrorMessage } from '../utils/errorHandler';
 import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '../utils/misc';
@@ -504,11 +504,6 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       });
     }
 
-    const theater = await database.getTheaterById(event.theaterId);
-    if (!theater) {
-      return res.status(404).json({ error: req.t('Theater not found') });
-    }
-
     // const event = await database.getEventById(eventId);
     // if (!event) {
     //   return res.status(404).json({ error: req.t('Event not found') });
@@ -525,9 +520,30 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     if (!event) {
       return res.status(404).json({ error: req.t('Event not found') });
     }
-    if (!performanceSeats || !performanceSeats.length) {
+    if (!performanceSeats) {
       return res.status(404).json({ error: req.t('Performance seats not found') });
     }
+
+    const theater = await database.getTheaterById(event.theaterId);
+    if (!theater) {
+      return res.status(404).json({ error: req.t('Theater not found') });
+    }
+
+    // Build display-number label map so emails/tickets show correct numbers, skipping 'absent' seats
+    const seatLabelMap = new Map<string, string>();
+    if (theater.currentLayoutId) {
+      const layoutRecord = await database.getLayoutById(theater.currentLayoutId);
+      if (layoutRecord) {
+        const layoutJSON = JSON.parse(layoutRecord.json);
+        const conditions = layoutJSON.seatConditions || {};
+        const withDisplay = applyDisplayNumbers(generateSeats(layoutJSON), conditions);
+        withDisplay.forEach(s => {
+          const dn = s.displayNumber ?? s.seatNumber;
+          seatLabelMap.set(s.seatId, `${s.sectionName}-${s.rowId}-${dn}`);
+        });
+      }
+    }
+    const seatLabel = (seatId: string) => seatLabelMap.get(seatId) ?? seatId;
 
     const bookingRefs = booking.seats.map(s => s.bookingRef);
     const bookingIsPaid = config.app.reservations.purchases.gateway !== 'free';
@@ -578,7 +594,8 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
           const seatInfo = findSeatById(seatId, performanceSeats);
           return {
             bookingRef, // Unique reference per seat
-            seat: seatId,
+            seatId: seatId,
+            seat: seatLabel(seatId), 
             row: seatInfo!.rowId,
             tier: seatInfo!.sectionName,
             gate: '',
@@ -600,7 +617,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
         });
       } catch (error) {
         console.error('Email send failed:', error);
-        await notifySlack(`
+        await notify(`
           🚨 Booking ticket generation failed for refs: ${bookingRefs.join(', ')}\n\
           Error: ${getErrorMessage(error)}
         `);
@@ -616,7 +633,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
         const dateOfPerformance = showInfo.date;
         const timeOfPerformance = showInfo.time;
         const theaterName = showInfo.theater;
-        const seatNumbers = booking.seats.map(seat => seat.seatId).join(', ');
+        const seatNumbers = booking.seats.map(seat => seatLabel(seat.seatId)).join(', ');
         const totalPaidAmount = event.currency ?
           formatMoney(event.baseTicketPrice, user.language ?? config.app.defaultLanguage, event.currency) :
           ''
@@ -651,12 +668,15 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
           attachedTickets,
         );
 
+        await notify(`
+          ✅ Booking completed for refs: ${bookingRefs}
+        `);
+
         return true;
-      } catch (err) {
-        console.error('Email send failed:', err);
-        await notifySlack(`
-          🚨 Booking email send failed for refs: ${bookingRefs.join(', ')}\n\
-          Error: ${getErrorMessage(err)}
+      } catch (error) {
+        console.error('Email send failed:', error);
+        await notify(`
+          🚨 Booking email send failed for refs: ${bookingRefs}: ${getErrorMessage(error)}
         `);
         return false;
       }

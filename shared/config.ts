@@ -62,6 +62,9 @@ const config: AppConfig = {
   server: {
     //delayMilliseconds: 3 * 1000,
   },
+  slack: {
+    webhookUrl: 'https://hooks.slack.com/services',
+  }
 };
 
 export type CurrencyCode = keyof typeof config.app.currencies;

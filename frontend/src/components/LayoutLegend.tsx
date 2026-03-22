@@ -126,16 +126,16 @@ const LayoutLegend: React.FC<LayoutLegendProps> = ({
 
   return (
     <div style={{
-      display:        'flex',
-      flexWrap:       'wrap',
-      gap:            10,
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: 10,
       justifyContent: 'center',
-      alignItems:     'flex-start',
-      padding:        '14px 16px 10px',
-      marginTop:      4,
-      borderTop:      '1px solid rgba(0,0,0,0.10)',
-      background:     'rgba(0,0,0,0.02)',
-      borderRadius:   '0 0 8px 8px',
+      alignItems: 'flex-start',
+      padding: '14px 16px 10px',
+      marginTop: 4,
+      borderTop: '1px solid rgba(0,0,0,0.10)',
+      background: 'rgba(0,0,0,0.02)',
+      borderRadius: '0 0 8px 8px',
     }}>
 
       {/* Status entries — booking view only, no example seat needed */}
@@ -164,7 +164,7 @@ const LayoutLegend: React.FC<LayoutLegendProps> = ({
             <LegendEntry key={c} number={i + 1}
               base={col.base} backrest={col.backrest}
               armrest={col.armrest} text={col.text}
-              label={col.label}
+              label={t(col.label)}
             />
           );
         }
@@ -179,7 +179,7 @@ const LayoutLegend: React.FC<LayoutLegendProps> = ({
             base="#1B5E20" backrest="#2E7D32"
             armrest={col.armrest}
             text="#FFFFFF"
-            label={col.label}
+            label={t(col.label)}
             // Booked body example
             exampleBase="#616161"
             exampleBackrest="#757575"

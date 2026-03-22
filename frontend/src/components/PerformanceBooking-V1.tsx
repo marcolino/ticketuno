@@ -7,7 +7,7 @@ import {
   Typography,
   Button,
   Paper,
-  //Alert,
+  Alert,
   IconButton,
   useTheme,
   useMediaQuery,
@@ -119,29 +119,15 @@ const PerformanceBooking: React.FC = () => {
     if (!layout) return [];
     const raw = generateSeats(layout);
     const conditions = layout.seatConditions || {};
+    // return raw.map(seat => ({
+    //   ...seat,
+    //   specialCondition: conditions[seat.seatId] as SpecialCondition | undefined,
+    // }));
     return applyDisplayNumbers(raw, conditions).map(seat => ({
       ...seat,
       specialCondition: conditions[seat.seatId] as SpecialCondition | undefined,
     }));
   }, [layout]);
-
-  // ── Step 1b: seatId → human-readable label using display numbers ─────────
-  // e.g. physical seat "Platea-A-8" where seat 7 is absent → label "Platea-A-7"
-  const seatLabelMap = useMemo(() => {
-    const map = new Map<string, string>();
-    generatedSeats.forEach(seat => {
-      const displayNum = seat.displayNumber ?? seat.seatNumber;
-      // Rebuild the label with the display number instead of the physical one
-      map.set(seat.seatId, `${seat.sectionName}-${seat.rowId}-${displayNum}`);
-    });
-    return map;
-  }, [generatedSeats]);
-
-  /** Returns the display label for a seatId, falling back to the raw id if not found. */
-  const seatLabel = useCallback(
-    (seatId: string) => seatLabelMap.get(seatId) ?? seatId,
-    [seatLabelMap]
-  );
 
   // ── Step 2: merge with live booking statuses from API ────────────────────
   const seats: SeatWithStatus[] = useMemo(() => {
@@ -182,8 +168,9 @@ const PerformanceBooking: React.FC = () => {
   }, [isAuthenticated, t, toast, navigate, showDialog]);
 
   const getSeatStatus = useCallback((seat: SeatWithStatus): SeatStatus => {
-    // Show reserved seats as booked to reduce user confusion
-    if (seat.status === 'booked' || seat.status === 'reserved') return 'booked';
+    //if (seat.status === 'booked' || seat.status === 'reserved') return seat.status;
+    // Important: we do show users the 'reserved' (by other users) seats as 'booked', to reduce confusion...
+    if (seat.status === 'booked' || seat.status === 'reserved') return 'booked'; 
     if (selectedSeats.has(seat.seatId)) return 'selected';
     return 'available';
   }, [selectedSeats]);
@@ -219,9 +206,13 @@ const PerformanceBooking: React.FC = () => {
         ,
         onConfirm: () => navigate('/'),
         confirmText: 'Ok',
+        //shrinkToContent: false,
       });
 
+      //audit('booking', 'success', ...);
+
       setSelectedSeats(new Set());
+      //await loadPerformance();
     } catch (err: any) {
       console.error('Booking error:', err);
       if (err.originalError && err.originalError.unavailableSeats?.length > 0) {
@@ -229,25 +220,31 @@ const PerformanceBooking: React.FC = () => {
           title: t('Attention'),
           content:
             t('These seats are not available anymore:\n') +
-            // Map raw seatIds → display labels so users see "Platea-A-7" not "Platea-A-8"
-            err.originalError.unavailableSeats.map(seatLabel).join(', ')
+            JSON.stringify(err.originalError.unavailableSeats)
           ,
+          //onConfirm: () => navigate('/'),
+          //cancelText: 'Cancel',
           confirmText: 'Ok',
+          //shrinkToContent: true,
         });
+        // toast.warning(t('These seats are not available anymore: ' +
+        //   JSON.stringify(err.originalError.unavailableSeats))
+        // );
+        // Reset all reserved seats
         setSelectedSeats(new Set());
+
+        // Reload seats to reflect current booking situation
         setForceLoadPerformance(true);
+
         return;
       }
       toast.error(err.response?.data?.error || err.message || t('Booking failed'));
+
+      //audit('booking', 'error', ...);
     }
   };
 
   const handleConfirmBooking = () => {
-    // Sort selected seat labels for a readable list
-    const selectedLabels = Array.from(selectedSeats)
-      .map(seatLabel)
-      .sort();
-
     showDialog({
       title: t('Confirm Booking'),
       content: (
@@ -257,8 +254,7 @@ const PerformanceBooking: React.FC = () => {
             &nbsp;{t('for')} {localizedDate({ dateString: performance?.performanceDate, locale: user!.language })}:
           </Typography>
           <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2 }}>
-            {/* Use display labels instead of raw seatIds */}
-            {selectedLabels.join(', ')}
+            {Array.from(selectedSeats).join(', ')}
           </Paper>
           {config.app.reservations.purchases.gateway !== 'free' && (
             <Typography variant="h6">
@@ -275,12 +271,15 @@ const PerformanceBooking: React.FC = () => {
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
+  //const whiteSeatIcon = <EventSeatIcon sx={{ color: 'white', fill: 'white', stroke: 'white' }} />;
+
   if (loading) return null;
 
   if (error || !layout || !performance) {
     toast.warning(t('Performance not found'));
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
+        {/* <Alert severity="error">{error || t('Performance not found')}</Alert> */}
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/event/${eventId}`)} sx={{ mt: 2 }}>
           ⬅ {t('Back to Event')}
         </Button>
@@ -299,7 +298,7 @@ const PerformanceBooking: React.FC = () => {
               mb: { xs: 2, sm: 4 },
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'flex-start'
+              alignItems: 'flex-start' // aligns icon to top
             }}
           >
             <Box>
@@ -310,11 +309,11 @@ const PerformanceBooking: React.FC = () => {
                 {t('Performance on')} {new Date(performance.performanceDate).toLocaleDateString()} {performance.startTime}
               </Typography>
             </Box>
-            <IconButton
+            <IconButton 
               onClick={() => navigate(-1)}
               aria-label="close"
               size="large"
-              sx={{ mt: -1, mr: -1 }}
+              sx={{ mt: -1, mr: -1 }} // optional fine‑tuning to align with paper edge
             >
               <CloseIcon />
             </IconButton>

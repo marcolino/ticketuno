@@ -195,7 +195,13 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
                       interactive={interactive}
                       specialCondition={seat.specialCondition}
                       bookingView={bookingView}
-                      onClick={onSeatClick ? () => onSeatClick(seat.seatId, status) : undefined}
+                      onClick={onSeatClick ? () => {
+                        onSeatClick(seat.seatId, status);
+                        // // Fix mobile `:active` state not releasing after tap
+                        // setTimeout(() => {
+                        //   (document.activeElement as HTMLElement | SVGAElement)?.blur?.();
+                        // }, 200); // after 'grow' animation completes
+                      }: undefined}
                     />
                   );
                 })}
@@ -241,6 +247,7 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
         style={{
           touchAction: 'pan-x pan-y', // Add touch-friendly behavior on mobile
         }}
+        //onTouchStart={() => {}} // Tells the browser this element handles touch, helps :active release
       >
         {/* Background */}
         <rect

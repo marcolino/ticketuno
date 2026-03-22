@@ -55,7 +55,7 @@ import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/it';
 import 'dayjs/locale/en';
 import 'dayjs/locale/fr';
-
+import { useToast } from '@/contexts/ToastContext';
 import { eventApi } from '@/services/api';
 import { EventWithDetails, EventPerformance } from '@/shared/types/event';
 import useNavigate from '@/hooks/useNavigate';
@@ -87,6 +87,8 @@ const EventDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const toast = useToast();
+  
   // DataGrid v8 selection state
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>({
     type: 'include',
@@ -145,6 +147,15 @@ const EventDetails: React.FC = () => {
       loadEvent();
     }
   }, [id, loadEvent]);
+
+  useEffect(() => {
+    if (!loading && !event) {
+      toast.warning(t('Event not found'));
+    }
+    if (error) {
+      toast.warning(error);
+    }
+  }, [loading, event, error]);
 
   // Convert EventPerformance to EventPerformanceForm (for editing)
   // const performanceToForm = (perf: EventPerformance): EventPerformanceForm => ({
@@ -468,11 +479,12 @@ const EventDetails: React.FC = () => {
   // }
 
   if (error || !event) {
+    //toast.warning(t('Event not found'));
     return (
       <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error">{error || t('Event not found')}</Alert>
+        {/* <Alert severity="error">{error || t('Event not found')}</Alert> */}
         <Button onClick={() => navigate('/')} sx={{ mt: 2 }}>
-          {t('Back to Events')}
+           ⬅ {t('Back to Events')}
         </Button>
       </Container>
     );

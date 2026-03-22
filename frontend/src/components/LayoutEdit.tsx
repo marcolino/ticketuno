@@ -34,6 +34,7 @@ import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
 import { generateSeats, SpecialCondition } from '@/shared/types/layoutToSeats';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
+import { getErrorMessage } from '@/utils/misc';
 
 // Define location state interface
 interface LocationState {
@@ -75,7 +76,7 @@ const LayoutEdit: React.FC = () => {
   
   const { isOperator } = useAuth();
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  //const [error, setError] = useState('');
 
   const [isEditable, setIsEditable] = useState(true);
   
@@ -163,9 +164,10 @@ const LayoutEdit: React.FC = () => {
       
       setTheaterName(theater.name);
       setTheaterDescription(theater.description || '');
-      setError('');
-    } catch (err: any) {
-      setError(err.response?.data?.error || t('Failed to load theater'));
+      //setError('');
+    } catch (error) {
+      //setError(err.response?.data?.error || t('Failed to load theater'));
+      toast.error(t('Failed to load theater: {{err}}', { err: getErrorMessage(error) }));
     }
   }, [t]);
 
@@ -227,10 +229,10 @@ const LayoutEdit: React.FC = () => {
         if (layout.theaterId) {
           loadTheater(layout.theaterId);
         }
-        
-        setError('');
-      } catch (err: any) {
-        setError(err.response?.data?.error || t('Failed to load layout'));
+        //setError('');
+      } catch (error) {
+        //setError(err.response?.data?.error || t('Failed to load layout'));
+        toast.error(t('Failed to load layout: {{err}}', { err: getErrorMessage(error) }));
       }
     }
   }, [id, t, loadTheater]);
@@ -462,7 +464,7 @@ const LayoutEdit: React.FC = () => {
           replace: true, 
         });
       } else {
-        navigate(-1);
+        navigate(-1 );
       }
     } catch (error: any) {
       toast.error(t('Failed to save layout: {{err}}', { err: error.response?.data?.error }));
@@ -516,18 +518,18 @@ const LayoutEdit: React.FC = () => {
       <Grid container spacing={2}>
         {/* Editor Panel */}
         <Grid item xs={12} md={5}>
-          <Paper sx={{ p: 1, maxHeight: '80vh', overflow: 'auto' }}>
+          <Paper sx={{ p: 2, maxHeight: '80vh', overflow: 'auto' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               {/* <Typography variant="h5">{t('Layout Editor')}</Typography> */}
               <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
                 <ViewCompactIcon fontSize="large" /> {isEditMode ? t('Edit Layout') : t('Create New Layout')}
               </Typography>
 
-              {error && (
+              {/* {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
                   {error}
                 </Alert>
-              )}
+              )} */}
 
             </Box>
 
@@ -576,7 +578,7 @@ const LayoutEdit: React.FC = () => {
                     <TextField
                       fullWidth
                       label={t('Label')}
-                      value={layoutJSON.stage.label}
+                      value={t(layoutJSON.stage.label!)}
                       onChange={(e) => updateStage('label', e.target.value)}
                     />
                   </Grid>
@@ -798,7 +800,7 @@ const LayoutEdit: React.FC = () => {
             </Box>
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-              <Box sx={{ width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: 'flex-end' }}>
+              <Box sx={{ width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: 'flex-start' }}>
                 {isEditable && (
                   <SeatMarkingToolbar
                     active={markingActive}
@@ -826,6 +828,7 @@ const LayoutEdit: React.FC = () => {
                   variant="contained"
                   startIcon={<SaveIcon />}
                   onClick={save}
+                  onMouseDown={(e) => e.preventDefault()} // to avoid requiring a double tap on mobile
                   disabled={!isEditable || saving}
                   size="small"
                 >

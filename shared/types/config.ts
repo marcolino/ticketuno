@@ -15,7 +15,7 @@ export interface Currency {
 export type CurrencyCode = string;
 
 export interface AppConfig {
-    app: {
+  app: {
     codename: string;
     name: string;
     baseUrl: string;
@@ -56,5 +56,8 @@ export interface AppConfig {
   };
   server: {
     [key: string]: number;
-  };
+  },
+  slack: {
+    webhookUrl: string,
+  }
 }

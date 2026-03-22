@@ -10,49 +10,49 @@ export const CONDITION_COLORS: Record<
   { base: string; backrest: string; armrest: string; text: string; label: string }
 > = {
   Absent: {
-    base:     '#1a1a1a',   // near-black body — slot feels "empty"
+    base:     '#1a1a1a',
     backrest: '#111111',
-    armrest:  '#FF6D00',   // bright warning orange armrest — "this seat is marked"
-    text:     '#FF6D00',   // number in same orange so it's readable
-    label:    'Assente',
+    armrest:  '#FF6D00',
+    text:     '#FF6D00',
+    label:    'Absent',
   },
   Unavailable: {
-    base:     '#7F0000', // very deep crimson
+    base:     '#7F0000',
     backrest: '#B71C1C',
     armrest:  '#4E0000',
     text:     '#FFCDD2',
     label:    'Unavailable',
   },
   RestrictedView: {
-    base:     '#BF360C', // burnt sienna — "caution, but not danger"
+    base:     '#BF360C',
     backrest: '#E64A19',
     armrest:  '#bf0606',
     text:     '#FBE9E7',
     label:    'Restricted view',
   },
   Premium: {
-    base:     '#F57F17', // rich amber gold
+    base:     '#F57F17',
     backrest: '#FF8F00',
     armrest:  '#ffd012',
-    text:     '#1A1A1A', // dark text on gold — better contrast
+    text:     '#1A1A1A',
     label:    'Premium',
   },
   Impaired: {
-    base:     '#004D6E', // deep teal-blue
+    base:     '#004D6E',
     backrest: '#006064',
     armrest:  '#002F3E',
     text:     '#B2EBF2',
     label:    'Impaired',
   },
   Staff: {
-    base:     '#9E9E9E', // medium grey
+    base:     '#9E9E9E',
     backrest: '#BDBDBD',
     armrest:  '#757575',
     text:     '#424242',
-    label:    'Riservato staff',
+    label:    'Staff',
   },
   Baby: {
-    base:     '#c310bd', // deep raspberry / magenta
+    base:     '#c310bd',
     backrest: '#ac0b9e',
     armrest:  '#ee22ea',
     text:     '#FCE4EC',
@@ -68,7 +68,6 @@ interface LayoutSeatProps {
   seatId: string;
   seatNumber: string;
   status: SeatStatus;
-  //resolvedStatus?: SeatStatus;
   onClick?: () => void;
   width?: number;
   height?: number;
@@ -80,9 +79,9 @@ interface LayoutSeatProps {
 const LayoutSeat: React.FC<LayoutSeatProps> = ({
   x,
   y,
+  seatId,
   seatNumber,
   status,
-  resolvedStatus,
   onClick,
   width = 48,
   height = 48,
@@ -91,7 +90,7 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
   bookingView = false,
 }) => {
 
-  // Hide absent seats completely, but only from the public booking view
+  // Absent: completely hidden in booking/non-editing view
   if (bookingView && specialCondition === 'Absent') {
     return null;
   }
@@ -101,18 +100,18 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
   const backrestHeight = 16;
   const armrestWidth   = 4;
   const armrestHeight  = 28;
-  const isAbsentInEdit = !interactive && specialCondition === 'Absent';
 
-  // Body colors: always status-based in booking view, always condition-based in edit view
+  // Sanitize seatId for use in SVG defs IDs (no colons, pipes, spaces)
+  const safeId = seatId.replace(/[^a-zA-Z0-9]/g, '-');
+
+  // Body colors
   const getBodyColors = () => {
     if (!interactive) {
-      // Edit view — full condition color everywhere
       if (specialCondition && CONDITION_COLORS[specialCondition]) {
         return CONDITION_COLORS[specialCondition];
       }
       return { base: '#730008', backrest: '#8E0A14', text: '#f0f0f0' };
     }
-    // Booking view — status drives the body
     switch (status) {
       case 'available': return { base: '#1B5E20', backrest: '#2E7D32', text: '#FFFFFF' };
       case 'selected':  return { base: '#1565C0', backrest: '#1976D2', text: '#FFFFFF' };
@@ -121,62 +120,35 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
     }
   };
 
-  // Armrest colors: condition-based when a condition exists, otherwise follow body
   const getArmrestColor = () => {
     if (specialCondition && CONDITION_COLORS[specialCondition]) {
       return CONDITION_COLORS[specialCondition].armrest;
     }
-    return bodyColors.base; // No condition: match cushion as before
+    return bodyColors.base;
   };
 
-  const bodyColors  = getBodyColors();
+  const bodyColors   = getBodyColors();
   const armrestColor = getArmrestColor();
-  
-  // const getColors = () => {
-  //   // Special condition overrides everything
-  //   if (specialCondition && CONDITION_COLORS[specialCondition]) {
-  //     return CONDITION_COLORS[specialCondition];
-  //   }
-  //   // Edit / preview mode — uniform velvet red
-  //   if (!interactive) {
-  //     return { base: '#730008', backrest: '#8E0A14', armrest: '#3B1F1F', text: '#f0f0f0', label: '' };
-  //   }
-  //   // Booking mode — status colours
-  //   switch (status) {
-  //     case 'available': return { base: '#1B5E20', backrest: '#2E7D32', armrest: '#145218', text: '#FFFFFF', label: '' };
-  //     case 'selected':  return { base: '#1565C0', backrest: '#1976D2', armrest: '#0D47A1', text: '#FFFFFF', label: '' };
-  //     case 'booked':    return { base: '#616161', backrest: '#757575', armrest: '#424242', text: '#E0E0E0', label: '' };
-  //     case 'reserved':  return { base: '#F57C00', backrest: '#FB8C00', armrest: '#E65100', text: '#FFFFFF', label: '' };
-  //   }
-  // };
 
-  // const colors = getColors();
-  // const isClickable = interactive && !specialCondition && (
-  //   status === 'available' || status === 'selected'
-  // );
-  // const isClickable = interactive && (
-  //   !status || status === 'available' || status === 'selected'
-  // );
-
-  // const isClickable = interactive
-  //   && specialCondition !== 'Staff'
-  //   && specialCondition !== 'Absent'
-  //   && (!status || status === 'available' || status === 'selected')
-  // ;
-
-  // const haloColor = (() => {
-  //   const s = resolvedStatus ?? status;
-  //   if (specialCondition && s === 'booked')    return '#616161';
-  //   if (specialCondition && s === 'reserved')  return '#F57C00';
-  //   if (specialCondition && s === 'selected')  return '#1565C0';
-  //   return null;
-  // })();
-  
   const isClickable = interactive
     && !(bookingView && specialCondition === 'Absent')
     && !(bookingView && specialCondition === 'Staff')
     && (!status || status === 'available' || status === 'selected')
   ;
+
+  // Conditions that render a top-left badge icon
+  const hasTopLeftIcon = specialCondition === 'Impaired'
+    || specialCondition === 'RestrictedView'
+    || specialCondition === 'Staff'
+    || specialCondition === 'Baby';
+
+  // All badge icons share this transform: top-left quadrant, scaled down
+  const iconTransform = 'translate(-11, -9) scale(0.56)';
+
+  // Shared rounded background rect for badge icons (22 wide × 23 tall pre-scale)
+  const IconBg = ({ fill, opacity = 0.92 }: { fill: string; opacity?: number }) => (
+    <rect x={-11} y={-14} width={22} height={23} rx={4} ry={4} fill={fill} opacity={opacity} />
+  );
 
   return (
     <g
@@ -185,7 +157,8 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
       className={isClickable ? 'seat-interactive' : ''}
       style={{
         cursor: isClickable ? 'pointer' : 'default',
-        opacity: isAbsentInEdit ? 0.28 : 1,
+        // Absent: 30% opacity in any edit/marking mode (null return handles booking view)
+        opacity: specialCondition === 'Absent' ? 0.30 : 1,
       }}
     >
       {/* Hover highlight */}
@@ -201,22 +174,33 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
         />
       )}
 
-      {/* ── Seat body — shifted up 4 px to fix geometry bias ── */}
+      {/* SVG defs for Unavailable stripe pattern — unique per seat to avoid ID clashes */}
+      {specialCondition === 'Unavailable' && (
+        <defs>
+          <pattern
+            id={`stripe-${safeId}`}
+            patternUnits="userSpaceOnUse"
+            width="8" height="8"
+            patternTransform="rotate(45 0 0)"
+          >
+            <rect width="4" height="8" fill="#FFD600" />
+            <rect x="4" width="4" height="8" fill="#111111" />
+          </pattern>
+          <clipPath id={`clip-${safeId}`}>
+            {/* Matches the backrest rect exactly so stripes don't overflow its rounded corners */}
+            <rect
+              x={-seatBaseWidth / 2 + 2}
+              y={seatBaseHeight / 2 - 8}
+              width={seatBaseWidth - 4}
+              height={backrestHeight}
+              rx={4}
+            />
+          </clipPath>
+        </defs>
+      )}
+
+      {/* ── Seat body (shifted up 4 px to fix geometry bias) ── */}
       <g className="seat-visual" transform="translate(0, -4)">
-        {/* Halo color
-        {haloColor && (
-          <rect
-            x={-width / 2 - 3}
-            y={-seatBaseHeight / 2 - 3}
-            width={width + 6}
-            height={seatBaseHeight + backrestHeight + 2}
-            rx={8}
-            fill="none"
-            stroke={haloColor}
-            strokeWidth={3.5}
-            opacity={0.85}
-          />
-        )} */}
 
         {/* Cushion */}
         <rect
@@ -224,20 +208,35 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
           y={-seatBaseHeight / 2}
           width={seatBaseWidth}
           height={seatBaseHeight}
-          rx={6}
-          ry={6}
+          rx={6} ry={6}
           fill={bodyColors.base} stroke={armrestColor} strokeWidth="1.5"
         />
+
         {/* Backrest */}
         <rect
           x={-seatBaseWidth / 2 + 2}
           y={seatBaseHeight / 2 - 8}
           width={seatBaseWidth - 4}
           height={backrestHeight}
-          rx={4}
-          ry={4}
+          rx={4} ry={4}
           fill={bodyColors.backrest} stroke={armrestColor} strokeWidth="1.5"
         />
+
+        {/* ── Unavailable: yellow/black 45° hazard tape overlaid on the backrest ── */}
+        {specialCondition === 'Unavailable' && (
+          <rect
+            x={-seatBaseWidth / 2 + 2}
+            y={seatBaseHeight / 2 - 8}
+            width={seatBaseWidth - 4}
+            height={backrestHeight}
+            rx={4}
+            fill={`url(#stripe-${safeId})`}
+            clipPath={`url(#clip-${safeId})`}
+            opacity={0.88}
+            style={{ pointerEvents: 'none' }}
+          />
+        )}
+
         {/* Left armrest */}
         <rect
           x={-width / 2} y={-armrestHeight / 2}
@@ -252,40 +251,124 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
           width={armrestWidth}
           height={armrestHeight}
           rx={1} ry={1}
-          fill={armrestColor}
-          stroke={armrestColor} strokeWidth="1"
+          fill={armrestColor} stroke={armrestColor} strokeWidth="1"
         />
-        {/* Seat number — always full-size, always centered */}
+
+        {/* ══ BADGE ICONS — all positioned top-left of cushion ══ */}
+
+        {/* ── Impaired: wheelchair symbol on blue background ── */}
+        {specialCondition === 'Impaired' && (
+          <g transform={iconTransform} style={{ pointerEvents: 'none' }}>
+            <IconBg fill="#1155AA" />
+            <g opacity={0.95}>
+              {/* Head */}
+              <circle cx="2" cy="-9" r="2.5" fill="white" />
+              {/* Torso */}
+              <line x1="2" y1="-6.5" x2="2" y2="-1" stroke="white" strokeWidth="2" strokeLinecap="round" />
+              {/* Arm forward */}
+              <line x1="2" y1="-4" x2="7" y2="-2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+              {/* Seat bar */}
+              <line x1="-4" y1="-1" x2="3" y2="-1" stroke="white" strokeWidth="2" strokeLinecap="round" />
+              {/* Shin angled */}
+              <line x1="3" y1="-1" x2="6" y2="3" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+              {/* Back leg */}
+              <line x1="-4" y1="-1" x2="-4" y2="3" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+              {/* Footrest */}
+              <line x1="-4" y1="3" x2="6" y2="3" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+              {/* Rear wheel */}
+              <circle cx="-3" cy="1" r="6" fill="none" stroke="white" strokeWidth="2" />
+              {/* Wheel hub */}
+              <circle cx="-3" cy="1" r="1.5" fill="white" />
+              {/* Front caster */}
+              <circle cx="6.5" cy="4" r="2" fill="white" />
+              {/* Push handle */}
+              <line x1="2" y1="-6.5" x2="-1" y2="-9.5" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
+            </g>
+          </g>
+        )}
+
+        {/* ── RestrictedView: eye with diagonal slash on dark background ── */}
+        {specialCondition === 'RestrictedView' && (
+          <g transform={iconTransform} style={{ pointerEvents: 'none' }}>
+            <IconBg fill="#5D1500" />
+            {/* Eye white — almond/lens shape */}
+            <path d="M -8 -4 C -4 -11 6 -11 9 -4 C 6 3 -4 3 -8 -4 Z" fill="white" />
+            {/* Iris */}
+            <circle cx="1" cy="-4" r="3.2" fill="#6D3B00" />
+            {/* Pupil */}
+            <circle cx="1" cy="-4" r="1.8" fill="#111" />
+            {/* Pupil highlight */}
+            <circle cx="2.2" cy="-5" r="0.7" fill="white" opacity="0.8" />
+            {/* Diagonal slash: dark shadow + white core */}
+            <line x1="-9" y1="-12" x2="9" y2="6" stroke="#1a0000" strokeWidth="3.5" strokeLinecap="round" />
+            <line x1="-9" y1="-12" x2="9" y2="6" stroke="white" strokeWidth="2" strokeLinecap="round" />
+          </g>
+        )}
+
+        {/* ── Staff: yellow badge with person silhouette and "STAFF" label ── */}
+        {specialCondition === 'Staff' && (
+          <g transform={iconTransform} style={{ pointerEvents: 'none' }}>
+            <IconBg fill="#FFD600" opacity={0.97} />
+            {/* Person head */}
+            <circle cx="1" cy="-9" r="3" fill="#424242" />
+            {/* Person shoulders */}
+            <path d="M -6 0 C -6 -6 8 -6 8 0 Z" fill="#424242" />
+            {/* Separator line */}
+            <line x1="-9" y1="2" x2="9" y2="2" stroke="#C8A000" strokeWidth="0.8" />
+            {/* STAFF label */}
+            <text
+              x="1" y="8"
+              fontSize="6.5" fontWeight="900"
+              textAnchor="middle"
+              fill="#212121"
+              style={{ fontFamily: 'Arial, sans-serif', userSelect: 'none' }}
+            >
+              STAFF
+            </text>
+          </g>
+        )}
+
+        {/* ── Baby: baby girl face with bow on pink background ── */}
+        {specialCondition === 'Baby' && (
+          <g transform={iconTransform} style={{ pointerEvents: 'none' }}>
+            <IconBg fill="#EC407A" opacity={0.88} />
+            {/* Head (peach skin tone) */}
+            <circle cx="1" cy="-2" r="7.5" fill="#FFE0B2" />
+            {/* Bow — left wing */}
+            <ellipse cx="-4" cy="-11" rx="3.8" ry="2.2" fill="#F48FB1" transform="rotate(-25 -4 -11)" />
+            {/* Bow — right wing */}
+            <ellipse cx="6" cy="-11" rx="3.8" ry="2.2" fill="#F48FB1" transform="rotate(25 6 -11)" />
+            {/* Bow — center knot */}
+            <circle cx="1" cy="-11" r="1.8" fill="#AD1457" />
+            {/* Eyes — cute closed curves */}
+            <path d="M -3.5 -3.5 Q -2 -5.5 -0.5 -3.5" stroke="#5D4037" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            <path d="M 2.5 -3.5 Q 4 -5.5 5.5 -3.5" stroke="#5D4037" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            {/* Smile */}
+            <path d="M -2 -0.5 Q 1 1.5 4 -0.5" stroke="#E91E63" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+            {/* Cheeks */}
+            <circle cx="-3.5" cy="-1" r="2" fill="#FF80AB" opacity="0.45" />
+            <circle cx="5.5" cy="-1" r="2" fill="#FF80AB" opacity="0.45" />
+          </g>
+        )}
+
+        {/* Seat number — centered; drop-shadow when a badge icon is present */}
         <text
           x={0} y={5}
-          fontSize="14" fontWeight="bold"
+          fontSize={14} fontWeight="bold"
           textAnchor="middle"
           fill={bodyColors.text}
-          style={{ userSelect: 'none', pointerEvents: 'none' }}
+          style={{
+            userSelect: 'none',
+            pointerEvents: 'none',
+            filter: hasTopLeftIcon
+              ? 'drop-shadow(0 0px 2.5px rgba(0,0,0,0.90))'
+              : undefined,
+          }}
         >
           {seatNumber}
         </text>
 
-        {/* Absent dashed outline in edit view */}
-        {isAbsentInEdit && (
-          <>
-            <rect
-              x={-seatBaseWidth / 2}
-              y={-seatBaseHeight / 2}
-              width={seatBaseWidth}
-              height={seatBaseHeight}
-              rx={6}
-              fill="none"
-              stroke="#FF5722"
-              strokeWidth={2} strokeDasharray="5 3"
-            />
-            <line x1={-8} y1={-8} x2={8} y2={8}
-              stroke="#FF5722" strokeWidth={2} strokeLinecap="round" />
-            <line x1={8} y1={-8} x2={-8} y2={8}
-              stroke="#FF5722" strokeWidth={2} strokeLinecap="round" />
-          </>
-        )}
-      </g>
+      </g>{/* end seat-visual */}
 
       <style>{`
         .seat-interactive .seat-visual {
@@ -293,11 +376,24 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
           transform-origin: center;
           transform-box: fill-box;
         }
-        .seat-interactive:hover .seat-visual {
+
+        /* Desktop — hover only on real pointer devices */
+        @media (hover: hover) and (pointer: fine) {
+          .seat-interactive:hover .seat-visual {
+            transform: scale(1.12);
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35));
+          }
+          .seat-interactive:hover .seat-hover-bg {
+            fill: rgba(255,255,255,0.18);
+          }
+        }
+
+        /* Mobile — :active releases the moment the finger lifts */
+        .seat-interactive:active .seat-visual {
           transform: scale(1.12);
           filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35));
         }
-        .seat-interactive:hover .seat-hover-bg {
+        .seat-interactive:active .seat-hover-bg {
           fill: rgba(255,255,255,0.18);
         }
       `}</style>
