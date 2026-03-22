@@ -4,6 +4,7 @@ import path from 'path';
 import { database } from '../db/database';
 import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
 import { generateTickets } from '../services/ticketService';
+import { notifySlack } from '../services/notificationService';
 import { sendBookingConfirmationEmail } from '../utils/email';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
 import { ShowInfo } from '../shared/types/ticket';
@@ -503,128 +504,162 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       });
     }
 
-    // if (!booking.bookingRef) {
-    //   return res.status(400).json({ 
-    //     error: req.t('No booking reference!'),
-    //   });
-    // }
-   
-    const event = await database.getEventById(eventId);
-    if (!event) {
-      return res.status(404).json({ error: req.t('Event not found') });
-    }
     const theater = await database.getTheaterById(event.theaterId);
     if (!theater) {
       return res.status(404).json({ error: req.t('Theater not found') });
     }
-    const performanceSeats = await database.getSeatsByPerformanceIdGroupedBySection(performanceId);
-    if (!performanceSeats) {
+
+    // const event = await database.getEventById(eventId);
+    // if (!event) {
+    //   return res.status(404).json({ error: req.t('Event not found') });
+    // }
+    // const performanceSeats = await database.getSeatsByPerformanceIdGroupedBySection(performanceId);
+    // if (!performanceSeats) {
+    //   return res.status(404).json({ error: req.t('Performance seats not found') });
+    // }
+    // Fetch event and performance seats data in parallel
+    const [event, performanceSeats] = await Promise.all([
+      database.getEventById(eventId),
+      database.getSeatsByPerformanceIdGroupedBySection(performanceId),
+    ]);
+    if (!event) {
+      return res.status(404).json({ error: req.t('Event not found') });
+    }
+    if (!performanceSeats || !performanceSeats.length) {
       return res.status(404).json({ error: req.t('Performance seats not found') });
     }
 
-    const showInfo: ShowInfo = {
-      theater: theater.name ?? '',
-      titleLine1: event.title ?? '',
-      titleLine2: event.playwright ? req.t('By {{playwright}}', { playwright: event.playwright }) : '',
-      subtitle: event.producer ? req.t('Produced by {{producer}}', { producer: event.producer }) : '',
-      poster: event.posterImage ?
-        path.join(config.uploads.path, event.posterImage) :
-        path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName)
-      ,
-      date: formatFullDate(performance.performanceDate, user.language),
-      dayOfWeek: formatWeekday(performance.performanceDate, user.language),
-      time: performance.startTime,
-      duration: (performance.endTime && performance.startTime) ?
-        formatTimeDifference(performance.endTime, performance.startTime) :
-        '--'
-      ,
-      venue: theater.description ?? '', // TODO: venue => theater
-      address: theater.address ?? '',
-      contactPhone: theater.contactPhone ?? '',
-      contactEmail: theater.contactEmail ?? '',
-      leadRole: event.cast?.length ? event.cast?.[0].role : req.t('Lead role'),
-      lead: event.cast?.length ? event.cast?.[0].name : '--',
-      //doorsOpen: event.doorsOpen ?? '' // TODO: performance.startTime - setup.doorsOpenBefore
-      //dress: performance.dress ?? '', // TODO: performance.dress
-    };
-
-    //const setup = getSetup();
-
-    const seatsInfo = booking.seats.map(({ seatId, bookingRef }) => {
-      const seatInfo = findSeatById(seatId, performanceSeats);
-      return {
-        bookingRef, // Unique reference per seat
-        seat: seatId,
-        row: seatInfo!.rowId,
-        tier: seatInfo!.sectionName,
-        gate: '',
-        price: event.currency
-          ? formatMoney(event.baseTicketPrice, user.language, event.currency)
-          : req.t(''),
-        holderName: config.app.reservations.ticketing.nominal ? '--' : req.t('The seats are not nominal'),
-      };
-    });
-
+    const bookingRefs = booking.seats.map(s => s.bookingRef);
     const bookingIsPaid = config.app.reservations.purchases.gateway !== 'free';
     const useQrcode = config.app.reservations.ticketing.useQrcode;
-    
-    // Generate one PDF ticket per seat (in attachedTickets array)
-    const pdfs = await generateTickets({
-      show: showInfo,
-      seats: seatsInfo,
-      nominal: config.app.reservations.ticketing.nominal,
-      bookingIsPaid,
-      useQrcode,
-      language: req.language,
-    });
+    let pdfs: Buffer[];
+    let showInfo: ShowInfo;
 
-    // Send email to user with attached tickets
-    const email = user.email;
-    const userName = `${user.firstName} ${user.lastName}`;
-    const eventName = showInfo.titleLine1;
-    //const bookingRef = booking.bookingRef;
-    const dateOfPerformance = showInfo.date;
-    const timeOfPerformance = showInfo.time;
-    const theaterName = showInfo.theater;
-    const seatNumbers = booking.seats.map(seat => seat.seatId).join(', ');
-    const totalPaidAmount = event.currency ?
-      formatMoney(event.baseTicketPrice, user.language ?? config.app.defaultLanguage, event.currency) :
-      ''
-    ;
-    const contactPhone = showInfo.contactPhone;
-    const contactEmail = showInfo.contactEmail;
-    const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: to config (and create terms and conditions page)
-
-    // TODO: handle eventName, bookedSeats, isNominal in booking...
-    const attachedTickets = pdfs.map((buf: Buffer, i: number) => ({
-      filename: `ticket-${booking.seats[i].bookingRef}.pdf`, // Unique name per seat
-      //contentType: 'application/pdf',
-      content: buf,
-    }));
-
-    await sendBookingConfirmationEmail(
-      email,
-      userName,
-      eventName,
-      booking.seats.map(s => s.bookingRef).join(', '),
-      dateOfPerformance,
-      timeOfPerformance,
-      theaterName,
-      seatNumbers,
-      totalPaidAmount,
-      contactPhone,
-      contactEmail,
-      linkToTermsAndConditions,
-      bookingIsPaid,
-      useQrcode,
-      attachedTickets,
-    );
-
+    // Respond immediately
     res.json({
       message: req.t('{{count}} seats booked successfully'),
-      bookingRefs: booking.seats.map(s => s.bookingRef),  // array now
+      bookingRefs,
       bookedSeats: booking.bookedCount,
       unavailableSeats: booking.unavailableSeats,
+    });
+
+    // After response is sent, fire-and-forget: PDF generation + email send
+    setImmediate(async () => {
+      try {
+        showInfo = {
+          theater: theater.name ?? '',
+          titleLine1: event.title ?? '',
+          titleLine2: event.playwright ? req.t('By {{playwright}}', { playwright: event.playwright }) : '',
+          subtitle: event.producer ? req.t('Produced by {{producer}}', { producer: event.producer }) : '',
+          poster: event.posterImage ?
+            path.join(config.uploads.path, event.posterImage) :
+            path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName)
+          ,
+          date: formatFullDate(performance.performanceDate, user.language),
+          dayOfWeek: formatWeekday(performance.performanceDate, user.language),
+          time: performance.startTime,
+          duration: (performance.endTime && performance.startTime) ?
+            formatTimeDifference(performance.endTime, performance.startTime) :
+            '--'
+          ,
+          venue: theater.description ?? '', // TODO: venue => theater
+          address: theater.address ?? '',
+          contactPhone: theater.contactPhone ?? '',
+          contactEmail: theater.contactEmail ?? '',
+          leadRole: event.cast?.length ? event.cast?.[0].role : req.t('Lead role'),
+          lead: event.cast?.length ? event.cast?.[0].name : '--',
+          //doorsOpen: event.doorsOpen ?? '' // TODO: performance.startTime - setup.doorsOpenBefore
+          //dress: performance.dress ?? '', // TODO: performance.dress
+        };
+
+        //const setup = getSetup();
+
+        const seatsInfo = booking.seats.map(({ seatId, bookingRef }) => {
+          const seatInfo = findSeatById(seatId, performanceSeats);
+          return {
+            bookingRef, // Unique reference per seat
+            seat: seatId,
+            row: seatInfo!.rowId,
+            tier: seatInfo!.sectionName,
+            gate: '',
+            price: event.currency
+              ? formatMoney(event.baseTicketPrice, user.language, event.currency)
+              : req.t(''),
+            holderName: config.app.reservations.ticketing.nominal ? '--' : req.t('The seats are not nominal'),
+          };
+        });
+
+        // Generate one PDF ticket per seat (in attachedTickets array)
+        pdfs = await generateTickets({
+          show: showInfo,
+          seats: seatsInfo,
+          nominal: config.app.reservations.ticketing.nominal,
+          bookingIsPaid,
+          useQrcode,
+          language: req.language,
+        });
+      } catch (error) {
+        console.error('Email send failed:', error);
+        await notifySlack(`
+          🚨 Booking ticket generation failed for refs: ${bookingRefs.join(', ')}\n\
+          Error: ${getErrorMessage(error)}
+        `);
+        return false; // avoid sending email if ticket generation is failed
+      }
+
+      try {
+        // Send email to user with attached tickets
+        const email = user.email;
+        const userName = `${user.firstName} ${user.lastName}`;
+        const eventName = showInfo.titleLine1;
+        //const bookingRef = booking.bookingRef;
+        const dateOfPerformance = showInfo.date;
+        const timeOfPerformance = showInfo.time;
+        const theaterName = showInfo.theater;
+        const seatNumbers = booking.seats.map(seat => seat.seatId).join(', ');
+        const totalPaidAmount = event.currency ?
+          formatMoney(event.baseTicketPrice, user.language ?? config.app.defaultLanguage, event.currency) :
+          ''
+          ;
+        const contactPhone = showInfo.contactPhone;
+        const contactEmail = showInfo.contactEmail;
+        const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: to config (and create terms and conditions page)
+
+        const attachedTickets = pdfs.map((buf: Buffer, i: number) => ({
+          filename: `ticket-${booking.seats[i].bookingRef}.pdf`, // Unique name per seat
+          //contentType: 'application/pdf',
+          content: buf,
+        }));
+
+        const bookingRefs = booking.seats.map(s => s.bookingRef).join(', ');
+
+        await sendBookingConfirmationEmail(
+          email,
+          userName,
+          eventName,
+          bookingRefs,
+          dateOfPerformance,
+          timeOfPerformance,
+          theaterName,
+          seatNumbers,
+          totalPaidAmount,
+          contactPhone,
+          contactEmail,
+          linkToTermsAndConditions,
+          bookingIsPaid,
+          useQrcode,
+          attachedTickets,
+        );
+
+        return true;
+      } catch (err) {
+        console.error('Email send failed:', err);
+        await notifySlack(`
+          🚨 Booking email send failed for refs: ${bookingRefs.join(', ')}\n\
+          Error: ${getErrorMessage(err)}
+        `);
+        return false;
+      }
     });
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });

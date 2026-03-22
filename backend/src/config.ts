@@ -37,6 +37,9 @@ const backendDefaults = {
   email: {
     from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // TODO ...
   },
+  slack: {
+    webhookUrl: 'https://hooks.slack.com/services',
+  }
 };
 
 const config = {
