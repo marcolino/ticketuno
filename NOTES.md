@@ -7,4 +7,4 @@
     $ fly machine run --shell --volume $VOLUME_ID:/data --region fra --command /bin/sh registry.fly.io/ticketuno:deployment-01KKGQWJXW36KW3BX6PD85EAFP
 
  - To test Slack webhook call:
-    $ curl - X POST - H 'Content-type: application/json' --data '{"text":"Hello, World!"}' REDACTED
+    $ curl - X POST - H 'Content-type: application/json' --data '{"text":"Hello, World!"}' 'https://hooks.slack.com/services/***SLACK_WEBHOOK_TOKEN***'
