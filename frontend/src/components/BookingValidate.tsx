@@ -32,7 +32,7 @@ import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import { TicketValidationStatus, TicketValidationResult, TicketScanEntry } from '@/shared/types/ticket';
 import { QrCodeScanner, playSuccessSound, playFailureSound } from './QrCodeScanner';
-import { useNavigate } from 'react-router-dom'; 
+import useNavigate from '@/hooks/useNavigate';
 import { ticketApi } from '@/services/api';
 import { useDialog } from '@/contexts/DialogContext';
 import { getErrorMessage } from '@/utils/misc';

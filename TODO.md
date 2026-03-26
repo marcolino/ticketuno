@@ -45,6 +45,8 @@ common:
  - 1 - pass explicit language to all services (email, hmac, setup, ticket) - OK
  - 1 - check why migrations do fail in production (99999_...) - OK
  
+ - 1 - when saving a new performance, check if the theater linked to the event of the performance
+         has other performances on that date/time
  - 1 - complete tickets buy process, optionally redirecting to stripe for payment
  - 1 - complete tickets buy process, sending an email to user with the ticket (with a QRCode?)
  - 2 - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API..."; make a backup before proceeding with implementation

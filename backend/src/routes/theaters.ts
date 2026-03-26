@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express, { Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
@@ -94,8 +94,26 @@ router.post('/', authenticateToken, requireOperator, async (req, res) => {
 // Protected: update theater by id (operator only)
 router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
-    await database.updateTheaterFull(req.params.id, req.body/*JSON.stringify(req.body)*/); // TODO: and name and des ?
-    res.sendStatus(204);
+    const response = await database.updateTheater(req.params.id, req.body);
+    if (!response.updated && response.reason) {
+      let reason;
+      switch (response.reason) {
+        case 'THEATER_HAS_ACTIVE_BOOKINGS':
+          reason = req.t('theater has events with performances with active bookings');
+          break;
+        case 'THEATER_NOT_FOUND':
+          reason = req.t('theater was not found');
+          break;
+        default:
+          reason = req.t('unforeseen reason: {{reason}}', { reason: response.reason });
+          break;
+      }
+      return res.status(400).json({
+        message: req.t('Theater could not be updated: {{reason}}', { reason }),
+        blockedBy: response.blockedBy ?? [],
+      });
+    }
+    res.status(201).json(response);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update theater: {{err}}', { err: getErrorMessage(error) }) });
   }
@@ -104,31 +122,39 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
 // Protected: delete theater by id (operator only)
 router.delete('/:id', authenticateToken, requireOperator, async (req: Request, res) => {
   try {
-    await database.deleteTheater(req.params.id);
-    res.json({ message: 'Theater deleted successfully' });
-    /*
-    const response = await database.deleteTheater(req.params.id);
-    let reason;
-    switch (response.reason) {
-      case 'THEATER_HAS_LINKED_EVENTS':
-        reason = req.t('theater has linked events');
-        break;
-      case 'THEATER_NOT_FOUND':
-        reason = req.t('theater was not found');
-        break;
-      default:
-        reason = req.t('unspecified reason');
-        break;
-    }
-    if (response.deleted) {
-      res.json({ message: req.t('Theater deleted successfully') });
-    } else {
-      res.status(400).json({ error: req.t('Theater could not be deleted: {{reason}}', getErrorMessage() { reason }) });
-    }
-    */
-  } catch (error: unknown) {
-    res.status(500).json({ error: req.t('Failed to delete theater: {{err}}', { err: getErrorMessage(error) }) });
+    res.json(await database.deleteTheater(req.params.id));
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
+  // try {
+  //   const response = await database.deleteTheater(req.params.id);
+  //   if (response.deleted) {
+  //     return res.json({ message: 'Theater deleted successfully' });
+  //   }
+  //   let reason, statusCode;
+  //   switch (response.reason) {
+  //     case 'THEATER_HAS_ACTIVE_BOOKINGS':
+  //       reason = req.t('theater has events with performances with active bookings');
+  //       statusCode = 409;
+  //       break;
+  //     case 'THEATER_NOT_FOUND':
+  //       reason = req.t('theater was not found');
+  //       statusCode = 404;
+  //       break;
+  //     default:
+  //       reason = req.t('unforeseen reason: {{reason}}', { reason: response.reason });
+  //       statusCode = 400;
+  //       break;
+  //   }
+  //   return res.status(statusCode).json({
+  //     deleted: response.deleted,
+  //     reason,
+  //     message: req.t('Theater could not be deleted: {{reason}}', { reason }),
+  //     blockedBy: response.blockedBy ?? [],
+  //   });
+  // } catch (error: unknown) {
+  //   res.status(500).json({ error: req.t('Failed to delete theater: {{err}}', { err: getErrorMessage(error) }) });
+  // }
 });
 
 // Protected, Operator: Update theater
@@ -156,7 +182,7 @@ router.put('/:id', authenticateToken, requireOperator, async (req, res) => {
     };
 
     // Save back to database - we need a new method
-    await database.updateTheaterFull(theaterId, updatedTheater);
+    await database.updateTheater(theaterId, updatedTheater);
     res.json(updatedTheater);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update theater: {{err}}', { err: getErrorMessage(error) }) });

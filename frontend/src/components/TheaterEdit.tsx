@@ -25,10 +25,12 @@ import useNavigate from '@/hooks/useNavigate';
 import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
 // import TextFieldPhone from './TextFieldPhone';
 import TagSelector from './TagSelector';
+import ActiveBookingsWarning from './ActiveBookingsWarning';
 import { theaterApi, layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useDialog } from '@/contexts/DialogContext';
 import { getErrorMessage } from '@/utils/misc';
 import config from '@/shared/config';
 
@@ -36,6 +38,7 @@ const TheaterEdit: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
+  const showDialog = useDialog();
   const toast = useToast();
   const theme = useTheme();
   const { id } = useParams<{ id: string }>();
@@ -60,6 +63,9 @@ const TheaterEdit: React.FC = () => {
   //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
   //const [error, setError] = useState('');
+
+  // To avoid updating it if not changed, to avoid unuseful guard warnings
+  const [originalLayoutId, setOriginalLayoutId] = useState<string>('');
 
   // Theater fields
   const [theaterData, setTheaterData] = useState(() => {
@@ -119,6 +125,7 @@ const TheaterEdit: React.FC = () => {
         contactPhone: theater.contactPhone || '', // Ensure contactPhone is set
         contactEmail: theater.contactEmail || '', // Ensure contactEmail is set
       });
+      setOriginalLayoutId(theater.currentLayoutId || '');
       // // Load current layout for this theater
       // const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
       // setTheaterData({
@@ -282,7 +289,26 @@ const TheaterEdit: React.FC = () => {
 
       let savedId: string;
       if (isEditMode) {
-        await theaterApi.updateTheaterFull(id, theaterData);
+        const payload = { ...theaterData };
+        if (payload.currentLayoutId === originalLayoutId) {
+          delete payload.currentLayoutId; // Unchanged, skip guard
+        }
+        const response = await theaterApi.updateTheater(id, payload);
+        if (!response.data.updated) {
+          if (response.data.reason === 'THEATER_HAS_ACTIVE_BOOKINGS') {
+            await showDialog({
+              title: t('Active Bookings Exist'),
+              content: response.data.blockedBy ?
+                <ActiveBookingsWarning bookings={response.data.blockedBy} /> :
+                <>{t('No bookings info')}</>
+              ,
+              cancelText: t('Cancel'),
+              onCancel: () => { },
+              shrinkToContent: true,
+            });
+            return;
+          }
+        }
         savedId = id!;
         toast.success(t('Theater updated successfully!'));
       } else {

@@ -72,7 +72,7 @@ interface EventPerformanceForm {
   availableSeats: number;
   bookedSeats: number;
   seatData: string;
-  status: 'scheduled' | 'in progress' | 'completed' | 'canceled';
+  //status: 'scheduled' | 'in progress' | 'completed' | 'canceled';
   createdAt?: string;
   updatedAt?: string;
 }
@@ -123,7 +123,7 @@ const EventDetails: React.FC = () => {
           if (!p.performanceDate) return false;
           const perfDate = dayjs(p.performanceDate);
           const now = dayjs();
-          return perfDate.isValid() && perfDate.isAfter(now) && p.status === 'scheduled';
+          return perfDate.isValid() && perfDate.isAfter(now); // && p.status === 'scheduled';
         })
       ;
       setPerformances(filteredPerfs!);
@@ -217,7 +217,7 @@ const EventDetails: React.FC = () => {
       availableSeats: event?.maxCapacity || 0,
       bookedSeats: 0,
       seatData: '[]',
-      status: 'scheduled',
+      //status: 'scheduled',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -334,7 +334,7 @@ const EventDetails: React.FC = () => {
 
   // Create Choose Seats button component to avoid repetition
   const ChooseSeatsButton = ({ performance, size = 'medium' }: { performance: EventPerformance, size?: 'small' | 'medium' }) => {
-    const isAvailable = (performance.availableSeats ?? 0) > 0 && performance.status === 'scheduled';
+    const isAvailable = (performance.availableSeats ?? 0) > 0; //&& performance.status === 'scheduled';
     const buttonText = isAvailable ? 
       /*(isMobile ? (
         <>

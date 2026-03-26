@@ -26,6 +26,8 @@ import { theaterApi, layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { Theater } from '@/shared/types/theater';
 import { getErrorMessage } from '@/utils/misc';
+//import ActiveBookingsWarning from './ActiveBookingsWarning';
+import { handleGuardResult } from '@/utils/guardHandler';
 import PageHeader from "./PageHeader";
 
 const TheaterList: React.FC = () => {
@@ -38,6 +40,7 @@ const TheaterList: React.FC = () => {
   const [layouts, setLayouts] = useState<Layout[] | null>(null); // ← null = not loaded
   //const [loading, setLoading] = useState(true);
   //const [error, setError] = useState<string | null>(null); // TODO ... do we use error ?
+  const [navigateTo, setNavigateTo] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOperator) {
@@ -64,6 +67,13 @@ const TheaterList: React.FC = () => {
       loadLayouts();
     }
   }, [theaters]);
+
+  useEffect(() => {
+    if (navigateTo) {
+      navigate(navigateTo);
+      setNavigateTo(null);
+    }
+  }, [navigateTo]);
 
   const loadLayouts = async () => {
     try {
@@ -100,27 +110,52 @@ const TheaterList: React.FC = () => {
       cancelText: t('Cancel'),
       confirmText: t('Delete'),
       onConfirm: async () => {
-        if (theaters) {
-          try {
-            await theaterApi.deleteTheater(id);
-            const newTheaters = theaters.filter(theater => theater.id !== id);
-            setTheaters(newTheaters);
-            // setError(null);
-          } catch (error) {
-            // Show the actual server error message
-            // setError(err.response?.data?.error);
-            toast.error(getErrorMessage(error));
-          }
-          navigate(`/theaters`);
+        const response = await theaterApi.deleteTheater(id);
+        const { success, wasBlocked } = await handleGuardResult(response.data, 'deleted', showDialog, toast, t);
+        if (wasBlocked) {
+          setNavigateTo('/bookings');
+          return;
         }
+        if (!success) return;
+        // success path continues here
+        toast.success(t('Theater deleted successfully'));
+        await loadTheaters();
+      }
+    });
+        //await reload();
+        //navigate(-1);
+        //return;
+        /*
+        //if (theaters) {
+        const response = await theaterApi.deleteTheater(id);
+        if (!response.data.deleted) {
+          if (response.data.reason === 'THEATER_HAS_ACTIVE_BOOKINGS') {
+            await showDialog({
+              title: t('Active Bookings Exist'),
+              content: response.data.blockedBy ?
+                <ActiveBookingsWarning bookings={response.data.blockedBy} /> :
+                <>{t('No bookings info')}</>
+              ,
+              cancelText: t('Cancel'),
+              onCancel: () => { },
+              shrinkToContent: true,
+            });
+            return;
+          } else {
+            toast.error(response.data.message);
+            return;
+          }
+        }
+        toast.success(response.data.message);
+        const newTheaters = theaters!.filter(theater => theater.id !== id);
+        setTheaters(newTheaters);
+        navigate(-1);
+        return;
       },
     });
+    */
   };
 
-  // if (error) {
-  //   return error; // TODO...
-  // }
-  
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
       

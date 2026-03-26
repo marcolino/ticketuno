@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogTitle,
@@ -17,6 +16,7 @@ import {
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { userApi } from '@/services/api';
+import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from './AuthContext';
 import { FullConsent } from '@/shared/types/consent';
 import config from '@/config';

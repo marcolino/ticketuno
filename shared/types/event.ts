@@ -48,12 +48,13 @@ export interface EventPerformance {
   performanceDate: string;
   startTime: string;
   endTime?: string;
-  canceled: number;
-  status: EventStatus;
+  //canceled: number;
+  //status: EventStatus;
   availableSeats?: number;
   bookedSeats?: number;
   createdAt?: string;
   updatedAt?: string;
+  //canceledAt?: string;
 }
 
 export interface EventStats {

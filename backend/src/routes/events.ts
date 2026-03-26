@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
         const theater = await database.getTheaterById(event.theaterId);
         const performances = await database.getPerformancesByEventId(event.id);
         const upcomingPerformances = performances ? performances.filter(p =>
-          new Date(p.performanceDate) >= new Date() && p.status === 'scheduled'
+          new Date(p.performanceDate) >= new Date() && event.status === 'scheduled'
         ) : [];
 
         return {
@@ -315,8 +315,8 @@ router.post('/:eventId/performances', authenticateToken, requireOperator, async 
       performanceDate,
       startTime,
       endTime,
-      status: 'scheduled',
-      canceled: 0,
+      //status: 'scheduled',
+      //canceled: 0,
       // availableSeats: undefined,
       // bookedSeats: undefined,
       // seatData: JSON.stringify(seats), // Optional: could store layout snapshot
@@ -473,19 +473,21 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     }
 
     const performance = await database.getPerformanceById(performanceId);
-
     if (!performance) {
       return res.status(404).json({ error: req.t('Performance not found') });
     }
-
     if (performance.eventId !== eventId) {
       return res.status(400).json({ error: req.t('Performance does not belong to this event') });
     }
 
-    if (performance.status !== 'scheduled') {
+    const event = await database.getEventById(eventId);
+    if (!event) {
+      return res.status(404).json({ error: req.t('Event not found') });
+    }
+    if (event.status !== 'scheduled') {
       return res.status(400).json({
         error: req.t('Performance is not available for booking'),
-        details: req.t('Performance status is {{status}}', { status: performance.status }),
+        details: req.t('Performance status is {{status}}', { status: event.status }),
       });
     }
 
@@ -504,22 +506,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       });
     }
 
-    // const event = await database.getEventById(eventId);
-    // if (!event) {
-    //   return res.status(404).json({ error: req.t('Event not found') });
-    // }
-    // const performanceSeats = await database.getSeatsByPerformanceIdGroupedBySection(performanceId);
-    // if (!performanceSeats) {
-    //   return res.status(404).json({ error: req.t('Performance seats not found') });
-    // }
-    // Fetch event and performance seats data in parallel
-    const [event, performanceSeats] = await Promise.all([
-      database.getEventById(eventId),
-      database.getSeatsByPerformanceIdGroupedBySection(performanceId),
-    ]);
-    if (!event) {
-      return res.status(404).json({ error: req.t('Event not found') });
-    }
+    const performanceSeats = await database.getSeatsByPerformanceIdGroupedBySection(performanceId);
     if (!performanceSeats) {
       return res.status(404).json({ error: req.t('Performance seats not found') });
     }

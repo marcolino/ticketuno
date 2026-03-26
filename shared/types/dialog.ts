@@ -18,6 +18,8 @@ export interface DialogOptions {
   maxWidth?: DialogProps['maxWidth']
   fullWidth?: DialogProps['fullWidth']
 
+  shrinkToContent: boolean
+  
   confirmColor?: ButtonProps['color']
 
   disableBackdropClick?: boolean

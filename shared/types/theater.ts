@@ -35,10 +35,10 @@ export interface Seat {
   rowId: string; // "A"
   seatNumber: number; // 1
   status: SeatStatus;
+  price?: number;
   bookingId?: string;
   bookingRef: string | null; 
   bookedByUserId?: string;
   bookedAt?: string;
   reservedUntil?: string;
-  price?: number;
 }

@@ -11,6 +11,7 @@ import PerformanceBooking from './components/PerformanceBooking';
 import TheaterEdit from './components/TheaterEdit';
 import LayoutEdit from './components/LayoutEdit';
 import LayoutList from './components/LayoutList';
+import BookingList from './components/BookingList';
 import BookingValidate from './components/BookingValidate';
 //import QrCodeScanner from './components/QrCodeScanner';
 import Profile from './components/Profile';
@@ -38,6 +39,7 @@ const Routes: React.FC = () => {
         <Route path="/layout/new/:theaterId?" element={<PR requireOperator={false}><LayoutEdit /></PR>} />
         <Route path="/layout/edit/:id" element={<PR requireOperator={false}><LayoutEdit /></PR>} />
         <Route path="/layouts" element={<PR requireOperator={false}><LayoutList /></PR>} />
+        <Route path="/bookings" element={<PR requireOperator={true}><BookingList /></PR>} />
         <Route path="/booking/validate" element={<PR requireOperator={true}><BookingValidate /></PR>} />
         {/* <Route path="/booking/validate" element={<QrCodeScanner onScan={x => alert(JSON.stringify(x))} onClose={() => navigate('/')} open={true} />} /> */ }
         {/* <Route path="/layout/:json" element={<PR requireAdmin={true}><LayoutPreviewSVG /></PR>} /> */}

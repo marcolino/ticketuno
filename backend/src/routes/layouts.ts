@@ -45,7 +45,7 @@ router.get('/:id', async (req, res) => {
 // Public: get layout by theater id
 router.get('/:theaterId', async (req, res) => {
   try {
-    const layouts = await database.getLayoutsByTheaterId(req.params.theaterId);
+    const layouts = await database.getLayoutByTheaterId(req.params.theaterId);
     if (!layouts) {
       return res.status(404).json({ error: req.t('No layout found for this theater') });
     }
@@ -64,19 +64,19 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
       json: req.body.json, // Or JSON.stringify(req.body.json) if frontend sends parsed object
     };
     const response = await database.updateLayout(req.params.id, updates);
-    let reason;
-    switch (response.reason) {
-      case 'LAYOUT_IS_LOCKED_SINCE_IT_HAS_RESERVED_OR_BOOKED_PERFORMANCE_SEATS':
-        reason = req.t('theater has linked events');
-        break;
-      case 'THEATER_NOT_FOUND':
-        reason = req.t('theater was not found');
-        break;
-      default:
-        reason = req.t('unspecified reason');
-        break;
-    }
     if (!response.updated && response.reason) {
+      let reason;
+      switch (response.reason) {
+        case 'LAYOUT_HAS_ACTIVE_BOOKINGS':
+          reason = req.t('layout has linked events with performances with active bookings');
+          break;
+        case 'LAYOUT_NOT_FOUND':
+          reason = req.t('layout was not found');
+          break;
+        default:
+          reason = req.t('unforeseen reason: {{reason}}', { reason: response.reason });
+          break;
+      }
       return res.status(400).json({
         message: req.t('Layout could not be updated: {{reason}}', { reason }),
         blockedBy: response.blockedBy ?? [],
@@ -91,8 +91,8 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
 // Protected: delete layout by id (operator only)
 router.delete('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
-    const softDeleted = await database.deleteLayoutSoft(req.params.id);
-    if (!softDeleted) {
+    const deleted = await database.deleteLayout(req.params.id);
+    if (!deleted) {
       res.status(400).json({ message: req.t('Layout could not be deleted') });
     } else {
       res.json({ message: req.t('Layout deleted successfully') });

@@ -16,3 +16,7 @@ export interface Booking {
   updatedAt?: string;
   canceledAt?: string;
 }
+
+export interface BookingQueryOptions {
+  status?: BookingStatus | 'all';
+}

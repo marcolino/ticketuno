@@ -13,7 +13,10 @@ import {
   Button,
   IconButton,
 } from '@mui/material';
-import { Close as CloseIcon } from '@mui/icons-material/';
+import {
+  Close as CloseIcon,
+  //Cancel as CancelIcon,
+} from '@mui/icons-material/';
 
 type DialogButton = {
   text: string;
@@ -24,7 +27,7 @@ type DialogButton = {
 
 export type DialogOptions = {
   title: string;
-  content?: ReactNode | (() => ReactNode);
+  content?: ReactNode | (() => ReactNode); // Allow either a ReactNode or a function that returns one
 
   confirmText?: string;
   onConfirm?: () => void | Promise<void>;
@@ -38,34 +41,39 @@ export type DialogOptions = {
   shrinkToContent?: boolean;
 };
 
-export type ShowDialog = (options: DialogOptions) => Promise<boolean>;
+type ShowDialog = (options: DialogOptions) => Promise<void>;
 
 const DialogContext = createContext<ShowDialog | null>(null);
 
-export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [options, setOptions] = useState<DialogOptions | null>(null);
-  const [resolver, setResolver] = useState<((confirmed: boolean) => void) | null>(null);
+export const DialogProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
+  const [options, setOptions] = useState<DialogOptions | null>(
+    null
+  );
+  const [resolver, setResolver] =
+    useState<(() => void) | null>(null);
 
-  const close = (confirmed: boolean) => {
-    resolver?.(confirmed);
+  const close = () => {
+    resolver?.();
     setOptions(null);
     setResolver(null);
   };
 
   const showDialog: ShowDialog = (opts) =>
-    new Promise<boolean>((resolve) => {
+    new Promise<void>((resolve) => {
       setOptions(opts);
       setResolver(() => resolve);
     });
 
   const handleConfirm = async () => {
     await options?.onConfirm?.();
-    close(true);
+    close();
   };
 
   const handleCancel = () => {
     options?.onCancel?.();
-    close(false);
+    close();
   };
 
   return (
@@ -77,10 +85,15 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         onClose={handleCancel}
         maxWidth={options?.shrinkToContent ? false : "sm"}
         fullWidth={!options?.shrinkToContent}
-        disableScrollLock
+        disableScrollLock // TODO: ok?
         PaperProps={
           options?.shrinkToContent
-            ? { sx: { width: "auto", maxWidth: "90vw" } }
+            ? {
+                sx: {
+                  width: "auto",
+                  maxWidth: "90vw",
+                },
+              }
             : undefined
         }
       >
@@ -103,7 +116,10 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                 <IconButton
                   size="small"
                   onClick={handleCancel}
-                  sx={{ color: "primary.contrastText", pl: 4 }}
+                  sx={{
+                    color: "primary.contrastText",
+                    pl: 4,
+                  }}
                 >
                   <CloseIcon fontSize="small" />
                 </IconButton>
@@ -111,21 +127,30 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
             </DialogTitle>
 
             {options.content && (
-              <DialogContent sx={{ whiteSpace: "pre-line", mt: 3 }}>
-                {typeof options.content === "function"
+              <DialogContent
+                sx={{
+                  whiteSpace: "pre-line",
+                  mt: 3,
+                }}
+              >
+                {typeof options?.content === "function"
                   ? options.content()
-                  : options.content}
+                  : options.content
+                }
               </DialogContent>
             )}
 
-            {(options.confirmText || options.cancelText || options.buttons?.some(b => b.text)) && (
-              <DialogActions sx={{ m: 2 }}>
+            {(options.confirmText || options.cancelText || options.buttons?.some(opt => opt.text)) && (
+              <DialogActions sx={{m: 2}}>
+                {/* Cancel */}
                 {options.cancelText && (
                   <Button onClick={handleCancel}>
+                    
                     {options.cancelText}
                   </Button>
                 )}
 
+                {/* Custom buttons */}
                 {options.buttons?.map((btn, i) => (
                   <Button
                     key={i}
@@ -133,16 +158,20 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
                     color={btn.color ?? "primary"}
                     onClick={async () => {
                       await btn.onClick();
-                      close(false); // custom buttons are neither confirm nor cancel
+                      close();
                     }}
-                    sx={{ m: 2 }}
+                    sx={{m: 2}}
                   >
                     {btn.text}
                   </Button>
                 ))}
 
+                {/* Confirm */}
                 {options.confirmText && (
-                  <Button variant="contained" onClick={handleConfirm}>
+                  <Button
+                    variant="contained"
+                    onClick={handleConfirm}
+                  >
                     {options.confirmText}
                   </Button>
                 )}
@@ -158,6 +187,10 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 export const useDialog = (): ShowDialog => {
   const ctx = useContext(DialogContext);
   const { t } = useTranslation();
-  if (!ctx) throw new Error(t("useDialog must be used inside DialogProvider"));
+  if (!ctx) {
+    throw new Error(
+      t("useDialog must be used inside DialogProvider")
+    );
+  }
   return ctx;
 };

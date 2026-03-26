@@ -16,6 +16,7 @@ import type { FullConsent } from '@/shared/types/consent';
 import { PerformanceSeatsResponse } from '@/shared/types/performance';
 import { Layout } from '@/shared/types/layout';
 import { GeneralSetupType } from '@/shared/types/generalSetup';
+import { /*ActiveBookingInfo,*/ GuardResult, GuardedDeleteResult, GuardedUpdateResult } from '@/shared/types/guard';
 import { i18n }  from '@/i18n'; 
 
 //const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
@@ -364,11 +365,10 @@ export const theaterApi = {
   createTheater: (theater: Partial<Theater>) => 
     api.post<string>('/theaters', theater),
 
-  // updateTheater: (id: string, theater: Partial<Theater>) => 
+  // updateTheater: (id: string, theater: Partial<Theater>) =>
   //   api.put<Theater>(`/theaters/${id}`, theater),
-
-  updateTheaterFull: (id: string, theater: Partial<Theater>) =>
-    api.put<Theater>(`/theaters/${id}`, theater),
+  updateTheater: (id: string, data: Partial<Theater>) =>
+    api.put<GuardedUpdateResult>(`/theaters/${id}`, data),
 
   // getTheaterLayoutCurrent: (id: string) =>
   //   api.get<Theater>(`/theaters/${id}/layout`),
@@ -380,7 +380,8 @@ export const theaterApi = {
   //   api.delete<Theater>(`/theaters/${id}/layout`),
 
   deleteTheater: (id: string) =>
-    api.delete(`/theaters/${id}`),
+    //api.delete(`/theaters/${id}`),
+    api.delete<GuardedDeleteResult>(`/theaters/${id}`),
 
   // bookSeats: (theaterId: string, seatIds: string[]) =>
   //   api.post(`/theaters/${theaterId}/book`, { seatIds }),
@@ -397,7 +398,7 @@ export const layoutApi = {
   getLayoutById: (id: string) =>
     api.get<Layout>(`/layouts/${id}`),
 
-  getLayoutsByTheaterId: (theaterId: string) =>
+  getLayoutByTheaterId: (theaterId: string) =>
     api.get<Layout[]>(`/layouts/${theaterId}`),
 
   createLayout: (layout: Partial<Layout>) =>
@@ -510,6 +511,20 @@ export const imageApi = {
 //     }
 //   ),
 // };
+
+export const guardsApi = {
+  performance:
+    (id: string) => api.get<GuardResult>(`/guards/performance/${id}`).then(r => r.data),
+  
+  event:
+    (id: string) => api.get<GuardResult>(`/guards/event/${id}`).then(r => r.data),
+  
+  theater:
+    (id: string) => api.get<GuardResult>(`/guards/theater/${id}`).then(r => r.data),
+  
+  layout:
+    (id: string) => api.get<GuardResult>(`/guards/layout/${id}`).then(r => r.data),
+};
 
 export const setupApi = {
   load: () =>
