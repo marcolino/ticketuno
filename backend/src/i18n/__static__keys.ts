@@ -29,7 +29,7 @@ t('French');
 t('Chinese');
 
 // special seat conditions
-t('Absent');
+//t('Absent');
 t('Unavailable'); 
 t('Restricted view');
 t('Premium');

@@ -159,9 +159,8 @@ const Home: React.FC = () => {
   };
 
   const handleBookings = () => { // TODO: ...
-    alert("Work in progress...");
     handleClose();
-    //navigate('/bookings');
+    navigate('/bookings');
   };
 
   const handleEvents = () => {
@@ -170,9 +169,9 @@ const Home: React.FC = () => {
   };
 
   const handleUsers = () => {
-    alert("Work in progress...");
+    //alert("Work in progress...");
     handleClose();
-    //navigate('/profile/all');
+    navigate('/users');
   };
 
   const handleBookingsValidate = () => {

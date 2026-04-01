@@ -11,9 +11,10 @@ import PerformanceBooking from './components/PerformanceBooking';
 import TheaterEdit from './components/TheaterEdit';
 import LayoutEdit from './components/LayoutEdit';
 import LayoutList from './components/LayoutList';
-import BookingList from './components/BookingList';
+import BookingsList from './components/BookingsList';
 import BookingValidate from './components/BookingValidate';
 //import QrCodeScanner from './components/QrCodeScanner';
+import UsersList from './components/UsersList';
 import Profile from './components/Profile';
 import Unsubscribe from './components/Unsubscribe';
 import ConsentEntry from './components/ConsentEntry';
@@ -39,12 +40,13 @@ const Routes: React.FC = () => {
         <Route path="/layout/new/:theaterId?" element={<PR requireOperator={false}><LayoutEdit /></PR>} />
         <Route path="/layout/edit/:id" element={<PR requireOperator={false}><LayoutEdit /></PR>} />
         <Route path="/layouts" element={<PR requireOperator={false}><LayoutList /></PR>} />
-        <Route path="/bookings" element={<PR requireOperator={true}><BookingList /></PR>} />
+        <Route path="/bookings" element={<PR requireOperator={true}><BookingsList /></PR>} />
         <Route path="/booking/validate" element={<PR requireOperator={true}><BookingValidate /></PR>} />
         {/* <Route path="/booking/validate" element={<QrCodeScanner onScan={x => alert(JSON.stringify(x))} onClose={() => navigate('/')} open={true} />} /> */ }
         {/* <Route path="/layout/:json" element={<PR requireAdmin={true}><LayoutPreviewSVG /></PR>} /> */}
         {/* <Route path="/performance/:eventId/:performanceId" element={<TheaterSeating />} /> */}
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/users" element={<UsersList />} />
+        <Route path="/profile/:id?" element={<Profile />} />
         <Route path="/unsubscribe/:token/:type?" element={<Unsubscribe />} />
         <Route path="/consent/:token/:type?" element={<ConsentEntry />} />
         <Route path="/generalSetup" element={<GeneralSetup />} />

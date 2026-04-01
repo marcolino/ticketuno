@@ -74,11 +74,20 @@ export function getErrorMessage(error: unknown): string {
       // If customError is an object with an 'error' string property
       if (
         typeof customError === 'object' &&
-        customError !== null &&
-        'message' in customError &&
-        typeof customError.message === 'string'
+        customError !== null
       ) {
-        return customError.nessage;
+        if (
+          'message' in customError &&
+          typeof customError.message === 'string'
+        ) {
+          return customError.message;
+        }
+         if (
+          'error' in customError &&
+          typeof customError.error === 'string'
+        ) {
+          return customError.error;
+        }
       }
       // Otherwise convert the whole customError to string
       return String(customError);

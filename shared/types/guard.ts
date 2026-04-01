@@ -7,12 +7,20 @@ export type GuardReason =
   | 'PERFORMANCE_NOT_FOUND'
   | 'LAYOUT_HAS_ACTIVE_BOOKINGS'
   | 'LAYOUT_NOT_FOUND'
+  | 'USER_HAS_ACTIVE_BOOKINGS'
+  | 'USER_NOT_FOUND'   
 ;
 
 export interface GuardedDeleteResult {
   deleted: boolean;
   reason?: GuardReason;
   blockedBy?: ActiveBookingInfo[];
+}
+
+export interface GuardedDeleteResultBulk {
+  results: Record<string, GuardedDeleteResult>;
+  deleted: number; // count of successfully deleted
+  blocked: number; // count of blocked/failed
 }
 
 export interface GuardedUpdateResult {

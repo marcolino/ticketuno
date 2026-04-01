@@ -332,7 +332,7 @@ router.post('/:eventId/performances', authenticateToken, requireOperator, async 
     await database.bulkCreateSeats(
       performanceId,
       generatedSeats,
-      layoutJSON.seatConditions,
+      //layoutJSON.seatConditions,
     );
 
     // Get calculated seat counts for this performance
@@ -516,7 +516,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       return res.status(404).json({ error: req.t('Theater not found') });
     }
 
-    // Build display-number label map so emails/tickets show correct numbers, skipping 'absent' seats
+    // Build display-number label map so emails/tickets show correct numbers, skipping 'absent' seats (absent is not anymore used)
     const seatLabelMap = new Map<string, string>();
     if (theater.currentLayoutId) {
       const layoutRecord = await database.getLayoutById(theater.currentLayoutId);

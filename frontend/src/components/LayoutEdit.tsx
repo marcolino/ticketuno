@@ -138,10 +138,11 @@ const LayoutEdit: React.FC = () => {
 
       if (rowCounters[rowKey] === undefined) rowCounters[rowKey] = 1;
 
-      const displayNumber = specialCondition === 'Absent'
-        ? seat.seatNumber // Absent seat keeps its physical number (for operator reference)
-        : rowCounters[rowKey]++; // Everyone else gets the next display slot
-
+      // const displayNumber = specialCondition === 'Absent'
+      //   ? seat.seatNumber // Absent seat keeps its physical number (for operator reference)
+      //   : rowCounters[rowKey]++; // Everyone else gets the next display slot
+      const displayNumber = seat.seatNumber;
+      
       return {
         ...seat,
         specialCondition,

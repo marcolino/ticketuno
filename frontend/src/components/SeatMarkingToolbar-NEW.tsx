@@ -11,7 +11,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import { CONDITION_COLORS } from './LayoutSeat';
 import { SpecialCondition } from '@/shared/types/layoutToSeats';
-import SeatMiniSVG from './SeatMiniSVG';
+import SeatSVG from './SeatMiniSVG';
 
 // ── Condition entries in display order ────────────────────────────────────────
 export type MarkingCondition = SpecialCondition | 'Normal';
@@ -60,7 +60,7 @@ const SeatChip: React.FC<{
           },
         }}
       >
-        <SeatMiniSVG
+        <SeatSVG
           condition={def.value}
           seatKey={`toolbar-${def.value}`}
         />
@@ -97,6 +97,7 @@ const SeatMarkingToolbar: React.FC<SeatMarkingToolbarProps> = ({
 
   return (
     <Box>
+      {/* Toggle button */}
       <Button
         variant="contained"
         color={active ? 'info' : 'inherit'}
@@ -108,6 +109,7 @@ const SeatMarkingToolbar: React.FC<SeatMarkingToolbarProps> = ({
         {active ? t('Leave mark mode') : t('Mark special seats')}
       </Button>
 
+      {/* Condition palette — only shown when active */}
       <Collapse in={active}>
         <Box sx={{
           display: 'flex',
@@ -130,6 +132,7 @@ const SeatMarkingToolbar: React.FC<SeatMarkingToolbarProps> = ({
           ))}
         </Box>
 
+        {/* Instruction hint */}
         <Typography variant="caption" color="text.secondary"
           sx={{ display: 'block', mt: 0.5, pl: 0.5 }}>
           {selectedCondition

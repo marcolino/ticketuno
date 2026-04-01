@@ -97,15 +97,19 @@ common:
  - 1 - test iOS google login error "popup blocked" (on appetize.io) - OK
  - 2 - in footer print also process.env.GIT_COMMIT_DATE - OK
  - 1 - in all *List components, ask for confirmation before deleting an asset - OK
- - 1 - ask Claude (giving it database.ts) why deleting an event an then a theater I get SQLITE ERROR REFERENCE KEY ... (?) Is it correct I get that error? I always do soft-deletes, so I'd expect an error only when trying to delete events with booked performances...
+ - 1 - ask Claude (giving it database.ts) why deleting an event an then a theater I get SQLITE ERROR REFERENCE KEY ... (?) Is it correct I get that error? I always do soft-deletes, so I'd expect an error only when trying to delete events with booked performances... - OK
+ - 3 - in LayoutEdit, add a 'signle seat' mode, to mark single seats as absent, vip, handicap, baby, unavailable - OK
 
+ - 1 - rename Profile to UserEdit
+ - 1 - rename Event/Theater/Layout List to Events/Theaters/Layouts List
  - 1 - in all components, handle errors using import { getErrorMessage } from '@/utils/misc';
  - 1 - in all components, check for setError: always add toast.error, and possibly remove Alert's for errors
  - 1 - in all components, always use getErrorMessage() (import { getErrorMessage } from '@/utils/misc';)
  - 1 - PWA handling - "PWA setup automation for theater booking system" with Claude
+ - 2 - while uploading an image, enable editing it
+ - 2 - before saving a new performance, call a new method: isTheaterAvailableForPerformance(theater, performance)... there could already exist a performance for any event linked to the theater to which the current event is linked; if it is the case, we should warn the user that performance can't be added, because an overlappi ng performance already exists on an event linked to the same theater of the event for which we are trying to add this new booking...
  - 2 - add check for changes in all components (when dirty), before navigating away
  - 2 - add privacy and terms links in the register page
  - 2 - in setup/privacy add Terms and Privacy pages, and link to open consent dialog
- - 3 - in LayoutEdit, add a 'signle seat' mode, to mark single seats as absent, vip, handicap, baby, unavailable
  - 3 - find if and where to suggest user to open consent dialog to enable missing consent (for pushNotifications for example)
  - 3 - add all users profile handling

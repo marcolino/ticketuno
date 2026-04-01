@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
 //import { i18n } from '../i18n';
-import { authenticateToken, generateToken, /*requireAdmin, userCanSetRole, */ AuthRequest } from '../middleware/auth';
+import { authenticateToken, generateToken, requireOperator, /*userCanSetRole, */ AuthRequest } from '../middleware/auth';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
 import { FullConsent } from '../shared/types/consent';
 import { 
@@ -485,6 +485,36 @@ router.get('/auth/google/callback', async (req, res) => {
   }
 });
 
+router.get('/', async (req, res) => {
+  try {
+    const users = await database.getAllUsers();
+    if (!users) {
+      return res.json([]);
+    }
+    const stats/*: UserStats[]*/ = await Promise.all(
+      users.map(async (user) => {
+        return {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+          role: user.role,
+          isVerified: user.isVerified,
+          language: user.language,
+          consent: user.consent,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+      })
+    );
+
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to fetch users: {{err}}', { err: getErrorMessage(error) })});
+  }
+});
+
 // GET /profile     → own profile
 // GET /profile/:id → another user's profile (if permitted)
 router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res) => {
@@ -580,6 +610,15 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
     res.json(profile);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update profile: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
+// Protected: delete user by id (operator only)
+router.delete('/:userId', authenticateToken, requireOperator, async (req, res) => {
+  try {
+    res.json(await database.deleteUser(req.params.userId));
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
 
@@ -732,6 +771,6 @@ router.get('/token/:token', async (req, res) => {
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to fetch user by token: {{err}}', { err: getErrorMessage(error) }) });
   }
-}); 
+});
 
 export default router;

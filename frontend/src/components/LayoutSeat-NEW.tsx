@@ -9,13 +9,13 @@ export const CONDITION_COLORS: Record<
   SpecialCondition,
   { base: string; backrest: string; armrest: string; text: string; label: string }
 > = {
-  // Absent: {
-  //   base:     '#1a1a1a',
-  //   backrest: '#111111',
-  //   armrest:  '#FF6D00',
-  //   text:     '#FF6D00',
-  //   label:    'Absent',
-  // },
+  Absent: {
+    base:     '#1a1a1a',
+    backrest: '#111111',
+    armrest:  '#FF6D00',
+    text:     '#FF6D00',
+    label:    'Absent',
+  },
   Unavailable: {
     base:     '#7F0000',
     backrest: '#B71C1C',
@@ -90,10 +90,10 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
   bookingView = false,
 }) => {
 
-  // // Absent: completely hidden in booking/non-editing view
-  // if (bookingView && specialCondition === 'Absent') {
-  //   return null;
-  // }
+  // Absent: completely hidden in booking/non-editing view
+  if (bookingView && specialCondition === 'Absent') {
+    return null;
+  }
 
   const seatBaseHeight = 32;
   const seatBaseWidth  = 40;
@@ -131,7 +131,7 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
   const armrestColor = getArmrestColor();
 
   const isClickable = interactive
-    //&& !(bookingView && specialCondition === 'Absent')
+    && !(bookingView && specialCondition === 'Absent')
     && !(bookingView && specialCondition === 'Staff')
     && (!status || status === 'available' || status === 'selected')
   ;
@@ -158,8 +158,7 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
       style={{
         cursor: isClickable ? 'pointer' : 'default',
         // Absent: 30% opacity in any edit/marking mode (null return handles booking view)
-        //opacity: specialCondition === 'Absent' ? 0.30 : 1,
-        opacity: 1,
+        opacity: specialCondition === 'Absent' ? 0.30 : 1,
       }}
     >
       {/* Hover highlight */}

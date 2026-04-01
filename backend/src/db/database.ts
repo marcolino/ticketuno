@@ -8,30 +8,18 @@ import { User, NewUser } from '../shared/types/user';
 import { Theater, TheaterStatus, EventStatus, SeatStatus, Seat } from '../shared/types/theater';
 import { Layout } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
-import { GeneratedSeat, SpecialCondition } from '../shared/types/layoutToSeats';
+import { GeneratedSeat/*, SpecialCondition*/ } from '../shared/types/layoutToSeats';
 import { FullConsent } from '../shared/types/consent';
 import { Booking, BookingStatus, BookingQueryOptions } from '../shared/types/booking';
 import { GeneralSetupType } from '../shared/types/generalSetup';
-import { ActiveBookingInfo, GuardResult } from '../shared/types/guard';
+import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardResult } from '../shared/types/guard';
+import { EventQueryOptions, PerformanceQueryOptions } from '../shared/types/query';
 import config from '../config';
 
 // ---------------------------------------------------------------------------
 // Query option types
 // ---------------------------------------------------------------------------
 
-export interface EventQueryOptions {
-  /** Include past events (closing_date < today). NULL closing_date = never expires. Default: false */
-  pastToo?: boolean;
-  /** Include canceled events. Default: false */
-  canceledToo?: boolean;
-}
-
-export interface PerformanceQueryOptions {
-  /** Include past performances (performance_date < today). Default: false */
-  pastToo?: boolean;
-  /** Include performances with status = 'canceled'. Default: false */
-  canceledToo?: boolean;
-}
 
 // ---------------------------------------------------------------------------
 
@@ -90,7 +78,7 @@ class Database {
     await execQuery(this.db, `
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
+        email TEXT NOT NULL, -- UNIQUE,
         password TEXT NOT NULL,
         first_name TEXT NOT NULL,
         last_name TEXT NOT NULL,
@@ -101,7 +89,7 @@ class Database {
         verification_code_expiry TEXT,
         reset_password_code TEXT,
         reset_password_code_expiry TEXT,
-        google_id TEXT UNIQUE,
+        google_id TEXT, --UNIQUE,
         consent TEXT,
         language TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -315,6 +303,18 @@ class Database {
     await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_tokens_user ON tokens(user_id);
     `, 'INDEX tokens_user');
+
+    await execQuery(this.db, `
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_active
+      ON users(email)
+      WHERE deleted_at IS NULL
+    `, 'INDEX user_email_active');
+
+    await execQuery(this.db, `
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_google_id_active
+      ON users(google_id)
+      WHERE deleted_at IS NULL
+    `, 'INDEX user_google_id_active');
   }
 
   // ---------------------------------------------------------------------------
@@ -322,7 +322,11 @@ class Database {
   // ---------------------------------------------------------------------------
 
   async getAllUsers(): Promise<User[]> {
-    const rows = await allQuery(this.db, `SELECT * FROM users`, [], 'get all users');
+    const rows = await allQuery(this.db, `
+      SELECT *
+      FROM users
+      WHERE deleted_at IS NULL
+    `, [], 'get all users');
     return this.mapRowsToUsers(rows);
   }
 
@@ -381,6 +385,7 @@ class Database {
         SELECT *
         FROM users
         WHERE google_id = ?
+        AND deleted_at IS NULL
       `, [googleId], 'get user by google id'
     );
     return row ? this.mapRowToUser(row) : null;
@@ -449,17 +454,32 @@ class Database {
   }
 
   async getUserByEmail(email: string): Promise<User | null> {
-    const row = await getQuery(this.db, `SELECT * FROM users WHERE email = ?`, [email], 'get user by email');
+    const row = await getQuery(this.db, `
+      SELECT *
+      FROM users
+      WHERE email = ?
+      AND deleted_at IS NULL
+    `, [email], 'get user by email');
     return row ? this.mapRowToUser(row) : null;
   }
 
   async getUserById(id: string): Promise<User | null> {
-    const row = await getQuery(this.db, `SELECT * FROM users WHERE id = ?`, [id], 'get user by id');
+    const row = await getQuery(this.db, `
+      SELECT *
+      FROM users
+      WHERE id = ?
+      AND deleted_at IS NULL
+    `, [id], 'get user by id');
     return row ? this.mapRowToUser(row) : null;
   }
 
   async getUsersByRole(role: string): Promise<User[]> {
-    const rows = await allQuery(this.db, `SELECT * FROM users WHERE role = ?`, [role], 'get users by role');
+    const rows = await allQuery(this.db, `
+      SELECT *
+      FROM users
+      WHERE role = ?
+      AND deleted_at IS NULL
+    `, [role], 'get users by role');
     return this.mapRowsToUsers(rows);
   }
 
@@ -546,6 +566,75 @@ class Database {
     if (!row) return null;
     return this.getUserById(row.user_id);
   }
+  
+  async deleteUsers(ids: string[]): Promise<GuardedDeleteResultBulk> {
+    const results: Record<string, GuardedDeleteResult> = {};
+
+    for (const id of ids) {
+      const guard = await this.guardUser(id);
+      if (!guard.safe) {
+        results[id] = {
+          deleted: false,
+          reason: 'USER_HAS_ACTIVE_BOOKINGS',
+          blockedBy: guard.bookings,
+        };
+        continue;
+      }
+      const result = await runQuery(
+        this.db, `
+          UPDATE users
+          SET deleted_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          AND deleted_at IS NULL
+        `,
+        [id], 'soft delete user'
+      );
+      results[id] = {
+        deleted: result.changes > 0,
+        ...(result.changes === 0 && { reason: 'USER_NOT_FOUND' }),
+      };
+    }
+
+    return {
+      results,
+      deleted: Object.values(results).filter(r => r.deleted).length,
+      blocked: Object.values(results).filter(r => !r.deleted).length,
+    };
+  }
+  
+  async deleteUser(id: string) {
+    const bulk = await this.deleteUsers([id]);
+    return bulk.results[id];
+  }
+
+  /*
+  async deleteUser(id: string):
+    Promise<{ deleted: boolean; reason?: string; blockedBy?: ActiveBookingInfo[] }>
+  {
+    const guard = await this.guardUser(id);
+    if (!guard.safe) {
+      return {
+        deleted: false,
+        reason: 'USER_HAS_ACTIVE_BOOKINGS',
+        blockedBy: guard.bookings,
+      };
+    }
+
+    const result = await runQuery(
+      this.db, `
+        UPDATE users
+        SET deleted_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        AND deleted_at IS NULL
+      `,
+      [id], 'soft delete user'
+    );
+    return {
+      deleted: result.changes > 0,
+      ...(result.changes === 0 && { reason: 'USER_NOT_FOUND' }),
+    };
+  }
+  */
 
   // ---------------------------------------------------------------------------
   // Theater methods
@@ -817,7 +906,7 @@ class Database {
       ORDER BY p.performance_date, p.start_time
     `;
     const rows = await allQuery<Record<string, unknown>>(
-      this.db, sql, params, 'queryActiveBookings'
+      this.db, sql, params, 'query active bookings'
     );
     return rows.map(r => ({
       bookingId: r.bookingId as string,
@@ -841,6 +930,12 @@ class Database {
     return { safe: bookings.length === 0, bookings };
   }
 
+  async guardUser(userId: string): Promise<GuardResult> {
+    return this.toGuardResult(
+      await this.queryActiveBookings('', 'u.id = ?', [userId])
+    );
+  }
+  
   async guardPerformance(performanceId: string): Promise<GuardResult> {
     return this.toGuardResult(
       await this.queryActiveBookings('', 'p.id = ?', [performanceId])
@@ -1451,10 +1546,11 @@ class Database {
   async bulkCreateSeats(
     performanceId: string,
     seats: GeneratedSeat[],
-    seatConditions: Record<string, SpecialCondition> = {}
+    //seatConditions: Record<string, SpecialCondition> = {}
   ): Promise<boolean> {
     // Filter out physically absent seats — they should never be bookable
-    const bookableSeats = seats.filter(s => seatConditions[s.seatId] !== 'Absent');
+    //const bookableSeats = seats.filter(s => seatConditions[s.seatId] !== 'Absent');
+    const bookableSeats = seats;
     const placeholders = bookableSeats.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
     const values: (string | number)[] = [];
 

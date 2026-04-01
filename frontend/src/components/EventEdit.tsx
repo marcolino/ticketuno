@@ -55,7 +55,7 @@ const EventEdit: React.FC = () => {
 
   const isAtLeastMd = useMediaQuery(theme.breakpoints.up('md'));
 
-  const setup = useSetup();
+  //const setup = useSetup();
 
   // TODO: to config
   const GENRES_PRESETS = [

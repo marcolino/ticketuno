@@ -101,10 +101,11 @@ export function applyDisplayNumbers(
     const rowKey = `${seat.sectionId}|${seat.rowId}`;
     if (rowCounters[rowKey] === undefined) rowCounters[rowKey] = 1;
 
-    const isAbsent = conditions[seat.seatId] === 'Absent';
-    const displayNumber = isAbsent
-      ? seat.seatNumber
-      : rowCounters[rowKey]++;
+    // const isAbsent = conditions[seat.seatId] === 'Absent';
+    // const displayNumber = isAbsent
+    //   ? seat.seatNumber
+    //   : rowCounters[rowKey]++;
+    const displayNumber = rowCounters[rowKey]++;
 
     return { ...seat, displayNumber };
   });

@@ -333,7 +333,7 @@ export const userApi = {
   // updateProfile: (userId: string, data: Partial<User>) => // Update user profile
   //   api.put<User>('/users/profile', { userId, data }),
   
-  getProfile: (userId?: string) =>
+  getProfile: (userId: string) =>
     api.get<User>(userId ? `/users/profile/${userId}` : '/users/profile'),
 
   updateProfile: (userId: string | undefined, data: Partial<User>) =>
@@ -353,6 +353,16 @@ export const userApi = {
 
   getUserByToken: (token: string) =>
     api.get<User>(`/users/token/${token}`),
+
+  getAllUsers: () =>
+    api.get<User[]>(`/users`),
+
+  delete: (userId: string) =>
+    api.delete<GuardedDeleteResult>(`/users/${userId}`),
+  delete: (userIds: string | string[]) => {
+    const ids = Array.isArray(userIds) ? userIds : [userIds];
+    return api.delete<BulkDeleteResult>('/users', { data: { ids } });
+},
 };
 
 export const theaterApi = {

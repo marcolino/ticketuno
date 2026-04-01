@@ -1,4 +1,4 @@
-import { DialogOptions } from '@/shared/types/dialog';
+//import { DialogOptions } from '@/shared/types/dialog';
 import { ShowDialog } from '@/contexts/DialogContext';
 import { GuardedDeleteResult, GuardedUpdateResult, GuardHandlerResult } from '@/shared/types/guard';
 import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
@@ -8,6 +8,8 @@ type GuardedResult = GuardedDeleteResult | GuardedUpdateResult;
 type SuccessKey = 'deleted' | 'updated' | 'canceled';
 
 const reasonMessages: Record<string, string> = {
+  USER_HAS_ACTIVE_BOOKINGS: 'user has active bookings',
+  USER_NOT_FOUND: 'user was not found',
   THEATER_HAS_ACTIVE_BOOKINGS: 'theater has active bookings',
   THEATER_NOT_FOUND: 'theater was not found',
   EVENT_HAS_ACTIVE_BOOKINGS: 'event has active bookings',

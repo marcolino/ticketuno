@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Container,
@@ -34,11 +35,12 @@ import {
   Role,
 } from '@/shared/utils/roles';
 
-interface ProfileProps {
-  userId?: string; // undefined = editing self
-}
+// interface ProfileProps {
+//   userId?: string; // undefined = editing self
+// }
 
-const Profile: React.FC<ProfileProps> = ({ userId }) => {
+const Profile: React.FC/*<ProfileProps>*/ = () => {
+  const { id: userId } = useParams<{ id: string }>();
   const { user: currentUser, updateUser, isAuthenticated } = useAuth();
   const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
   const { t } = useTranslation();
@@ -105,24 +107,37 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
     load();
   }, [userId, currentUser, isSelf]);
 
-  // useEffect(() => {
-  //   if (currentUser) {
-  //     setTargetUser(currentUser as UserProfile);
-  //     setFirstName(currentUser.firstName);
-  //     setLastName(currentUser.lastName);
-  //     setEmail(currentUser.email);
-  //     setPhone(currentUser.phone || '');
-  //     setRole(currentUser.role);
-  //   }
-  // }, [currentUser, isAuthenticated, navigate]);
-
+  useEffect(() => {
+    (async () => {
+      if (isSelf) {
+        // No userId prop (or it's the same user) — use currentUser directly
+        setTargetUser(currentUser);
+        setFirstName(currentUser!.firstName);
+        setLastName(currentUser!.lastName);
+        setEmail(currentUser!.email);
+        setPhone(currentUser!.phone ?? '');
+        setRole(currentUser!.role as Role);
+      } else {
+        // Admin/operator editing someone else's profile
+        const response = await userApi.getProfile(userId);
+        const profile: UserProfile = response.data;
+        setTargetUser(profile);
+        setFirstName(profile.firstName);
+        setLastName(profile.lastName);
+        setEmail(profile.email);
+        setPhone(profile.phone ?? '');
+        setRole(profile.role as Role);
+      }
+    })();
+  }, [userId, currentUser, isSelf]);
+  
   const handleCancel = async () => {
     toast.success(t('Profile updated successfully'));
     navigate(-1);
   }
 
   const handleSaveWithWarning = async () => {
-    if (isSelf && currentUser && currentUser.role !== role) {
+    if (isSelf && targetUser && targetUser.role !== role) {
       showDialog({
         title: t('Stepping role down'),
         content: t('You are about to step your role down.\nProbably you will not be anymore able to step up anymore.'),
@@ -143,9 +158,11 @@ const Profile: React.FC<ProfileProps> = ({ userId }) => {
       const updates: Partial<UserProfile> = {
         firstName,
         lastName,
-        email,
         phone,
       };
+      if (email !== targetUser.email) {
+        updates.email = email;
+      }
       if (canEditRoles && role !== targetUser.role) {
         if (userCanSetRole(currentUser.role, targetUser.role, role)) {
           updates.role = role;

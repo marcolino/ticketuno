@@ -268,12 +268,13 @@ const TheaterEdit: React.FC = () => {
   };
   
   const contactPhoneValidate = (value: string) => {
-  // E.164 format requires at least 8 digits including country code
-  if (!value || value.length < 8) {
-    //setError('Enter a valid international phone number');
-    toast.warning(t('Enter a valid international phone number'));
-  }
-};
+    // E.164 format requires at least 8 digits including country code
+    if (!value || value.length < 8) {
+      //setError('Enter a valid international phone number');
+      toast.warning(t('Enter a valid international phone number'));
+    }
+  };
+  
   const handleSave = async () => {
     if (!theaterData.name.trim()) {
       toast.warning(t('Name is required'));

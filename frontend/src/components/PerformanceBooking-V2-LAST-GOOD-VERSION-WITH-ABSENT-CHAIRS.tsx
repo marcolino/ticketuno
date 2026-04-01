@@ -7,11 +7,13 @@ import {
   Typography,
   Button,
   Paper,
+  //Alert,
   IconButton,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
 import {
+  //EventSeat as EventSeatIcon,
   CheckCircle as CheckCircleIcon,
   ArrowBack as ArrowBackIcon,
   Cancel as CancelIcon,
@@ -20,6 +22,7 @@ import {
 import { eventApi, layoutApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
+//import { useSetup } from '@/contexts/SetupContext';
 import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
 import { Event, EventPerformance } from '@/shared/types/event';
@@ -28,8 +31,9 @@ import {
   generateSeats,
   SeatStatus,
   SpecialCondition,
+  applyDisplayNumbers
 } from '@/shared/types/layoutToSeats';
-import { SeatData, PerformanceSeatsResponse } from '@/shared/types/performance';
+import { SeatData, PerformanceSeatsResponse } from '@/shared/types/performance'
 import LayoutPreviewSVG, { SeatWithStatus } from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
 import { localizedDate } from '@/utils/misc';
@@ -45,8 +49,9 @@ const PerformanceBooking: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const showDialog = useDialog();
   const [forceLoadPerformance, setForceLoadPerformance] = useState(false);
+  //const setup = useSetup();
 
-  // Raw state
+  // ── Raw state — set by loadPerformance only ──────────────────────────────
   const [performance, setPerformance] = useState<EventPerformance | null>(null);
   const [event, setEvent] = useState<Event | null>(null);
   const [layout, setLayout] = useState<LayoutJSON | null>(null);
@@ -55,7 +60,7 @@ const PerformanceBooking: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper: flatten seats from API response
+  // ── Helper ───────────────────────────────────────────────────────────────
   const flattenSeatsData = useCallback((data: PerformanceSeatsResponse): SeatData[] => {
     const allSeats: SeatData[] = [];
     Object.values(data).forEach(section => {
@@ -66,7 +71,7 @@ const PerformanceBooking: React.FC = () => {
     return allSeats;
   }, []);
 
-  // Load performance, event, layout, and seat statuses
+  // ── Load — only sets raw state, no seat derivation here ─────────────────
   const loadPerformance = useCallback(async () => {
     if (!eventId || !performanceId) {
       setError(t('Missing event or performance ID'));
@@ -109,29 +114,36 @@ const PerformanceBooking: React.FC = () => {
     if (eventId && performanceId) loadPerformance();
   }, [eventId, performanceId, loadPerformance]);
 
-  // Step 1: generate all seats from layout and filter out absent ones
+  // ── Step 1: merge layout positions + specialConditions ───────────────────
   const generatedSeats = useMemo(() => {
     if (!layout) return [];
     const raw = generateSeats(layout);
     const conditions = layout.seatConditions || {};
-
-    // Filter out seats that are marked as 'absent'
-    return raw.filter(seat => conditions[seat.seatId] !== 'absent').map(seat => ({
+    return applyDisplayNumbers(raw, conditions).map(seat => ({
       ...seat,
       specialCondition: conditions[seat.seatId] as SpecialCondition | undefined,
     }));
   }, [layout]);
 
-  // Map seatId to human-readable label (section-row-seatNumber)
-  const seatLabelById = useMemo(() => {
+  // ── Step 1b: seatId → human-readable label using display numbers ─────────
+  // e.g. physical seat "Platea-A-8" where seat 7 is absent → label "Platea-A-7"
+  const seatLabelMap = useMemo(() => {
     const map = new Map<string, string>();
     generatedSeats.forEach(seat => {
-      map.set(seat.seatId, `${seat.sectionName}-${seat.rowId}-${seat.seatNumber}`);
+      const displayNum = seat.displayNumber ?? seat.seatNumber;
+      // Rebuild the label with the display number instead of the physical one
+      map.set(seat.seatId, `${seat.sectionName}-${seat.rowId}-${displayNum}`);
     });
     return map;
   }, [generatedSeats]);
 
-  // Step 2: merge with live booking statuses from API
+  /** Returns the display label for a seatId, falling back to the raw id if not found. */
+  const seatLabel = useCallback(
+    (seatId: string) => seatLabelMap.get(seatId) ?? seatId,
+    [seatLabelMap]
+  );
+
+  // ── Step 2: merge with live booking statuses from API ────────────────────
   const seats: SeatWithStatus[] = useMemo(() => {
     return generatedSeats.map(seat => {
       const statusData = seatStatusMap.get(seat.seatId);
@@ -142,7 +154,7 @@ const PerformanceBooking: React.FC = () => {
     });
   }, [generatedSeats, seatStatusMap]);
 
-  // Seat interaction
+  // ── Seat interaction ─────────────────────────────────────────────────────
   const handleSeatClick = useCallback(async (seatId: string, currentStatus?: SeatStatus) => {
     if (!isAuthenticated) {
       await showDialog({
@@ -170,12 +182,13 @@ const PerformanceBooking: React.FC = () => {
   }, [isAuthenticated, t, toast, navigate, showDialog]);
 
   const getSeatStatus = useCallback((seat: SeatWithStatus): SeatStatus => {
+    // Show reserved seats as booked to reduce user confusion
     if (seat.status === 'booked' || seat.status === 'reserved') return 'booked';
     if (selectedSeats.has(seat.seatId)) return 'selected';
     return 'available';
   }, [selectedSeats]);
 
-  // Derived data
+  // ── Derived ──────────────────────────────────────────────────────────────
   const totalPrice = useMemo(() =>
     selectedSeats.size * (event?.baseTicketPrice || 0),
     [selectedSeats.size, event?.baseTicketPrice]
@@ -187,7 +200,7 @@ const PerformanceBooking: React.FC = () => {
     return [...found];
   }, [seats]);
 
-  // Booking logic
+  // ── Booking ──────────────────────────────────────────────────────────────
   const confirmBooking = async () => {
     if (!eventId || !performanceId) {
       toast.error(t('Missing event or performance ID'));
@@ -202,7 +215,8 @@ const PerformanceBooking: React.FC = () => {
         title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
         content:
           t('You will soon receive an email with booking confirmation.', { count: selectedSeats.size }) + '\n\n' +
-          (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: feel free to print it or show it at the theater on your mobile device.') : ''),
+          (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: feel free to print it or show it at the theater on your mobile device.') : '')
+        ,
         onConfirm: () => navigate('/'),
         confirmText: 'Ok',
       });
@@ -215,9 +229,9 @@ const PerformanceBooking: React.FC = () => {
           title: t('Attention'),
           content:
             t('These seats are not available anymore:\n') +
-            err.originalError.unavailableSeats
-              .map((seatId: string) => seatLabelById.get(seatId) ?? seatId)
-              .join(', '),
+            // Map raw seatIds → display labels so users see "Platea-A-7" not "Platea-A-8"
+            err.originalError.unavailableSeats.map(seatLabel).join(', ')
+          ,
           confirmText: 'Ok',
         });
         setSelectedSeats(new Set());
@@ -229,8 +243,9 @@ const PerformanceBooking: React.FC = () => {
   };
 
   const handleConfirmBooking = () => {
+    // Sort selected seat labels for a readable list
     const selectedLabels = Array.from(selectedSeats)
-      .map(seatId => seatLabelById.get(seatId) ?? seatId)
+      .map(seatLabel)
       .sort();
 
     showDialog({
@@ -242,6 +257,7 @@ const PerformanceBooking: React.FC = () => {
             &nbsp;{t('for')} {localizedDate({ dateString: performance?.performanceDate, locale: user!.language })}:
           </Typography>
           <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2 }}>
+            {/* Use display labels instead of raw seatIds */}
             {selectedLabels.join(', ')}
           </Paper>
           {config.app.reservations.purchases.gateway !== 'free' && (
@@ -258,7 +274,7 @@ const PerformanceBooking: React.FC = () => {
     });
   };
 
-  // Render
+  // ── Render ───────────────────────────────────────────────────────────────
   if (loading) return null;
 
   if (error || !layout || !performance) {
