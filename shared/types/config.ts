@@ -22,6 +22,7 @@ export interface AppConfig {
     languages: Record<string, AppLanguage>;
     defaultLanguage: string;
     defaultTimezone: string;
+    defaultPhonePrefix: string;
     currencies: Record<CurrencyCode, Currency>;
     defaultCurrency: CurrencyCode;
     theme: {

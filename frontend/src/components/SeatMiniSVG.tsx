@@ -14,7 +14,7 @@
  * CONDITION_COLORS is imported from LayoutSeat (single source of truth).
  */
 import React from 'react';
-import { SpecialCondition } from '@/shared/types/layoutToSeats';
+import { SpecialCondition } from '@/shared/types/seat';
 import { CONDITION_COLORS } from './LayoutSeat';
 
 // Compact seat dimensions

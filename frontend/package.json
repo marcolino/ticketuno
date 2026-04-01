@@ -9,12 +9,10 @@
     "build": "vite build",
     "preview": "vite preview --host",
     "test": "echo 'vitest run (TODO)'",
-    "eject": "echo \"please manually run: react-scripts eject\" if you really want to eject",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
     "unused": "ts-prune",
-    "check": "npm run type-check && npm run lint && npm run test",
-    "patch_UNUSED": "npm version patch"
+    "check": "npm run type-check && npm run lint && npm run test"
   },
   "dependencies": {
     "@date-io/date-fns": "^3.2.1",
@@ -62,7 +60,7 @@
     "vite": "^6.4.1",
     "vitest": "^4.0.16"
   },
-  "eslintConfig": {
+  "eslintConfig_REMOVEME": {
     "extends": [
       "react-app"
     ]

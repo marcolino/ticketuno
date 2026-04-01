@@ -4,8 +4,9 @@ import { i18n } from '../i18n';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
-import { getErrorMessage } from '../utils/errorHandler';
+import { authenticateToken } from '../middleware/auth';
+import { AuthRequest } from '../shared/types/auth';
+import { getErrorMessage } from '../shared/utils/misc';
 import config from '../config';
 
 const router: Router = express.Router();

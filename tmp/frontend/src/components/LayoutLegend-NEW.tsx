@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { CONDITION_COLORS } from './LayoutSeat';
-import { SpecialCondition } from '../shared/types/layoutToSeats';
+import { SpecialCondition } from '../shared/utils/layoutToSeats';
 
 interface LayoutLegendProps {
   conditions: SpecialCondition[];

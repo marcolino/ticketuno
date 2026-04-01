@@ -25,7 +25,7 @@ import { toast } from '@/contexts/ToastContext';
 import { theaterApi, layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { Theater } from '@/shared/types/theater';
-import { getErrorMessage } from '@/utils/misc';
+import { getErrorMessage } from '@/shared/utils/misc';
 //import ActiveBookingsWarning from './ActiveBookingsWarning';
 import { handleGuardResult } from '@/utils/guardHandler';
 import PageHeader from "./PageHeader";

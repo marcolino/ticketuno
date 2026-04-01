@@ -1,13 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import { TFunction } from 'i18next';
+import { /*Request,*/ Response, NextFunction } from 'express';
 import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
+import { AuthRequest } from '../shared/types/auth';
 import config from '../config';
 
-export interface AuthRequest extends Request {
-  userId?: string;
-  userRole?: string;
-  t: TFunction;
-}
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];

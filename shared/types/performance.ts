@@ -1,4 +1,4 @@
-import { SeatStatus } from './layoutToSeats';
+import { SeatStatus } from './seat';
 
 export interface SeatData {
   seatId: string;

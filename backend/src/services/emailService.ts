@@ -9,7 +9,7 @@ import { database } from '../db/database';
 import { SendEmailOptions, /*AttachmentWithContentType, Attachment*/ } from '../shared/types/email';
 import { i18n } from '../i18n';
 import config from '../config';
-import { getErrorMessage } from '../utils/errorHandler';
+import { getErrorMessage } from '../shared/utils/misc';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 let handlebarsHelpersRegistered = false;
@@ -57,7 +57,7 @@ class EmailService {
 
   // Public: send email
   async send(options: SendEmailOptions & { lang?: string }): Promise<CreateEmailResponse> {
-    const t = i18n.getFixedT(options.lang ?? config.app.defaultLanguage);
+    //const t = i18n.getFixedT(options.lang ?? config.app.defaultLanguage);
     
   // sync getAllLayouts(): Promise<Array<{ id: string; json: string }> | null> {
     const payload = await this.prepare(options); // Prepare the email payload

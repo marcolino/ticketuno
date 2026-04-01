@@ -4,7 +4,7 @@ import { authenticateToken, requireOperator/*, AuthRequest*/ } from '../middlewa
 import { verify } from '../services/hmacService';
 import { authHandler } from '../utils/routeHelper';
 import { TicketValidationResult } from '../shared/types/ticket';
-//import { getErrorMessage } from '../utils/errorHandler';
+//import { getErrorMessage } from '../shared/utils/misc';
 import config from '../shared/config';
 const router = express.Router();
 

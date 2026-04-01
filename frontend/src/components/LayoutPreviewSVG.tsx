@@ -1,30 +1,31 @@
 import React, { useMemo } from 'react';
-import { useMediaQuery, useTheme } from '@mui/material';
-import { LayoutJSON } from '@/shared/types/layout';
-import type { SeatStatus, SpecialCondition } from '@/shared/types/layoutToSeats';
+//import { useMediaQuery, useTheme } from '@mui/material';
+//import { LayoutJSON } from '@/shared/types/layout';
+//import type { SeatStatus, SpecialCondition } from '@/shared/utils/layoutToSeats';
+import type { /*SeatWithStatus,*/ LayoutPreviewSVGProps } from '@/shared/types/layout';
 import LayoutSeat from './LayoutSeat';
 
-export interface SeatWithStatus {
-  seatId: string;
-  sectionId: string;
-  sectionName: string;
-  rowId: string;
-  seatNumber: number;
-  displayNumber?: number;
-  x: number;
-  y: number;
-  status?: SeatStatus;
-  specialCondition?: SpecialCondition;
-}
+// export interface SeatWithStatus {
+//   seatId: string;
+//   sectionId: string;
+//   sectionName: string;
+//   rowId: string;
+//   seatNumber: number;
+//   displayNumber?: number;
+//   x: number;
+//   y: number;
+//   status?: SeatStatus;
+//   specialCondition?: SpecialCondition;
+// }
 
-interface LayoutPreviewSVGProps {
-  layout: LayoutJSON;
-  seats: SeatWithStatus[];
-  interactive?: boolean;
-  onSeatClick?: (seatId: string, currentStatus?: SeatStatus) => void;
-  getSeatStatus?: (seat: SeatWithStatus) => SeatStatus;
-  bookingView?: boolean;
-}
+// interface LayoutPreviewSVGProps {
+//   layout: LayoutJSON;
+//   seats: SeatWithStatus[];
+//   interactive?: boolean;
+//   onSeatClick?: (seatId: string, currentStatus?: SeatStatus) => void;
+//   getSeatStatus?: (seat: SeatWithStatus) => SeatStatus;
+//   bookingView?: boolean;
+// }
 
 const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({ 
   layout, 
@@ -34,8 +35,8 @@ const LayoutPreviewSVG: React.FC<LayoutPreviewSVGProps> = ({
   getSeatStatus,
   bookingView = false,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  //const theme = useTheme();
+  //const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
   // Zoom factor / zoom
   //const zoom = isMobile ? 1.0 : 0.75;

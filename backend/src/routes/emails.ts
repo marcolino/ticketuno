@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import emailService from '../services/emailService';
-import { getErrorMessage } from '../utils/errorHandler';
-import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { getErrorMessage } from '../shared/utils/misc';
+import { authenticateToken } from '../middleware/auth';
+import { AuthRequest } from '../shared/types/auth';
 import config from '../config';
 
 const router = Router();

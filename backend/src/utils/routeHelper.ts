@@ -1,5 +1,5 @@
 import { RequestHandler } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest } from '../shared/types/auth';
 import { Response } from 'express';
 
 export const authHandler = (

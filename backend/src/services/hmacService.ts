@@ -30,6 +30,7 @@ function buildSignatureInput(fields: Record<string, unknown>): string {
  * The `sig` field itself is excluded before signing.
  */
 export function sign(fields: Record<string, unknown>): string {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { sig: _excluded, ...signable } = fields as Record<string, unknown>;
   const input = buildSignatureInput(signable);
 

@@ -36,11 +36,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { userApi } from '@/services/api';
-import { getErrorMessage } from '@/utils/misc';
+import { getErrorMessage } from '@/shared/utils/misc';
 import { handleGuardResult } from '@/utils/guardHandler';
 import { UserProfile } from '@/shared/types/user';
 import { GuardedDeleteResult } from '@/shared/types/guard';
-import { Role, assignableRoles } from '@/shared/utils/roles';
+import { Role, assignableRoles, userCanManageAccount } from '@/shared/utils/roles';
 
 type UserRow = UserProfile & { name: string };
 
@@ -235,32 +235,50 @@ const UsersList: React.FC = () => {
     filters.name || filters.email || filters.phone || filters.role || quickFilterText;
 
   // Actions
-  const handleDeleteUser = (user: UserRow) => {
-    showDialog({
-      title: t('Delete user'),
-      content: t('Are you sure to delete user "{{userName}}"?', { userName: user.name }),
-      confirmText: t('Delete!'),
-      onConfirm: async () => {
-        
-        try {
-          const response = await userApi.delete(user.id);
-          const { success, wasBlocked } = await handleGuardResult(response.data, 'deleted', showDialog, toast, t);
-          if (wasBlocked) {
-            setNavigateTo('/users');
-            return;
-          }
-          if (!success) return;
-        } catch (error) {
-          toast.error(getErrorMessage(error));
+  const handleEditUser = (params) => {
+    const targetUser = params.row;
+    if (!currentUser || !userCanManageAccount(currentUser.role, targetUser.role)) {
+      toast.warning(t('Sorry, your user\'s role cannot edit this user, with role {{role}}', {role: targetUser.role}));
+      return;
+    }
+    navigate(`/profile/${params.row.id}`);
+  }
+
+const handleDeleteUser = (user: UserRow) => {
+  showDialog({
+    title: t('Delete user'),
+    content: t('Are you sure to delete user "{{userName}}"?', { userName: user.name }),
+    confirmText: t('Delete!'),
+    onConfirm: async () => {
+      try {
+        const response = await userApi.delete(user.id);
+        const bulk = response.data; // GuardedDeleteResultBulk
+
+        // Normalize the single result (the only entry) into GuardedDeleteResult
+        const result = Object.values(bulk.results)[0];
+        const normalized: GuardedDeleteResult = {
+          deleted: result.deleted,
+          reason: result.reason,
+          blockedBy: result.blockedBy,
+        };
+
+        const { success, wasBlocked } = await handleGuardResult(normalized, 'deleted', showDialog, toast, t);
+        if (wasBlocked) {
+          setNavigateTo('/users'); // or wherever you want to redirect after handling bookings
           return;
         }
-        
-        await loadUsers();
-        toast.success(t('User deleted successfully'));
-      },
-      cancelText: t('Cancel'),
-    });
-  };
+        if (!success) return;
+      } catch (error) {
+        toast.error(getErrorMessage(error));
+        return;
+      }
+
+      await loadUsers();
+      toast.success(t('User deleted successfully'));
+    },
+    cancelText: t('Cancel'),
+  });
+};
 
   const handleBulkDelete = () => {
     const selectedIds = Array.from(rowSelectionModel.ids);
@@ -278,8 +296,9 @@ const UsersList: React.FC = () => {
           const response = await userApi.delete(selectedIds.map(String));
           const bulk = response.data; // GuardedDeleteResultBulk
           // Flatten blocked bookings across all ids
-          const allBlockedBy = Object.values(bulk.results as GuardedDeleteResult[])
-            .flatMap(r => r.blockedBy ?? []);
+          //const allBlockedBy = Object.values(bulk.results as GuardedDeleteResult[]).flatMap(r => r.blockedBy ?? []);
+          const allBlockedBy = Object.values(bulk.results).flatMap(r => r.blockedBy ?? []);
+            
           // Normalize into the shape handleGuardResult expects
           const responseDataNormalized: GuardedDeleteResult = {
             deleted: bulk.deleted > 0,
@@ -367,7 +386,7 @@ const UsersList: React.FC = () => {
       sortable: false,
       renderCell: (params) => (
         <>
-          <IconButton onClick={() => navigate(`/profile/${params.row.id}`)}>
+          <IconButton onClick={() => handleEditUser(params)}>
             <Edit />
           </IconButton>
           <IconButton color="error" onClick={() => handleDeleteUser(params.row)}>

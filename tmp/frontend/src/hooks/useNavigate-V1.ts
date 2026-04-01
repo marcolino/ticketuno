@@ -1,71 +1,77 @@
-import { 
-  useNavigate as useOriginalNavigate, 
-  NavigateOptions, 
-  To,
-  NavigateFunction 
-} from 'react-router-dom';
+import { useNavigate as useOriginalNavigate, NavigateOptions, To } from 'react-router-dom';
 import { useCallback } from 'react';
 
-interface SafeNavigateOptions extends NavigateOptions {
-  fallbackPath?: string;
-}
-
-interface SafeNavigateFunction extends NavigateFunction {
-  (to: To | number, options?: SafeNavigateOptions): void;
+// Define the return type of our custom hook
+type SafeNavigateFunction = {
+  (to: To, options?: NavigateOptions & { fallbackPath?: string }): void;
+  (delta: number): void;
   goBack: (fallbackPath?: string) => void;
-  safe: (to: To, options?: SafeNavigateOptions) => void;
-  replace: (to: To, options?: Omit<SafeNavigateOptions, 'replace'>) => void;
-}
+  goForward: (delta?: number) => void;
+  replace: (to: To, options?: Omit<NavigateOptions, 'replace'>) => void;
+};
 
 const useNavigate = (): SafeNavigateFunction => {
   const originalNavigate = useOriginalNavigate();
 
-  const handleBackNavigation = useCallback((
-    delta: number,
-    fallbackPath?: string
-  ) => {
-    const referrer = document.referrer;
-    const currentOrigin = window.location.origin;
-    const cameFromExternal = referrer && !referrer.startsWith(currentOrigin);
-    const hasHistory = window.history.length > 1;
-
-    // If we can't determine or have no history, use fallback
-    if (cameFromExternal || !hasHistory) {
-      return originalNavigate(fallbackPath || '/');
-    }
-
-    // Otherwise go back the requested number of steps
-    return originalNavigate(delta);
-  }, [originalNavigate]);
-
-  const navigate = useCallback((
+  const safeNavigate = useCallback((
     to: To | number,
-    options?: SafeNavigateOptions
+    options?: NavigateOptions & { fallbackPath?: string }
   ) => {
-    // Handle back navigation (negative numbers)
-    if (typeof to === 'number' && to < 0) {
-      return handleBackNavigation(to, options?.fallbackPath);
+    if (typeof to === 'number') {
+      if (to < 0) {
+        const referrer = document.referrer;
+        const isInternalReferrer =
+          referrer && referrer.startsWith(window.location.origin);
+
+        if (!isInternalReferrer) {
+          const fallback = options?.fallbackPath || '/';
+          return originalNavigate(fallback, options);
+        }
+      }
+
+      return originalNavigate(to);
     }
 
-    // Forward navigation or string paths
-    return originalNavigate(to as To, options);
-  }, [originalNavigate, handleBackNavigation]) as SafeNavigateFunction;
-
-  // Add helper methods
-  navigate.goBack = useCallback((fallbackPath: string = '/') => {
-    handleBackNavigation(-1, fallbackPath);
-  }, [handleBackNavigation]);
-
-  navigate.safe = useCallback((to: To, options?: SafeNavigateOptions) => {
-    // For forward navigation that might want safety checks in future
     return originalNavigate(to, options);
   }, [originalNavigate]);
 
-  navigate.replace = useCallback((to: To, options?: Omit<SafeNavigateOptions, 'replace'>) => {
-    return originalNavigate(to, { ...options, replace: true });
+  // const safeNavigateORIG = useCallback((
+  //   to: To | number,
+  //   options?: NavigateOptions & { fallbackPath?: string }
+  // ) => {
+  //   if (typeof to === 'number' && to < 0) {
+  //     const referrer = document.referrer;
+  //     const isInternalReferrer = referrer && referrer.startsWith(window.location.origin);
+      
+  //     // Only go back if we're SURE it's internal
+  //     // When in doubt (empty referrer or external), redirect to home
+  //     if (!isInternalReferrer) {
+  //       const fallback = options?.fallbackPath || '/';
+  //       return originalNavigate(fallback, options);
+  //     }
+  //   }
+  //   return originalNavigate(to, options);
+  // }, [originalNavigate]);
+
+  // Create the callable function with additional methods
+  const navigate = safeNavigate as SafeNavigateFunction;
+  
+  // Add explicit goBack method
+  navigate.goBack = useCallback((fallbackPath: string = '/') => {
+    safeNavigate(-1, { fallbackPath });
+  }, [safeNavigate]);
+
+  // Add goForward method
+  navigate.goForward = useCallback((delta: number = 1) => {
+    originalNavigate(delta);
   }, [originalNavigate]);
+
+  // Add replace method
+  navigate.replace = useCallback((to: To, options?: Omit<NavigateOptions, 'replace'>) => {
+    safeNavigate(to, { ...options, replace: true });
+  }, [safeNavigate]);
 
   return navigate;
 };
 
-//export default useNavigate;
+export default useNavigate;

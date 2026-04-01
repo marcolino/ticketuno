@@ -17,6 +17,7 @@ import { t } from 'i18next';
 import { userApi } from '@/services/api';
 import { UserProfile } from '@/shared/types/user';
 import PageHeader from '@/components/PageHeader';
+import { getErrorMessage } from '@/shared/utils/misc';
 import config from '@/config';
 
 const Unsubscribe: React.FC = () => {
@@ -53,8 +54,8 @@ const Unsubscribe: React.FC = () => {
             setAlreadyUnsubscribed(true);
           }
         }
-      } catch (error: unknown) {
-        setError(t('The unsubscribe link cannot be verified: {{err}}', { err: error.message }));
+      } catch (error) {
+        setError(t('The unsubscribe link cannot be verified: {{err}}', { err: getErrorMessage(error) }));
       } finally {
         setInitialLoading(false);
       }
@@ -63,15 +64,11 @@ const Unsubscribe: React.FC = () => {
 
   const handleUnsubscribe = async () => {
     if (!token) {
-      setError(t(
-        'We can\'t find the  token to identify you, sorry. Possibly it is expired.'
-      ));
+      setError(t('We can\'t find the  token to identify you, sorry. Possibly it is expired.'));
       return;
     }
     if (!profile?.consent) {
-      setError(t(
-        'No profile, sorry.'
-      ));
+      setError(t('No profile, sorry.'));
       return;
     }
     try {
@@ -82,7 +79,7 @@ const Unsubscribe: React.FC = () => {
       //   ...profile.consent,
       //   communication: {
       //     ...profile.consent.communication,
-      //     marketingEmails: false,
+      //     marketingEmails: false,setError
       //   },
       //   updatedAt: new Date().toISOString(),
       // };
@@ -91,12 +88,8 @@ const Unsubscribe: React.FC = () => {
       console.log("UNSUBSCRIBE RESPONSE:", response);
 
       setSuccess(true);
-    } catch (err: unknown) {
-      setError(
-        t('The unsubscribe link cannot be processed: {{err}}', {
-          err: err instanceof Error ? err.message : String(err?.message),
-        })
-      );
+    } catch (error) {
+      setError(t('The unsubscribe link cannot be processed: {{err}}', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -188,46 +181,6 @@ const Unsubscribe: React.FC = () => {
           </Typography>
         </Box>
       )}
-
-      {/* Confirmation Dialog */}
-      {/* <Dialog
-        open={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-      >
-        <DialogTitle>
-          {t('Confirm Unsubscription')}
-        </DialogTitle>
-
-        <DialogContent>
-          <DialogContentText>
-            {t(
-              'Are you absolutely sure you want to stop receiving marketing emails?'
-            )}
-          </DialogContentText>
-        </DialogContent>
-
-        <DialogActions>
-          <Button
-            onClick={() => setConfirmOpen(false)}
-            disabled={loading}
-          >
-            {t('Cancel')}
-          </Button>
-
-          <Button
-            color="error"
-            variant="contained"
-            onClick={handleUnsubscribe}
-            disabled={loading}
-          >
-            {loading ? (
-              <CircularProgress size={20} />
-            ) : (
-              t('Yes, Unsubscribe Me')
-            )}
-          </Button>
-        </DialogActions>
-      </Dialog> */}
     </Container>
   );
 };

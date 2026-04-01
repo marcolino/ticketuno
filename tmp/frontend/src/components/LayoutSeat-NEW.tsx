@@ -1,5 +1,5 @@
 import React from 'react';
-import type { SeatStatus, SpecialCondition } from '@/shared/types/layoutToSeats';
+import type { SeatStatus, SpecialCondition } from '@/shared/utils/layoutToSeats';
 
 /**
  * Color palette for each special condition.

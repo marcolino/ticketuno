@@ -31,7 +31,7 @@ import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useDialog } from '@/contexts/DialogContext';
-import { getErrorMessage } from '@/utils/misc';
+import { getErrorMessage } from '@/shared/utils/misc';
 import config from '@/shared/config';
 
 const TheaterEdit: React.FC = () => {

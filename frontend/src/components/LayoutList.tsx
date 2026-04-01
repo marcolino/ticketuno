@@ -25,7 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import PageHeader from "./PageHeader";
-import { getErrorMessage } from '@/utils/misc';
+import { getErrorMessage } from '@/shared/utils/misc';
 //import { i18n } from '@/i18n';
 
 const LayoutList: React.FC = () => {

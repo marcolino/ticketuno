@@ -107,29 +107,29 @@ const Profile: React.FC/*<ProfileProps>*/ = () => {
     load();
   }, [userId, currentUser, isSelf]);
 
-  useEffect(() => {
-    (async () => {
-      if (isSelf) {
-        // No userId prop (or it's the same user) — use currentUser directly
-        setTargetUser(currentUser);
-        setFirstName(currentUser!.firstName);
-        setLastName(currentUser!.lastName);
-        setEmail(currentUser!.email);
-        setPhone(currentUser!.phone ?? '');
-        setRole(currentUser!.role as Role);
-      } else {
-        // Admin/operator editing someone else's profile
-        const response = await userApi.getProfile(userId);
-        const profile: UserProfile = response.data;
-        setTargetUser(profile);
-        setFirstName(profile.firstName);
-        setLastName(profile.lastName);
-        setEmail(profile.email);
-        setPhone(profile.phone ?? '');
-        setRole(profile.role as Role);
-      }
-    })();
-  }, [userId, currentUser, isSelf]);
+  // useEffect(() => {
+  //   (async () => {
+  //     if (isSelf) {
+  //       // No userId prop (or it's the same user) — use currentUser directly
+  //       setTargetUser(currentUser);
+  //       setFirstName(currentUser!.firstName);
+  //       setLastName(currentUser!.lastName);
+  //       setEmail(currentUser!.email);
+  //       setPhone(currentUser!.phone ?? '');
+  //       setRole(currentUser!.role as Role);
+  //     } else {
+  //       // Admin/operator editing someone else's profile
+  //       const response = await userApi.getProfile(userId);
+  //       const profile: UserProfile = response.data;
+  //       setTargetUser(profile);
+  //       setFirstName(profile.firstName);
+  //       setLastName(profile.lastName);
+  //       setEmail(profile.email);
+  //       setPhone(profile.phone ?? '');
+  //       setRole(profile.role as Role);
+  //     }
+  //   })();
+  // }, [userId, currentUser, isSelf]);
   
   const handleCancel = async () => {
     toast.success(t('Profile updated successfully'));

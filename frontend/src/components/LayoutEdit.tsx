@@ -8,7 +8,7 @@ import {
   Box,
   Typography,
   Grid,
-  Alert,
+  //Alert,
   IconButton,
   Accordion,
   AccordionSummary,
@@ -26,15 +26,15 @@ import {
 import { useDialog } from '../contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
-//import { SpecialCondition } from './LayoutSeat';
 import LayoutLegend from './LayoutLegend';
 import SeatMarkingToolbar, { MarkingCondition } from './SeatMarkingToolbar';
 import { layoutApi, theaterApi } from '@/services/api';
 import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
-import { generateSeats, SpecialCondition } from '@/shared/types/layoutToSeats';
+import { SpecialCondition } from '@/shared/types/seat';
+import { generateSeats,  } from '@/shared/utils/layoutToSeats';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
-import { getErrorMessage } from '@/utils/misc';
+import { getErrorMessage } from '@/shared/utils/misc';
 
 // Define location state interface
 interface LocationState {

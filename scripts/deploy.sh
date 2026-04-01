@@ -83,8 +83,12 @@ fi
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 
 echo "🔍 Running pre-deploy checks..."
-npm run type-check > /dev/null || {
-  echo "❌ TypeScript check failed. Fix errors before deploying."
+# npm run type-check > /dev/null || {
+#   echo "❌ TypeScript check failed. Fix errors before deploying."
+#   exit 6
+# }
+npm run check > /dev/null || {
+  echo "❌ Type-check or lint failed. Fix errors before deploying."
   exit 6
 }
 
@@ -185,8 +189,9 @@ if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
 fi
 
 fly secrets set \
-  GIT_COMMIT="$(git rev-parse --short HEAD)" --app "${APP_NAME}" \
-  GIT_COMMIT_DATE="$(git log -1 --format='%ci' | cut -c1-19)" --app "${APP_NAME}"
+  GIT_COMMIT="$(git rev-parse --short HEAD)" \
+  GIT_COMMIT_DATE="$(git log -1 --format='%ci' | cut -c1-19)" \
+  --app "${APP_NAME}"
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 

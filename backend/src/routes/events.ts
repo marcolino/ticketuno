@@ -2,16 +2,17 @@ import { Router, /*Request,*/ Response } from 'express';
 import path from 'path';
 //import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
-import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
+import { authenticateToken, requireOperator } from '../middleware/auth';
+import { AuthRequest } from '../shared/types/auth';
 import { generateTickets } from '../services/ticketService';
 import { notify } from '../services/notificationService';
 import { sendBookingConfirmationEmail } from '../utils/email';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
 import { ShowInfo } from '../shared/types/ticket';
-import { generateSeats, applyDisplayNumbers } from '../shared/types/layoutToSeats';
+import { generateSeats, applyDisplayNumbers } from '../shared/utils/layoutToSeats';
 import { PerformanceSeatsResponse, SeatData} from '../shared/types/performance';
-import { getErrorMessage } from '../utils/errorHandler';
-import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '../utils/misc';
+import { getErrorMessage } from '../shared/utils/misc';
+import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '../shared/utils/misc';
 //import { getSetup } from '../services/setupService';
 import config from '../config';
 
@@ -522,8 +523,8 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
       const layoutRecord = await database.getLayoutById(theater.currentLayoutId);
       if (layoutRecord) {
         const layoutJSON = JSON.parse(layoutRecord.json);
-        const conditions = layoutJSON.seatConditions || {};
-        const withDisplay = applyDisplayNumbers(generateSeats(layoutJSON), conditions);
+        //const conditions = layoutJSON.seatConditions || {};
+        const withDisplay = applyDisplayNumbers(generateSeats(layoutJSON)/*, conditions*/);
         withDisplay.forEach(s => {
           const dn = s.displayNumber ?? s.seatNumber;
           seatLabelMap.set(s.seatId, `${s.sectionName}-${s.rowId}-${dn}`);

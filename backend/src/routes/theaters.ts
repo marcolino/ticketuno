@@ -1,9 +1,10 @@
 import express, { Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
-import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
+import { authenticateToken, requireOperator } from '../middleware/auth';
+import { AuthRequest } from '../shared/types/auth';
 import { Theater, TheaterStats/*, Section*/ } from '../shared/types/theater';
-import { getErrorMessage } from '../utils/errorHandler';
+import { getErrorMessage } from '../shared/utils/misc';
 
 const router = express.Router();
 

@@ -59,8 +59,9 @@ i18n.on('languageChanged', (lng) => {
  * @param {*} language 
  * @returns 
  */
-const getProbableCountryFromLanguage = (language) => {
-  const languageToCountryMap = {
+
+const getProbableCountryFromLanguage = (language: string): string => {
+  const languageToCountryMap: Record<string, string> = {
     en: "US", // English → United States
     fr: "FR", // French → France
     es: "ES", // Spanish → Spain
@@ -106,7 +107,11 @@ const getProbableCountryFromLanguage = (language) => {
     sw: "KE", // Swahili → Kenya
     am: "ET", // Amharic → Ethiopia
   };
-  return languageToCountryMap[language] || config.ui.locales[config.serverLocale].country;
+  // Use the app's default language as fallback, mapped to a country
+  const fallbackLanguage = config.app.defaultLanguage; // e.g., 'it'
+  const fallbackCountry = languageToCountryMap[fallbackLanguage] || config.app.defaultLanguage;
+
+  return languageToCountryMap[language] || fallbackCountry;
 };
 
 /**
@@ -115,56 +120,60 @@ const getProbableCountryFromLanguage = (language) => {
  * @param {*} language 
  * @returns 
  */
-function getProbablePhonePrefixFromLanguage(language) {
-  const languageToPhonePrefixMap = {
-      en: "+1",   // English → United States
-      fr: "+33",  // French → France
-      es: "+34",  // Spanish → Spain
-      de: "+49",  // German → Germany
-      zh: "+86",  // Chinese → China
-      ja: "+81",  // Japanese → Japan
-      ru: "+7",   // Russian → Russia
-      hi: "+91",  // Hindi → India
-      pt: "+55",  // Portuguese → Brazil
-      ar: "+966", // Arabic → Saudi Arabia
-      it: "+39",  // Italian → Italy
-      ko: "+82",  // Korean → South Korea
-      nl: "+31",  // Dutch → Netherlands
-      tr: "+90",  // Turkish → Turkey
-      sv: "+46",  // Swedish → Sweden
-      no: "+47",  // Norwegian → Norway
-      da: "+45",  // Danish → Denmark
-      fi: "+358", // Finnish → Finland
-      el: "+30",  // Greek → Greece
-      pl: "+48",  // Polish → Poland
-      cs: "+420", // Czech → Czech Republic
-      hu: "+36",  // Hungarian → Hungary
-      th: "+66",  // Thai → Thailand
-      vi: "+84",  // Vietnamese → Vietnam
-      id: "+62",  // Indonesian → Indonesia
-      ms: "+60",  // Malay → Malaysia
-      fa: "+98",  // Persian (Farsi) → Iran
-      he: "+972", // Hebrew → Israel
-      uk: "+380", // Ukrainian → Ukraine
-      ro: "+40",  // Romanian → Romania
-      bg: "+359", // Bulgarian → Bulgaria
-      sr: "+381", // Serbian → Serbia
-      hr: "+385", // Croatian → Croatia
-      sk: "+421", // Slovak → Slovakia
-      lt: "+370", // Lithuanian → Lithuania
-      lv: "+371", // Latvian → Latvia
-      et: "+372", // Estonian → Estonia
-      bn: "+880", // Bengali → Bangladesh
-      ta: "+94",  // Tamil → Sri Lanka
-      te: "+91",  // Telugu → India
-      mr: "+91",  // Marathi → India
-      ur: "+92",  // Urdu → Pakistan
-      sw: "+254", // Swahili → Kenya
-      am: "+251", // Amharic → Ethiopia
+const getProbablePhonePrefixFromLanguage = (language: string): string => {
+  const languageToPhonePrefixMap: Record<string, string> = {
+    en: "+1",   // English → United States
+    fr: "+33",  // French → France
+    es: "+34",  // Spanish → Spain
+    de: "+49",  // German → Germany
+    zh: "+86",  // Chinese → China
+    ja: "+81",  // Japanese → Japan
+    ru: "+7",   // Russian → Russia
+    hi: "+91",  // Hindi → India
+    pt: "+55",  // Portuguese → Brazil
+    ar: "+966", // Arabic → Saudi Arabia
+    it: "+39",  // Italian → Italy
+    ko: "+82",  // Korean → South Korea
+    nl: "+31",  // Dutch → Netherlands
+    tr: "+90",  // Turkish → Turkey
+    sv: "+46",  // Swedish → Sweden
+    no: "+47",  // Norwegian → Norway
+    da: "+45",  // Danish → Denmark
+    fi: "+358", // Finnish → Finland
+    el: "+30",  // Greek → Greece
+    pl: "+48",  // Polish → Poland
+    cs: "+420", // Czech → Czech Republic
+    hu: "+36",  // Hungarian → Hungary
+    th: "+66",  // Thai → Thailand
+    vi: "+84",  // Vietnamese → Vietnam
+    id: "+62",  // Indonesian → Indonesia
+    ms: "+60",  // Malay → Malaysia
+    fa: "+98",  // Persian (Farsi) → Iran
+    he: "+972", // Hebrew → Israel
+    uk: "+380", // Ukrainian → Ukraine
+    ro: "+40",  // Romanian → Romania
+    bg: "+359", // Bulgarian → Bulgaria
+    sr: "+381", // Serbian → Serbia
+    hr: "+385", // Croatian → Croatia
+    sk: "+421", // Slovak → Slovakia
+    lt: "+370", // Lithuanian → Lithuania
+    lv: "+371", // Latvian → Latvia
+    et: "+372", // Estonian → Estonia
+    bn: "+880", // Bengali → Bangladesh
+    ta: "+94",  // Tamil → Sri Lanka
+    te: "+91",  // Telugu → India
+    mr: "+91",  // Marathi → India
+    ur: "+92",  // Urdu → Pakistan
+    sw: "+254", // Swahili → Kenya
+    am: "+251", // Amharic → Ethiopia
   };
 
-  return languageToPhonePrefixMap[language] || config.ui.locales[config.serverLocale].phonePrefix;
-}
+  // Use the app's default language as fallback, mapped to a phone prefix
+  const fallbackLanguage = config.app.defaultLanguage; // e.g., 'it'
+  const fallbackPhonePrefix = languageToPhonePrefixMap[fallbackLanguage] || config.app.defaultPhonePrefix;
+
+  return languageToPhonePrefixMap[language] || fallbackPhonePrefix;
+};
 
 export {
   i18n,

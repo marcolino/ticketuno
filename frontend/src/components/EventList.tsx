@@ -31,7 +31,7 @@ import { EventStats } from '@/shared/types/event';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
-import { getErrorMessage } from '@/utils/misc';
+import { getErrorMessage } from '@/shared/utils/misc';
 import PageHeader from "./PageHeader";
 //import type { CurrencyCode } from '@/shared/config';
 import config from '@/config';

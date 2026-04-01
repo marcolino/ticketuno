@@ -1,4 +1,4 @@
-import { SpecialCondition } from '../../shared/types/layoutToSeats';
+import type { SeatStatus, SpecialCondition } from './seat';
 
 export type LockInfoRow = {
   eventTitle: string;
@@ -49,3 +49,24 @@ export interface RowJSON {
   curve?: number; // degrees (0 = straight)
 }
 
+export interface SeatWithStatus {
+  seatId: string;
+  sectionId: string;
+  sectionName: string;
+  rowId: string;
+  seatNumber: number;
+  displayNumber?: number;
+  x: number;
+  y: number;
+  status?: SeatStatus;
+  specialCondition?: SpecialCondition;
+}
+
+export interface LayoutPreviewSVGProps {
+  layout: LayoutJSON;
+  seats: SeatWithStatus[];
+  interactive?: boolean;
+  onSeatClick?: (seatId: string, currentStatus?: SeatStatus) => void;
+  getSeatStatus?: (seat: SeatWithStatus) => SeatStatus;
+  bookingView?: boolean;
+}

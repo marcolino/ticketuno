@@ -24,13 +24,11 @@ import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
 import { Event, EventPerformance } from '@/shared/types/event';
 import { LayoutJSON } from '@/shared/types/layout';
-import {
-  generateSeats,
-  SeatStatus,
-  SpecialCondition,
-} from '@/shared/types/layoutToSeats';
+import { generateSeats } from '@/shared/utils/layoutToSeats';
+import { SeatWithStatus } from '@/shared/types/layout';
+import { SeatStatus, SpecialCondition } from '@/shared/types/seat';
 import { SeatData, PerformanceSeatsResponse } from '@/shared/types/performance';
-import LayoutPreviewSVG, { SeatWithStatus } from './LayoutPreviewSVG';
+import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
 import { localizedDate } from '@/utils/misc';
 import config from '@/shared/config';
@@ -116,7 +114,8 @@ const PerformanceBooking: React.FC = () => {
     const conditions = layout.seatConditions || {};
 
     // Filter out seats that are marked as 'absent'
-    return raw.filter(seat => conditions[seat.seatId] !== 'absent').map(seat => ({
+    //return raw.filter(seat => conditions[seat.seatId] !== 'absent').map(seat => ({
+    return raw.map(seat => ({
       ...seat,
       specialCondition: conditions[seat.seatId] as SpecialCondition | undefined,
     }));

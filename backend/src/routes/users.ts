@@ -5,7 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
 //import { i18n } from '../i18n';
-import { authenticateToken, generateToken, requireOperator, /*userCanSetRole, */ AuthRequest } from '../middleware/auth';
+import { authenticateToken, generateToken, requireOperator } from '../middleware/auth';
+import { AuthRequest } from '../shared/types/auth';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
 import { FullConsent } from '../shared/types/consent';
 import { 
@@ -16,7 +17,8 @@ import {
   sendPasswordResetEmail,
 } from '../utils/email';
 import { userCanManageAccount, userCanSetRole, userCanManageConsent } from '../shared/utils/roles';
-import { getErrorMessage } from '../utils/errorHandler';
+import { getErrorMessage } from '../shared/utils/misc';
+import { Role } from '../shared/utils/roles';
 import config from '../config';
 
 const router = express.Router();
@@ -533,7 +535,7 @@ router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
     }
 
     // Non-self access: actor must be able to manage this account
-    if (!isSelf && !userCanManageAccount(req.userRole ?? '', user.role)) {
+    if (!isSelf && !userCanManageAccount(req.userRole as Role ?? '', user.role as Role)) {
       return res.status(403).json({ error: req.t('Insufficient permissions') });
     }
 
@@ -572,7 +574,7 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
     }
 
     // Can the actor manage this account at all?
-    if (!isSelf && !userCanManageAccount(actorRole, targetUser.role)) {
+    if (!isSelf && !userCanManageAccount(actorRole as Role, targetUser.role as Role)) {
       return res.status(403).json({ error: req.t('Insufficient permissions') });
     }
 
@@ -584,7 +586,7 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
     if (phone !== undefined) updates.phone = phone;
     if (email) updates.email = email;
     if (role !== undefined) {
-      if (!userCanSetRole(actorRole, targetUser.role, role)) {
+      if (!userCanSetRole(actorRole as Role, targetUser.role as Role, role as Role)) {
         return res.status(403).json({ error: req.t('Cannot assign role {{role}}', { role }) });
       }
       updates.role = role;
@@ -636,8 +638,11 @@ router.put('/consent/:userId?', authenticateToken, async (req: AuthRequest, res)
       return res.status(404).json({ error: req.t('User not found') });
     }
 
+    const actorRole = (req.userRole ?? '') as Role;
+    const targetRole = targetUser.role as Role;
+
     // Can the actor manage consent?
-    if (!isSelf && !userCanManageConsent(actorId, targetUser.role)) {
+    if (!isSelf && !userCanManageConsent(actorRole, targetRole)) {
       return res.status(403).json({ error: req.t('Insufficient permissions') });
     }
 

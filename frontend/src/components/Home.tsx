@@ -71,7 +71,7 @@ const Home: React.FC = () => {
   const navigate = useNavigate();
   //const location = useLocation();
   const { user, updateUser, isAuthenticated, isOperator, isAdmin, logout } = useAuth();
-//  const { mode, toggleMode } = useThemeMode();
+  //const { mode, toggleMode } = useThemeMode();
   //const { mode, changeThemeMode } = useThemeMode();
   const { themePreference, setThemePreference, effectiveMode } = useThemeMode();
   //const { themeType, setThemeType, platform } = useThemeMode();
@@ -158,7 +158,7 @@ const Home: React.FC = () => {
     navigate('/layouts');
   };
 
-  const handleBookings = () => { // TODO: ...
+  const handleBookings = () => {
     handleClose();
     navigate('/bookings');
   };
@@ -352,27 +352,14 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
               <Divider />
 
               {isOperator && (
-                <>
-                  <MenuItem onClick={() => { handleClose(); handleUsers(); }}>
-                    <ListItemIcon>
-                      <GroupIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>
-                      {t('Users')}
-                    </ListItemText>
-                  </MenuItem>
-
-                  <Divider />
-
-                  <MenuItem onClick={() => { handleClose(); handleBookingsValidate(); }}>
-                    <ListItemIcon>
-                      <QrCodeIcon fontSize="small" />
-                    </ListItemIcon>
-                    <ListItemText>
-                      {t('Validate Bookings')}
-                    </ListItemText>
-                  </MenuItem>
-                </>
+                <MenuItem onClick={() => { handleClose(); handleBookingsValidate(); }}>
+                  <ListItemIcon>
+                    <QrCodeIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>
+                    {t('Validate Bookings')}
+                  </ListItemText>
+                </MenuItem>
               )}
 
               <MenuItem onClick={() => { handleClose(); handleBookings(); }}>
@@ -385,6 +372,21 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
               </MenuItem>
 
               <Divider />
+
+              {isOperator && (
+                <>
+                  <MenuItem onClick={() => { handleClose(); handleUsers(); }}>
+                    <ListItemIcon>
+                      <GroupIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>
+                      {t('Users')}
+                    </ListItemText>
+                  </MenuItem>
+
+                  <Divider />
+                </>
+              )}
 
               <MenuItem onClick={handleProfile}>
                 <ListItemIcon>

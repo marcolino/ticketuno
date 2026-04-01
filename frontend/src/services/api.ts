@@ -16,7 +16,7 @@ import type { FullConsent } from '@/shared/types/consent';
 import { PerformanceSeatsResponse } from '@/shared/types/performance';
 import { Layout } from '@/shared/types/layout';
 import { GeneralSetupType } from '@/shared/types/generalSetup';
-import { /*ActiveBookingInfo,*/ GuardResult, GuardedDeleteResult, GuardedUpdateResult } from '@/shared/types/guard';
+import { GuardResult, GuardedDeleteResult, GuardedDeleteResultBulk, GuardedUpdateResult } from '@/shared/types/guard';
 import { i18n }  from '@/i18n'; 
 
 //const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
@@ -357,12 +357,12 @@ export const userApi = {
   getAllUsers: () =>
     api.get<User[]>(`/users`),
 
-  delete: (userId: string) =>
-    api.delete<GuardedDeleteResult>(`/users/${userId}`),
+  // delete: (userId: string) =>
+  //   api.delete<GuardedDeleteResult>(`/users/${userId}`),
   delete: (userIds: string | string[]) => {
-    const ids = Array.isArray(userIds) ? userIds : [userIds];
-    return api.delete<BulkDeleteResult>('/users', { data: { ids } });
-},
+    //const ids = Array.isArray(userIds) ? userIds : [userIds];
+    return api.delete<GuardedDeleteResultBulk>('/users', { data: { ids: Array.isArray(userIds) ? userIds : [userIds] } });
+  },
 };
 
 export const theaterApi = {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/contexts/ToastContext";
-import { getErrorMessage } from "@/utils/misc";
+import { getErrorMessage } from "@/shared/utils/misc";
 import useNavigate from "@/hooks/useNavigate";
 
 export type TabValue = "login" | "register" | "verify" | "forgot" | "reset";

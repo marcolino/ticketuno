@@ -45,7 +45,7 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({
     }
 
     // Set timeout to actually event loading after delay
-    eventTimeoutRef.current = setTimeout(() => {
+    eventTimeoutRef.current = window.setTimeout(() => {
       setLoadingCount(prev => prev + 1);
       setForceVisible(false);
       eventTimeoutRef.current = null;
@@ -77,7 +77,7 @@ export const LoadingProvider: React.FC<LoadingProviderProps> = ({
       // Handle minimum display time
       if (newCount === 0 && minLoadingTime > 0) {
         setForceVisible(true);
-        hideTimeoutRef.current = setTimeout(() => {
+        hideTimeoutRef.current = window.setTimeout(() => {
           setForceVisible(false);
           hideTimeoutRef.current = null;
         }, minLoadingTime);

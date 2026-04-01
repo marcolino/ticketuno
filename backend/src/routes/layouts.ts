@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { database } from '../db/database';
-import { authenticateToken, requireOperator, AuthRequest } from '../middleware/auth';
+import { authenticateToken, requireOperator } from '../middleware/auth';
+import { AuthRequest } from '../shared/types/auth';
 import { Layout } from '../shared/types/layout';
 import { i18n } from '../i18n';
-import { getErrorMessage } from '../utils/errorHandler';
+import { getErrorMessage } from '../shared/utils/misc';
 
 const router = Router();
 

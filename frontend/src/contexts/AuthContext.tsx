@@ -62,7 +62,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   const loadProfile = useCallback(async () => {
     try {
-      const response = await userApi.getProfile();
+      const response = await userApi.getProfile(user!.id ?? null);
 
       const rawUser = response.data;
       console.log("******************* typeof rawUser.consent:", typeof rawUser.consent, rawUser.consent);

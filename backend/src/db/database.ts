@@ -8,7 +8,7 @@ import { User, NewUser } from '../shared/types/user';
 import { Theater, TheaterStatus, EventStatus, SeatStatus, Seat } from '../shared/types/theater';
 import { Layout } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
-import { GeneratedSeat/*, SpecialCondition*/ } from '../shared/types/layoutToSeats';
+import { GeneratedSeat } from '../shared/types/seat';
 import { FullConsent } from '../shared/types/consent';
 import { Booking, BookingStatus, BookingQueryOptions } from '../shared/types/booking';
 import { GeneralSetupType } from '../shared/types/generalSetup';

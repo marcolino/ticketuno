@@ -19,6 +19,7 @@ const config: AppConfig = {
     },
     defaultLanguage: 'it',
     defaultTimezone: 'Europe/Rome',
+    defaultPhonePrefix: '+39',
     currencies: {
       EUR: { symbol: '€', name: 'Euro' },
       USD: { symbol: '$', name: 'US Dollar' },

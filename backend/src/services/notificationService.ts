@@ -1,4 +1,4 @@
-import { getErrorMessage } from '../utils/errorHandler';
+import { getErrorMessage } from '../shared/utils/misc';
 import config from '../shared/config';
 
 export const audit = async (message: string) => {

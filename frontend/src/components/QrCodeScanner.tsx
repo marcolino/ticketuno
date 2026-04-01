@@ -212,7 +212,8 @@ const successPop = keyframes`
 
 // Countdown ring shrinks from full circle to nothing over `duration` seconds
 // TODO: why duration is not used ?
-const cooldownShrink = (duration: number) => keyframes`
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const cooldownShrink = (_duration: number) => keyframes`
   0%   { stroke-dashoffset: 0; }
   100% { stroke-dashoffset: 126; }   /* 2π × r=20 ≈ 126 */
 `;
