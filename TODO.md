@@ -14,12 +14,12 @@ common:
  - 2 - OK - change " into ' (in JS, not in HTML)
  - 2 - OK - make a cookies popup (even if we only use localstorage for technical goals, and not cookies?)
  - 2 - OK - unifiy backend/src/utils/misc.ts and frontend/src/utils/misc.ts to shared/utils/misc.ts
+ - 3 - OK - use some tool to find unused code and components (ts-prune)
+ - 3 - OK - implement an auditing system - "Audit Implementation Guide" with ChatGPT (done instead with slack)
+ - 1 - OK - resolve all TypeScript warnings in code
  - 1 -    - remove all comments in code
  - 1 -    - resolve all TODO's in code
- - 1 -    - resolve all TypeScript warnings in code
  - 2 -    - make a /privacy and a /terms page
- - 3 - OK - use some tool to find unused code and components (ts-prune)
- - 3 -    - implement an auditing system - "Audit Implementation Guide" with ChatGPT
 
  backend:
  - 1 - OK - add passepartout
@@ -39,23 +39,23 @@ common:
  - 1 - OK - verify when we accept consent for marketing emails, and then follow the unsubscribe link,
             we should NOT get "you did already unsubscribe from marketing emails"
  - 1 - OK - check if google users can access via standard email/password, or if error is handled correctly
+ - 1 - OK - pass explicit language to all services (email, hmac, setup, ticket)
+ - 1 - OK - check why migrations do fail in production (99999_...)
+ - 1 - OK - complete tickets buy process, sending an email to user with the ticket (with a QRCode?)
  - 2 - OK - when logging in with email/pass, if no password in user and a social auth id uis present, return an error code
             "SOCIAL_USER_LOGGING_WITH_EMAIL", and in frontend tell user she did access originally with socail auth, so
             she can try with it, or set up a password, with buttons for social auth and for password reset
- - 1 - OK - pass explicit language to all services (email, hmac, setup, ticket)
- - 1 - OK - check why migrations do fail in production (99999_...)
+ - 2 - OK - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
  - 1 -    - when saving a new performance, check if the theater linked to the event of the performance
-            has other performances on that date/time
+            has other performances on that date/time (and all guards)
  - 1 -    - complete tickets buy process, optionally redirecting to stripe for payment
- - 1 -    - complete tickets buy process, sending an email to user with the ticket (with a QRCode?)
  - 2 -    - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API...";
             make a backup before proceeding with implementation
- - 2 -    - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
  - 2 -    - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
  - 3 -    - make a script to backup database
- - 3 -    - schedule job to backup database daily, in production
+ - 3 -    - schedule job to call the script to backup database daily
  - 3 -    - make a method to clean up unreferenced images from /data/images
- - 3 -    - schedule job to call the method to clean up unreferenced images
+ - 3 -    - schedule job to call the method to clean up unreferenced images, weekly
  - 3 -    - before using analytics and marketing cookies, always check:
             const { canUseAnalytics, canUseMarketingCookies } = useConsent();
  - 3 -    - implement a real logging system
@@ -102,22 +102,16 @@ common:
             events with booked performances...
  - 2 - OK - in footer print also process.env.GIT_COMMIT_DATE
  - 3 - OK - in LayoutEdit, add a 'signle seat' mode, to mark single seats as absent, vip, handicap, baby, unavailable
- - 1 - OK - rename Profile to UserEdit (no)
- - 1 -    - rename Event/Theater/Layout List to Events/Theaters/Layouts List
+ - 3 - OK - rename Profile to UserEdit (no)
+ - 3 - OK - rename Event/Layout/Theater List to Events/Theaters/Layouts List (no...)
  - 1 -    - in all components, handle errors using import { getErrorMessage } from '@/utils/misc';
  - 1 -    - in all components, check for setError: always add toast.error, and possibly remove Alert's for errors
- - 1 -    - in all components, always use getErrorMessage() (import { getErrorMessage } from '@/utils/misc';)
  - 1 -    - PWA handling - "PWA setup automation for theater booking system" with Claude
  - 2 -    - while uploading an image, enable editing it
- - 2 -    - before saving a new performance, call a new method:
-            isTheaterAvailableForPerformance(theater, performance)...
-            there could already exist a performance for any event linked to the theater to which
-            the current event is linked; if it is the case, we should warn the user that performance
-            can't be added, because an overlappi ng performance already exists on an event linked
-            to the same theater of the event for which we are trying to add this new booking...
  - 2 -    - add check for changes in all components (when dirty), before navigating away
  - 2 -    - add privacy and terms links in the register page
- - 2 -    - in setup/privacy add Terms and Privacy pages, and link to open consent dialog
+ - 2 -    - in profile (or in setup/privacy?) add Terms and Privacy pages, and link to open consent dialog
+ - 2 -    - implement a mailing systemto send bulk emails to a list of users, with variables
  - 3 -    - find if and where to suggest user to open consent dialog to enable missing consent
             (for pushNotifications for example)
  - 3 -    - add all users profile handling

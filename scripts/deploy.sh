@@ -206,7 +206,7 @@ fly deploy --app "${APP_NAME}" --regions "${REGIONS}" ${CACHE_FLAGS}
 
 echo ""
 echo "Versions:"
-echo "  backend:  v${BACKEND_VERSION}  (tag: $(get_last_tag backend))"
+echo "  backend:  v${BACKEND_VERSION} (tag: $(get_last_tag backend))"
 echo "  frontend: v${FRONTEND_VERSION} (tag: $(get_last_tag frontend))"
 echo ""
 echo "✅ Deploy complete at https://${APP_NAME}.fly.dev"
