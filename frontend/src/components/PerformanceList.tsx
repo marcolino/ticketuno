@@ -55,7 +55,7 @@ import 'dayjs/locale/it';
 import 'dayjs/locale/en';
 import 'dayjs/locale/fr';
 import Alert from './Alert';
-import { useToast } from '@/contexts/ToastContext';
+//import { useToast } from '@/contexts/ToastContext';
 //import { useLoading } from '@/contexts/LoadingContext';
 import { eventApi } from '@/services/api';
 import { getErrorMessage } from '@/shared/utils/misc';
@@ -89,7 +89,7 @@ const PerformanceList: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
 
-  const toast = useToast();
+  //const toast = useToast();
   
   // DataGrid v8 selection state
   const [selectedRows, setSelectedRows] = useState<GridRowSelectionModel>({

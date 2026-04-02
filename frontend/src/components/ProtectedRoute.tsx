@@ -3,7 +3,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { Box, AlertTitle, Button, CircularProgress } from '@mui/material';
+import { Box, AlertTitle, Button/*, CircularProgress*/ } from '@mui/material';
 import Alert from './Alert';
 
 interface ProtectedRouteProps {

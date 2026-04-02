@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  Container,
   Button,
   TextField,
   Paper,
@@ -24,9 +23,9 @@ import {
   Cancel as CancelIcon,
   ViewCompact as ViewCompactIcon,
 } from '@mui/icons-material';
-import { useDialog } from '../contexts/DialogContext';
+//import { useDialog } from '../contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
-import PageHeader from './PageHeader';
+//import PageHeader from './PageHeader';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
 import Alert from './Alert';
@@ -35,7 +34,7 @@ import { layoutApi, theaterApi } from '@/services/api';
 import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
 import { SpecialCondition } from '@/shared/types/seat';
 import { generateSeats,  } from '@/shared/utils/layoutToSeats';
-import { useAuth } from '@/contexts/AuthContext';
+//import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
 
@@ -60,7 +59,7 @@ const LayoutEdit: React.FC = () => {
 
   const isEditMode = id && id !== 'new';
   
-  const showDialog = useDialog();
+  //const showDialog = useDialog();
   
   // Get theater data and return path from location state
   //const { theaterData, returnTo, theaterId: theaterIdFromState } = location.state as LocationState || {};
@@ -77,7 +76,7 @@ const LayoutEdit: React.FC = () => {
     theaterIdFromState || undefined
   );
   
-  const { isOperator } = useAuth();
+  //const { isOperator } = useAuth();
   const [saving, setSaving] = useState(false);
   //const [error, setError] = useState('');
 
@@ -538,11 +537,11 @@ const LayoutEdit: React.FC = () => {
                 <ViewCompactIcon fontSize="large" /> {isEditMode ? t('Edit Layout') : t('Create New Layout')}
               </Typography>
 
-              {/* {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
+              {error && (
+                <Alert severity="error">
                   {error}
                 </Alert>
-              )} */}
+              )}
 
             </Box>
 
