@@ -27,10 +27,10 @@ if [ "$answer" != "Y" -a "$answer" != "y" ]; then
   exit 0
 fi
 
-echo "💣 Destroy the Stuck Machine..."
-fly machine destroy "${MACHINE_ID}" -a "$APP_NAME" --force
+echo "💣 Destroy the machine..."
+fly machine destroy "${MACHINE_ID}" -a "$APP_NAME" --yes
 echo "💣 Destroy the volume..."
-fly volumes destroy "${VOLUME_ID}" -a "$APP_NAME" --force
+fly volumes destroy "${VOLUME_ID}" -a "$APP_NAME" --yes
 
 echo "machine and volume destroyed; you can deploy now"
 exit 0

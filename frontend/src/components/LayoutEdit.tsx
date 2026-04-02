@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
+  Container,
   Button,
   TextField,
   Paper,
@@ -25,8 +26,10 @@ import {
 } from '@mui/icons-material';
 import { useDialog } from '../contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
+import PageHeader from './PageHeader';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
+import Alert from './Alert';
 import SeatMarkingToolbar, { MarkingCondition } from './SeatMarkingToolbar';
 import { layoutApi, theaterApi } from '@/services/api';
 import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
@@ -82,6 +85,8 @@ const LayoutEdit: React.FC = () => {
   
   const [markingActive, setMarkingActive] = useState(false);
   const [markingCondition, setMarkingCondition] = useState<MarkingCondition | null>(null);
+  
+  const [error, setError] = useState('');
 
   // Layout fields
   const SECTION_VERTICAL_GAP = 115;
@@ -165,10 +170,10 @@ const LayoutEdit: React.FC = () => {
       
       setTheaterName(theater.name);
       setTheaterDescription(theater.description || '');
-      //setError('');
+      setError('');
     } catch (error) {
-      //setError(err.response?.data?.error || t('Failed to load theater'));
-      toast.error(t('Failed to load theater: {{err}}', { err: getErrorMessage(error) }));
+      setError(getErrorMessage(error));
+      //toast.error(t('Failed to load theater: {{err}}', { err: getErrorMessage(error) }));
     }
   }, [t]);
 
@@ -185,7 +190,9 @@ const LayoutEdit: React.FC = () => {
         setIsEditable(layout.isEditable ?? true);
 
         // Disable all inputs and hide marking toolbar when locked:
-        if (!layout.isEditable) { // TODO: handle layout.lockInfo ...
+        // TODO: handle layout.lockInfo ...
+        /*
+        if (!layout.isEditable) {
           toast.warning(t('This layout cannot be modified')); // some active booking is present...
           if (layout.lockInfo) {
             const reservedTotal = layout.lockInfo.reduce((sum, lock) => sum + lock.reserved, 0);
@@ -225,6 +232,7 @@ const LayoutEdit: React.FC = () => {
           }
           //console.warn("Layout is read-only:", layout)
         }
+        */
 
         // If we have theaterId from the layout, load theater details
         if (layout.theaterId) {
@@ -232,18 +240,18 @@ const LayoutEdit: React.FC = () => {
         }
         //setError('');
       } catch (error) {
-        //setError(err.response?.data?.error || t('Failed to load layout'));
-        toast.error(t('Failed to load layout: {{err}}', { err: getErrorMessage(error) }));
+        setError(getErrorMessage(error));
+        //toast.error(t('Failed to load layout: {{err}}', { err: getErrorMessage(error) }));
       }
     }
   }, [id, t, loadTheater]);
 
-  useEffect(() => {
-    if (!isOperator) {
-      navigate(-1);
-      return;
-    }
-  }, [isOperator, navigate]);
+  // useEffect(() => {
+  //   if (!isOperator) {
+  //     navigate(-1);
+  //     return;
+  //   }
+  // }, [isOperator, navigate]);
 
   useEffect(() => {
     // If we have theaterData from location state, use it
@@ -465,10 +473,11 @@ const LayoutEdit: React.FC = () => {
           replace: true, 
         });
       } else {
-        navigate(-1 );
+        navigate(-1);
       }
-    } catch (error: any) {
-      toast.error(t('Failed to save layout: {{err}}', { err: error.response?.data?.error }));
+    } catch (error) {
+      console.error(error);
+      toast.error(t('Failed to save layout: {{err}}', { err: getErrorMessage(error) }));
     } finally {
       setSaving(false);
     }
@@ -477,11 +486,14 @@ const LayoutEdit: React.FC = () => {
   // Cancel layout
   const cancel = async () => {
     // Navigate back with original theater data
-    navigate(returnTo || '/layouts', {
-      state: { theaterData },
-      replace: true, 
-    });
-    //navigate(returnTo || '/layouts');
+    if (returnTo) {
+      navigate(returnTo || '/layouts', {
+        state: { theaterData },
+        replace: true,
+      });
+    } else {
+      navigate('/layouts');
+    }
   };
   
   const activeConditions = useMemo(() => {
@@ -583,7 +595,7 @@ const LayoutEdit: React.FC = () => {
                       onChange={(e) => updateStage('label', e.target.value)}
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid item xs={6} sm={3}>
                     <TextField
                       fullWidth
                       label={t('X Position')}
@@ -592,7 +604,7 @@ const LayoutEdit: React.FC = () => {
                       onChange={(e) => updateStage('x', parseFloat(e.target.value))}
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid item xs={6} sm={3}>
                     <TextField
                       fullWidth
                       label={t('Y Position')}
@@ -601,7 +613,7 @@ const LayoutEdit: React.FC = () => {
                       onChange={(e) => updateStage('y', parseFloat(e.target.value))}
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid item xs={6} sm={3}>
                     <TextField
                       fullWidth
                       label={t('Width')}
@@ -610,7 +622,7 @@ const LayoutEdit: React.FC = () => {
                       onChange={(e) => updateStage('width', parseFloat(e.target.value))}
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid item xs={6} sm={3}>
                     <TextField
                       fullWidth
                       label={t('Height')}
@@ -680,7 +692,7 @@ const LayoutEdit: React.FC = () => {
                           onChange={(e) => updateSection(sectionIndex, 'label', e.target.value)}
                         /> */}
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid item xs={6} sm={3}>
                         <TextField
                           fullWidth
                           label={t('Origin X')}
@@ -689,7 +701,7 @@ const LayoutEdit: React.FC = () => {
                           onChange={(e) => updateSection(sectionIndex, 'origin.x', parseFloat(e.target.value))}
                         />
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid item xs={6} sm={3}>
                         <TextField
                           fullWidth
                           label={t('Origin Y')}
@@ -698,7 +710,7 @@ const LayoutEdit: React.FC = () => {
                           onChange={(e) => updateSection(sectionIndex, 'origin.y', parseFloat(e.target.value))}
                         />
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid item xs={6} sm={3}>
                         <TextField
                           fullWidth
                           label={t('Row Spacing')}
@@ -707,7 +719,7 @@ const LayoutEdit: React.FC = () => {
                           onChange={(e) => updateSection(sectionIndex, 'rowSpacing', parseFloat(e.target.value))}
                         />
                       </Grid>
-                      <Grid item xs={6}>
+                      <Grid item xs={6} sm={3}>
                         <TextField
                           fullWidth
                           label={t('Seat Spacing')}
@@ -734,7 +746,7 @@ const LayoutEdit: React.FC = () => {
                         {section.rows.map((row, rowIndex) => (
                           <Paper key={rowIndex} variant="outlined" sx={{ p: 2, mb: 2 }}>
                             <Grid container spacing={1} alignItems="center">
-                              <Grid item xs={2}>
+                              <Grid item xs={3}>
                                 <TextField
                                   fullWidth
                                   label={t('Row')}
@@ -755,7 +767,7 @@ const LayoutEdit: React.FC = () => {
                                   size="small"
                                 />
                               </Grid>
-                              <Grid item xs={3}>
+                              <Grid item xs={2}>
                                 <TextField
                                   fullWidth
                                   label={t('Curve')}
@@ -820,7 +832,7 @@ const LayoutEdit: React.FC = () => {
                   variant="outlined"
                   startIcon={<CancelIcon />}
                   onClick={cancel}
-                  size="small"
+                  //size="small"
                 >
                   {t('Cancel')}
                 </Button>
@@ -831,7 +843,7 @@ const LayoutEdit: React.FC = () => {
                   onClick={save}
                   onMouseDown={(e) => e.preventDefault()} // to avoid requiring a double tap on mobile
                   disabled={!isEditable || saving}
-                  size="small"
+                  //size="small"
                 >
                   {saving ? t('Saving...') : t('Save')}
                   </Button>

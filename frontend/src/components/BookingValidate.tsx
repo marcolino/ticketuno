@@ -259,6 +259,7 @@ export const BookingValidate: React.FC = () => {
     }
   }, [t]);
 
+  
   // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <Stack spacing={2} sx={{ p: { xs: 2, sm: 3 }, maxWidth: 560, mx: 'auto' }}>

@@ -32,7 +32,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
-import PageHeader from "./PageHeader";
+import Alert from './Alert';
+import PageHeader from './PageHeader';
 //import type { CurrencyCode } from '@/shared/config';
 import config from '@/config';
 //import { __test } from '@/shared/config';
@@ -40,35 +41,38 @@ import config from '@/config';
 const EventList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOperator } = useAuth();
+  const { isOperator, loading } = useAuth();
   const toast = useToast();
   const showDialog = useDialog();
   const [events, setEvents] = useState<EventStats[]>([]);
-  //const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     //if (isOperator) {
-      loadEvents();
+    loadEvents();
     //} else {
     //  toast.error(t('You must have at least \'operator\' role to access this page'));
     //}
-  }, [isOperator]);
+  }, [/*isOperator*/]);
 
   const loadEvents = async () => {
     try {
       const response = await eventApi.getAllEvents();
       //console.log('EVENTS:', response.data);
-      if (!Array.isArray(response.data)) { // TODO: safety check only, should not be necessary!
-        throw new Error(t('Error getting events: {{err}}', { err: response.data }));
+      if (Array.isArray(response.data)) {
+        setEvents(response.data);
+      } else {
+        setError(t('Invalid events received'));
       }
       setEvents(response.data);
-      if (response.data.length === 0) {
-        toast.info(t('No events available'));
-      }
+      // if (response.data.length === 0) {
+      //   toast.info(t('No events available'));
+      // }
       //setError(null);
     } catch (error) {
+      setError(getErrorMessage(error));
       //const msg = getErrorMessage(error);
-      toast.error(getErrorMessage(error));
+      //toast.error(getErrorMessage(error));
       //setError(t('Failed to load events: {{err}}', { err: msg }));
       //console.error(err);
     }
@@ -110,40 +114,6 @@ const EventList: React.FC = () => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  // const getEventStatus = (event, now = new Date()) => {
-  //   const { startDate, endDate, operatorStatus } = event;
-
-  //   if (operatorStatus === 'canceled') {
-  //     return 'canceled';
-  //   }
-
-  //   if (!startDate && !endDate) {
-  //     return 'in progress'; // we assume an open event, it is always 'in progress'
-  //   }
-
-  //   if (!startDate) { // we asseume an open-start event
-  //     if (now <= endDate) return 'in progress';
-  //     if (now > endDate) return 'completed';
-  //   }
-
-  //   if (!endDate) { // we asseume an open-end event
-  //     if (now < startDate) return 'scheduled';
-  //     if (now >= startDate) return 'in progress';
-  //   }
-
-  //   if (now < startDate) {
-  //     return 'scheduled';
-  //   }
-
-  //   if (now >= startDate && now <= endDate) {
-  //     return 'in progress';
-  //   }
-
-  //   if (now > endDate) {
-  //     return 'completed';
-  //   }
-  // }
-  
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'scheduled': return 'primary';
@@ -154,7 +124,17 @@ const EventList: React.FC = () => {
     }
   };
 
-  //alert(events.length);
+  // if (error) {
+  //   return (
+  //     <Alert severity="error">
+  //       {error}
+  //     </Alert>
+  //   );
+  // }
+
+  // if (loading) {
+  //   return null;
+  // }
 
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
@@ -168,15 +148,15 @@ const EventList: React.FC = () => {
         onAdd={() => navigate('/event/new')}
       />
 
-      {/* {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+      {error && (
+        <Alert severity="error">
           {error}
         </Alert>
-      )} */}
+      )}
 
-      {/* {!error && events.length === 0 && (
+      {!loading && !error && events.length === 0 && (
         <Alert severity="info">{t('No events available')}</Alert>
-      )} */}
+      )}
 
       <Grid container spacing={3}>
         {events.map(event => {

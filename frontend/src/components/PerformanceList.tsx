@@ -8,7 +8,6 @@ import {
   Button,
   Paper,
   Grid,
-  Alert,
   Chip,
   MenuItem,
   IconButton,
@@ -55,8 +54,11 @@ import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/it';
 import 'dayjs/locale/en';
 import 'dayjs/locale/fr';
+import Alert from './Alert';
 import { useToast } from '@/contexts/ToastContext';
+//import { useLoading } from '@/contexts/LoadingContext';
 import { eventApi } from '@/services/api';
+import { getErrorMessage } from '@/shared/utils/misc';
 import { EventWithDetails, EventPerformance } from '@/shared/types/event';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
@@ -77,14 +79,14 @@ interface EventPerformanceForm {
   updatedAt?: string;
 }
 
-const EventDetails: React.FC = () => {
+const PerformanceList: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { isOperator } = useAuth();
+  const { isOperator, loading} = useAuth();
 
   const [event, setEvent] = useState<EventWithDetails | null>(null);
   const [performances, setPerformances] = useState<EventPerformance[]>([]);
-  const [loading, setLoading] = useState(true);
+
   const [error, setError] = useState<string | null>(null);
 
   const toast = useToast();
@@ -112,7 +114,6 @@ const EventDetails: React.FC = () => {
 
   const loadEvent = useCallback(async () => {
     try {
-      setLoading(true);
       const response = await eventApi.getEventById(id!);
       setEvent(response.data);
       
@@ -129,10 +130,10 @@ const EventDetails: React.FC = () => {
       setPerformances(filteredPerfs!);
       
       setError(null);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to load event details');
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      setError(getErrorMessage(error));
+    // } finally {
+    //   setLoading(false);
     }
   }, [id, isOperator]);
 
@@ -148,14 +149,14 @@ const EventDetails: React.FC = () => {
     }
   }, [id, loadEvent]);
 
-  useEffect(() => {
-    if (!loading && !event) {
-      toast.warning(t('Event not found'));
-    }
-    if (error) {
-      toast.warning(error);
-    }
-  }, [loading, event, error]);
+  // useEffect(() => {
+  //   if (!loading && !event) {
+  //     toast.warning(t('Event not found'));
+  //   }
+  //   if (error) {
+  //     toast.warning(error);
+  //   }
+  // }, [loading, event, error]);
 
   // Convert EventPerformance to EventPerformanceForm (for editing)
   // const performanceToForm = (perf: EventPerformance): EventPerformanceForm => ({
@@ -252,10 +253,8 @@ const EventDetails: React.FC = () => {
     try {
       await eventApi.deletePerformance(eventId, performanceId);
       await reloadEvent();
-    } catch (err: any) {
-      setError(
-        err.response?.data?.error || t('Failed to delete performance')
-      );
+    } catch (error) {
+      setError(getErrorMessage(error));
     }
   };
 
@@ -272,8 +271,8 @@ const EventDetails: React.FC = () => {
       await reloadEvent();
       setEditDialogOpen(false);
       setPerformanceToEdit(null);
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to save performance');
+    } catch (error) {
+      setError(getErrorMessage(error));
     }
   };
 
@@ -478,19 +477,7 @@ const EventDetails: React.FC = () => {
   //   );
   // }
 
-  if (error || !event) {
-    //toast.warning(t('Event not found'));
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        {/* <Alert severity="error">{error || t('Event not found')}</Alert> */}
-        <Button onClick={() => navigate('/')} sx={{ mt: 2 }}>
-           ⬅ {t('Back to Events')}
-        </Button>
-      </Container>
-    );
-  }
-
-  const posterImageUrl = event.posterImage ? `/uploads/${event.posterImage}` : null; // TODO: '/uploads' to config
+  const posterImageUrl = event && event.posterImage ? `/uploads/${event.posterImage}` : null; // TODO: '/uploads' to config
 
   // Performance card component for mobile
   const MobilePerformanceCard = ({ performance }: { performance: EventPerformance }) => (
@@ -531,6 +518,22 @@ const EventDetails: React.FC = () => {
       </CardContent>
     </Card>
   );
+
+  if (error) {
+    return (
+      <Alert severity="error">
+        {error}
+      </Alert>
+    )
+  }
+  
+  if (!event) {
+    return (
+      <Alert severity="warning">
+        {t('No events present')}
+      </Alert>
+    );
+  }
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -941,4 +944,4 @@ const EventDetails: React.FC = () => {
   );
 };
 
-export default EventDetails;
+export default PerformanceList;

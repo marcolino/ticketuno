@@ -69,7 +69,7 @@ interface ImageUploadEditPopupProps {
   fixedAspectRatio?: number;
   maxSizeMB?: number;
   title?: string;
-  simpleMode?: boolean;                         // ← NEW
+  simpleMode?: boolean;
 }
 
 type StepName = 'upload' | 'confirm' | 'success' | 'edit' | 'preview';
@@ -95,7 +95,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   fixedAspectRatio,
   maxSizeMB = 5,
   title = 'Upload & Edit Image',
-  simpleMode = false,                           // ← NEW, defaults to full mode
+  simpleMode = false,
 }) => {
   const { t } = useTranslation();
 

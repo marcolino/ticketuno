@@ -20,10 +20,10 @@ const ActiveBookingsWarning: React.FC<Props> = ({ bookings, actionDescription })
 
   return (
     <Box>
-      <Typography variant="h5" color="error" fontWeight={600} gutterBottom>
+      <Typography variant="h5" sx={{ backgroundColor: "error" }} fontWeight={600} gutterBottom>
         {actionDescription ?? t('This action can\'t be performed, it would disrupt active bookings.')}
       </Typography>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="body2" gutterBottom>
         {t('The following confirmed bookings are affected:')}
       </Typography>
       <Box sx={{ maxHeight: '40vh', overflowY: 'auto', mt: 1 }}>

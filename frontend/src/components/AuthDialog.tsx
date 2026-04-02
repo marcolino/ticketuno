@@ -25,20 +25,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
+import { AuthDialogProps, TabValue } from '@/shared/types/auth';
 
-interface LoginDialogProps {
-  open: boolean;
-  onClose: () => void;
-}
+// interface LoginDialogProps {
+//   open: boolean;
+//   onClose: () => void;
+// }
 
-type TabValue = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
+//type TabValue = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
-const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
+const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "login" }) => {
   const { login, register, verifyEmail, resendVerification, forgotPassword, resetPassword/*, googleLogin*/ } = useAuth();
   const navigate = useNavigate();
   const showDialog = useDialog();
 
-  const [tab, setTab] = useState<TabValue>('login');
+  const [tab, setTab] = useState<TabValue>(initialTab);
   //const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [eventPassword, setEventPassword] = useState(false);
@@ -72,6 +73,13 @@ const AuthDialog: React.FC<LoginDialogProps> = ({ open, onClose }) => {
       resetForms();
     }
   }, [open]);
+
+  // Sync when initialTab changes (e.g., dialog re-opened with different tab)
+  useEffect(() => {
+    if (open) {
+      setTab(initialTab);
+    }
+  }, [open, initialTab]);
 
   // // This effect covers production autofill quirks and prevents the “Forgot Password” tab from appearing unexpectedly.
   // useEffect(() => {

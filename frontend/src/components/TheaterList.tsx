@@ -28,7 +28,7 @@ import { Theater } from '@/shared/types/theater';
 import { getErrorMessage } from '@/shared/utils/misc';
 //import ActiveBookingsWarning from './ActiveBookingsWarning';
 import { handleGuardResult } from '@/utils/guardHandler';
-import PageHeader from "./PageHeader";
+import PageHeader from './PageHeader';
 
 const TheaterList: React.FC = () => {
   const { t } = useTranslation();

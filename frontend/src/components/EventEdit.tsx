@@ -10,7 +10,6 @@ import {
   Paper,
   TextField,
   Grid,
-  //Alert,
   FormControl,
   FormControlLabel,
   Switch,
@@ -32,14 +31,12 @@ import { eventApi, theaterApi, imageApi } from '@/services/api';
 import { Event, EventPerformance } from '@/shared/types/event';
 import { TheaterStats } from '@/shared/types/theater';
 import { useAuth } from '@/contexts/AuthContext';
-//import { useSetup } from '@/contexts/SetupContext';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
 import TagSelector from './TagSelector';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
 import { CastEditor, type CastEntry } from './CastEditor'; 
-//import type { CurrencyCode } from '@/shared/config';
 import config from '@/config';
 
 
@@ -84,12 +81,10 @@ const EventEdit: React.FC = () => {
   
   const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [saving, setSaving] = useState(false);
-  //const [error, setError] = useState('');
 
   // Event fields
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  //const [genre, setGenre] = useState('');
   const [genres, setGenres] = useState<string[]>([]);
   const [durationMinutes, setDurationMinutes] = useState<number>(120);
   const [intermissionCount, setIntermissionCount] = useState<number>(1);
@@ -104,39 +99,28 @@ const EventEdit: React.FC = () => {
   const [canceled, setCanceled] = useState(false);
   const [cancelationReason, setCancelationReason] = useState('');
   const [theaterId, setTheaterId] = useState('');
-
   const [openingDate, setOpeningDate] = useState<Dayjs | null>(null);
   const [closingDate, setClosingDate] = useState<Dayjs | null>(null);
   const [typicalStartTime, setTypicalStartTime] = useState<Dayjs | null>(null);
   const [typicalEndTime, setTypicalEndTime] = useState<Dayjs | null>(null);
-
-  //const [currency, setCurrency] = useState<CurrencyCode>(config.app.defaultCurrency); // if we will need a user selectable default currency, we will read from it...
   const [currency, setCurrency] = useState(config.app.defaultCurrency);
   const [baseTicketPrice, setBaseTicketPrice] = useState<number>(0); // TODO: to config
   const [baseTicketPriceDisplay, setBaseTicketPriceDisplay] = useState(baseTicketPrice.toFixed(2));
-  
   const [specialRequirements, setSpecialRequirements] = useState('');
   const [minimumAge, setMinimumAge] = useState<number>(0);
-
   const [contentWarnings, setContentWarnings] = useState('');
   const [status, setStatus] = useState<'scheduled' | 'in progress' | 'completed' | 'canceled'>('scheduled');
-  // Performances
   const [performances, setPerformances] = useState<Partial<EventPerformance>[]>([]);
-
-  // Image upload state
   const [posterImage, setPosterImage] = useState<string | null>(null);
   const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
 
   const loadEvent = useCallback(async (overrideTheaterId?: string) => {
-    //toast.info('loading');
     try {
       const response = await eventApi.getEventById(id!);
       const event = response.data;
       
       setTitle(event.title);
       setDescription(event.description || '');
-      //setGenre(event.genre || '');
-      //setGenres(JSON.parse(event.genres || ''));
       if (event.genres) {
         setGenres(typeof event.genres === 'string' ? JSON.parse(event.genres) : event.genres);
       }
@@ -163,7 +147,6 @@ const EventEdit: React.FC = () => {
       setCurrency(event.currency);
       setBaseTicketPrice(event.baseTicketPrice);
       setBaseTicketPriceDisplay(event.baseTicketPrice.toFixed(2));
-      //setCurrency(event.currency as any);
       setSpecialRequirements(event.specialRequirements || '');
       setMinimumAge(event.minimumAge || 0);
       setPosterImage(event.posterImage || null);
@@ -177,18 +160,16 @@ const EventEdit: React.FC = () => {
       }
 
       setTheaterId(overrideTheaterId ?? event.theaterId); // Use override if provided
-
-      //setError('');
     } catch (error: any) {
       toast.error(getErrorMessage(error));
     }
   }, [id, toast]);
 
   useEffect(() => {
-    if (!isOperator) {
-      navigate(-1);
-      return;
-    }
+  //   if (!isOperator) {
+  //     navigate(-1);
+  //     return;
+  //   }
 
     const state = (location.state as any)?.eventData;
     const incomingTheaterId = (location.state as any)?.eventData?.selectedTheaterId as string | undefined;
@@ -393,23 +374,6 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          {/* <Grid item xs={12} md={4}>
-            <FormControl fullWidth required>
-              <InputLabel>{t('Status')}</InputLabel>
-              <Select
-                value={status}
-                label={t('Status')}
-                onChange={(e) => setStatus(e.target.value as any)}
-              >
-                <MenuItem value="scheduled">{t('Scheduled')}</MenuItem>
-                <MenuItem value="in progress">{t('In Progress')}</MenuItem>
-                <MenuItem value="completed">{t('Completed')}</MenuItem>
-                <MenuItem value="canceled">{t('canceled')}</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid> */}
-          
-
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -422,13 +386,6 @@ const EventEdit: React.FC = () => {
           </Grid>
 
           <Grid item xs={6}>
-            {/* <TextField
-              fullWidth
-              label={t('Genre')}
-              value={genre}
-              onChange={(e) => setGenre(e.target.value)}
-              placeholder={t('Drama, Comedy, Musical, etc.')}
-            /> */}
             <TagSelector
               label={t('Genere')}
               storageKey='eventGenresCustom'
@@ -437,28 +394,9 @@ const EventEdit: React.FC = () => {
               onChange={setGenres}
               multiple
             />
-            {/* <TagSelector
-              label={t('Genere')}
-              storageKey='genresCustom'
-              value={genres}
-              onChange={setGenres}
-              defaultOptions={[
-                'Comedy',
-                'Drama',
-                'Opera',
-                'Musical',
-                'Tragedy'
-              ]}
-            /> */}
           </Grid>
 
           <Grid item xs={6}>
-            {/* <TextField
-              fullWidth
-              label={t('Language')}
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-            /> */}
             <TagSelector
               label={t('Language')}
               storageKey='eventLanguageCustom'
@@ -492,13 +430,6 @@ const EventEdit: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} md={4}>
-            {/* <TextField
-              fullWidth
-              label={t('Rating')}
-              value={rating}
-              onChange={(e) => setRating(e.target.value)}
-              placeholder={t('PG, PG-13, R, etc.')}
-            /> */}
             <TagSelector
               label={t('Rating')}
               storageKey='eventRatingCustom'
@@ -719,13 +650,6 @@ const EventEdit: React.FC = () => {
                 <MenuItem key={'none'} value={''}>
                   {t('none')}
                 </MenuItem>
-                {/*
-                {Object.values(config.app.currencies).map((currency) => (
-                  <MenuItem key={currency.name} value={currency.symbol}>
-                    {currency.symbol} ({currency.name})
-                  </MenuItem>
-                ))}
-                */}
                 {Object.entries(config.app.currencies).map(([key, currency]) => (
                   <MenuItem key={key} value={key}>
                     {currency.symbol} ({currency.name})
@@ -746,19 +670,6 @@ const EventEdit: React.FC = () => {
                 setBaseTicketPrice(parseFloat(e.target.value) || 0)
               }}
               onFocus={() => {}}
-              // onFocus={() => { // BAD!!!
-              //   if (baseTicketPrice === 0) {
-              //     setBaseTicketPriceDisplay('');
-              //   } else {
-              //     setBaseTicketPriceDisplay(baseTicketPrice.toString());
-              //   }
-              // }}
-              // onFocus={() => {
-              //   const newValue = baseTicketPrice === 0 ? '' : baseTicketPrice.toString();
-              //   if (newValue !== baseTicketPriceDisplay) {
-              //     setBaseTicketPriceDisplay(newValue);
-              //   }
-              // }}
               onBlur={() => {
                 setBaseTicketPriceDisplay(baseTicketPrice.toFixed(2))
               }}
@@ -812,13 +723,6 @@ const EventEdit: React.FC = () => {
                 }
                 setPosterImage(null);
               }}
-              // uploadedImage={uploadedImages.poster}
-              // onUploadClick={() => {
-              //   setActiveImageType('poster');
-              //   setIsImageUploadPopupOpen(true);
-              // }}
-              // onPreviewClick={() => handleOpenPreview('poster')}
-              // onClearClick={() => handleClearImage('poster')}
             />
           </Grid>
           {isAtLeastMd && (
@@ -873,69 +777,6 @@ const EventEdit: React.FC = () => {
             </Grid>
           )}
 
-          {/* Performances */}
-          {/* {isEditMode && ( // Show Performances button only when editing event
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2, mb: 2 }}>
-                <Button
-                  startIcon={<TheaterComedyIcon />}
-                  onClick={() => navigate(`/event/${id}`)}
-                  variant="outlined"
-                >
-                  {t('Performances')}
-                </Button>
-              </Box>
-            </Grid>
-          )} */}
-
-          {/*performances.map((perf, index) => (
-            <Grid item xs={12} key={index}>
-              <Paper variant="outlined" sx={{ p: 2 }}>
-                <Grid container spacing={2} alignItems="center">
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      fullWidth
-                      label={t('Performance Date')}
-                      type="date"
-                      value={perf.performanceDate || ''}
-                      onChange={(e) => updatePerformance(index, 'performanceDate', e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      label={t('Start Time')}
-                      type="time"
-                      value={perf.startTime || ''}
-                      onChange={(e) => updatePerformance(index, 'startTime', e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={3}>
-                    <TextField
-                      fullWidth
-                      label={t('End Time')}
-                      type="time"
-                      value={perf.endTime || ''}
-                      onChange={(e) => updatePerformance(index, 'endTime', e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={2}>
-                    <Button
-                      fullWidth
-                      color="error"
-                      startIcon={<DeleteIcon />}
-                      onClick={() => removePerformance(index)}
-                    >
-                      {t('Remove')}
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Paper>
-            </Grid>
-          ))*/}
         </Grid>
 
         {/* Action Buttons */}
@@ -972,7 +813,7 @@ const EventEdit: React.FC = () => {
           //setIsImageUploadPopupOpen(false); // Do not close Dialog: it shows success, user clicks Done
         }}
         imageType={'poster'}
-        simpleMode={true}
+        simpleMode={false}
         fixedAspectRatio={16/9}
         maxSizeMB={10}
         title={t('Upload poster image')}

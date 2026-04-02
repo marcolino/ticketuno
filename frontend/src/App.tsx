@@ -112,4 +112,4 @@ const { i18n } = useTranslation();
   );
 };
 
-export default App; 
+export default App;

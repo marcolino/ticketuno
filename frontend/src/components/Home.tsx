@@ -80,6 +80,8 @@ const Home: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   //const [langDialogOpen, setLangDialogOpen] = useState(false);
 
+  const [authDialogInitialTab, setAuthDialogInitialTab] = useState<"login" | "register">("login");
+
   const showDialog = useDialog();
 
   // const toggleTheme = () => {
@@ -114,25 +116,34 @@ const Home: React.FC = () => {
   //   return () => console.log('xxx Home unmounted, path was:', window.location.pathname);
   // }, []);
   
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const shouldOpenLogin = params.get("login") === "true";
+useEffect(() => {
+  const params = new URLSearchParams(location.search);
+  const authModeParam = params.get("authMode"); // "login" or "register"
+  const legacyLoginParam = params.get("login");
 
-    if (shouldOpenLogin) {
-      setAuthDialogOpen(true);
+  let initialTab: "login" | "register" | null = null;
+  if (authModeParam === "login" || legacyLoginParam === "true") {
+    initialTab = "login";
+  } else if (authModeParam === "register") {
+    initialTab = "register";
+  }
 
-      // remove query param but stay in same page
-      params.delete("login");
+  if (initialTab) {
+    setAuthDialogInitialTab(initialTab);
+    setAuthDialogOpen(true);
 
-      navigate(
-        {
-          pathname: location.pathname,
-          search: params.toString(),
-        },
-        { replace: true }
-      );
-    }
-  }, [location.search]);
+    // Remove both possible params from URL
+    params.delete("authMode");
+    params.delete("login");
+    navigate(
+      {
+        pathname: location.pathname,
+        search: params.toString(),
+      },
+      { replace: true }
+    );
+  }
+}, [location.search, navigate]);
   
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -480,6 +491,7 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
       <AuthDialog
         open={authDialogOpen}
         onClose={() => setAuthDialogOpen(false)}
+        initialTab={authDialogInitialTab}
       />
 
     </Box>

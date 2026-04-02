@@ -30,7 +30,8 @@ import { GridRowSelectionModel, DataGrid, GridColDef } from '@mui/x-data-grid';
 // import { /*DatePicker,*/LocalizationProvider } from '@mui/x-date-pickers';
 // import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
-import PageHeader from "./PageHeader";
+import Alert from './Alert';
+import PageHeader from './PageHeader';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
@@ -136,14 +137,14 @@ const UsersList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const showDialog = useDialog();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading } = useAuth();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [users, setUsers] = useState<UserProfile[] | null>(null);
   //const [loading, setLoading] = useState(true);
-  //const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [showFilters, setShowFilters] = useState(false);
 
@@ -172,7 +173,8 @@ const UsersList: React.FC = () => {
       setUsers(response.data);
     } catch (error) {
       setUsers(null);
-      toast.error(getErrorMessage(error));
+      setError(getErrorMessage(error));
+      //toast.error(getErrorMessage(error));
     }
   };
 
@@ -244,41 +246,41 @@ const UsersList: React.FC = () => {
     navigate(`/profile/${params.row.id}`);
   }
 
-const handleDeleteUser = (user: UserRow) => {
-  showDialog({
-    title: t('Delete user'),
-    content: t('Are you sure to delete user "{{userName}}"?', { userName: user.name }),
-    confirmText: t('Delete!'),
-    onConfirm: async () => {
-      try {
-        const response = await userApi.delete(user.id);
-        const bulk = response.data; // GuardedDeleteResultBulk
+  const handleDeleteUser = (user: UserRow) => {
+    showDialog({
+      title: t('Delete user'),
+      content: t('Are you sure to delete user "{{userName}}"?', { userName: user.name }),
+      confirmText: t('Delete!'),
+      onConfirm: async () => {
+        try {
+          const response = await userApi.delete(user.id);
+          const bulk = response.data; // GuardedDeleteResultBulk
 
-        // Normalize the single result (the only entry) into GuardedDeleteResult
-        const result = Object.values(bulk.results)[0];
-        const normalized: GuardedDeleteResult = {
-          deleted: result.deleted,
-          reason: result.reason,
-          blockedBy: result.blockedBy,
-        };
+          // Normalize the single result (the only entry) into GuardedDeleteResult
+          const result = Object.values(bulk.results)[0];
+          const normalized: GuardedDeleteResult = {
+            deleted: result.deleted,
+            reason: result.reason,
+            blockedBy: result.blockedBy,
+          };
 
-        const { success, wasBlocked } = await handleGuardResult(normalized, 'deleted', showDialog, toast, t);
-        if (wasBlocked) {
-          setNavigateTo('/users'); // or wherever you want to redirect after handling bookings
+          const { success, wasBlocked } = await handleGuardResult(normalized, 'deleted', showDialog, toast, t);
+          if (wasBlocked) {
+            setNavigateTo('/users'); // or wherever you want to redirect after handling bookings
+            return;
+          }
+          if (!success) return;
+        } catch (error) {
+          toast.error(getErrorMessage(error));
           return;
         }
-        if (!success) return;
-      } catch (error) {
-        toast.error(getErrorMessage(error));
-        return;
-      }
 
-      await loadUsers();
-      toast.success(t('User deleted successfully'));
-    },
-    cancelText: t('Cancel'),
-  });
-};
+        await loadUsers();
+        toast.success(t('User deleted successfully'));
+      },
+      cancelText: t('Cancel'),
+    });
+  };
 
   const handleBulkDelete = () => {
     const selectedIds = Array.from(rowSelectionModel.ids);
@@ -404,6 +406,17 @@ const handleDeleteUser = (user: UserRow) => {
           title={t('Users')}
           //showAdd={false}
         />
+      
+        {error && (
+          <Alert severity="error">
+            {error}
+          </Alert>
+        )}
+
+        {!loading && !error && (!users || users.length === 0) && (
+          <Alert severity="info">{t('No users available')}</Alert>
+        )}
+
         <Stack spacing={2}>
 
           {/*

@@ -62,18 +62,14 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   const loadProfile = useCallback(async () => {
     try {
-      const response = await userApi.getProfile(user!.id ?? null);
+      const response = await userApi.getProfile();
 
       const rawUser = response.data;
       console.log("******************* typeof rawUser.consent:", typeof rawUser.consent, rawUser.consent);
 
       const userData: User = {
         ...rawUser,
-        consent: rawUser.consent,
-        // consent: // TODO: why this code? rawUser.consent is JSON or object here ???
-        //   typeof rawUser.consent === "string"
-        //     ? JSON.parse(rawUser.consent)
-        //     : rawUser.consent ?? null,
+        consent: rawUser.consent, // Ensure consent is already an object/parsed
       };
 
       setUser(userData);
@@ -88,7 +84,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       logout();
       throw error;
     } finally {
-      setLoading(false);
+      setLoading(false); // Important!
     }
   }, []);
   
@@ -142,11 +138,14 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('authToken', newToken);
           setToken(newToken);
 
-          setUser(response.data.user);
-          setIsAuthenticated(true);
-          //setLoading(false);
+          const userData = await loadProfile(); // Wait for profile fetch
+          return { token: newToken, user: userData };
+          
+          // setUser(response.data.user);
+          // setIsAuthenticated(true);
+          // //setLoading(false);
 
-          return response.data;
+          // return response.data;
         }
       } catch (error: any) {
         logout();

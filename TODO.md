@@ -104,7 +104,10 @@ common:
  - 3 - OK - in LayoutEdit, add a 'signle seat' mode, to mark single seats as absent, vip, handicap, baby, unavailable
  - 3 - OK - rename Profile to UserEdit (no)
  - 3 - OK - rename Event/Layout/Theater List to Events/Theaters/Layouts List (no...)
- - 1 -    - in all components, handle errors using import { getErrorMessage } from '@/utils/misc';
+ - 1 -    - complete guards handling, like in TheaterList
+ - 1 -    - remove isLoading in all components from useState, and use isLoading fro useLoading
+ - 1 -    - in all components, handle errors using import { getErrorMessage } from '@/utils/misc':
+              change all error.response?.data?.error to getErrorMessage(error)
  - 1 -    - in all components, check for setError: always add toast.error, and possibly remove Alert's for errors
  - 1 -    - PWA handling - "PWA setup automation for theater booking system" with Claude
  - 2 -    - while uploading an image, enable editing it
@@ -112,6 +115,7 @@ common:
  - 2 -    - add privacy and terms links in the register page
  - 2 -    - in profile (or in setup/privacy?) add Terms and Privacy pages, and link to open consent dialog
  - 2 -    - implement a mailing systemto send bulk emails to a list of users, with variables
+ - 2 -    - use phone component for profile too
  - 3 -    - find if and where to suggest user to open consent dialog to enable missing consent
             (for pushNotifications for example)
  - 3 -    - add all users profile handling

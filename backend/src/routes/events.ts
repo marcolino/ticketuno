@@ -485,9 +485,9 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
     if (!event) {
       return res.status(404).json({ error: req.t('Event not found') });
     }
-    if (event.status !== 'scheduled') {
+    if (event.status !== 'scheduled' && event.status !== 'in progress') {
       return res.status(400).json({
-        error: req.t('Performance is not available for booking'),
+        error: req.t('Performance is not available for booking ({{status}}', { status: event.status }),
         details: req.t('Performance status is {{status}}', { status: event.status }),
       });
     }

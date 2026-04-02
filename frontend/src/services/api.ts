@@ -333,7 +333,7 @@ export const userApi = {
   // updateProfile: (userId: string, data: Partial<User>) => // Update user profile
   //   api.put<User>('/users/profile', { userId, data }),
   
-  getProfile: (userId: string) =>
+  getProfile: (userId: string | undefined) =>
     api.get<User>(userId ? `/users/profile/${userId}` : '/users/profile'),
 
   updateProfile: (userId: string | undefined, data: Partial<User>) =>

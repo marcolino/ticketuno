@@ -33,7 +33,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useToast } from '@/contexts/ToastContext';
 import { useSetupRefresh, defaultSetup } from '@/contexts/SetupContext';
 import { setupApi } from '@/services/api';
-import PageHeader from "./PageHeader";
+import PageHeader from './PageHeader';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { GeneralSetupType } from '@/shared/types/generalSetup';
 import config from '@/config';

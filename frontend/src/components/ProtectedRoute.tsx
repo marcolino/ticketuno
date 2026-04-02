@@ -1,10 +1,10 @@
 // components/ProtectedRoute.tsx
-import React, { useEffect, useRef } from 'react';
-import { Navigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from '@/contexts/ToastContext';
-//import { CircularProgress, Box } from '@mui/material'; // Optional: for loading spinner
+import { Box, AlertTitle, Button, CircularProgress } from '@mui/material';
+import Alert from './Alert';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -17,55 +17,57 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireAdmin = false,
   requireOperator = false,
 }) => {
-  // You need to expose loading from AuthContext
-  // For now, let's assume you can access it
   const { isAuthenticated, isAdmin, isOperator, loading } = useAuth();
   const { t } = useTranslation();
-  const hasShownToast = useRef(false);
-  
-  useEffect(() => {
-    if (!loading && !isAuthenticated && !hasShownToast.current) {
-      toast.error('You must be logged in to access this page');
-      hasShownToast.current = true;
-    }
-    if (!loading && requireAdmin && !isAdmin && !hasShownToast.current) {
-      toast.error(t('Admin role required to access this page'));
-    }
-    if (!loading && requireOperator && !isOperator && !hasShownToast.current) {
-      toast.error(t('Operator role required to access this page'));
-    }
-  }, [loading, isAuthenticated, requireAdmin, isAdmin, t]);
+  const navigate = useNavigate();
 
   if (loading) {
     return null;
   }
-  // // Show loading spinner while checking auth
-  // if (loading) {
-  //   return (
-  //     <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-  //       <CircularProgress />
-  //     </Box>
-  //   );
-  // }
-  
+
+  // Not authenticated
   if (!isAuthenticated) {
-    // You might want to redirect to login or show a message
-    //toast.error(t('You must be logged in to access this page')); // TODO: better toast here or move it to the caller, reading `message` ?
-    return <Navigate to="/" replace state={{ 
-      message: 'You must be logged in to access this page' 
-    }} />;
+    return (
+      <Alert severity="error">
+        <AlertTitle>{t('Access Denied')}</AlertTitle>
+        {t('You must be logged in to access this page.')}
+        <Box mt={2}>
+          <Button variant="contained" color="warning" onClick={() => navigate('/?authMode=login')}>
+            {t('Login')}
+          </Button>
+        </Box>
+      </Alert>
+    );
   }
 
+  // Admin required but user is not admin
   if (requireAdmin && !isAdmin) {
-    return <Navigate to="/" replace state={{ 
-      message: t("Admin role required to access this page")
-    }} />;
+    return (
+      <Alert severity="error">
+        <AlertTitle>{t('Insufficient Permissions')}</AlertTitle>
+          {t('Admin role is required to access this page.')}
+        <Box mt={2}>
+          <Button variant="contained" onClick={() => navigate('/')}>
+            {t('Go to home')}
+          </Button>
+        </Box>
+      </Alert>
+    );
   }
 
+  // Operator required but user is not operator
   if (requireOperator && !isOperator) {
-    return <Navigate to="/" replace state={{ 
-      message: t("Operator role required to access this page")
-    }} />;
+    return (
+      <Alert severity="error">
+        <AlertTitle>{t('Insufficient Permissions')}</AlertTitle>
+        {t('Operator role required to access this page.')}
+        <Box mt={2}>
+          <Button variant="contained" onClick={() => navigate('/')}>
+            {t('Go to home')}
+          </Button>
+        </Box>
+      </Alert>
+    );
   }
 
   return <>{children}</>;

@@ -9,7 +9,7 @@ import {
   Button,
   Grid,
   Box,
-  Alert,
+  //Alert,
   CardActions,
 } from '@mui/material';
 import {
@@ -24,7 +24,8 @@ import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
-import PageHeader from "./PageHeader";
+import PageHeader from './PageHeader';
+import Alert from './Alert';
 import { getErrorMessage } from '@/shared/utils/misc';
 //import { i18n } from '@/i18n';
 
@@ -32,9 +33,9 @@ const LayoutList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const showDialog = useDialog();
-  const { isOperator } = useAuth();
+  const { isOperator, loading } = useAuth();
   const [layouts, setLayouts] = useState<Layout[]>([]);
-  //const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOperator) {
@@ -46,9 +47,10 @@ const LayoutList: React.FC = () => {
     try {
       const response = await layoutApi.getAllLayouts();
       setLayouts(response.data);
-      // setError(null);
+      setError(null);
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      setError(getErrorMessage(error));
+      //toast.error(getErrorMessage(error));
       // Show the actual server error message
       // setError(err.response?.data?.error || 'Failed to load layouts');
       //console.error(err.response?.data || err);
@@ -77,9 +79,11 @@ const LayoutList: React.FC = () => {
           await layoutApi.deleteLayout(id);
           const newLayouts = layouts.filter(layout => layout.id !== id);
           setLayouts(newLayouts);
-        } catch (error: unknown) {
+          setError('');
+        } catch (error) {
           // Show the actual server error message
-          toast.error(getErrorMessage(error));
+          setError(getErrorMessage(error));
+          //toast.error(getErrorMessage(error));
         }
         navigate(`/layouts`);
       }
@@ -114,13 +118,13 @@ const LayoutList: React.FC = () => {
         onAdd={() => navigate('/layout/new')}
       />
 
-      {/* {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+      {error && (
+        <Alert severity="error">
           {error}
         </Alert>
-      )} */}
+      )}
 
-      {layouts.length === 0 && (
+      {!loading && !error && layouts.length === 0 && (
         <Alert severity="info">{t('No layouts available')}</Alert>
       )}
       
