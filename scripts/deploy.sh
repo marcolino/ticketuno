@@ -132,23 +132,27 @@ FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
 if ! fly apps list | grep -q "^${APP_NAME}"; then
   echo "📦 Creating new Fly.io app..."
   fly apps create "${APP_NAME}" --org personal
-
 fi
 
-# Only create the volume if none exists yet
-if ! fly volumes list -a "${APP_NAME}" --json | grep -q "^${APP_NAME}_data"; then
-  echo "❌❌❌❌❌ Persistent volume ${APP_NAME}_data does not exists on app ${APP_NAME} in production !" # TODO: why this can happen?
-  echo "💾 Creating persistent volume..."
+# Check if a volume with the given name already exists
+if ! fly volumes list -a "${APP_NAME}" --json | jq -e '.[] | select(.name == "'"${APP_NAME}_data"'")' > /dev/null; then
+  echo "❌ Volume ${APP_NAME}_data does NOT exist. Creating..."
   fly volumes create "${APP_NAME}_data" --region "${REGIONS}" --size 1 --app "${APP_NAME}"
+else
+  echo "✅ Volume ${APP_NAME}_data already exists. Skipping creation."
 fi
   
 # ─── Secrets ─────────────────────────────────────────────────────────────────
 
 echo "🔐 Importing secrets..."
 cat backend/.env | fly secrets import --app "${APP_NAME}"
+# fly secrets set \
+#   BACKEND_URL="https://${APP_NAME}.fly.dev" \
+#   FRONTEND_URL="https://${APP_NAME}.fly.dev" \
+#   NODE_ENV="production" \
+#   PORT="8080" \
+#   --app "${APP_NAME}"
 fly secrets set \
-  BACKEND_URL="https://${APP_NAME}.fly.dev" \
-  FRONTEND_URL="https://${APP_NAME}.fly.dev" \
   NODE_ENV="production" \
   PORT="8080" \
   --app "${APP_NAME}"

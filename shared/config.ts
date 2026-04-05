@@ -1,14 +1,22 @@
 import type { AppConfig } from './types/config';
 
+const name = 'TicketUno';
+const codename = 'ticketuno';
+
 const config: AppConfig = {
   app: {
-    codename: 'ticketuno',
-    name: 'TicketUno',
-    // apiHost: '',
-    // apiBasePath: '',
-    // apiVersion: '',
-    baseUrl: (process.env.NODE_ENV === 'production') ?
-      'https://ticketuno.fly.dev' :
+    api: {
+      prefix: 'api',
+      version: 'v1',
+    },
+    codename: codename,
+    name: name,
+    baseUrlBackend: (process.env.NODE_ENV === 'production') ?
+      `https://${codename}.fly.dev` :
+      'http://localhost:3001'
+    ,
+    baseUrlFrontend: (process.env.NODE_ENV === 'production') ?
+      `https://${codename}.fly.dev` :
       'http://localhost:3000'
     ,
     languages: {

@@ -1,3 +1,7 @@
+.env: removed:
+BACKEND_URL=http://localhost:3001
+FRONTEND_URL=http://localhost:3000
+
 Legenda:
  1: Important task, a showstopper
  2: Deferred task, will fix in a following release

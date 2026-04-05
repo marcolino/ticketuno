@@ -107,7 +107,7 @@ const Unsubscribe: React.FC = () => {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}.
           <br /><br />
-          {t('To unsubscribe please authenticate in the app ({{url}}), and then open "Privacy" menu item in the main menu, then choose "Consent"', {url: config.app.baseUrl})}.
+          {t('To unsubscribe please authenticate in the app ({{url}}), and then open "Privacy" menu item in the main menu, then choose "Consent"', {url: config.app.baseUrlFrontend})}.
         </Alert>
       )}
 

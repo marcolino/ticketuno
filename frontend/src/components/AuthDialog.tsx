@@ -301,7 +301,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
     try {
       // Now fetch the URL asynchronously
-      const response = await fetch('/api/v1/users/auth/google');
+      const response = await fetch('/api/v1/users/auth/google'); // TODO: /api and v1 from  config
       const { authUrl } = await response.json();
 
       // Navigate popup to auth URL

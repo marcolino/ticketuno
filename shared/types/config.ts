@@ -16,9 +16,14 @@ export type CurrencyCode = string;
 
 export interface AppConfig {
   app: {
+    api: {
+      prefix: string;
+      version: string;
+    };
     codename: string;
     name: string;
-    baseUrl: string;
+    baseUrlBackend: string;
+    baseUrlFrontend: string;
     languages: Record<string, AppLanguage>;
     defaultLanguage: string;
     defaultCountry: string;

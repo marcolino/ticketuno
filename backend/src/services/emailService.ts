@@ -144,10 +144,10 @@ class EmailService {
         if (isMarketing) {
           const token = await database.createToken(user.id, 'communication.marketingEmails');
           //const unsubscribeToken = await generateConsentsToken(user.id, "marketing-unsubscribe");
-          unsubscribeUrl = `${config.app.baseUrl}/unsubscribe/${token}/communication.marketingEmails`;
+          unsubscribeUrl = `${config.app.baseUrlFrontend}/unsubscribe/${token}/communication.marketingEmails`;
         }
         const token = await database.createToken(user.id, 'consent');
-        preferencesUrl = `${config.app.baseUrl}/consent/${token}`;
+        preferencesUrl = `${config.app.baseUrlFrontend}/consent/${token}`;
       }
       
       const fullMjml = Handlebars.compile(layoutFile)({

@@ -21,9 +21,10 @@ import config from './config';
 
 //import pkg from '../package.json';
 
-const apiPrefix = 'api'; // TODO: to config
-const apiVersion = 'v1'; // TODO: to config
-const prefix = `/${apiPrefix}/${apiVersion}`;
+//const apiPrefix = 'api'; // TODO: to config
+//const apiVersion = 'v1'; // TODO: to config
+//const prefix = `/${apiPrefix}/${apiVersion}`;
+const prefix = `/${config.app.api.prefix}/${config.app.api.version}`;
 
 const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
 //const frontendPublicDir = path.join(__dirname, '../../', 'frontend', 'public');

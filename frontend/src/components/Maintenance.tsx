@@ -19,7 +19,7 @@ const Maintenance = () => {
     setRetrying(true);
     setError(false);
     try {
-      await fetch('/api/v1/health');
+      await fetch('/api/v1/health'); // TODO: api and v1 from config
       await globalApi.health();
       window.location.href = '/'; // back to app home if healthy
     } catch {

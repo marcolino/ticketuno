@@ -17,16 +17,18 @@ import { PerformanceSeatsResponse } from '@/shared/types/performance';
 import { Layout } from '@/shared/types/layout';
 import { GeneralSetupType } from '@/shared/types/generalSetup';
 import { GuardResult, GuardedDeleteResult, GuardedDeleteResultBulk, GuardedUpdateResult } from '@/shared/types/guard';
-import { i18n }  from '@/i18n'; 
+import { i18n } from '@/i18n';
+import config from '@/shared/config';
 
-//const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'; // TODO: set default from config...
-const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH; // ?? '/api/'; // TODO: set default from config...
-const API_VERSION = import.meta.env.VITE_API_VERSION; // ?? 'v1'; // TODO: set default from config...
-const API_BASE_URL = `${API_BASE_PATH}${API_VERSION}`;
-
-let redirectingToMaintenance = false;
+// const API_VERSION = import.meta.env.VITE_API_VERSION ?? config.app.api.version;
+// const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH ?? config.app.api.prefix;
+//const API_VERSION = config.app.api.version;
+//const API_BASE_URL = `/${API_BASE_PATH}/${API_VERSION}`;
+const API_BASE_URL = `/${config.app.api.prefix}/${config.app.api.version}`;
 
 console.log('API_BASE_URL:', API_BASE_URL); // TODO: DEBUG ONLY
+
+let redirectingToMaintenance = false;
 
 // Create the main API instance
 const api: AxiosInstance = axios.create({
@@ -67,18 +69,6 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   return config;
 });
 
-// // Helper function to get current language
-// export const getCurrentLanguage = (): string => {
-//   return i18n.language || 'en';
-// };
-
-// // Function to change language both in frontend and sync with backend
-// export const changeLanguage = async (lng: string): Promise<void> => {
-//   await i18n.changeLanguage(lng);
-//   // Optionally, we could notify the backend about language change
-//   // api.post('/api/v1/users/language', { language: lng });
-// };
-
 // ========== RESPONSE INTERCEPTOR FOR LANGUAGE SYNC ==========
 // If backend sends language in response headers, sync it
 api.interceptors.response.use(
@@ -94,24 +84,6 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-// // ======= MAINTENANCE MODE HANDLER =======
-// api.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     const status = error.response?.status;
-//     const redirectUrl = error.response?.data?.redirect;
-
-//     if (status === 503 && redirectUrl) {
-//       // Force browser to load maintenance page
-//       //window.location.href = redirectUrl;
-//       window.location.href = redirectUrl || '/maintenance.html';
-//       return new Promise(() => {}); // prevent further promise rejection
-//     }
-
-//     return Promise.reject(error);
-//   }
-// );
 
 // ========== LOADING INTERCEPTORS SETUP ==========
 // Store loading control functions
@@ -250,6 +222,7 @@ api.interceptors.response.use(
     return Promise.reject(normalizedError);
   }
 );
+
 // api.interceptors.response.use(
 //   (response) => response,
 //   (error) => {

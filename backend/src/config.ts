@@ -8,7 +8,10 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const backendDefaults = {
-  db: { database: 'sqlite', path: '../data/ticketuno.db' },
+  db: {
+    database: 'sqlite',
+    path: '../data/ticketuno.db'
+  },
   assets: {
     path: './assets',
     defaultEventPosterImageName: 'defaultEventPoster.png',

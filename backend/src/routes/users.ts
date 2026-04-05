@@ -28,7 +28,8 @@ const router = express.Router();
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  `${process.env.BACKEND_URL}/api/v1/users/auth/google/callback`,
+  //`${process.env.BACKEND_URL}/api/v1/users/auth/google/callback`,
+  `${config.app.baseUrlBackend}/${config.app.api.prefix}/${config.app.api.version}/users/auth/google/callback`,
 );
 
 // Register - Step 1: send verification code
@@ -158,7 +159,7 @@ router.post('/verify-email', async (req, res) => {
     };
 
     const userName = profile.firstName;
-    const ctaUrl = config.app.baseUrl;
+    const ctaUrl = config.app.baseUrlFrontend;
     await sendWelcomeEmail(email, userName, ctaUrl);
 
     res.json({ 
@@ -444,7 +445,7 @@ router.get('/auth/google/callback', async (req, res) => {
         console.log("user:", user);
 
         const userName = newUser.firstName;
-        const ctaUrl = config.app.baseUrl;
+        const ctaUrl = config.app.baseUrlFrontend;
         await sendWelcomeEmail(email, userName, ctaUrl);
       }
     }
