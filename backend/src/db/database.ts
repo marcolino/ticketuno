@@ -811,7 +811,24 @@ class Database {
     return id;
   }
 
-  async getLayoutById(id: string): Promise<Layout | null> {
+  // async getLayoutById(id: string): Promise<Layout | null> {
+  //   const row = await getQuery(
+  //     this.db, `
+  //       SELECT id, theater_id, name, description, json
+  //       FROM layouts
+  //       WHERE id = ?
+  //       AND deleted_at IS NULL
+  //     `,
+  //     [id], 'get layout by id'
+  //   );
+  //   if (!row) return null;
+  //   const layout = this.mapRowToLayout(row);
+  //   // const lock = await this.getLayoutLockInfo(id);
+  //   // layout.isEditable = lock.editable;
+  //   // layout.lockInfo = lock.blockedBy ?? [];
+  //   return layout;
+  // }
+  async getLayoutById(id: string): Promise<(Layout /*& { editable: boolean; blockedBy?: ActiveBookingInfo[] }*/) | null> {
     const row = await getQuery(
       this.db, `
         SELECT id, theater_id, name, description, json
@@ -823,10 +840,8 @@ class Database {
     );
     if (!row) return null;
     const layout = this.mapRowToLayout(row);
-    // const lock = await this.getLayoutLockInfo(id);
-    // layout.isEditable = lock.editable;
-    // layout.lockInfo = lock.blockedBy ?? [];
-    return layout;
+    const guard = await this.guardLayout(id);
+    return { ...layout, /*editable: guard.safe, */blockedBy: guard.bookings };
   }
 
   async getLayoutByTheaterId(theaterId: string): Promise<Layout | null> {

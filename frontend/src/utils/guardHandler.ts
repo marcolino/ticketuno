@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { ShowDialog } from '@/contexts/DialogContext';
-import { GuardHandlerResult, GuardedResult, SuccessKey, Action } from '@/shared/types/guard';
+import { GuardHandlerResult, GuardedResult, /*GuardedEditResult, */SuccessKey, Action } from '@/shared/types/guard';
 import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
 
 const reasonMessages: Record<string, string> = {
@@ -23,19 +23,28 @@ export async function handleGuardResult(
   showDialog: ShowDialog,
   toast: any,
   t: (key: string, opts?: Record<string, unknown>) => string,
+  onCancel?: () => void, // new optional callback
 ): Promise<GuardHandlerResult> {
   const succeeded = !!(result as any)[successKey];
-  if (succeeded) return { success: true, wasBlocked: false };
+  if (succeeded) {
+    return { success: true, wasBlocked: false };
+  }
 
   if (result.blockedBy?.length) {
+    const verb = successKey === 'editable' ? 'edit' : 'delete';
     const confirmed = await showDialog({
       title: t('Active bookings exist'),
-      content: createElement(ActiveBookingsWarning, { bookings: result.blockedBy, action }),
-      confirmText: t('Handle bookings'),
+      content: createElement(ActiveBookingsWarning, { bookings: result.blockedBy, action, verb }),
+      confirmText: successKey === 'editable' ? t('Continue') : t('Handle bookings'),
       cancelText: t('Cancel'),
       shrinkToContent: true,
     });
-    return { success: false, wasBlocked: confirmed }; // only true if user clicked confirm ("Handle bookings")
+    
+    if (!confirmed) {
+      if (onCancel) onCancel();
+      return { success: false, wasBlocked: false, canceled: true };
+    }
+    return { success: false, wasBlocked: true };
   }
 
   const message = result.reason

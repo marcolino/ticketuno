@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -56,6 +56,8 @@ const LayoutEdit: React.FC = () => {
   const location = useLocation();
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const isReadOnly = searchParams.get('readonly') === 'true';
 
   const isEditMode = id && id !== 'new';
   
@@ -80,7 +82,7 @@ const LayoutEdit: React.FC = () => {
   const [saving, setSaving] = useState(false);
   //const [error, setError] = useState('');
 
-  const [isEditable, setIsEditable] = useState(true);
+  //const [isEditable, setIsEditable] = useState(true);
   
   const [markingActive, setMarkingActive] = useState(false);
   const [markingCondition, setMarkingCondition] = useState<MarkingCondition | null>(null);
@@ -186,7 +188,7 @@ const LayoutEdit: React.FC = () => {
         setLayoutDescription(layout.description || '');
         setLayoutJSON(JSON.parse(layout.json));
         setTheaterId(layout.theaterId);
-        setIsEditable(layout.isEditable ?? true);
+        //setIsEditable(isEditable ?? true);
 
         // Disable all inputs and hide marking toolbar when locked:
         // TODO: handle layout.lockInfo ...
@@ -645,6 +647,7 @@ const LayoutEdit: React.FC = () => {
                   startIcon={<AddIcon />}
                   onClick={addSection}
                   size="small"
+                  disabled={isReadOnly}
                 >
                   {t('Add Section')}
                 </Button>
@@ -668,7 +671,7 @@ const LayoutEdit: React.FC = () => {
                           e.stopPropagation();
                           removeSection(sectionIndex);
                         }}
-                        disabled={layoutJSON.sections.length === 1}
+                        disabled={isReadOnly || layoutJSON.sections.length === 1}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
@@ -737,6 +740,7 @@ const LayoutEdit: React.FC = () => {
                             size="small"
                             startIcon={<AddIcon />}
                             onClick={() => addRow(sectionIndex)}
+                            disabled={isReadOnly}
                           >
                             {t('Add Row')}
                           </Button>
@@ -753,6 +757,7 @@ const LayoutEdit: React.FC = () => {
                                   onChange={(e) => updateRow(sectionIndex, rowIndex, 'rowId', e.target.value)}
                                   inputProps={{ maxLength: 2 }}
                                   size="small"
+                                  disabled={isReadOnly}
                                 />
                               </Grid>
                               <Grid item xs={3}>
@@ -764,6 +769,7 @@ const LayoutEdit: React.FC = () => {
                                   onChange={(e) => updateRow(sectionIndex, rowIndex, 'seatCount', parseInt(e.target.value) || 0)}
                                   inputProps={{ min: 1 }}
                                   size="small"
+                                  disabled={isReadOnly}
                                 />
                               </Grid>
                               <Grid item xs={2}>
@@ -779,6 +785,7 @@ const LayoutEdit: React.FC = () => {
                                     max: 40
                                   }}
                                   size="small"
+                                  disabled={isReadOnly}
                                 />
                               </Grid>
                               <Grid item xs={3}>
@@ -790,13 +797,14 @@ const LayoutEdit: React.FC = () => {
                                   onChange={(e) => updateRow(sectionIndex, rowIndex, 'stretch', parseFloat(e.target.value) || 1)}
                                   inputProps={{ step: 0.1, min: 0.1 }}
                                   size="small"
+                                  disabled={isReadOnly}
                                 />
                               </Grid>
                               <Grid item xs={1}>
                                 <IconButton
                                   size="small"
                                   onClick={() => removeRow(sectionIndex, rowIndex)}
-                                  disabled={section.rows.length === 1}
+                                  disabled={isReadOnly || section.rows.length === 1}
                                 >
                                   <DeleteIcon fontSize="small" />
                                 </IconButton>
@@ -813,7 +821,7 @@ const LayoutEdit: React.FC = () => {
 
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
               <Box sx={{ width: { xs: '100%', sm: 'auto' }, display: 'flex', justifyContent: 'flex-start' }}>
-                {isEditable && (
+                {!isReadOnly && (
                   <SeatMarkingToolbar
                     active={markingActive}
                     selectedCondition={markingCondition}
@@ -841,7 +849,7 @@ const LayoutEdit: React.FC = () => {
                   startIcon={<SaveIcon />}
                   onClick={save}
                   onMouseDown={(e) => e.preventDefault()} // to avoid requiring a double tap on mobile
-                  disabled={!isEditable || saving}
+                  disabled={isReadOnly || saving}
                   //size="small"
                 >
                   {saving ? t('Saving...') : t('Save')}

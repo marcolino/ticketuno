@@ -2,12 +2,18 @@ import { Table, TableBody, TableCell, TableHead, TableRow, Typography, Box } fro
 import { ActiveBookingInfo } from '@/shared/types/guard';
 import { useTranslation } from 'react-i18next';
 
-type Props = {
+type ActiveBookingsWarningProps = {
   bookings: ActiveBookingInfo[];
   action?: string;
+  verb?: 'delete' | 'edit';
 };
 
-const ActiveBookingsWarning: React.FC<Props> = ({ bookings, action }) => {
+
+const ActiveBookingsWarning: React.FC<ActiveBookingsWarningProps> = ({ 
+  bookings, 
+  action, 
+  verb = 'delete'
+}) => {
   const { t } = useTranslation();
 
   // Raggruppa le prenotazioni per evento e teatro
@@ -21,19 +27,19 @@ const ActiveBookingsWarning: React.FC<Props> = ({ bookings, action }) => {
   let actionDescription = '';
   switch (action) {
     case 'theater':
-      actionDescription = t('Theater can\'t be deleted because\nit has events with performances\nwith active booked seats');
+      actionDescription = t('Can\'t {{verb}} {{action}} because\nit has events with performances\nwith active booked seats', { verb, action });
       break;
      case 'layout':
-      actionDescription = t('Layout can\'t be deleted because\nit is linked to theaters which has events\nwith performances with active booked seats');
+      actionDescription = t('Can\'t {{verb}} {{action}} because\nit is linked to theaters which have events\nwith performances with active booked seats', { verb, action });
       break;
      case 'event':
-      actionDescription = t('Event can\'t be deleted because\nit has performances\nwith active booked seats');
+      actionDescription = t('Can\'t {{verb}} {{action}} because\nit has performances\nwith active booked seats', { verb, action });
       break;
      case 'performance':
-      actionDescription = t('Performance can\'t be deleted because\nit has active booked seats');
+      actionDescription = t('Can\'t {{verb}} {{action}} because\nit has active booked seats', { verb, action });
       break;
     case 'user':
-      actionDescription = t('User can\'t be deleted because\nshe has active booked seats');
+      actionDescription = t('Can\'t {{verb}} {{action}} because\nshe has active booked seats', { verb, action });
       break;
   }
 

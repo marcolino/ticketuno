@@ -1,10 +1,10 @@
 export type GuardState = 'idle' | 'checking' | 'safe' | 'blocked';
 
-export type SuccessKey = 'deleted' | 'updated' | 'canceled';
+export type SuccessKey = 'deleted' | 'updated' | 'canceled' | 'editable';
 
 export type Action = 'theater' | 'layout' | 'event' | 'performance' | 'user';
 
-export type GuardedResult = GuardedDeleteResult | GuardedUpdateResult;
+export type GuardedResult = GuardedDeleteResult | GuardedUpdateResult | GuardedEditResult;
 
 export type GuardReason =
   | 'THEATER_HAS_ACTIVE_BOOKINGS'
@@ -18,6 +18,12 @@ export type GuardReason =
   | 'USER_HAS_ACTIVE_BOOKINGS'
   | 'USER_NOT_FOUND'   
 ;
+
+export interface GuardedEditResult {
+  editable: boolean;
+  reason?: GuardReason;
+  blockedBy?: ActiveBookingInfo[];
+}
 
 export interface GuardedDeleteResult {
   deleted: boolean;
@@ -40,6 +46,7 @@ export interface GuardedUpdateResult {
 export interface GuardHandlerResult {
   success: boolean;
   wasBlocked: boolean;
+  canceled?: boolean;
 }
 
 export interface ActiveBookingInfo {

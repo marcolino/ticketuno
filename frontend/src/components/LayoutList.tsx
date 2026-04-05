@@ -19,14 +19,15 @@ import {
   ViewCompact as ViewCompactIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
+import PageHeader from './PageHeader';
+import Alert from './Alert';
 import { layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { handleGuardResult } from '@/utils/guardHandler';
-import PageHeader from './PageHeader';
-import Alert from './Alert';
+import { ActiveBookingInfo } from '@/shared/types/guard';
 import { getErrorMessage } from '@/shared/utils/misc';
 //import { i18n } from '@/i18n';
 
@@ -70,12 +71,59 @@ const LayoutList: React.FC = () => {
   //   navigate(`/layout/${id}`);
   // };
 
-  const handleEditLayout = (id: string, e: React.MouseEvent) => {
+  const handleEditLayout = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    navigate(`/layout/edit/${id}`);
+    try {
+      const { data: layout } = await layoutApi.getLayoutById(id);
+
+      // Assert that layout contains the guard fields (as returned by backend)
+      const guardResult = layout as Layout & { editable: boolean; blockedBy: ActiveBookingInfo[] };
+      
+      const { success: isEditable, wasBlocked, canceled } = await handleGuardResult(
+        guardResult, // result has `editable` and `blockedBy`
+        'editable', // successKey
+        'layout', // action
+        showDialog,
+        toast,
+        t,
+        () => navigate(-1) // onCancel: go back
+      );
+
+      if (canceled) {
+        return; // Already navigated back via onCancel, just exit
+      }
+
+      if (wasBlocked) {
+        // setNavigateTo('/bookings');
+        // return;
+        const openReadonly = await showDialog({
+          title: t('Layout locked'),
+          content: t('Do you want to open the layout in read-only mode?'),
+          confirmText: t('Open read-only'),
+          cancelText: t('Go to bookings'),
+        });
+        if (openReadonly) {
+          navigate(`/layout/edit/${id}?readonly=true`);
+        } else {
+          setNavigateTo('/bookings');
+        }
+        return;
+      }
+
+      if (isEditable) {
+        navigate(`/layout/edit/${id}`);
+      } else {
+        // This case should rarely happen because blocked layouts would have triggered the warning.
+        // But if it does, you can show a read‑only view.
+        toast.warning(t('Layout cannot be edited due to active bookings. Opening read-only view.'));
+        navigate(`/layout/edit/${id}?readonly=true`);
+      }
+    } catch (error) {
+      setError(t('Failed to check layout editability: {{error}}', { error }));
+      //toast.error(t('Failed to check layout editability'));
+    }
   };
 
-  
   const handleDeleteLayout = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     showDialog({

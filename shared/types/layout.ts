@@ -1,4 +1,5 @@
 import type { SeatStatus, SpecialCondition } from './seat';
+import { ActiveBookingInfo } from './guard';
 
 export type LockInfoRow = {
   eventTitle: string;
@@ -14,8 +15,10 @@ export interface Layout {
   description?: string | null;
   theaterId: string;
   json: string;
-  isEditable?: boolean;
-  lockInfo?: LockInfoRow[];
+  // isEditable?: boolean;
+  // lockInfo?: LockInfoRow[];
+  editable?: boolean;
+  blockedBy?: ActiveBookingInfo[];
 }
 
 export interface StageJSON {
