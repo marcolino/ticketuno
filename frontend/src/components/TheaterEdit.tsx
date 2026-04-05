@@ -301,7 +301,7 @@ const TheaterEdit: React.FC = () => {
             await showDialog({
               title: t('Active Bookings Exist'),
               content: response.data.blockedBy ?
-                <ActiveBookingsWarning bookings={response.data.blockedBy} actionDescription={t('This theater can\'t be deleted because there are event performaces with active bookings on this theater')}  /> :
+                <ActiveBookingsWarning bookings={response.data.blockedBy} action={'theater'}  /> :
                 <>{t('No bookings info')}</>
               ,
               cancelText: t('Cancel'),

@@ -8,7 +8,7 @@ import { database } from '../db/database';
 import { authenticateToken, generateToken, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
-import { GuardedDeleteResult, GuardedDeleteResultBulk } from '../shared/types/guard';
+//import { GuardedDeleteResult, GuardedDeleteResultBulk } from '../shared/types/guard';
 import { FullConsent } from '../shared/types/consent';
 import { 
   generateVerificationCode, 

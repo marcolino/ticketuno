@@ -87,6 +87,8 @@ echo "🔍 Running pre-deploy checks..."
 #   echo "❌ TypeScript check failed. Fix errors before deploying."
 #   exit 6
 # }
+
+# TODO: > /tmp/errors; then: cat errors, if errors ...
 npm run check > /dev/null || {
   echo "❌ Type-check or lint failed. Fix errors before deploying."
   exit 6
