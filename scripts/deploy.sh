@@ -137,6 +137,7 @@ fi
 
 # Only create the volume if none exists yet
 if ! fly volumes list -a "${APP_NAME}" --json | grep -q "^${APP_NAME}_data"; then
+  echo "❌❌❌❌❌ Persistent volume ${APP_NAME}_data does not exists on app ${APP_NAME} in production !" # TODO: why this can happen?
   echo "💾 Creating persistent volume..."
   fly volumes create "${APP_NAME}_data" --region "${REGIONS}" --size 1 --app "${APP_NAME}"
 fi
