@@ -197,34 +197,43 @@ router.put('/:id', authenticateToken, requireOperator, async (req, res) => {
   }
 });
 
-// Protected: Delete event (admin only)
+// Protected: Delete event (operator only)
 router.delete('/:id', authenticateToken, requireOperator, async (req, res) => {
   try {
-    const event = await database.getEventById(req.params.id);
-    if (!event) {
-      return res.status(404).json({ error: req.t('Event not found') });
-    }
-
-    // Check if any performances have bookings
-    const performances = await database.getPerformancesByEventId(req.params.id);
-    if (performances) {
-      for (const performance of performances) {
-        const hasBookings = await database.performanceHasBookings(performance.id!);
-        if (hasBookings) {
-          return res.status(400).json({ 
-            error: req.t('Cannot delete event with booked performances'),
-            details: req.t('Performance for this event on date {{date}} has bookings', { date: performance.performanceDate }),
-          });
-        }
-      }
-    }
-
-    await database.deleteEvent(req.params.id);
-    res.json({ message: 'Event deleted successfully' });
-  } catch (error: unknown) {
-    res.status(500).json({ error: req.t('Failed to delete event: {{err}}', {err: getErrorMessage(error)}) });
+    const result = await database.deleteEvent(req.params.id);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 });
+// // Protected: Delete event (operator only)
+// router.delete('/:id', authenticateToken, requireOperator, async (req, res) => {
+//   try {
+//     const event = await database.getEventById(req.params.id);
+//     if (!event) {
+//       return res.status(404).json({ error: req.t('Event not found') });
+//     }
+
+//     // Check if any performances have bookings
+//     const performances = await database.getPerformancesByEventId(req.params.id);
+//     if (performances) {
+//       for (const performance of performances) {
+//         const hasBookings = await database.performanceHasBookings(performance.id!);
+//         if (hasBookings) {
+//           return res.status(400).json({ 
+//             error: req.t('Cannot delete event with booked performances'),
+//             details: req.t('Performance for this event on date {{date}} has bookings', { date: performance.performanceDate }),
+//           });
+//         }
+//       }
+//     }
+
+//     await database.deleteEvent(req.params.id);
+//     res.json({ message: 'Event deleted successfully' });
+//   } catch (error: unknown) {
+//     res.status(500).json({ error: req.t('Failed to delete event: {{err}}', {err: getErrorMessage(error)}) });
+//   }
+// });
 
 // ========== PERFORMANCES (nested under events) ==========
 

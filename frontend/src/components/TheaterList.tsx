@@ -12,12 +12,10 @@ import {
   Alert,
 } from '@mui/material';
 import {
-  //Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Curtains as CurtainsIcon,
 } from '@mui/icons-material';
-
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
@@ -26,20 +24,17 @@ import { theaterApi, layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { Theater } from '@/shared/types/theater';
 import { getErrorMessage } from '@/shared/utils/misc';
-//import ActiveBookingsWarning from './ActiveBookingsWarning';
 import { handleGuardResult } from '@/utils/guardHandler';
 import PageHeader from './PageHeader';
 
 const TheaterList: React.FC = () => {
   const { t } = useTranslation();
-  const { isOperator } = useAuth();
+  const { isOperator, loading } = useAuth();
   const navigate = useNavigate();
   const showDialog = useDialog();
-  //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
   const [theaters, setTheaters] = useState<Theater[] | null>(null); // ← null = not loaded
   const [layouts, setLayouts] = useState<Layout[] | null>(null); // ← null = not loaded
-  //const [loading, setLoading] = useState(true);
-  //const [error, setError] = useState<string | null>(null); // TODO ... do we use error ?
+  const [error, setError] = useState<string | null>(null); // TODO ... do we use error ?
   const [navigateTo, setNavigateTo] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,11 +49,11 @@ const TheaterList: React.FC = () => {
       const response = await theaterApi.getAllTheaters();
       setTheaters(response.data);
       //console.log('THEATERS:', response.data);
-      // setError(null);
-    } catch (error: any) {
+      setError(null);
+    } catch (error) {
       setTheaters(null);
-      // setError(err.response?.data?.error);
-      toast.error(getErrorMessage(error));
+      setError(getErrorMessage(error));
+      //toast.error(getErrorMessage(error));
     }
   };
 
@@ -79,12 +74,12 @@ const TheaterList: React.FC = () => {
     try {
       const response = await layoutApi.getAllLayouts();
       setLayouts(response.data);
-      // setError(null);
+      setError(null);
     } catch (error) {
       // Show the actual server error message
       setLayouts(null);
-      // setError(err.response?.data?.error);
-      toast.error(getErrorMessage(error));
+      setError(getErrorMessage(error));
+      //toast.error(getErrorMessage(error));
     }
   };
 
@@ -100,7 +95,6 @@ const TheaterList: React.FC = () => {
     e.stopPropagation();
     navigate(`/theater/edit/${id}`);
   };
-  //const theme = useTheme();
   
   const handleDeleteTheater = async (id: string, e: React.MouseEvent) => { 
     e.stopPropagation();
@@ -122,38 +116,6 @@ const TheaterList: React.FC = () => {
         await loadTheaters();
       }
     });
-        //await reload();
-        //navigate(-1);
-        //return;
-        /*
-        //if (theaters) {
-        const response = await theaterApi.deleteTheater(id);
-        if (!response.data.deleted) {
-          if (response.data.reason === 'THEATER_HAS_ACTIVE_BOOKINGS') {
-            await showDialog({
-              title: t('Active Bookings Exist'),
-              content: response.data.blockedBy ?
-                <ActiveBookingsWarning bookings={response.data.blockedBy} /> :
-                <>{t('No bookings info')}</>
-              ,
-              cancelText: t('Cancel'),
-              onCancel: () => { },
-              shrinkToContent: true,
-            });
-            return;
-          } else {
-            toast.error(response.data.message);
-            return;
-          }
-        }
-        toast.success(response.data.message);
-        const newTheaters = theaters!.filter(theater => theater.id !== id);
-        setTheaters(newTheaters);
-        navigate(-1);
-        return;
-      },
-    });
-    */
   };
 
   return (
@@ -167,25 +129,18 @@ const TheaterList: React.FC = () => {
           onAdd={() => navigate('/theater/new')}
         />
       )}
-        {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="h4">
-            {t('Available Theaters')}
-          </Typography>
-          
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/theater/new')}
-          >
-            {t('Add Theater')}
-          </Button>
-        </Box> */}
 
-      {/* {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+      {error && (
+        <Alert severity="error">
           {error}
         </Alert>
-      )} */}
+      )}
+
+      {!loading && !error && theaters && theaters.length === 0 && (
+        <Alert severity="info">
+          {t('No theaters available')}
+        </Alert>
+      )}
 
       {(theaters && theaters.length === 0) && (
         <Alert severity="info">

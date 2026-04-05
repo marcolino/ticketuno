@@ -9,20 +9,15 @@ import {
   Button,
   Grid,
   Box,
-  //CircularProgress,
-  //Alert,
   Chip,
   CardActions,
-  //Avatar,
 } from '@mui/material';
 import {
-  //Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Event as EventIcon,
   CalendarToday as CalendarIcon,
   TheaterComedy as TheaterIcon,
-  //AttachMoney as MoneyIcon,
   ConfirmationNumber as ConfirmationNumberIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
@@ -32,11 +27,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
+import { handleGuardResult } from '@/utils/guardHandler';
 import Alert from './Alert';
 import PageHeader from './PageHeader';
-//import type { CurrencyCode } from '@/shared/config';
 import config from '@/config';
-//import { __test } from '@/shared/config';
 
 const EventList: React.FC = () => {
   const { t } = useTranslation();
@@ -44,8 +38,9 @@ const EventList: React.FC = () => {
   const { isOperator, loading } = useAuth();
   const toast = useToast();
   const showDialog = useDialog();
-  const [events, setEvents] = useState<EventStats[]>([]);
+  const [events, setEvents] = useState<EventStats[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [navigateTo, setNavigateTo] = useState<string | null>(null);
 
   useEffect(() => {
     //if (isOperator) {
@@ -78,6 +73,13 @@ const EventList: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (navigateTo) {
+      navigate(navigateTo);
+      setNavigateTo(null);
+    }
+  }, [navigateTo]);
+  
   const handleViewEvent = (id: string) => {
     navigate(`/event/${id}`);
   };
@@ -87,24 +89,45 @@ const EventList: React.FC = () => {
     navigate(`/event/edit/${id}`);
   };
 
-  const handleDeleteEvent = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
+  // const handleDeleteEvent = async (id: string, e: React.MouseEvent) => {
+  //   e.stopPropagation();
 
+  //   showDialog({
+  //     title: t('Delete an event'),
+  //     content: t('Are you sure you want to delete this event?'),
+  //     cancelText: t('Cancel'),
+  //     confirmText: t('Delete'),
+  //     onConfirm: async () => {
+  //       try {
+  //         await eventApi.deleteEvent(id);
+  //         const newEvents = events.filter(event => event.id !== id);
+  //         setEvents(newEvents);
+  //       } catch (error) {
+  //         // Show the actual server error message
+  //         toast.error(getErrorMessage(error));
+  //       }
+  //       navigate(`/events`);
+  //     }
+  //   });
+  // };
+  const handleDeleteEvent = async (id: string, e: React.MouseEvent) => { 
+    e.stopPropagation();
     showDialog({
       title: t('Delete an event'),
       content: t('Are you sure you want to delete this event?'),
       cancelText: t('Cancel'),
       confirmText: t('Delete'),
       onConfirm: async () => {
-        try {
-          await eventApi.deleteEvent(id);
-          const newEvents = events.filter(event => event.id !== id);
-          setEvents(newEvents);
-        } catch (error) {
-          // Show the actual server error message
-          toast.error(getErrorMessage(error));
+        const response = await eventApi.deleteEvent(id);
+        const { success, wasBlocked } = await handleGuardResult(response.data, 'deleted', 'event', showDialog, toast, t);
+        if (wasBlocked) {
+          setNavigateTo('/bookings');
+          return;
         }
-        navigate(`/events`);
+        if (!success) return;
+        // success path continues here
+        toast.success(t('Event deleted successfully'));
+        await loadEvents();
       }
     });
   };
@@ -154,12 +177,14 @@ const EventList: React.FC = () => {
         </Alert>
       )}
 
-      {!loading && !error && events.length === 0 && (
-        <Alert severity="info">{t('No events available')}</Alert>
+      {!loading && !error && events && events.length === 0 && (
+        <Alert severity="info">
+          {t('No events available')}
+        </Alert>
       )}
 
       <Grid container spacing={3}>
-        {events.map(event => {
+        {events && events.map(event => {
           const posterImageUrl = event.posterImage ?
             `/uploads/${event.posterImage}` :
             null
