@@ -102,7 +102,7 @@ const TheaterList: React.FC = () => {
   };
   //const theme = useTheme();
   
-  const handleDeleteTheater = async (id: string, e: React.MouseEvent) => {
+  const handleDeleteTheater = async (id: string, e: React.MouseEvent) => { 
     e.stopPropagation();
     showDialog({
       title: t('Delete a theater'),
