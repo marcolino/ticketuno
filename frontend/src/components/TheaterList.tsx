@@ -111,7 +111,7 @@ const TheaterList: React.FC = () => {
       confirmText: t('Delete'),
       onConfirm: async () => {
         const response = await theaterApi.deleteTheater(id);
-        const { success, wasBlocked } = await handleGuardResult(response.data, 'deleted', showDialog, toast, t);
+        const { success, wasBlocked } = await handleGuardResult(response.data, 'deleted', 'theater', showDialog, toast, t);
         if (wasBlocked) {
           setNavigateTo('/bookings');
           return;

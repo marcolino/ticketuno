@@ -8,6 +8,7 @@ import { database } from '../db/database';
 import { authenticateToken, generateToken, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
+import { GuardedDeleteResult, GuardedDeleteResultBulk } from '../shared/types/guard';
 import { FullConsent } from '../shared/types/consent';
 import { 
   generateVerificationCode, 
@@ -615,10 +616,25 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
   }
 });
 
-// Protected: delete user by id (operator only)
+// Protected: delete one user by id (operator only) (could be deprecated, probably unused)
 router.delete('/:userId', authenticateToken, requireOperator, async (req, res) => {
+  console.warn('DELETE /users/:userId endpoint is DEPRECATED')
   try {
     res.json(await database.deleteUser(req.params.userId));
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+// Protected: bulk delete endpoint: handles both single and multiple ids (operator only)
+router.delete('/', authenticateToken, requireOperator, async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Missing or invalid ids array' });
+    }
+    const result = await database.deleteUsers(ids);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: getErrorMessage(error) });
   }

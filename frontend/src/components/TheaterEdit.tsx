@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useParams  } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  useTheme,
+  //useTheme,
   Container,
   Box,
   Typography,
@@ -19,9 +19,10 @@ import {
   Save as SaveIcon,
   Curtains as CurtainsIcon,
 } from '@mui/icons-material';
-import PhoneInput from 'react-phone-input-2';
-import 'react-phone-input-2/lib/material.css';
 import useNavigate from '@/hooks/useNavigate';
+// import PhoneInput from 'react-phone-input-2';
+// import 'react-phone-input-2/lib/material.css';
+import PhoneInput from './PhoneInput';
 import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
 // import TextFieldPhone from './TextFieldPhone';
 import TagSelector from './TagSelector';
@@ -40,7 +41,7 @@ const TheaterEdit: React.FC = () => {
   const { t } = useTranslation();
   const showDialog = useDialog();
   const toast = useToast();
-  const theme = useTheme();
+  //const theme = useTheme();
   const { id } = useParams<{ id: string }>();
   const { isOperator } = useAuth();
 
@@ -300,7 +301,7 @@ const TheaterEdit: React.FC = () => {
             await showDialog({
               title: t('Active Bookings Exist'),
               content: response.data.blockedBy ?
-                <ActiveBookingsWarning bookings={response.data.blockedBy} /> :
+                <ActiveBookingsWarning bookings={response.data.blockedBy} actionDescription={t('This theater can\'t be deleted because there are event performaces with active bookings on this theater')}  /> :
                 <>{t('No bookings info')}</>
               ,
               cancelText: t('Cancel'),
@@ -340,6 +341,16 @@ const TheaterEdit: React.FC = () => {
       setSaving(false);
     }
   };
+
+  // const validatePhone = (phone: string) => {
+  //   if (!phone || phone.length < 8) {
+  //     // setPhoneError(true);
+  //     // setPhoneHelper('Please enter a valid phone number');
+  //   } else {
+  //   //   setPhoneError(false);
+  //   //   setPhoneHelper('');
+  //   // }
+  // };
   
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -427,100 +438,15 @@ const TheaterEdit: React.FC = () => {
 
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth>
-              <Box sx={{
-                width: '100%',
-                '& .react-tel-input .form-control': {
-                  width: '100%',
-                  height: '56px',
-                  borderRadius: `${theme.shape.borderRadius}px`,
-                  borderColor: theme.palette.mode === 'dark'
-                    ? 'rgba(255,255,255,0.23)'
-                    : 'rgba(0,0,0,0.23)',
-                  fontFamily: theme.typography.fontFamily,
-                  fontSize: theme.typography.body1.fontSize,
-                  color: theme.palette.text.primary,
-                  backgroundColor: 'transparent',
-                  '&:hover': {
-                    borderColor: theme.palette.text.primary,
-                  },
-                  '&:focus': {
-                    borderColor: theme.palette.primary.main,
-                    borderWidth: '2px',
-                    boxShadow: 'none',
-                  },
-                },
-                '& .react-tel-input .flag-dropdown': {
-                  borderRadius: `${theme.shape.borderRadius}px 0 0 ${theme.shape.borderRadius}px`,
-                  borderColor: theme.palette.mode === 'dark'
-                    ? 'rgba(255,255,255,0.23)'
-                    : 'rgba(0,0,0,0.23)',
-                  backgroundColor: 'transparent',
-                  '&:hover, &.open': {
-                    backgroundColor: theme.palette.action.hover,
-                  },
-                },
-                '& .react-tel-input .selected-flag': {
-                  borderRadius: `${theme.shape.borderRadius}px 0 0 ${theme.shape.borderRadius}px`,
-                  backgroundColor: 'transparent !important',
-                },
-                '& .react-tel-input .country-list': {
-                  backgroundColor: theme.palette.background.paper,
-                  boxShadow: theme.shadows[8],
-                  borderRadius: `${theme.shape.borderRadius}px`,
-                },
-                '& .react-tel-input .country-list .country': {
-                  display: 'flex !important',
-                  alignItems: 'center !important',
-                  paddingTop: '5px !important',
-                  paddingBottom: '5px !important',
-                  paddingLeft: '8px !important',    // control left padding explicitly
-                  paddingRight: '8px !important',
-                  gap: '0 !important',              // remove gap, use flag margin instead
-                  '&:hover': {
-                    backgroundColor: `${theme.palette.action.hover} !important`,
-                  },
-                  '&.highlight': {
-                    backgroundColor: `${theme.palette.action.selected} !important`,
-                  },
-                },
-                '& .react-tel-input .country-list .flag': {
-                  flexShrink: '0 !important',
-                  marginTop: '0 !important',
-                  marginRight: '20px !important', // space between flag and country name
-                  marginLeft: '0 !important',
-                  position: 'relative !important',
-                  top: '0 !important',
-                },
-                '& .react-tel-input .country-list .country-name': {
-                  color: `${theme.palette.text.primary} !important`,
-                  marginRight: '4px !important',
-                  lineHeight: '1 !important',
-                },
-                '& .react-tel-input .country-list .dial-code': {
-                  color: `${theme.palette.text.secondary} !important`,
-                  lineHeight: '1 !important',
-                },
-              }}>
-                <PhoneInput
-                  country={config.app.defaultLanguage}
-                  value={theaterData.contactPhone}
-                  onChange={(value) => {
-                    setTheaterData(prev => ({ ...prev, contactPhone: value }));
-                    //contactPhoneValidate(value);
-                  }}
-                  onBlur={(e) => {
-                    // If focus moved to somewhere inside the phone widget (e.g. flag dropdown),
-                    // don't validate — the user is still interacting with the field
-                    const relatedTarget = e?.relatedTarget as HTMLElement | null;
-                    const container = (e?.target as HTMLElement)?.closest('.react-tel-input');
-                    if (container?.contains(relatedTarget)) return;
-
-                    //if (!phoneTouched) return;
-                    contactPhoneValidate(theaterData.contactPhone)
-                  }}
-                  specialLabel={t('Contact phone number')}
-                />
-              </Box>
+              <PhoneInput
+                label={t('Contact phone number')}
+                value={theaterData.contactPhone}
+                onChange={(value) => {
+                  setTheaterData(prev => ({ ...prev, contactPhone: value }));
+                }}
+                onBlur={() => contactPhoneValidate(theaterData.contactPhone)}
+                defaultCountry={config.app.defaultLanguage}
+              />
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={4}>

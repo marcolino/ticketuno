@@ -18,6 +18,7 @@ const config: AppConfig = {
       zh: { name: 'Chinese', flag: '🇨🇳' },
     },
     defaultLanguage: 'it',
+    defaultCountry: 'it',
     defaultTimezone: 'Europe/Rome',
     defaultPhonePrefix: '+39',
     currencies: {

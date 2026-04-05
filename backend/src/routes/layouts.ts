@@ -92,15 +92,20 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
 // Protected: delete layout by id (operator only)
 router.delete('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
-    const deleted = await database.deleteLayout(req.params.id);
-    if (!deleted) {
-      res.status(400).json({ message: req.t('Layout could not be deleted') });
-    } else {
-      res.json({ message: req.t('Layout deleted successfully') });
-    }
-  } catch (error: unknown) {
-    res.status(500).json({ error: req.t('Failed to delete layout: {{err}}', { err: getErrorMessage(error) }) });
+    res.json(await database.deleteLayout(req.params.id));
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
+  // try {
+  //   const deleted = await database.deleteLayout(req.params.id);
+  //   if (!deleted) {
+  //     res.status(400).json({ message: req.t('Layout could not be deleted') });
+  //   } else {
+  //     res.json({ message: req.t('Layout deleted successfully') });
+  //   }
+  // } catch (error: unknown) {
+  //   res.status(500).json({ error: req.t('Failed to delete layout: {{err}}', { err: getErrorMessage(error) }) });
+  // }
 });
 
 export default router;

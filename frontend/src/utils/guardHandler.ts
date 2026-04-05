@@ -1,11 +1,7 @@
-//import { DialogOptions } from '@/shared/types/dialog';
-import { ShowDialog } from '@/contexts/DialogContext';
-import { GuardedDeleteResult, GuardedUpdateResult, GuardHandlerResult } from '@/shared/types/guard';
-import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
 import { createElement } from 'react';
-
-type GuardedResult = GuardedDeleteResult | GuardedUpdateResult;
-type SuccessKey = 'deleted' | 'updated' | 'canceled';
+import { ShowDialog } from '@/contexts/DialogContext';
+import { GuardHandlerResult, GuardedResult, SuccessKey, Action } from '@/shared/types/guard';
+import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
 
 const reasonMessages: Record<string, string> = {
   USER_HAS_ACTIVE_BOOKINGS: 'user has active bookings',
@@ -23,6 +19,7 @@ const reasonMessages: Record<string, string> = {
 export async function handleGuardResult(
   result: GuardedResult,
   successKey: SuccessKey,
+  action: Action,
   showDialog: ShowDialog,
   toast: any,
   t: (key: string, opts?: Record<string, unknown>) => string,
@@ -32,8 +29,8 @@ export async function handleGuardResult(
 
   if (result.blockedBy?.length) {
     const confirmed = await showDialog({
-      title: t('Active Bookings Exist'),
-      content: createElement(ActiveBookingsWarning, { bookings: result.blockedBy }),
+      title: t('Active bookings exist'),
+      content: createElement(ActiveBookingsWarning, { bookings: result.blockedBy, action }),
       confirmText: t('Handle bookings'),
       cancelText: t('Cancel'),
       shrinkToContent: true,

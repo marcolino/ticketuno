@@ -264,7 +264,7 @@ const UsersList: React.FC = () => {
             blockedBy: result.blockedBy,
           };
 
-          const { success, wasBlocked } = await handleGuardResult(normalized, 'deleted', showDialog, toast, t);
+          const { success, wasBlocked } = await handleGuardResult(normalized, 'deleted', 'user', showDialog, toast, t);
           if (wasBlocked) {
             setNavigateTo('/users'); // or wherever you want to redirect after handling bookings
             return;
@@ -308,7 +308,7 @@ const UsersList: React.FC = () => {
             reason: bulk.blocked > 0 ? 'USER_HAS_ACTIVE_BOOKINGS' : undefined,
             blockedBy: allBlockedBy.length > 0 ? allBlockedBy : undefined,
           };
-          const { success, wasBlocked } = await handleGuardResult(responseDataNormalized, 'deleted', showDialog, toast, t);
+          const { success, wasBlocked } = await handleGuardResult(responseDataNormalized, 'deleted', 'user', showDialog, toast, t);
           if (wasBlocked) {
             setNavigateTo('/users');
             return;

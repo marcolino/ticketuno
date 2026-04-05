@@ -22,9 +22,10 @@ import {
   AccountBox,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
+import PhoneInput from '@/components/PhoneInput';
 import Title from '@/components/Title';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDialog } from '../contexts/DialogContext';
+import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { userApi } from '@/services/api';
 import { UserProfile } from '@/shared/types/user';
@@ -34,10 +35,7 @@ import {
   assignableRoles,
   Role,
 } from '@/shared/utils/roles';
-
-// interface ProfileProps {
-//   userId?: string; // undefined = editing self
-// }
+import config from '@/shared/config';
 
 const Profile: React.FC/*<ProfileProps>*/ = () => {
   const { id: userId } = useParams<{ id: string }>();
@@ -178,7 +176,6 @@ const Profile: React.FC/*<ProfileProps>*/ = () => {
         updateUser(response.data);
       }
       
-      //setSuccess('Profile updated successfully');
       toast.success(t('Profile updated successfully'));
       navigate(-1);
     } catch (error: any) {
@@ -240,11 +237,22 @@ const Profile: React.FC/*<ProfileProps>*/ = () => {
             onChange={(e) => setEmail(e.target.value)}
             sx={{ mb: 2 }}
           />
-          <TextField
+          {/* <TextField
             fullWidth
             label="Phone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            sx={{ mb: 2 }}
+          /> */}
+          <PhoneInput
+            label={t('Phone number')}
+            value={phone}
+            onChange={value => {
+              //setTheaterData(prev => ({ ...prev, contactPhone: value }));
+              setPhone(value);
+            }}
+            onBlur={(e) => setPhone(e.target.value)}
+            defaultCountry={config.app.defaultLanguage}
             sx={{ mb: 2 }}
           />
 

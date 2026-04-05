@@ -360,8 +360,8 @@ export const userApi = {
   // delete: (userId: string) =>
   //   api.delete<GuardedDeleteResult>(`/users/${userId}`),
   delete: (userIds: string | string[]) => {
-    //const ids = Array.isArray(userIds) ? userIds : [userIds];
-    return api.delete<GuardedDeleteResultBulk>('/users', { data: { ids: Array.isArray(userIds) ? userIds : [userIds] } });
+    const ids = Array.isArray(userIds) ? userIds : [userIds];
+    return api.delete<GuardedDeleteResultBulk>('/users', { data: { ids } });
   },
 };
 

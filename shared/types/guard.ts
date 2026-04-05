@@ -1,3 +1,11 @@
+export type GuardState = 'idle' | 'checking' | 'safe' | 'blocked';
+
+export type SuccessKey = 'deleted' | 'updated' | 'canceled';
+
+export type Action = 'theater' | 'layout' | 'event' | 'performance' | 'user';
+
+export type GuardedResult = GuardedDeleteResult | GuardedUpdateResult;
+
 export type GuardReason =
   | 'THEATER_HAS_ACTIVE_BOOKINGS'
   | 'THEATER_NOT_FOUND'

@@ -23,7 +23,8 @@ import { layoutApi } from '@/services/api';
 import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
-//import { toast } from '@/contexts/ToastContext';
+import { toast } from '@/contexts/ToastContext';
+import { handleGuardResult } from '@/utils/guardHandler';
 import PageHeader from './PageHeader';
 import Alert from './Alert';
 import { getErrorMessage } from '@/shared/utils/misc';
@@ -35,6 +36,7 @@ const LayoutList: React.FC = () => {
   const showDialog = useDialog();
   const { isOperator, loading } = useAuth();
   const [layouts, setLayouts] = useState<Layout[]>([]);
+  const [navigateTo, setNavigateTo] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,6 +45,13 @@ const LayoutList: React.FC = () => {
     }
   }, [isOperator]);
 
+  useEffect(() => {
+      if (navigateTo) {
+        navigate(navigateTo);
+        setNavigateTo(null);
+      }
+    }, [navigateTo]);
+  
   const loadLayouts = async () => {
     try {
       const response = await layoutApi.getAllLayouts();
@@ -76,9 +85,19 @@ const LayoutList: React.FC = () => {
       confirmText: t('Delete'),
       onConfirm: async () => {
         try {
-          await layoutApi.deleteLayout(id);
-          const newLayouts = layouts.filter(layout => layout.id !== id);
-          setLayouts(newLayouts);
+          const response = await layoutApi.deleteLayout(id);
+          const { success, wasBlocked } = await handleGuardResult(response.data, 'deleted', 'layout', showDialog, toast, t);
+          if (wasBlocked) {
+            setNavigateTo('/bookings');
+            return;
+          }
+          if (!success) return;
+          // success path continues here
+          toast.success(t('Layout deleted successfully'));
+          await loadLayouts();
+        
+          // const newLayouts = layouts.filter(layout => layout.id !== id);
+          // setLayouts(newLayouts);
           setError('');
         } catch (error) {
           // Show the actual server error message

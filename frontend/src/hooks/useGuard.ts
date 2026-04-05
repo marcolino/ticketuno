@@ -1,10 +1,8 @@
 import { useState, useCallback } from 'react';
-import { ActiveBookingInfo } from '../shared/types/guard';
+import { ActiveBookingInfo, Action, GuardState } from '../shared/types/guard';
 import { guardsApi } from '../services/api';
 
-type GuardState = 'idle' | 'checking' | 'safe' | 'blocked';
-
-const useGuard = (type: 'performance' | 'event' | 'theater' | 'layout', id: string | null) => {
+const useGuard = (type: Action, id: string | null) => {
   const [state, setState] = useState<GuardState>('idle');
   const [bookings, setBookings] = useState<ActiveBookingInfo[]>([]);
 

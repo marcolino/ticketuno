@@ -1961,6 +1961,9 @@ const execQuery = (db: sqlite3.Database, sql: string, context = ''): Promise<voi
 /**
  * Run a parameterized query (INSERT, UPDATE, DELETE).
  * Returns RunResult with lastID and changes.
+ * 
+ * Note: These functions are tested for SQLite DB. They should normalize responses for other DBs.
+ *       For example: 'changes' field is expected in UPDATEs, but not all DBs return it...
  */
 type SqlParam = string | number | Buffer | null;
 
