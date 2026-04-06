@@ -1268,7 +1268,35 @@ class Database {
     return id;
   }
 
-  async updateEvent(id: string, updates: Partial<Event>): Promise<boolean> {
+  async updateEvent(
+    id: string,
+    updates: Partial<Event>
+  ): Promise<{ updated: boolean; reason?: string; blockedBy?: ActiveBookingInfo[] }> {
+     // Guard: if theaterId is being changed, check for active bookings
+    if (updates.theaterId !== undefined) {
+      // Fetch current event to see if theaterId actually changes
+      const current = await getQuery<{ theater_id: string }>(
+        this.db, `
+          SELECT theater_id
+          FROM events
+          WHERE id = ?
+          AND deleted_at IS NULL
+        `,
+        [id],
+        'updateEvent: get current theater'
+      );
+      if (current && current.theater_id !== updates.theaterId) {
+        const guard = await this.guardEvent(id);
+        if (!guard.safe) {
+          return {
+            updated: false,
+            reason: 'EVENT_HAS_ACTIVE_BOOKINGS',
+            blockedBy: guard.bookings,
+          };
+        }
+      }
+    }
+
     const fields: string[] = [];
     const values: (string | number | Buffer | null)[] = [];
 
@@ -1322,7 +1350,7 @@ class Database {
       }
     });
 
-    if (fields.length === 0) return false;
+    if (fields.length === 0) return { updated: false };
 
     values.push(id);
     const result = await runQuery(
@@ -1332,7 +1360,7 @@ class Database {
       `,
       values, 'update event'
     );
-    return result.changes > 0;
+    return { updated: result.changes > 0 };
   }
 
   async cancelEvent(id: string, reason?: string):

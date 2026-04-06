@@ -111,6 +111,7 @@ common:
  3 - OK - rename Profile to UserEdit (no)
  3 - OK - rename Event/Layout/Theater List to Events/Theaters/Layouts List (no...)
  3 - OK - add all users profile handling
+ 1 -    - disable useNavigate custom hook, returning directly react useNavigate
  1 -    - complete guards handling, like in TheaterList
  1 -    - remove isLoading in all components from useState, and use isLoading fro useLoading
  1 -    - in all components, handle errors using import { getErrorMessage } from '@/utils/misc':

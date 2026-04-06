@@ -849,7 +849,7 @@ const LayoutEdit: React.FC = () => {
                   startIcon={<SaveIcon />}
                   onClick={save}
                   onMouseDown={(e) => e.preventDefault()} // to avoid requiring a double tap on mobile
-                  disabled={isReadOnly || saving}
+                  //disabled={isReadOnly || saving}
                   //size="small"
                 >
                   {saving ? t('Saving...') : t('Save')}

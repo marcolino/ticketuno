@@ -100,31 +100,31 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   const { t } = useTranslation();
 
   const [activeStep, setActiveStep] = useState<StepName>('upload');
-  const [uploadedImage, setUploadedImage]       = useState<ImageData | null>(null);
-  const [editedImage,   setEditedImage]         = useState<string | null>(null);
-  const [isLoading,     setIsLoading]           = useState(false);
-  const [error,         setError]               = useState<string>('');
+  const [uploadedImage, setUploadedImage] = useState<ImageData | null>(null);
+  const [editedImage, setEditedImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [compressedInfo, setCompressedInfo] = useState<{
     originalSize: string; compressedSize: string; reduction: string;
   } | null>(null);
 
   // ── Edit state (full mode only) ──────────────────────────────────────────
-  const [crop,     setCrop]     = useState<CropState>({ x: 0, y: 0 });
-  const [zoom,     setZoom]     = useState<number>(1);
+  const [crop, setCrop] = useState<CropState>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
-  const [flip,     setFlip]     = useState<FlipState>({ horizontal: false, vertical: false });
-  const [aspect,   setAspect]   = useState<number | 'free'>(fixedAspectRatio || 'free');
+  const [flip, setFlip] = useState<FlipState>({ horizontal: false, vertical: false });
+  const [aspect, setAspect] = useState<number | 'free'>(fixedAspectRatio || 'free');
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
-  const [brightness,  setBrightness]  = useState<number>(100);
-  const [contrast,    setContrast]    = useState<number>(100);
-  const [saturation,  setSaturation]  = useState<number>(100);
+  const [brightness, setBrightness] = useState<number>(100);
+  const [contrast, setContrast] = useState<number>(100);
+  const [saturation, setSaturation] = useState<number>(100);
 
-  const historyRef   = useRef<HistoryState[]>([]);
+  const historyRef = useRef<HistoryState[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
-  const [presets,    setPresets]    = useState<Preset[]>([]);
+  const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState<string>('');
 
   // ── Effects ──────────────────────────────────────────────────────────────

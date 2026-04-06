@@ -1,6 +1,6 @@
 export type GuardState = 'idle' | 'checking' | 'safe' | 'blocked';
 
-export type SuccessKey = 'deleted' | 'updated' | 'canceled' | 'editable';
+export type SuccessKey = 'created' | 'deleted' | 'updated' | 'canceled' | 'editable';
 
 export type Action = 'theater' | 'layout' | 'event' | 'performance' | 'user';
 

@@ -108,4 +108,13 @@ router.delete('/:id', authenticateToken, requireOperator, async (req: AuthReques
   // }
 });
 
+router.get('/:id/guard', authenticateToken, requireOperator, async (req, res) => {
+  try {
+    const guard = await database.guardLayout(req.params.id);
+    res.json({ safe: guard.safe, blockedBy: guard.bookings });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
 export default router;

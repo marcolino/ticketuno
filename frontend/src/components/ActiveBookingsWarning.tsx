@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 type ActiveBookingsWarningProps = {
   bookings: ActiveBookingInfo[];
   action?: string;
-  verb?: 'delete' | 'edit';
+  verb?: 'delete' | 'edit' | 'edit theater association';
 };
 
 

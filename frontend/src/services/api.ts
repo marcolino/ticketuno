@@ -392,6 +392,10 @@ export const layoutApi = {
 
   deleteLayout: (id: string) =>
     api.delete(`/layouts/${id}`),
+
+  getLayoutGuard: (id: string) =>
+    api.get(`/layouts/${id}/guard`),
+
 };
 
 export const eventApi = {
@@ -404,11 +408,16 @@ export const eventApi = {
   createEvent: (event: Partial<Event>) =>
     api.post<Event>('/events', event),
 
+  // updateEvent: (id: string, event: Partial<Event>) =>
+  //   api.put<Event>(`/events/${id}`, event),
   updateEvent: (id: string, event: Partial<Event>) =>
-    api.put<Event>(`/events/${id}`, event),
-
+    api.put<GuardedUpdateResult>(`/events/${id}`, event),
+  
   deleteEvent: (id: string) =>
     api.delete(`/events/${id}`),
+
+  getEventGuard: (id: string) =>
+    api.get(`/events/${id}/guard`),
 
   getPerformances: (eventId: string) =>
     api.get<EventPerformance[]>(`/events/${eventId}/performances`),
@@ -507,7 +516,7 @@ export const guardsApi = {
   
   layout:
     (id: string) => api.get<GuardResult>(`/guards/layout/${id}`).then(r => r.data),
-};
+  };
 
 export const setupApi = {
   load: () =>

@@ -23,14 +23,10 @@ export async function handleGuardResult(
   showDialog: ShowDialog,
   toast: any,
   t: (key: string, opts?: Record<string, unknown>) => string,
-  onCancel?: () => void,
+  onCancel?: () => void, // new optional callback
 ): Promise<GuardHandlerResult> {
-  // Explicit success flag (e.g., editable: true)
-  const explicitSuccess = !!(result as any)[successKey];
-  // If response has an 'id' and no block/reason, consider it success
-  const hasEntityId = !!(result as any).id && !result.blockedBy?.length && !result.reason;
-
-  if (explicitSuccess || hasEntityId) {
+  const succeeded = !!(result as any)[successKey];
+  if (succeeded) {
     return { success: true, wasBlocked: false };
   }
 
@@ -43,6 +39,7 @@ export async function handleGuardResult(
       cancelText: t('Cancel'),
       shrinkToContent: true,
     });
+    
     if (!confirmed) {
       if (onCancel) onCancel();
       return { success: false, wasBlocked: false, canceled: true };

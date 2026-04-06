@@ -26,16 +26,15 @@ import {
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { TimePicker } from '@mui/x-date-pickers/TimePicker';
 import dayjs, { Dayjs } from 'dayjs';
-import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
 import useNavigate from '@/hooks/useNavigate';
+import { useDialog } from '@/contexts/DialogContext';
+import ActiveBookingsWarning from './ActiveBookingsWarning';
 import { eventApi, theaterApi, imageApi } from '@/services/api';
-import { Event/*, EventPerformance*/} from '@/shared/types/event';
+import { Event/*, EventPerformance*/ } from '@/shared/types/event';
 import { TheaterStats } from '@/shared/types/theater';
 //import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
-import { useDialog } from '@/contexts/DialogContext';
-import { handleGuardResult } from '@/utils/guardHandler';
 import TagSelector from './TagSelector';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
@@ -69,7 +68,7 @@ const getDefaultEvent = (): Partial<Event> & {
   durationMinutes: 120,
   intermissionCount: 1,
   rating: '',
-  language: 'Italian',
+  language: 'Italian', // TODO: from config
   director: '',
   playwright: '',
   producer: '',
@@ -96,6 +95,7 @@ const getDefaultEvent = (): Partial<Event> & {
 const EventEdit: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const showDialog = useDialog();
   const theme = useTheme();
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
@@ -135,20 +135,24 @@ const EventEdit: React.FC = () => {
     typicalStartTimeObj: Dayjs | null;
     typicalEndTimeObj: Dayjs | null;
   }>(getDefaultEvent());
-  const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
+  const [selectedTheaterId, setSelectedTheaterId] = useState('');
+  const [previousTheaterId, setPreviousTheaterId] = useState('');
 
-  const showDialog = useDialog();
+  const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
 
   const loadEvent = useCallback(
     async (overrideTheaterId?: string) => {
       try {
         const response = await eventApi.getEventById(id!);
         const apiEvent = response.data;
-        const converted = eventFromApi(apiEvent);
+        const eventConverted = eventFromApi(apiEvent);
         if (overrideTheaterId) {
-          converted.theaterId = overrideTheaterId;
+          eventConverted.theaterId = overrideTheaterId;
         }
-        setEvent(converted);
+        setEvent(eventConverted);
+
+        setSelectedTheaterId(apiEvent.theaterId);
+        setPreviousTheaterId(apiEvent.theaterId);
       } catch (error: any) {
         toast.error(getErrorMessage(error));
       }
@@ -172,6 +176,7 @@ const EventEdit: React.FC = () => {
       }
 
       if (incomingTheaterId && state) {
+        // Restore form snapshot from navigation state
         setEvent({
           ...getDefaultEvent(),
           ...state,
@@ -216,60 +221,26 @@ const EventEdit: React.FC = () => {
         typicalEndTime: typicalEndTimeObj?.format('HH:mm'),
       };
 
+      
+      //let eventId: string;
       if (isEditMode) {
-        const response = await eventApi.updateEvent(id!, eventData);
-        const result = response.data;
-
-        // Check if the update was blocked by active bookings
-        if (result.blockedBy?.length) {
-          // Show the guard dialog (same as handleGuardResult)
-          const confirmed = await showDialog({
-            title: t('Active bookings exist'),
-            content: createElement(ActiveBookingsWarning, {
-              bookings: result.blockedBy,
-              action: 'event',
-              verb: 'edit',
-            }),
-            confirmText: t('Handle bookings'),
-            cancelText: t('Cancel'),
-            shrinkToContent: true,
-          });
-          if (confirmed) {
-            navigate('/bookings');
-          }
-          return;
-        }
-
-        // Normal success case
-        if (result.updated === true) {
-          toast.success(t('Event updated successfully!'));
-          navigate(-1);
-          return;
-        }
-
-        // Fallback error
-        toast.error(t('Failed to update event'));
-        return;
+        await eventApi.updateEvent(id!, eventData);
+        //eventId = id!;
+        toast.success('Event updated successfully!');
       } else {
-        // Create mode – unchanged, but you could also adapt if needed
-        const response = await eventApi.createEvent(eventData);
-        // Assuming create returns the event object or a success flag
-        const { success, wasBlocked } = await handleGuardResult(
-          response.data,
-          'created',
-          'event',
-          showDialog,
-          toast,
-          t
-        );
-        if (wasBlocked) {
-          navigate('/bookings');
-          return;
-        }
-        if (!success) return;
-        toast.success(t('Event created successfully!'));
-        navigate(-1);
+        /*const response = */await eventApi.createEvent(eventData);
+        //eventId = response.data.id;
+        toast.success('Event created successfully!');
       }
+
+      // // Create new performances (only for new ones without id)
+      // for (const performance of event.performances || []) {
+      //   if (!performance.id && performance.performanceDate && performance.startTime) {
+      //     await eventApi.createPerformance(eventId, performance);
+      //   }
+      // }
+
+      navigate(-1);
     } catch (error: any) {
       const err = error.response?.data?.error || error.message;
       const msg = isEditMode
@@ -286,6 +257,7 @@ const EventEdit: React.FC = () => {
     setEvent((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Specialized handlers
   const handleGenresChange = (genres: string[]) => {
     setEvent((prev) => ({ ...prev, genres }));
   };
@@ -294,21 +266,86 @@ const EventEdit: React.FC = () => {
     setEvent((prev) => ({ ...prev, cast }));
   };
 
+  // const handlePerformancesChange = (performances: Partial<EventPerformance>[]) => {
+  //   setEvent((prev) => ({ ...prev, performances }));
+  // };
+
   const handleCanceledToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
     const canceled = e.target.checked ? 1 : 0;
     setEvent((prev) => ({ ...prev, canceled }));
   };
 
+  const handleTheaterChange = async (e: React.ChangeEvent<{ value: unknown }>) => {
+    const newTheaterId = e.target.value as string;
+
+    // Helper to check if changing theater is allowed (only for existing events)
+    const isTheaterChangeAllowed = async (): Promise<boolean> => {
+      if (!isEditMode) return true; // New event – no bookings yet
+      try {
+        const { data: guard } = await eventApi.getEventGuard(id!);
+        if (!guard.safe) {
+          await showDialog({
+            title: t('Cannot change theater'),
+            content: createElement(ActiveBookingsWarning, {
+              bookings: guard.blockedBy,
+              action: 'event',
+              verb: 'edit theater association',
+            }),
+            confirmText: t('OK'),
+            cancelText: t('Cancel'),
+            shrinkToContent: true,
+          });
+          return false;
+        }
+        return true;
+      } catch (error) {
+        toast.error(t('Failed to check theater change permission: {{error}}', { error }));
+        return false;
+      }
+    };
+
+    // Handle "New Theater" option
+    if (newTheaterId === '<new>') {
+      const allowed = await isTheaterChangeAllowed();
+      if (!allowed) return; // Blocked – do not navigate
+
+      // Allowed – navigate to create a new theater, preserving form state
+      navigate('/theater/new', {
+        state: {
+          returnTo: `/event/${id ?? 'new'}`,
+          eventData: {
+            ...event,
+            openingDate: event.openingDateObj?.toISOString(),
+            closingDate: event.closingDateObj?.toISOString(),
+            typicalStartTime: event.typicalStartTimeObj?.toISOString(),
+            typicalEndTime: event.typicalEndTimeObj?.toISOString(),
+          },
+        },
+        replace: true,
+      });
+      return;
+    }
+
+    // Normal theater selection
+    if (newTheaterId === event.theaterId) return; // No change
+
+    const allowed = await isTheaterChangeAllowed();
+    if (!allowed) return; // Blocked, do not change dropdown
+
+    // Allowed – update the event state
+    handleFieldChange('theaterId')(newTheaterId);
+  };
+
+  
   return (
     <Container maxWidth="lg" sx={{ p: { xs: 2, sm: 4 }, mt: 4, mb: 4 }}>
       <Paper elevation={3} sx={{ p: { xs: 2, sm: 4 } }}>
         <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 3 }}>
-          <TheaterComedyIcon fontSize="large" />
+          <TheaterComedyIcon fontSize="large" />{' '}
           {isEditMode ? t('Edit Event') : t('Create New Event')}
         </Typography>
 
         <Grid container spacing={3}>
-          {/* Title */}
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -320,7 +357,6 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          {/* Description */}
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -332,7 +368,6 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          {/* Genres */}
           <Grid item xs={6}>
             <TagSelector
               label={t('Genere')}
@@ -344,7 +379,6 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          {/* Language */}
           <Grid item xs={6}>
             <TagSelector
               label={t('Language')}
@@ -356,7 +390,6 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          {/* Duration & Intermissions */}
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -367,6 +400,7 @@ const EventEdit: React.FC = () => {
               inputProps={{ min: 0 }}
             />
           </Grid>
+
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -377,6 +411,7 @@ const EventEdit: React.FC = () => {
               inputProps={{ min: 0 }}
             />
           </Grid>
+
           <Grid item xs={12} md={4}>
             <TagSelector
               label={t('Rating')}
@@ -388,35 +423,18 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          {/* Theater selection */}
+          {/* Venue Information */}
           <Grid item xs={12}>
             <FormControl fullWidth required>
               <InputLabel>{t('Theater')}</InputLabel>
               <Select
                 value={event.theaterId || ''}
                 label={t('Theater')}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === '<new>') {
-                    navigate('/theater/new', {
-                      state: {
-                        returnTo: `/event/${id ?? 'new'}`,
-                        eventData: {
-                          ...event,
-                          openingDate: event.openingDateObj?.toISOString(),
-                          closingDate: event.closingDateObj?.toISOString(),
-                          typicalStartTime: event.typicalStartTimeObj?.toISOString(),
-                          typicalEndTime: event.typicalEndTimeObj?.toISOString(),
-                        },
-                      },
-                      replace: true,
-                    });
-                  } else {
-                    handleFieldChange('theaterId')(val);
-                  }
-                }}
+                onChange={(e) => handleTheaterChange(e)}
               >
-                <MenuItem value="<new>"><i>{t('New Theater')}</i></MenuItem>
+                <MenuItem value="<new>">
+                  <i>{t('New Theater')}</i>
+                </MenuItem>
                 {theaters.map((theater) => (
                   <MenuItem key={theater.id} value={theater.id}>
                     {theater.name}
@@ -432,6 +450,7 @@ const EventEdit: React.FC = () => {
               {t('Production Details')}
             </Typography>
           </Grid>
+
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -440,6 +459,7 @@ const EventEdit: React.FC = () => {
               onChange={(e) => handleFieldChange('director')(e.target.value)}
             />
           </Grid>
+
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -448,6 +468,7 @@ const EventEdit: React.FC = () => {
               onChange={(e) => handleFieldChange('playwright')(e.target.value)}
             />
           </Grid>
+
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -456,6 +477,7 @@ const EventEdit: React.FC = () => {
               onChange={(e) => handleFieldChange('producer')(e.target.value)}
             />
           </Grid>
+
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -464,6 +486,7 @@ const EventEdit: React.FC = () => {
               onChange={(e) => handleFieldChange('choreographer')(e.target.value)}
             />
           </Grid>
+
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -473,7 +496,6 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          {/* Cast */}
           <Grid item xs={12}>
             <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
               {t('Actors')}
@@ -487,6 +509,7 @@ const EventEdit: React.FC = () => {
               {t('Schedule')}
             </Typography>
           </Grid>
+
           <Grid item xs={12} md={6}>
             <Stack direction="row" spacing={1}>
               <DatePicker
@@ -513,6 +536,7 @@ const EventEdit: React.FC = () => {
               />
             </Stack>
           </Grid>
+
           <Grid item xs={12} md={6}>
             <Stack direction="row" spacing={1}>
               <TimePicker
@@ -536,6 +560,7 @@ const EventEdit: React.FC = () => {
               {t('Pricing')}
             </Typography>
           </Grid>
+
           <Grid item xs={12} md={2}>
             <FormControl fullWidth>
               <InputLabel>{t('Currency')}</InputLabel>
@@ -553,6 +578,7 @@ const EventEdit: React.FC = () => {
               </Select>
             </FormControl>
           </Grid>
+
           <Grid item xs={8} md={6}>
             <TextField
               fullWidth
@@ -582,6 +608,7 @@ const EventEdit: React.FC = () => {
               {t('Additional Information')}
             </Typography>
           </Grid>
+
           <Grid item xs={6} md={3}>
             <TextField
               fullWidth
@@ -594,7 +621,7 @@ const EventEdit: React.FC = () => {
           </Grid>
           {isAtLeastMd && <Grid item xs={12} md={9} />}
 
-          {/* Poster Image */}
+          {/* Poster Image Upload */}
           <Grid item xs={12} md={9}>
             <ImageUploadSection
               label={t('Poster Image')}
@@ -620,6 +647,7 @@ const EventEdit: React.FC = () => {
               rows={2}
             />
           </Grid>
+
           <Grid item xs={12}>
             <TextField
               fullWidth
@@ -631,7 +659,6 @@ const EventEdit: React.FC = () => {
             />
           </Grid>
 
-          {/* Cancel event (edit mode only) */}
           {isEditMode && (
             <Grid item xs={12}>
               <FormControlLabel
@@ -642,6 +669,7 @@ const EventEdit: React.FC = () => {
               />
             </Grid>
           )}
+
           {event.canceled === 1 && (
             <Grid item xs={12}>
               <TextField
@@ -680,7 +708,7 @@ const EventEdit: React.FC = () => {
         }}
         imageType="poster"
         simpleMode={false}
-        fixedAspectRatio={16 / 9}
+        fixedAspectRatio={9 / 16}
         maxSizeMB={10}
         title={t('Upload poster image')}
       />

@@ -189,9 +189,10 @@ router.put('/:id', authenticateToken, requireOperator, async (req, res) => {
     if (!event) {
       return res.status(404).json({ error: req.t('Event not found') });
     }
-    await database.updateEvent(req.params.id, req.body);
-    const updatedEvent = await database.getEventById(req.params.id);
-    res.json(updatedEvent);
+    const response = await database.updateEvent(req.params.id, req.body);
+    res.json(response);
+    // const updatedEvent = await database.getEventById(req.params.id);
+    // res.json(updatedEvent);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update event: {{err}}', {err: getErrorMessage(error)}) });
   }
@@ -234,6 +235,15 @@ router.delete('/:id', authenticateToken, requireOperator, async (req, res) => {
 //     res.status(500).json({ error: req.t('Failed to delete event: {{err}}', {err: getErrorMessage(error)}) });
 //   }
 // });
+
+router.get('/:id/guard', authenticateToken, requireOperator, async (req, res) => {
+  try {
+    const guard = await database.guardEvent(req.params.id);
+    res.json({ safe: guard.safe, blockedBy: guard.bookings });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
 
 // ========== PERFORMANCES (nested under events) ==========
 
