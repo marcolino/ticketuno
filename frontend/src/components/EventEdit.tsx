@@ -35,7 +35,7 @@ import { TheaterStats } from '@/shared/types/theater';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { useDialog } from '@/contexts/DialogContext';
-import { handleGuardResult } from '@/utils/guardHandler';
+//import { handleGuardResult } from '@/utils/guardHandler';
 import TagSelector from './TagSelector';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
@@ -251,27 +251,17 @@ const EventEdit: React.FC = () => {
         toast.error(t('Failed to update event'));
         return;
       } else {
-        // Create mode – unchanged, but you could also adapt if needed
+        // Create mode: unchanged, but you could also adapt if needed
         const response = await eventApi.createEvent(eventData);
-        // Assuming create returns the event object or a success flag
-        const { success, wasBlocked } = await handleGuardResult(
-          response.data,
-          'created',
-          'event',
-          showDialog,
-          toast,
-          t
-        );
-        if (wasBlocked) {
-          navigate('/bookings');
-          return;
+        if (response.data?.id) {
+          toast.success(t('Event created successfully!'));
+          navigate(-1);
+        } else {
+          toast.error(t('Failed to create event'));
         }
-        if (!success) return;
-        toast.success(t('Event created successfully!'));
-        navigate(-1);
       }
-    } catch (error: any) {
-      const err = error.response?.data?.error || error.message;
+    } catch (error) {
+      const err = getErrorMessage(error);
       const msg = isEditMode
         ? t('Failed to update event: {{err}}', { err })
         : t('Failed to create event: {{err}}', { err });
