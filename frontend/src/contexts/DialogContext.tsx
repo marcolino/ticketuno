@@ -18,8 +18,8 @@ import { Close as CloseIcon } from '@mui/icons-material/';
 type DialogButton = {
   text: string;
   onClick: () => void | Promise<void>;
-  variant?: "text" | "outlined" | "contained";
-  color?: "inherit" | "primary" | "secondary" | "error";
+  variant?: 'text' | 'outlined' | 'contained';
+  color?: 'inherit' | 'primary' | 'secondary' | 'error';
 };
 
 export type DialogOptions = {
@@ -36,6 +36,8 @@ export type DialogOptions = {
 
   showCloseIcon?: boolean;
   shrinkToContent?: boolean;
+
+  mode?: 'success' | 'info' | 'warning' | 'error';
 };
 
 export type ShowDialog = (options: DialogOptions) => Promise<boolean>;
@@ -88,7 +90,7 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           <>
             <DialogTitle
               sx={{
-                backgroundColor: "primary.main",
+                backgroundColor: options.mode ? options.mode + ".main" : "primary.main",
                 color: "primary.contrastText",
                 fontWeight: 600,
                 display: "flex",
@@ -158,6 +160,6 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 export const useDialog = (): ShowDialog => {
   const ctx = useContext(DialogContext);
   const { t } = useTranslation();
-  if (!ctx) throw new Error(t("useDialog must be used inside DialogProvider"));
+  if (!ctx) throw new Error(t('useDialog must be used inside DialogProvider'));
   return ctx;
 };

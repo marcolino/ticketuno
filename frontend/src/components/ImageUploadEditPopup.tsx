@@ -77,11 +77,11 @@ type StepName = 'upload' | 'confirm' | 'success' | 'edit' | 'preview';
 // full mode uses:    upload → edit → preview
 
 const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
-  { label: 'Free',              value: 'free' },
-  { label: 'Square (1:1)',      value: 1 },
+  { label: 'Free', value: 'free' },
+  { label: 'Square (1:1)', value: 1 },
   { label: 'Landscape (16:9)', value: 16 / 9 },
-  { label: 'Portrait (9:16)',  value: 9 / 16 },
-  { label: 'Instagram (4:5)',  value: 4 / 5 },
+  { label: 'Portrait (9:16)', value: 9 / 16 },
+  { label: 'Instagram (4:5)', value: 4 / 5 },
   { label: 'Facebook (1.91:1)', value: 1.91 },
 ];
 
@@ -225,7 +225,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
     setIsLoading(true);
     try {
-      const file      = acceptedFiles[0];
+      const file = acceptedFiles[0];
       const compressed = await compressImage(file);
 
       const reader = new FileReader();
@@ -248,11 +248,11 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
           }];
           setHistoryIndex(0);
         }
-        setIsLoading(false);
       };
       reader.readAsDataURL(compressed);
     } catch {
       setError(t('Failed to process image'));
+    } finally {
       setIsLoading(false);
     }
   }, [maxSizeMB, compressImage, simpleMode, t]);

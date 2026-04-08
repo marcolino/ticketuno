@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, createElement } from 'react';
 import { useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -28,7 +28,9 @@ import useNavigate from '@/hooks/useNavigate';
 //import PageHeader from './PageHeader';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
+import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
 import Alert from './Alert';
+import { useDialog } from '@/contexts/DialogContext';
 import SeatMarkingToolbar, { MarkingCondition } from './SeatMarkingToolbar';
 import { layoutApi, theaterApi } from '@/services/api';
 import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
@@ -89,6 +91,8 @@ const LayoutEdit: React.FC = () => {
   
   const [error, setError] = useState('');
 
+  const showDialog = useDialog();
+  
   // Layout fields
   const SECTION_VERTICAL_GAP = 115;
   const [layoutName, setLayoutName] = useState('');
@@ -447,6 +451,43 @@ const LayoutEdit: React.FC = () => {
       } else {
         const response = await layoutApi.updateLayout(id, layoutData);
         savedLayout = response.data;
+
+        const result = response.data;
+
+        // Check if the update was blocked by active bookings
+        if (result.blockedBy?.length) {
+          // Show the guard dialog (same as handleGuardResult)
+          const confirmed = await showDialog({
+            title: t('Active bookings exist'),
+            content: createElement(ActiveBookingsWarning, {
+              bookings: result.blockedBy,
+              action: 'event',
+              verb: 'edit',
+            }),
+            cancelText: t('Handle bookings'),
+            confirmText: t('Cancel'),
+            shrinkToContent: true,
+            mode: 'warning',
+          });
+          if (!confirmed) {
+            navigate('/bookings');
+          }
+          return;
+        }
+
+        // Normal success case
+        if (result.updated === true) {
+          toast.success(t('Event updated successfully!'));
+          navigate(-1);
+          return;
+        }
+
+        // Fallback error
+        toast.error(t('Failed to update event'));
+        return;
+
+
+
         toast.success('Layout saved successfully!');
       }
       

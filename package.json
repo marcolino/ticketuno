@@ -51,7 +51,7 @@
     "status": "fly status --app ticketuno",
     "ssh": "fly ssh console --app ticketuno",
     "db:backup": "fly ssh console --app ticketuno -C 'cat /data/ticketuno.db' > backup-$(date +%Y%m%d-%H%M%S).db",
-    "destroy": "scripts/destroy.sh",
+    "db:destroy": "scripts/db-destroy.sh",
     "play-ok": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/trumpet.wav",
     "play-ko": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/finish.wav"
   },
@@ -66,9 +66,5 @@
     "i18n-auto-translation": "^1.0.1",
     "i18next-cli": "^1.34.1"
   },
-  "dependencies": {
-    "react-hot-toast": "^2.6.0"
-  },
-  "NOpackageManager_TODO_REMOVEME": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728",
   "packageManager": "yarn@4.6.0+sha512.5383cc12567a95f1d668fbe762dfe0075c595b4bfff433be478dbbe24e05251a8e8c3eb992a986667c1d53b6c3a9c85b8398c35a960587fbd9fa3a0915406728"
 }

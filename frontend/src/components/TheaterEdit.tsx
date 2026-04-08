@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, createElement } from 'react';
 import { useLocation, useParams  } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
@@ -296,23 +296,51 @@ const TheaterEdit: React.FC = () => {
           delete payload.currentLayoutId; // Unchanged, skip guard
         }
         const response = await theaterApi.updateTheater(id, payload);
-        if (!response.data.updated) {
-          if (response.data.reason === 'THEATER_HAS_ACTIVE_BOOKINGS') {
-            await showDialog({
-              title: t('Active Bookings Exist'),
-              content: response.data.blockedBy ?
-                <ActiveBookingsWarning bookings={response.data.blockedBy} action={'theater'}  /> :
-                <>{t('No bookings info')}</>
-              ,
-              cancelText: t('Cancel'),
-              onCancel: () => { },
-              shrinkToContent: true,
-            });
-            return;
+        const result = response.data;
+        // Check if the update was blocked by active bookings
+        if (result.blockedBy?.length) {
+          // Show the guard dialog (same as handleGuardResult)
+          const confirmed = await showDialog({
+            title: t('Active bookings exist'),
+            content: createElement(ActiveBookingsWarning, {
+              bookings: result.blockedBy,
+              action: 'event',
+              verb: 'edit',
+            }),
+            cancelText: t('Handle bookings'),
+            confirmText: t('Cancel'),
+            shrinkToContent: true,
+            mode: 'warning',
+          });
+          if (!confirmed) {
+            navigate('/bookings');
           }
+          return;
         }
-        savedId = id!;
-        toast.success(t('Theater updated successfully!'));
+        // if (!response.data.updated) {
+        //   if (response.data.reason === 'THEATER_HAS_ACTIVE_BOOKINGS') {
+        //     await showDialog({
+        //       title: t('Active Bookings Exist'),
+        //       content: response.data.blockedBy ?
+        //         <ActiveBookingsWarning bookings={response.data.blockedBy} action={'theater'}  /> :
+        //         <>{t('No bookings info')}</>
+        //       ,
+        //       cancelText: t('Cancel'),
+        //       onCancel: () => { },
+        //       shrinkToContent: true,
+        //     });
+        //     return;
+        //   }
+        // }
+        if (result.updated === true) {
+          savedId = id!;
+          toast.success(t('Theater updated successfully!'));
+          navigate(-1);
+          return;
+        }
+        // Fallback error
+        toast.error(t('Failed to update theater'));
+        return;
       } else {
         const response = await theaterApi.createTheater(theaterData);
         savedId = response.data;
@@ -462,48 +490,50 @@ const TheaterEdit: React.FC = () => {
             </FormControl>
           </Grid>
 
+          {/* We really don't need theater's attribute 'active'/'inactive'...
           <Grid item xs={12} md={2}>
             <FormControl fullWidth required>
               <InputLabel>{t('Status')}</InputLabel>
-              <Select
+              <TextField
+                select
+                fullWidth
+                required
+                label={t('Status')}
                 name="status"
                 value={theaterData.status}
-                label="Status"
                 onChange={handleInputChange}
               >
                 <MenuItem key="1" value="active">{t('Active')}</MenuItem>
                 <MenuItem key="0" value="inactive">{t('Inactive')}</MenuItem>
-              </Select>
+              </TextField>
             </FormControl>
           </Grid>
+          */}
 
           <Grid item xs={12} md={6}>
             <FormControl fullWidth required>
-              <InputLabel>
-                {t('Layout')}
-              </InputLabel>
-              <Select
+              <TextField
+                select
+                fullWidth
+                required
+                label={t('Layout')}
                 name="selectedLayoutId"
-                //value={theaterData.currentLayoutId || ''}
                 value={
                   layouts.some(l => l.id === theaterData.currentLayoutId)
                     ? theaterData.currentLayoutId
-                    : ''  // fallback prevents the MUI out-of-range warning
+                    : ''
                 }
-                // value={
-                //   theaterData.selectedLayoutId &&
-                //     layouts.some(layout => layout.id === theaterData.selectedLayoutId)
-                //     ? theaterData.selectedLayoutId
-                //     : ''
-                // }
-                label="Layouts"
                 onChange={(e) => handleLayoutSelect(e.target.value)}
               >
-                <MenuItem value={"<new>"}><i>{t('New Layout')}</i></MenuItem>
+                <MenuItem value={"<new>"}>
+                  <i>{t('New Layout')}</i>
+                </MenuItem>
                 {layouts.map((layout, index) => (
-                  <MenuItem key={index} value={layout.id}>{layout.name}</MenuItem>
+                  <MenuItem key={index} value={layout.id}>
+                    {layout.name}
+                  </MenuItem>
                 ))}
-              </Select>
+              </TextField>
             </FormControl>
           </Grid>
 

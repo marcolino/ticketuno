@@ -48,11 +48,12 @@ const EventList: React.FC = () => {
     //} else {
     //  toast.error(t('You must have at least \'operator\' role to access this page'));
     //}
-  }, [/*isOperator*/]);
+  }, [isOperator]);
 
   const loadEvents = async () => {
     try {
-      const response = await eventApi.getAllEvents();
+      const options = isOperator ? { pastToo: true, canceledToo: true } : {};
+      const response = await eventApi.getAllEvents(options);
       //console.log('EVENTS:', response.data);
       if (Array.isArray(response.data)) {
         setEvents(response.data);

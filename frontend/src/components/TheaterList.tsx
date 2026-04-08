@@ -201,12 +201,12 @@ const TheaterList: React.FC = () => {
                     <Typography variant="body2" color="text.secondary">
                       {t('Description')}: {theater.description}
                     </Typography>
-                    <Typography
+                    {/* <Typography
                       variant="body2" color="text.secondary"
                       //color={theater.status === 'active' ? 'success.main' : 'error.main'}
                     >
                       {t('Active')}: {theater.status === 'active' ? t('Yes') + ' ' + '🟢' : t('No') + ' ' + '🔴'  }
-                    </Typography>
+                    </Typography> */}
                     <Typography
                       variant="body2" color="text.secondary"
                     >

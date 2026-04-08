@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Migrator } from './migrator';
 import { User, NewUser } from '../shared/types/user';
 import { Theater, TheaterStatus, EventStatus, SeatStatus, Seat } from '../shared/types/theater';
-import { Layout } from '../shared/types/layout';
+import { Layout, LayoutJSON } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
 import { GeneratedSeat } from '../shared/types/seat';
 import { FullConsent } from '../shared/types/consent';
@@ -703,19 +703,46 @@ class Database {
     return id;
   }
 
-  async updateTheater(id: string, updates: Partial<Theater>):
-    Promise<{ updated: boolean; reason?: string; blockedBy?: ActiveBookingInfo[] }>
-  {
+  async updateTheater(
+    id: string,
+    updates: Partial<Theater>
+  ): Promise<{ updated: boolean; reason?: string; blockedBy?: ActiveBookingInfo[] }> {
+    
+    // Guard: if layoutId is being changed, check for active bookings
     if (updates.currentLayoutId !== undefined) {
-      const guard = await this.guardTheater(id);
-      if (!guard.safe) {
-        return {
-          updated: false,
-          reason: 'THEATER_HAS_ACTIVE_BOOKINGS',
-          blockedBy: guard.bookings,
-        };
+      // Fetch current theater to see if layoutId actually changes
+      const current = await getQuery<{ current_layout_id: string }>(
+        this.db, `
+          SELECT current_layout_id
+          FROM theaters
+          WHERE id = ?
+          AND deleted_at IS NULL
+        `,
+        [id],
+        'updateTheater: get current layout'
+      );
+      if (current && current.current_layout_id !== updates.currentLayoutId) {
+        const guard = await this.guardTheater(id);
+        if (!guard.safe) {
+          return {
+            updated: false,
+            reason: 'THEATER_HAS_ACTIVE_BOOKINGS',
+            blockedBy: guard.bookings,
+          };
+        }
       }
     }
+
+    // if (updates.currentLayoutId !== undefined) {
+    //   const guard = await this.guardLayout(id);
+    //   if (!guard.safe) {
+    //     return {
+    //       updated: false,
+    //       reason: 'LAYOUT_HAS_ACTIVE_BOOKINGS',
+    //       blockedBy: guard.bookings,
+    //     };
+    //   }
+    // }
     
     const fields: string[] = [];
     const values: (string | number)[] = [];
@@ -1024,13 +1051,39 @@ class Database {
   async updateLayout(id: string, updates: Partial<Layout>): Promise<{
     updated: boolean; reason?: string; blockedBy?: ActiveBookingInfo[]
   }> {
-    const guard = await this.guardLayout(id);
-    if (!guard.safe) {
-      return {
-        updated: false,
-        reason: 'LAYOUT_HAS_ACTIVE_BOOKINGS',
-        blockedBy: guard.bookings,
-      };
+    // // Check if some seat data has been modified... If only name or description are to be modified, we can accept it...
+    // Object.entries(updates).forEach(([key, value]) => {
+    //   console.log('*** key:', key, 'value:', value);
+    // });
+
+    // Fetch current layout to compare structural changes
+    const currentLayout = await this. getLayoutById(id);
+    if (!currentLayout) {
+      return { updated: false, reason: 'LAYOUT_NOT_FOUND' };
+    }
+
+    // Determine if the update contains structural changes to seats
+    let hasStructuralChange = false;
+    if (updates.json !== undefined) {
+      try {
+        const currentJson = JSON.parse(currentLayout.json);
+        const newJson = JSON.parse(updates.json);
+        hasStructuralChange = !areLayoutStructuresEqual(currentJson, newJson);
+      } catch (error) {
+        console.error(error);
+        return { updated: false, reason: 'INVALID_LAYOUT' };
+      }
+    }
+      
+    if (hasStructuralChange) {
+      const guard = await this.guardLayout(id);
+      if (!guard.safe) {
+        return {
+          updated: false,
+          reason: 'LAYOUT_HAS_ACTIVE_BOOKINGS',
+          blockedBy: guard.bookings,
+        };
+      }
     }
 
     const fields: string[] = [];
@@ -1167,8 +1220,8 @@ class Database {
     const end = closingDate ? new Date(closingDate) : null;
 
     if (!start && !end) return 'in progress';
-    if (!start && end) return now <= end ? 'in progress' : 'completed';
-    if (start && !end) return now < start ? 'scheduled' : 'in progress';
+    if (!start && end) return end >= now /*now <= end*/ ? 'in progress' : 'completed';
+    if (start && !end) return start >= now /*now < start*/ ? 'scheduled' : 'in progress';
 
     // Both start and end are defined
     if (now < start!) return 'scheduled';
@@ -1272,7 +1325,7 @@ class Database {
     id: string,
     updates: Partial<Event>
   ): Promise<{ updated: boolean; reason?: string; blockedBy?: ActiveBookingInfo[] }> {
-     // Guard: if theaterId is being changed, check for active bookings
+    // Guard: if theaterId is being changed, check for active bookings
     if (updates.theaterId !== undefined) {
       // Fetch current event to see if theaterId actually changes
       const current = await getQuery<{ theater_id: string }>(
@@ -1455,6 +1508,8 @@ class Database {
   }
 
   async createPerformance(performance: EventPerformance): Promise<string> {
+    await this.checkTheaterPerformanceConflict(performance); 
+
     const id = this.uuid();
     await runQuery(
       this.db, `
@@ -1983,7 +2038,92 @@ class Database {
       [JSON.stringify(data)], 'save setup'
     );
   }
+
+  // ---------------------------------------------------------------------------
+  // Guards
+  // ---------------------------------------------------------------------------
+  /**
+   * Checks whether the theater linked to performance.eventId has any existing
+   * performance that overlaps the requested date/time window.
+   *
+   * Two intervals [s1, e1] and [s2, e2] overlap when: s1 < e2 AND s2 < e1.
+   * Null end_time is treated as open-ended ("runs until closing").
+   */
+  private async checkTheaterPerformanceConflict(
+    performance: EventPerformance
+  ): Promise<void> {
+    // Resolve the theater that hosts this event.
+    const event = await getQuery<{ theater_id: string }>(
+      this.db,
+      `SELECT theater_id FROM events WHERE id = ? AND deleted_at IS NULL`,
+      [performance.eventId],
+      'checkTheaterPerformanceConflict: get event'
+    );
+    if (!event) throw new Error(`Event not found: ${performance.eventId}`);
+
+    // Find any performance at the same theater on the same date whose time
+    //    window overlaps the requested one.
+    //
+    //    Overlap condition (both legs must be true):
+    //      a) existing starts before new one ends → p.start_time < :newEnd
+    //      b) new one starts before existing ends → :newStart < p.end_time
+    //
+    //    Null handling:
+    //      - newEnd IS NULL → treat as '23:59' (fills the rest of the day)
+    //      - p.end_time IS NULL → existing is open-ended, so (b) is always true
+    const newEnd = performance.endTime ?? '23:59';
+
+    const conflicting = await getQuery<{
+      id: string;
+      start_time: string;
+      end_time: string | null;
+      theater_name: string | null
+    }>(
+      this.db, `
+        SELECT p.id, p.event_id, p.start_time, p.end_time, t.name as theater_name
+        FROM performances p
+        JOIN events e ON e.id = p.event_id
+        JOIN theaters t on t.id = e.theater_id
+        WHERE e.theater_id = ?
+        AND p.performance_date = ?
+        AND p.deleted_at IS NULL
+        AND e.deleted_at IS NULL
+        AND p.start_time < ?
+        AND (p.end_time IS NULL OR ? < p.end_time)
+        LIMIT 1
+      `,
+      [event.theater_id, performance.performanceDate, newEnd, performance.startTime],
+      'checkTheaterPerformanceConflict: find conflict'
+    );
+
+    if (conflicting) {
+      const error = new Error('THEATER_SCHEDULING_CONFLICT') as Error & { details?: TheaterConflictDetails };
+      error.details = {
+        performanceDate: performance.performanceDate,
+        requestedStartTime: performance.startTime,
+        requestedEndTime: newEnd,
+        existingPerformanceStartTime: conflicting.start_time,
+        existingPerformanceEndTime: conflicting.end_time,
+        theaterId: event.theater_id,
+        theaterName: conflicting.theater_name
+      }
+      throw error;
+    }
+  }
+
 }
+
+  interface TheaterConflictDetails { // TODO: to /shared/types/....ts
+    //existingPerformanceId: string;
+    performanceDate: string;
+    requestedStartTime: string;
+    requestedEndTime: string;
+    existingPerformanceStartTime: string;
+    existingPerformanceEndTime: string | null;
+    theaterId: string;
+    theaterName: string | null;
+  }
+
 
 // ---------------------------------------------------------------------------
 // Query helpers
@@ -2050,6 +2190,42 @@ function generateBookingRef(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O, 1/I
   const id = Array.from({ length: 7 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   return `TK-${id}`;
+}
+
+/**
+ * Compares only the seat structure (sections, rows, rowId, seatCount, curve, stretch).
+ * Other properties (stage, origin, spacing, labels, etc.) can change freely.
+ */
+function areLayoutStructuresEqual(oldJson: LayoutJSON, newJson: LayoutJSON): boolean {
+  const oldSections = oldJson?.sections;
+  const newSections = newJson?.sections;
+
+  if (!oldSections || !newSections) return oldSections === newSections;
+  if (oldSections.length !== newSections.length) return false;
+
+  for (let i = 0; i < oldSections.length; i++) {
+    const oldSec = oldSections[i];
+    const newSec = newSections[i];
+
+    // Section identity matters (bookings reference section id)
+    if (oldSec.id !== newSec.id) return false;
+
+    const oldRows = oldSec.rows;
+    const newRows = newSec.rows;
+    if (!oldRows || !newRows) return oldRows === newRows;
+    if (oldRows.length !== newRows.length) return false;
+
+    for (let j = 0; j < oldRows.length; j++) {
+      const oldRow = oldRows[j];
+      const newRow = newRows[j];
+      if (oldRow.rowId !== newRow.rowId) return false;
+      if (oldRow.seatCount !== newRow.seatCount) return false;
+      if (oldRow.curve !== newRow.curve) return false;
+      if (oldRow.stretch !== newRow.stretch) return false;
+    }
+  }
+
+  return true;
 }
 
 // TODO: move to /backend/src/scheduled/jobs.ts

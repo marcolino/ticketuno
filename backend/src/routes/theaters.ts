@@ -95,26 +95,44 @@ router.post('/', authenticateToken, requireOperator, async (req, res) => {
 // Protected: update theater by id (operator only)
 router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
-    const response = await database.updateTheater(req.params.id, req.body);
-    if (!response.updated && response.reason) {
-      let reason;
-      switch (response.reason) {
-        case 'THEATER_HAS_ACTIVE_BOOKINGS':
-          reason = req.t('theater has events with performances with active bookings');
-          break;
-        case 'THEATER_NOT_FOUND':
-          reason = req.t('theater was not found');
-          break;
-        default:
-          reason = req.t('unforeseen reason: {{reason}}', { reason: response.reason });
-          break;
-      }
-      return res.status(400).json({
-        message: req.t('Theater could not be updated: {{reason}}', { reason }),
-        blockedBy: response.blockedBy ?? [],
-      });
+
+    // Check if title is set and not null
+    if (req.body.name !== undefined && (req.body.name === '' || req.body.name === null)) {
+      return res.status(400).json({ error: req.t('Name cannot be empty') });
     }
-    res.status(201).json(response);
+
+    // Check if theater id is set and not null
+    if (req.body.layoutId !== undefined && (req.body.layoutId === '' || req.body.layoutId === null)) {
+      return res.status(400).json({ error: req.t('A layout must be selected') });
+    }
+
+    const theater = await database.getTheaterById(req.params.id);
+    if (!theater) {
+      return res.status(404).json({ error: req.t('Theater not found') });
+    }
+    const response = await database.updateTheater(req.params.id, req.body);
+    res.json(response);
+
+    // const response = await database.updateTheater(req.params.id, req.body);
+    // if (!response.updated && response.reason) {
+    //   let reason;
+    //   switch (response.reason) {
+    //     case 'THEATER_HAS_ACTIVE_BOOKINGS':
+    //       reason = req.t('theater has events with performances with active bookings');
+    //       break;
+    //     case 'THEATER_NOT_FOUND':
+    //       reason = req.t('theater was not found');
+    //       break;
+    //     default:
+    //       reason = req.t('unforeseen reason: {{reason}}', { reason: response.reason });
+    //       break;
+    //   }
+    //   return res.status(400).json({
+    //     message: req.t('Theater could not be updated: {{reason}}', { reason }),
+    //     blockedBy: response.blockedBy ?? [],
+    //   });
+    // }
+    // res.status(201).json(response);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update theater: {{err}}', { err: getErrorMessage(error) }) });
   }

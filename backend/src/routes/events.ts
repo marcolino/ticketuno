@@ -8,6 +8,7 @@ import { generateTickets } from '../services/ticketService';
 import { notify } from '../services/notificationService';
 import { sendBookingConfirmationEmail } from '../utils/email';
 import { Event, EventPerformance, EventStats } from '../shared/types/event';
+import { EventQueryOptions } from '../shared/types/query';
 import { ShowInfo } from '../shared/types/ticket';
 import { generateSeats, applyDisplayNumbers } from '../shared/utils/layoutToSeats';
 import { PerformanceSeatsResponse, SeatData} from '../shared/types/performance';
@@ -23,9 +24,12 @@ const router = Router();
 
 // Public: Get all events with stats
 router.get('/', async (req, res) => {
-  //const _req = req as any;
   try {
-    const events = await database.getAllEvents();
+    const options: EventQueryOptions = {
+      pastToo: req.query.pastToo === 'true',
+      canceledToo: req.query.canceledToo === 'true',
+    };
+    const events = await database.getAllEvents(options);
     if (!events) {
       return res.json([]);
     }
@@ -34,7 +38,7 @@ router.get('/', async (req, res) => {
         const theater = await database.getTheaterById(event.theaterId);
         const performances = await database.getPerformancesByEventId(event.id);
         const upcomingPerformances = performances ? performances.filter(p =>
-          new Date(p.performanceDate) >= new Date() && event.status === 'scheduled'
+          new Date(p.performanceDate) >= new Date() && event.status === 'in progress' || event.status === 'scheduled'
         ) : [];
 
         return {
@@ -164,8 +168,8 @@ router.post('/', authenticateToken, requireOperator, async (req: AuthRequest, re
       contentWarnings
     };
 
-    await database.createEvent(event);
-    res.status(201).json(event);
+    const eventId = await database.createEvent(event);
+    res.status(201).json({ id: eventId });
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to create event: {{err}}', {err: getErrorMessage(error)}) });
   }
@@ -176,13 +180,13 @@ router.put('/:id', authenticateToken, requireOperator, async (req, res) => {
   try {
 
     // Check if title is set and not null
-    if (req.body.title !== undefined && (req.body.title == '' || req.body.title === null)) {
+    if (req.body.title !== undefined && (req.body.title === '' || req.body.title === null)) {
       return res.status(400).json({ error: req.t('Title cannot be empty') });
     }
 
     // Check if theater id is set and not null
-    if (req.body.theaterId !== undefined && (req.body.theaterId == '' || req.body.theaterId === null)) {
-      return res.status(400).json({ error: req.t('Theater cannot be empty') });
+    if (req.body.theaterId !== undefined && (req.body.theaterId === '' || req.body.theaterId === null)) {
+      return res.status(400).json({ error: req.t('A theater must be selected') });
     }
 
     const event = await database.getEventById(req.params.id);
@@ -365,7 +369,13 @@ router.post('/:eventId/performances', authenticateToken, requireOperator, async 
       bookedSeats: counts.booked
     });
   } catch (error: unknown) {
-    res.status(500).json({ error: req.t('Failed to create performance: {{err}}', {err: getErrorMessage(error)}) });
+    const response: { error: { message: string; details?: unknown } } = {
+      error: { message: getErrorMessage(error) }
+    };
+    if (error && typeof error === 'object' && 'details' in error) {
+      response.error.details = (error as { details: unknown }).details;
+    }
+    res.status(400).json(response);
   }
 });
 

@@ -462,14 +462,17 @@ router.get('/auth/google/callback', async (req, res) => {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_SUCCESS',
             token: '${token}'
-          }, '${process.env.FRONTEND_URL}'); // Works in both dev and production
-          window.close(); // Close this popup automatically
+          }, '*'); // Works in both dev and production
+          setTimeout(() => {
+            window.close();
+            // Fallback if close() is blocked
+            document.body.innerHTML = '<p>Login successful! You can close this window.</p>';
+          }, 100);
         </script>
-        <body>` + req.t('Login successful! Closing...') + `</body>
+        <body></body>
       </html>
     `);
   } catch (error: unknown) {
-    //res.redirect('http://localhost:3000/?error=google_auth_failed');// TODO: from config
     sendPopupError(req, res, req.t('Authentication failed: {{err}}', { err: getErrorMessage(error) || req.t('Google authentication error')} ));
   }
 
@@ -628,12 +631,21 @@ router.delete('/:userId', authenticateToken, requireOperator, async (req, res) =
 });
 
 // Protected: bulk delete endpoint: handles both single and multiple ids (operator only)
-router.delete('/', authenticateToken, requireOperator, async (req, res) => {
+router.delete('/', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ error: 'Missing or invalid ids array' });
     }
+
+    // check logged user id is not in ids to be deleted
+    if (ids.find(id => id === req.userId)) {
+      res.status(400).json({ error: req.t('Cannot delete logged user') });
+      return;
+    }
+
+    // TODO: check all ids have a role less than req.userId's role
+    
     const result = await database.deleteUsers(ids);
     res.json(result);
   } catch (error) {

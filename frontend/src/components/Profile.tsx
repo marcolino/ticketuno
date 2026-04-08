@@ -28,6 +28,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { userApi } from '@/services/api';
+import { getErrorMessage } from '@/shared/utils/misc';
 import { UserProfile } from '@/shared/types/user';
 import {
   userCanManageAccount,
@@ -178,9 +179,8 @@ const Profile: React.FC/*<ProfileProps>*/ = () => {
       
       toast.success(t('Profile updated successfully'));
       navigate(-1);
-    } catch (error: any) {
-      console.warn(error, typeof error); // TODO !!!
-      toast.error(error.response?.data?.error || t('Failed to update profile: {{err}}', { err: error.getMessage() }));
+    } catch (error) {
+      toast.error(t('Failed to update profile: {{err}}', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }

@@ -24,7 +24,7 @@ const ActiveBookingsWarning: React.FC<ActiveBookingsWarningProps> = ({
     return acc;
   }, {});
 
-  let actionDescription = '';
+  let actionDescription;
   switch (action) {
     case 'theater':
       actionDescription = t('Can\'t {{verb}} {{action}} because\nit has events with performances\nwith active booked seats', { verb, action });
@@ -41,12 +41,27 @@ const ActiveBookingsWarning: React.FC<ActiveBookingsWarningProps> = ({
     case 'user':
       actionDescription = t('Can\'t {{verb}} {{action}} because\nshe has active booked seats', { verb, action });
       break;
+    default:
+      actionDescription = t('This action can\'t be performed, it would disrupt active bookings');
+      break;
   }
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ backgroundColor: "error" }} fontWeight={600} gutterBottom>
-        {actionDescription ?? t('This action can\'t be performed, it would disrupt active bookings')}
+      {/* <Typography variant="h6" sx={{ backgroundColor: "red", lineHeight: 1.2, padding: 1, borderRadius: 1.5 }} color={"white"} fontWeight={600} gutterBottom> */}
+      <Typography
+        variant="h6"
+        sx={(theme) => ({
+          backgroundColor: theme.palette.error.main, // uses theme's error color
+          color: theme.palette.error.contrastText, // ensures readable text
+          lineHeight: 1.2,
+          padding: 1,
+          borderRadius: '8px', // ensures a little roundness of border, ignoring themes shape.borderRadius differences
+          fontWeight: 600,
+        })}
+        gutterBottom
+      >
+        {actionDescription}
       </Typography>
       <Typography variant="body1" gutterBottom>
         {t('The following confirmed bookings are affected:')}

@@ -11,7 +11,7 @@ import {
   ResetPasswordData
 } from '@/shared/types/user';
 import { Theater } from '@/shared/types/theater';
-import type { Event, EventStats, EventPerformance, EventWithDetails } from '@/shared/types/event';
+import type { Event, EventStats, EventPerformance, EventWithDetails, EventOptions } from '@/shared/types/event';
 import type { FullConsent } from '@/shared/types/consent';
 import { PerformanceSeatsResponse } from '@/shared/types/performance';
 import { Layout } from '@/shared/types/layout';
@@ -300,12 +300,6 @@ export const userApi = {
   googleCallback: (code: string) => // Google callback
     api.post<{ token: string; user: User }>('/users/auth/google/callback', { code }),
 
-  // getProfile: (userId: string) => // Get user profile
-  //   api.get<User>(`/users/profile/${userId}`),
-  
-  // updateProfile: (userId: string, data: Partial<User>) => // Update user profile
-  //   api.put<User>('/users/profile', { userId, data }),
-  
   getProfile: (userId?: string | undefined) =>
     api.get<User>(userId ? `/users/profile/${userId}` : '/users/profile'),
 
@@ -399,8 +393,8 @@ export const layoutApi = {
 };
 
 export const eventApi = {
-  getAllEvents: () =>
-    api.get<EventStats[]>('/events'),
+  getAllEvents: (options?: EventOptions) =>
+    api.get<EventStats[]>('/events', { params: options }),
 
   getEventById: (id: string) =>
     api.get<EventWithDetails>(`/events/${id}`),

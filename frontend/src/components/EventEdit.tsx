@@ -167,8 +167,8 @@ const EventEdit: React.FC = () => {
         if (incomingTheaterId) {
           setEvent((prev) => ({ ...prev, theaterId: incomingTheaterId }));
         }
-      } catch (error: any) {
-        console.error(t('Failed to load theaters: {{err}}', { err: error.response?.data?.error }));
+      } catch (error) {
+        console.error(t('Failed to load theaters: {{err}}', { err: getErrorMessage(error) }));
       }
 
       if (incomingTheaterId && state) {
@@ -217,7 +217,7 @@ const EventEdit: React.FC = () => {
       };
 
       if (isEditMode) {
-        const response = await eventApi.updateEvent(id!, eventData);
+        const response = await eventApi.updateEvent(id, eventData);
         const result = response.data;
 
         // Check if the update was blocked by active bookings
@@ -230,11 +230,12 @@ const EventEdit: React.FC = () => {
               action: 'event',
               verb: 'edit',
             }),
-            confirmText: t('Handle bookings'),
-            cancelText: t('Cancel'),
+            cancelText: t('Handle bookings'),
+            confirmText: t('Cancel'),
             shrinkToContent: true,
+            mode: 'warning',
           });
-          if (confirmed) {
+          if (!confirmed) {
             navigate('/bookings');
           }
           return;
@@ -670,7 +671,7 @@ const EventEdit: React.FC = () => {
         }}
         imageType="poster"
         simpleMode={false}
-        fixedAspectRatio={16 / 9}
+        fixedAspectRatio={9 / 16}
         maxSizeMB={10}
         title={t('Upload poster image')}
       />

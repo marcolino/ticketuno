@@ -76,3 +76,8 @@ export interface EventWithDetails extends Event {
   theater?: any;
   performances?: EventPerformance[];
 }
+
+export interface EventOptions {
+  pastToo?: boolean;
+  canceledToo?: boolean;
+}

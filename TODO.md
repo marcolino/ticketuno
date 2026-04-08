@@ -50,12 +50,10 @@ common:
             "SOCIAL_USER_LOGGING_WITH_EMAIL", and in frontend tell user she did access originally with socail auth, so
             she can try with it, or set up a password, with buttons for social auth and for password reset
  2 - OK - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
- 1 -    - when saving a new performance, check if the theater linked to the event of the performance
+ 2 - OK - add a check to avoid deleting currently logged user
+ 1 - OK - when creating a new performance, check if the theater linked to the event of the performance
             has other performances on that date/time (and all guards)
- 2 -    - add a check to avoid deleting currently logged user
  2 -    - complete tickets buy process, optionally redirecting to stripe for payment
- 2 -    - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API...";
-            make a backup before proceeding with implementation
  2 -    - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
  3 -    - make a script to backup database
  3 -    - schedule job to call the script to backup database daily
@@ -64,6 +62,7 @@ common:
  3 -    - before using analytics and marketing cookies, always check:
             const { canUseAnalytics, canUseMarketingCookies } = useConsent();
  3 -    - implement a real logging system
+ 3 -    - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API..."
 
  frontend:
  1 - OK - Design.tsx => Home.tsx
@@ -107,18 +106,17 @@ common:
             events with booked performances...
  2 - OK - in footer print also process.env.GIT_COMMIT_DATE
  2 - OK - use phone component for profile too
+ 2 - OK - while uploading an image, enable editing it
  3 - OK - in LayoutEdit, add a 'signle seat' mode, to mark single seats as absent, vip, handicap, baby, unavailable
  3 - OK - rename Profile to UserEdit (no)
  3 - OK - rename Event/Layout/Theater List to Events/Theaters/Layouts List (no...)
  3 - OK - add all users profile handling
- 1 -    - disable useNavigate custom hook, returning directly react useNavigate
- 1 -    - complete guards handling, like in TheaterList
- 1 -    - remove isLoading in all components from useState, and use isLoading fro useLoading
- 1 -    - in all components, handle errors using import { getErrorMessage } from '@/utils/misc':
-              change all error.response?.data?.error to getErrorMessage(error)
- 1 -    - in all components, check for setError: always add toast.error, and possibly remove Alert's for errors
+ 1 - OK - disable useNavigate custom hook, returning directly react useNavigate
+ 1 - OK - complete guards handling, like in TheaterList
+ 1 - OK - remove isLoading in all components from useState, and use isLoading fro useLoading
+ 1 - OK - in all components, handle errors using import { getErrorMessage } from '@/utils/misc':
+            change all error.response?.data?.error to getErrorMessage(error)
  1 -    - PWA handling - "PWA setup automation for theater booking system" with Claude
- 2 -    - while uploading an image, enable editing it
  2 -    - add check for changes in all components (when dirty), before navigating away
  2 -    - add privacy and terms links in the register page
  2 -    - in profile (or in setup/privacy?) add Terms and Privacy pages, and link to open consent dialog

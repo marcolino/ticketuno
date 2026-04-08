@@ -27,20 +27,12 @@ import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { AuthDialogProps, TabValue } from '@/shared/types/auth';
 
-// interface LoginDialogProps {
-//   open: boolean;
-//   onClose: () => void;
-// }
-
-//type TabValue = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
-
 const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "login" }) => {
   const { login, register, verifyEmail, resendVerification, forgotPassword, resetPassword/*, googleLogin*/ } = useAuth();
   const navigate = useNavigate();
   const showDialog = useDialog();
 
   const [tab, setTab] = useState<TabValue>(initialTab);
-  //const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [eventPassword, setEventPassword] = useState(false);
   const [eventPasswordConfirmation, setEventPasswordConfirmation] = useState(false);
@@ -48,6 +40,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
   // Login form
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+
   // Register form
   const [registerEmail, setRegisterEmail] = useState('');
   const [registerPassword, setRegisterPassword] = useState('');
@@ -66,6 +59,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
+  // i18n
   const { t, i18n } = useTranslation();
   
   useEffect(() => {
@@ -80,26 +74,9 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       setTab(initialTab);
     }
   }, [open, initialTab]);
-
-  // // This effect covers production autofill quirks and prevents the “Forgot Password” tab from appearing unexpectedly.
-  // useEffect(() => {
-  //   if (!open) return;
-
-  //   const timer = setTimeout(() => {
-  //     if (tab === 'login') {
-  //       const emailInput = document.querySelector<HTMLInputElement>('input[name="Email"]');
-  //       const passwordInput = document.querySelector<HTMLInputElement>('input[name="Password"]');
-  //       setLoginEmail(emailInput?.value || '');
-  //       setLoginPassword(passwordInput?.value || '');
-  //     }
-  //   }, 100); // small delay
-
-  //   return () => clearTimeout(timer);
-  // }, [open, tab]);
   
   const handleLogin = async () => {
     try {
-      //setError('');
       setLoading(true);
       const response = await login({
         email: loginEmail,
@@ -108,7 +85,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       if (response.requiresVerification) {
         setVerifyEmailAddress(response.email); // TODO: was: setVerifyEmailAddress(response.email!);
         setTab('verify');
-        //setError('Please verify your email first');
         toast.warning(response?.error || t('Please verify your email first'));
       } else {
         toast.success(t('Login successful!'));
@@ -125,14 +101,9 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       }
     } catch (error: any) {
       if (error.response?.data?.reason === 'RETRY_WITH_GOOGLE_OAUTH') {
-        //return toast.warning(t('Retry with Google!'));
-        // TODO: use a showDialog!
         showDialog({
           title: t('It looks like you did register via Google'),
           content: t('Retry to login with Google, or set a password'),
-          // cancelText: t('Cancel'),
-          // confirmText: t('Delete'),
-          // onConfirm: () => confirmDelete(id!, performanceId),
           buttons: [
             {
               text: 'Continue with Google',
@@ -146,20 +117,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
             }
           ],
         });
-        // return toast.withActions(
-        //   t('Retry with Google or set a password'),
-        //   [
-        //     {
-        //       label: t('Continue with Google'),
-        //       onClick: () => alert('GOOGLE LOGIN...'),
-        //     },
-        //     {
-        //       label: t('Set a password'),
-        //       onClick: () => alert('SET A PASSWORD...'),
-        //     },
-        //   ],
-        //   'warning',
-        // );
       } else {
         toast.warning(t('Login failed: {{err}}', { err: getErrorMessage(error) }));
       }
@@ -170,7 +127,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
   const handleRegister = async () => {
     try {
-      // setError('');
       setLoading(true);
       const response = await register({
         email: registerEmail,
@@ -181,7 +137,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
         language: i18n.language,
       });
       if (response.verificationCode) { // this happens only in development
-        console.log( // TODO: use a custom function...
+        console.info( // TODO: use a custom function...
           'Verification code is %c' + response.verificationCode,
           'color: white; background: red; font-size: 48px; font-weight: bold; padding: 2px;'
         );
@@ -190,7 +146,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       setTab('verify');
       toast.success('Registration successful! Please check your email for verification code.');
     } catch (error: any) {
-      //setError(error.response?.data?.error || 'Registration failed');
       toast.error(t('Registration failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -199,7 +154,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
   const handleVerifyEmail = async () => {
     try {
-      // setError('');
       setLoading(true);
       await verifyEmail({ email: verifyEmailAddress, code: verifyCode });
       toast.success('Email verified! You are now logged in.');
@@ -207,7 +161,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       resetForms();
       navigate('/', { replace: true });
     } catch (error: any) {
-      //setError(error.response?.data?.error || 'Verification failed');
       toast.error(t('Email verification failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -216,7 +169,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
   const handleResendCode = async () => {
     try {
-      // setError('');
       setLoading(true);
       const response = await resendVerification(verifyEmailAddress);
       if (response.verificationCode) { // this happens only in development
@@ -227,7 +179,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       }
       toast.success('Verification code resent! Check your email.');
     } catch (error: any) {
-      //setError(error.response?.data?.error || 'Failed to resend code');
       toast.error(t('Code resend failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -236,16 +187,15 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
   const handleForgotPassword = async () => {
     try {
-      // setError('');
       setLoading(true);
       const response = await forgotPassword({ email: forgotEmail });
-      if (response.error) { // this happens only in development
+      if (response.error) {
         console.log( // TODO: use a custom function...
           'Forgot password error: %c' + response.error,
           'color: white; background: red; font-size: 48px; font-weight: bold; padding: 2px;'
         );
       }
-      if (response.resetPasswordCode) { // this happens only in development
+      if (response.resetPasswordCode) { // resetPasswordCode is present only in development
         console.log( // TODO: use a custom function...
           'Reset password code is: %c' + response.resetPasswordCode,
           'color: white; background: red; font-size: 48px; font-weight: bold; padding: 2px;'
@@ -255,7 +205,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       setTab('reset');
       toast.success('Reset code sent! Check your email.');
     } catch (error: any) {
-      //setError(error.response?.data?.error || 'Failed to send reset code');
       toast.error(t('Reset code failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -264,20 +213,11 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
   const handleResetPassword = async () => {
     try {
-      // setError('');
       setLoading(true);
       await resetPassword({ email: resetEmail, code: resetCode, newPassword });
-      // TODO: ...
-      // if (response.error) { // this happens only in development
-      //   console.log( // TODO: use a custom function...
-      //     'Error resetting password: %c' + response.error,
-      //     'color: white; background: red; font-size: 48px; font-weight: bold; padding: 2px;'
-      //   );
-      // }
       setTab('login');
       toast.success('Password reset successful! Please login.');
     } catch (error: any) {
-      //setError(error.response?.data?.error || 'Password reset failed');
       toast.error(t('Password reset failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -313,43 +253,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
     }
   };
 
-/*
-  const handleGoogleLoginV1 = async () => {
-    setLoading(true);
-    // setError('');
-
-    try {
-      // 1. Get the Google auth URL from your backend
-      const response = await fetch('/api/v1/users/auth/google'); // TODO: to shared config
-      const { authUrl } = await response.json();
-
-      // 2. Configure and open the popup
-      const width = 500, height = 600;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      const popup = window.open(
-        authUrl,
-        'Google Login',
-        `width=${width},height=${height},left=${left},top=${top}`
-      );
-
-      if (!popup) {
-        //setError('Popup blocked! Please allow popups for this site.');
-        toast.error(t('Popup blocked! Please allow popups for this site'));
-        setLoading(false);
-        return;
-      }
-    } catch (error: any) {
-      //console.error('Failed to start Google login:', err);
-      //setError(t('Failed to start Google login: {{err}}', { err: error.message }));
-      toast.error(t('Failed to start Google login: {{err}}', {err: getErrorMessage(error)}));
-    } finally {
-      setLoading(false);
-    }
-  };
-*/
-   // Listen for the message FROM the popup
+  // Listen for the message FROM the popup
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       // Check the origin
@@ -359,7 +263,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
         event.origin !== 'https://ticketuno.fly.dev' // TODO: from config
       ) {
         toast.error(t('Invalid message origin: {{origin}}', {origin: event.origin}));
-        //console.error('Invalid message origin:', event.origin);
         return;
       }
 
@@ -369,37 +272,23 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
         try {
           setLoading(true);
-          // setError('');
           
           // Call login with token
           await login({ token: token });
-          
-          //console.log('Google login successful');
           toast.success('Logged in with Google!');
           onClose();
           resetForms();
           navigate('/', { replace: true });
         } catch (error: any) {
-          //console.error('Google login error:', error);
-          //setError(error.response?.data?.error || 'Google login failed');
           toast.error(t('Google login error: {{err}}', {err: getErrorMessage(error)}));
           // Clear token if login fails
           localStorage.removeItem('authToken');
-          //setAuthToken(null); // TODO ...
         } finally {
           setLoading(false);
         }
-        //   console.log('Received Google auth token:', token);
-        //   // Use the token (store, validate, etc.)
-        //   localStorage.setItem('authToken', token);
-        //   //await login({ token: token }); // Standard login logic
-        //   onClose(); // Close the login dialog
-        //   toast.success('Logged in with Google!');
       }
 
       if (event.data.type === 'GOOGLE_AUTH_ERROR') {
-        //console.error('Google auth error from popup:', event.data.error);
-        //setError(event.data.error || 'Google login failed');
         toast.error(t('Google login failed: {{err}}', {err: getErrorMessage(event.data.error)}));
         setLoading(false);
       }
@@ -423,7 +312,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
     setResetEmail('');
     setResetCode('');
     setNewPassword('');
-    //setError('');
     setEventPassword(false);
     setTab('login');
   };
@@ -474,17 +362,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
           mx: { xs: 1, sm: 10 }
         }}
       >
-        {/* {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )} */}
-
-{/* <Box
-  component="form"
-  onSubmit={(e) => e.preventDefault()} // Prevent Chrome autofill “submit”
-  autoComplete="on"
-> */}
         {/* Login Tab */}
         {tab === 'login' && (
           <Box sx={{ pt: 2 }} component="form" autoComplete="on">
@@ -826,7 +703,6 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
             </Link>
           </Box>
         )}
-{/* </Box> */}
       </DialogContent>
     </Dialog>
   );

@@ -22,7 +22,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
-import { Event, EventPerformance } from '@/shared/types/event';
+import { EventWithDetails, EventPerformance } from '@/shared/types/event';
+import { Theater } from '@/shared/types/theater';
 import { LayoutJSON } from '@/shared/types/layout';
 import { generateSeats } from '@/shared/utils/layoutToSeats';
 import { SeatWithStatus } from '@/shared/types/layout';
@@ -46,7 +47,9 @@ const PerformanceBooking: React.FC = () => {
 
   // Raw state
   const [performance, setPerformance] = useState<EventPerformance | null>(null);
-  const [event, setEvent] = useState<Event | null>(null);
+  //const [event, setEvent] = useState<Event | null>(null);
+  const [event, setEvent] = useState<EventWithDetails | null>(null);
+  //const [theater, setTheater] = useState<Theater | null>(null);
   const [layout, setLayout] = useState<LayoutJSON | null>(null);
   const [seatStatusMap, setSeatStatusMap] = useState<Map<string, SeatData>>(new Map());
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
@@ -144,6 +147,10 @@ const PerformanceBooking: React.FC = () => {
   // Seat interaction
   const handleSeatClick = useCallback(async (seatId: string, currentStatus?: SeatStatus) => {
     if (!isAuthenticated) {
+      // TODO: XXXXXXXXXXXXXXXXXXXXXXX
+      //const redirectTo = 'http://localhost:3000/event/_alEdz12T-CjIf5i1RvWHg/performance/6GXshU32RIaEMmIiwGm2kw/book';
+      const currentPath = location.pathname + location.search + location.hash;
+      localStorage.setItem('redirectAfterLogin', currentPath);
       await showDialog({
         title: t('Login Required'),
         content: t('You need to login to book seats. Please login or register to continue.'),
@@ -193,15 +200,15 @@ const PerformanceBooking: React.FC = () => {
       return;
     }
     try {
-      const responseBooking = await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
-      const booking = responseBooking.data;
-      console.log("****************** BOOKING:", booking);
+      /*const responseBooking = */await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
+      // const booking = responseBooking.data;
+      //console.log("****************** BOOKING:", responseBooking.data);
 
       await showDialog({
         title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
         content:
           t('You will soon receive an email with booking confirmation.', { count: selectedSeats.size }) + '\n\n' +
-          (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: feel free to print it or show it at the theater on your mobile device.') : ''),
+          (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: you can print it or simply use the email your mobile device to show it at the theater.') : ''),
         onConfirm: () => navigate('/'),
         confirmText: 'Ok',
       });
@@ -289,9 +296,24 @@ const PerformanceBooking: React.FC = () => {
               <Typography variant={isMobile ? 'h5' : 'h4'} gutterBottom>
                 {t('Select Your Seats')}
               </Typography>
-              <Typography variant="body1" color="text.secondary">
-                {t('Performance on')} {new Date(performance.performanceDate).toLocaleDateString()} {performance.startTime}
-              </Typography>
+              {event && (
+                <Box>
+                  <Typography variant="body1" color="text.secondary">
+                    {t('Theater')} {event.theater.name}
+                    {event.theater.description ? ' - ' : ''} {event.theater.description}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    {t('Event')} {event.title}
+                    {event.description ? ' - ' : ''} {event.description}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary">
+                    {t('Performance on')} {new Date(performance.performanceDate).toLocaleDateString()}
+                    {performance.startTime && ' ' + t('since') + ' ' + performance.startTime}
+                    {' '}
+                    {performance.endTime && t('to') + ' ' + performance.endTime}
+                  </Typography>
+                </Box>
+              )}
             </Box>
             <IconButton
               onClick={() => navigate(-1)}
