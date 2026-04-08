@@ -15,10 +15,9 @@ export interface Layout {
   description?: string | null;
   theaterId: string;
   json: string;
-  // isEditable?: boolean;
-  // lockInfo?: LockInfoRow[];
   editable?: boolean;
   blockedBy?: ActiveBookingInfo[];
+  updated?: boolean;
 }
 
 export interface StageJSON {

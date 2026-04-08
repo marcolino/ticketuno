@@ -1,7 +1,9 @@
 import { useNavigate as useOriginalNavigate, NavigateOptions, To } from 'react-router-dom';
 import { useCallback } from 'react';
 
-// Define the return type of our custom hook
+// Calcolata una volta sola all'importazione del modulo
+const initialHistoryLength = window.history.length;
+
 type SafeNavigateFunction = {
   (to: To, options?: NavigateOptions & { fallbackPath?: string }): void;
   (delta: number): void;
@@ -19,54 +21,35 @@ const useNavigate = (): SafeNavigateFunction => {
   ) => {
     if (typeof to === 'number') {
       if (to < 0) {
-        const referrer = document.referrer;
-        const isInternalReferrer =
-          referrer && referrer.startsWith(window.location.origin);
-
-        if (!isInternalReferrer) {
+        // Calcola quanti step interni ci sono nello stack dall'avvio
+        const internalSteps = window.history.length - initialHistoryLength;
+        if (internalSteps > 0) {
+          // C'è una pagina precedente interna → back normale
+          return originalNavigate(to);
+        } else {
+          // Nessuna pagina interna precedente → fallback
           const fallback = options?.fallbackPath || '/';
-          return originalNavigate(fallback, options);
+          const { fallbackPath, ...restOptions } = options || {};
+          return originalNavigate(fallback, restOptions);
         }
       }
-
       return originalNavigate(to);
+    } else {
+      const { fallbackPath, ...restOptions } = options || {};
+      return originalNavigate(to, restOptions);
     }
-
-    return originalNavigate(to, options);
   }, [originalNavigate]);
 
-  // const safeNavigateORIG = useCallback((
-  //   to: To | number,
-  //   options?: NavigateOptions & { fallbackPath?: string }
-  // ) => {
-  //   if (typeof to === 'number' && to < 0) {
-  //     const referrer = document.referrer;
-  //     const isInternalReferrer = referrer && referrer.startsWith(window.location.origin);
-      
-  //     // Only go back if we're SURE it's internal
-  //     // When in doubt (empty referrer or external), redirect to home
-  //     if (!isInternalReferrer) {
-  //       const fallback = options?.fallbackPath || '/';
-  //       return originalNavigate(fallback, options);
-  //     }
-  //   }
-  //   return originalNavigate(to, options);
-  // }, [originalNavigate]);
-
-  // Create the callable function with additional methods
   const navigate = safeNavigate as SafeNavigateFunction;
-  
-  // Add explicit goBack method
+
   navigate.goBack = useCallback((fallbackPath: string = '/') => {
     safeNavigate(-1, { fallbackPath });
   }, [safeNavigate]);
 
-  // Add goForward method
   navigate.goForward = useCallback((delta: number = 1) => {
     originalNavigate(delta);
   }, [originalNavigate]);
 
-  // Add replace method
   navigate.replace = useCallback((to: To, options?: Omit<NavigateOptions, 'replace'>) => {
     safeNavigate(to, { ...options, replace: true });
   }, [safeNavigate]);

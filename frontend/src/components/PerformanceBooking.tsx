@@ -23,7 +23,6 @@ import { useDialog } from '@/contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
 import { EventWithDetails, EventPerformance } from '@/shared/types/event';
-import { Theater } from '@/shared/types/theater';
 import { LayoutJSON } from '@/shared/types/layout';
 import { generateSeats } from '@/shared/utils/layoutToSeats';
 import { SeatWithStatus } from '@/shared/types/layout';

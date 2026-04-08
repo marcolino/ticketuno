@@ -485,10 +485,6 @@ const LayoutEdit: React.FC = () => {
         // Fallback error
         toast.error(t('Failed to update event'));
         return;
-
-
-
-        toast.success('Layout saved successfully!');
       }
       
       // Navigate back with updated theater data
