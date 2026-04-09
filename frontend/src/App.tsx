@@ -30,8 +30,12 @@ import { zhCN } from '@mui/x-date-pickers/locales';
 
 console.log(`🎭 App ${config.app.name} is starting`);
 
-const App: React.FC = () => {
+const PwaInitializer: React.FC = () => {
   usePwa();
+  return null;
+};
+
+const App: React.FC = () => {
   const { i18n } = useTranslation();  
   
   // Map i18next language codes to dayjs locale codes if needed
@@ -71,6 +75,7 @@ const App: React.FC = () => {
             <LoadingSpinner />
             <DialogProvider>
               <ToastProvider>
+                <PwaInitializer />
                 <CssBaseline />
                 <AuthProvider>
                   <Router future={{

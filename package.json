@@ -55,6 +55,7 @@
     "ssh": "fly ssh console --app ticketuno",
     "db:backup": "fly ssh console --app ticketuno -C 'cat /data/ticketuno.db' > backup-$(date +%Y%m%d-%H%M%S).db",
     "db:destroy": "scripts/db-destroy.sh",
+    "detached-volumes:destroy": "fly volumes list --json | jq -r '.[] | select(.attached_machine_id == null or .attached_machine_id == \"\") | .id' | xargs -I {} fly volumes delete --yes {}",
     "play-ok": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/trumpet.wav",
     "play-ko": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/finish.wav"
   },
