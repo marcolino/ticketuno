@@ -55,14 +55,14 @@ common:
             has other performances on that date/time (and all guards)
  2 -    - complete tickets buy process, optionally redirecting to stripe for payment
  2 -    - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
- 3 -    - make a script to backup database
- 3 -    - schedule job to call the script to backup database daily
- 3 -    - make a method to clean up unreferenced images from /data/images
- 3 -    - schedule job to call the method to clean up unreferenced images, weekly
+ 3 -    - make a script to backup database, and schedule it, daily
+ 3 -    - make a method to clean up unreferenced images from /data/images, and schedule it, weekly
+ 3 -    - check job to release expired reservations (releaseExpiredReservations), and schedule it, weekly
  3 -    - before using analytics and marketing cookies, always check:
             const { canUseAnalytics, canUseMarketingCookies } = useConsent();
  3 -    - implement a real logging system
  3 -    - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API..."
+ 3 -    - implement tests
 
  frontend:
  1 - OK - Design.tsx => Home.tsx
@@ -123,3 +123,4 @@ common:
  2 -    - implement a mailing system to send bulk emails to a list of users, with variables
  3 -    - find if and where to suggest user to open consent dialog to enable missing consent
             (for pushNotifications for example)
+ 3 -    - implement tests

@@ -38,8 +38,6 @@ class EmailService {
     const partialsDir = path.join(this.templatePath, 'partials');
     const files = await fs.readdir(partialsDir);
 
-    //throw new Error("Test entities: \"hellò 'Marco' barra/barra\""); // TODO: DEBUG ONLY
-
     for (const file of files) {
       const content = await fs.readFile(
         path.join(partialsDir, file),
@@ -57,9 +55,6 @@ class EmailService {
 
   // Public: send email
   async send(options: SendEmailOptions & { lang?: string }): Promise<CreateEmailResponse> {
-    //const t = i18n.getFixedT(options.lang ?? config.app.defaultLanguage);
-    
-  // sync getAllLayouts(): Promise<Array<{ id: string; json: string }> | null> {
     const payload = await this.prepare(options); // Prepare the email payload
 
     // Call the real email send service
@@ -86,14 +81,14 @@ class EmailService {
       template,
       variables = {},
       lang = null,
-      text = 'Please view this email in HTML format.',
+      text = i18n.t('Please view this email in HTML format'),
       html,
       isMarketing = false,
       attachments,
     } = options;
 
     if (!config.email.from) {
-      throw new Error('Email FROM is not defined in environment'); // TODO: yse i18n.t ???
+      throw new Error(i18n.t('Email FROM is not defined in environment'));
     }
     
     const recipients = Array.isArray(to) ? to : [to];
@@ -102,14 +97,13 @@ class EmailService {
     
     let finalLang = lang;
     if (!finalLang) {
-      /*const user = await database.getUserByEmail(userEmail);*/
-      finalLang = /*user?.language ||*/ 'it'; // TODO: add preferred language to user, and TODO: default language (it) in config
+      finalLang = config.app.defaultLanguage;
     }
     let finalHtml = html;
     let finalText = text;
 
     if (!finalHtml && !finalText && !template) {
-      throw new Error('Either html or text content or a template must be provided');
+      throw new Error(i18n.t('Either html or text content or a template must be provided'));
     }
 
     // Using MJML template
@@ -123,8 +117,8 @@ class EmailService {
 
       variables.seatNumbers = variables.seatNumbers && variables.seatNumbers.toString().replace(',', ',\n');
       variables.appName = config.app.name;
-      variables.logoUrl = `https://ticketuno.fly.dev/images/logo.png`; // TODO: use config, but always prod url even when developing
-
+      variables.logoUrl = `${config.app.baseUrlProduction}/images/logo.png`; // in emails, use production url even when developing
+    
       const contentCompiled = Handlebars.compile(contentFile)({
         ...variables,
         t: i18next.getFixedT(finalLang)
@@ -139,7 +133,7 @@ class EmailService {
       let preferencesUrl: string | null = null;
       const user = await database.getUserByEmail(userEmail);
       if (!user) { // we send to a recipient who is not a registered user, do not offer to unsubscribe...
-        console.log(`First recipient email (${userEmail}) does not belong to a registered user, not using unsubscribe token...`); // TODO: to be tested ...
+        console.log(`First recipient email (${userEmail}) does not belong to a registered user, not using unsubscribe token...`); // to be tested ...
       } else {
         if (isMarketing) {
           const token = await database.createToken(user.id, 'communication.marketingEmails');
@@ -172,7 +166,7 @@ class EmailService {
       finalHtml = compiledHtml;
 
       // Basic text fallback (optional improvement)
-      finalText = finalText || 'Please view this email in HTML format.'; // TODO: t()
+      finalText = finalText || i18n.t('Please view this email in HTML format');
     }
 
     // Only use defined fields

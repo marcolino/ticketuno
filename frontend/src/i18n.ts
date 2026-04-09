@@ -22,8 +22,8 @@ i18n
   
     // Load from shared folder via API
     backend: {
-      loadPath: '/api/v1/locales/{{lng}}/{{ns}}.json', // TODO: /api/v1 ???
-      //addPath: '/api/v1/locales/{{lng}}/{{ns}}.missing.json', // For missing translation
+      loadPath: `/${config.app.api.prefix}/${config.app.api.version}/locales/{{lng}}/{{ns}}.json`,
+      //addPath: `/${config.app.api.prefix}/${config.app.api.version}/locales/{{lng}}/{{ns}}.missing.json`, // For missing translation
       allowMultiLoading: false,
       requestOptions: {
         cache: 'no-cache'

@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { jwtDecode } from "jwt-decode";
 import { useDialog } from '@/contexts/DialogContext';
+import config from '@/shared/config';
 
 interface JwtPayload {
   exp: number;
@@ -12,7 +13,7 @@ interface Props {
   logout: () => void;
 }
 
-const WARNING_BEFORE = 5 * 60 * 1000; // 5 minutes
+const WARNING_BEFORE_TOKEN_EXPIRATION_MS = config.app.auth.tokenExpirationTimeWarningAdvanceSeconds * 1000; // milliseconds
 
 export default function useSessionManager({ token, logout }: Props) {
   const { t } = useTranslation();
@@ -41,10 +42,10 @@ export default function useSessionManager({ token, logout }: Props) {
     clearTimers();
 
     showDialog({
-      title: 'Session expired',
+      title: t('Session expired'),
       content: boot
-        ? 'Your session expired while you were away. Please login again.'
-        : 'Your session has expired. Please login again.',
+        ? t('Your session expired while you were away. Please login again.')
+        : t('Your session has expired. Please login again.'),
       confirmText: 'Login',
       onConfirm: logout,
     });
@@ -64,16 +65,16 @@ export default function useSessionManager({ token, logout }: Props) {
       return;
     }
 
-    // 5-minute warning
-    if (timeLeft > WARNING_BEFORE) {
+    // session expiration preventive warning
+    if (timeLeft > WARNING_BEFORE_TOKEN_EXPIRATION_MS) {
       warningTimer.current = setTimeout(() => {
         showDialog({
           title: 'Session expiring soon',
           content: t('Your session will expire in {{minutes}} minutes. Please save your work.', {minutes: 5}), // TODO: to config
-          confirmText: 'OK',
+          confirmText: t('Ok'),
           //hideCancel: true,
         });
-      }, timeLeft - WARNING_BEFORE);
+      }, timeLeft - WARNING_BEFORE_TOKEN_EXPIRATION_MS);
     }
 
     // Expiration

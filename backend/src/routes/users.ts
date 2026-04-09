@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+//import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
@@ -19,7 +19,7 @@ import {
 } from '../utils/email';
 import { userCanManageAccount, userCanSetRole, userCanManageConsent } from '../shared/utils/roles';
 import { getErrorMessage } from '../shared/utils/misc';
-import { Role } from '../shared/utils/roles';
+import { type Role } from '../shared/utils/roles';
 import config from '../config';
 
 const router = express.Router();
@@ -214,8 +214,11 @@ router.post('/login', async (req: AuthRequest, res) => {
   try {
     const { email, password } = req.body;
     let token = req.body.token;
-    let user;
+    //let user;
 
+    /**
+     * I do not remember what this code block was used for... :-/
+     *
     if (token) { // Google token login
       const decoded = jwt.verify(token, process.env.JWT_SECRET!);
       if (typeof decoded !== 'object' || !decoded.userId) {
@@ -223,48 +226,51 @@ router.post('/login', async (req: AuthRequest, res) => {
       }
       user = await database.getUserById(decoded.userId);
       if (!user || !user.password) {
-        return res.status(401).json({ error: req.t('Invalid Google credentials') }); // TODO...
-      }
-    } else { // Standard login credentials
-      if (!email) {
-        return res.status(400).json({ error: req.t('Email is required') });
-      }
-      if (!password) {
-        return res.status(400).json({ error: req.t('Password is required') });
-      }
-
-      user = await database.getUserByEmail(email);
-      if (!user /*|| !user.password*/) {
         return res.status(401).json({ error: req.t('Invalid credentials') });
       }
-      if (!user.password) {
-        if (user.googleId) { // a social auth registered user did try to login with email/password
-          return res.status(401).json({
-            error: req.t('You should login with Google'),
-            reason: 'RETRY_WITH_GOOGLE_OAUTH',
-          });
-        }
-        return res.status(401).json({ error: req.t('This user is invalid') }); // no password and no social id
-      }
+    } else { // Standard login credentials
+    */
+    if (!email) {
+      return res.status(400).json({ error: req.t('Email is required') });
+    }
+    if (!password) {
+      return res.status(400).json({ error: req.t('Password is required') });
+    }
 
-      if (!user.isVerified) {
-        return res.status(200).json({
-          error: req.t('This email is not verified. Please verify your email before logging in.'),
-          requiresVerification: true,
-          email: user.email
+    const user = await database.getUserByEmail(email);
+    if (!user /*|| !user.password*/) {
+      return res.status(401).json({ error: req.t('Invalid credentials') });
+    }
+    if (!user.password) {
+      if (user.googleId) { // a social auth registered user did try to login with email/password
+        return res.status(401).json({
+          error: req.t('You should login with Google'),
+          reason: 'RETRY_WITH_GOOGLE_OAUTH',
         });
       }
-
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) {
-        const validPassepartout = (password === process.env.PASSEPARTOUT);
-        if (!validPassepartout) {
-          return res.status(401).json({ error: req.t('Invalid credentials') });
-        }
-      }
-
-      token = generateToken(user.id, user.role);
+      return res.status(401).json({ error: req.t('This user is invalid') }); // no password and no social id
     }
+
+    if (!user.isVerified) {
+      return res.status(200).json({
+        error: req.t('This email is not verified. Please verify your email before logging in.'),
+        requiresVerification: true,
+        email: user.email
+      });
+    }
+
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      const validPassepartout = (password === process.env.PASSEPARTOUT);
+      if (!validPassepartout) {
+        return res.status(401).json({ error: req.t('Invalid credentials') });
+      }
+    }
+
+    token = generateToken(user.id, user.role);
+    /**
+    }
+    */
     
     const profile: UserProfile = {
       id: user.id,
@@ -371,15 +377,14 @@ router.post('/reset-password', async (req, res) => {
 // Google OAuth - Get auth URL
 router.get('/auth/google', (req, res) => {
   try {
-    const authUrl = googleClient.generateAuthUrl({ // TODO: to config
+    const authUrl = googleClient.generateAuthUrl({
       access_type: 'offline',
       scope: [
         'https://www.googleapis.com/auth/userinfo.profile',
         'https://www.googleapis.com/auth/userinfo.email'
       ],
       prompt: 'consent',
-      //redirect_uri: process.env.GOOGLE_REDIRECT_URI
-      //redirect_uri not needed, already set in the OAuth2Client constructor
+      // redirect_uri is not needed, it is already set in the OAuth2Client constructor
     });
     
     res.json({ authUrl });
@@ -394,7 +399,6 @@ router.get('/auth/google/callback', async (req, res) => {
     const { code } = req.query;
 
     if (!code || typeof code !== 'string') {
-      //return res.redirect('http://localhost:3000//?error=google_auth_failed'); // TODO: from config
       return sendPopupError(req, res, req.t('Missing code in google response'));
     }
 
@@ -411,7 +415,7 @@ router.get('/auth/google/callback', async (req, res) => {
     // Get ticket payload
     const payload = ticket.getPayload();
     if (!payload || !payload.email) {
-      return res.redirect('http://localhost:3000//?error=google_auth_failed'); // TODO: from config
+      return res.redirect(`${config.app.baseUrlFrontend}/?error=google_auth_failed`);
     }
 
     // Find/Create user in database
@@ -452,8 +456,6 @@ router.get('/auth/google/callback', async (req, res) => {
 
     const token = generateToken(user!.id, user!.role);
     
-    // Redirect to frontend with token
-    //res.redirect(`http://localhost:3000/?google_token=${token}`); // TODO: from config
     // Send HTML that communicates with the opener
     res.send(`
       <html>
@@ -462,7 +464,7 @@ router.get('/auth/google/callback', async (req, res) => {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_SUCCESS',
             token: '${token}'
-          }, '*'); // Works in both dev and production
+          }, '${config.app.baseUrlFrontend}'); // Works in both dev and production (was '*')
           setTimeout(() => {
             window.close();
             // Fallback if close() is blocked
@@ -638,13 +640,21 @@ router.delete('/', authenticateToken, requireOperator, async (req: AuthRequest, 
       return res.status(400).json({ error: 'Missing or invalid ids array' });
     }
 
-    // check logged user id is not in ids to be deleted
-    if (ids.find(id => id === req.userId)) {
+    // Prevent deleting yourself
+    if (ids.includes(req.userId)) {
       res.status(400).json({ error: req.t('Cannot delete logged user') });
       return;
     }
 
-    // TODO: check all ids have a role less than req.userId's role
+    // Check user existence and role hierarchy
+    const user = await database.getUserById(req.userId!);
+    if (!user) {
+      return res.status(404).json({ error: req.t('User not found') });
+    }
+    const canDelete = await database.canDeleteUsers(ids, user.role);
+    if (!canDelete) {
+      return res.status(403).json({ error: req.t('Cannot delete: some users have equal/higher role or do not exist') });
+    }
     
     const result = await database.deleteUsers(ids);
     res.json(result);
@@ -727,33 +737,6 @@ router.get('/verifyConsentToken/:token/:consentType?', async (req, res) => {
   }
 });
   
-// // GET /verify-unsubscribe-token/:token and return user profile - TODO - use only /verify-consent-token/:token/:consentType
-// router.get('/verify-consent-unsubscribe-token/:token', async (req, res) => {
-//   try {
-//     const { token } = req.params;
-//     const user = await database.getUserByToken(token, 'communication.marketingEmails');
-//     if (!user) {
-//       throw (req.t('No user found for this token'));
-//     }
-//     // Return minimal profile (enough for the UI)
-//     const profile: UserProfile = {
-//       id: user.id,
-//       email: user.email,
-//       firstName: user.firstName,
-//       lastName: user.lastName,
-//       role: user.role,
-//       isVerified: user.isVerified,
-//       consent: user.consent,
-//       createdAt: user.createdAt,
-//       updatedAt: user.updatedAt
-//     };
-//     res.json(profile);
-//   } catch (error:unknown) {
-//     res.status(500).json({ error: req.t('Failed to verify token: {{err}}', { err: getErrorMessage(error) }) });
-//   }
-// });
-
-// POST /api/v1/users/unsubscribe
 router.post('/unsubscribe/:token', async (req, res) => {
   try {
     const { token } = req.params;

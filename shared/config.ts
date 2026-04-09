@@ -9,6 +9,9 @@ const config: AppConfig = {
       prefix: 'api',
       version: 'v1',
     },
+    auth: {
+      tokenExpirationTimeWarningAdvanceSeconds: 5 * 60,
+    },
     codename: codename,
     name: name,
     baseUrlBackend: (process.env.NODE_ENV === 'production') ?
@@ -19,6 +22,7 @@ const config: AppConfig = {
       `https://${codename}.fly.dev` :
       'http://localhost:3000'
     ,
+    baseUrlProduction: `https://${codename}.fly.dev`,
     languages: {
       en: { name: 'English', flag: '🇬🇧' },
       it: { name: 'Italiano', flag: '🇮🇹' },

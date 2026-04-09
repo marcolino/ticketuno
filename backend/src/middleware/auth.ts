@@ -45,7 +45,7 @@ export const requireOperator = (req: AuthRequest, res: Response, next: NextFunct
 export const generateToken = (userId: string, role: string): string => {
   const payload = { userId, role };
   const options: SignOptions = {
-    expiresIn: config.auth.tokenExpirationTime as jwt.SignOptions['expiresIn'],
+    expiresIn: config.auth.tokenExpirationDays + 'd' as jwt.SignOptions['expiresIn'],
   };
   // process.env.JWT_SECRET is non-null here (runtime check already)
   return jwt.sign(payload, process.env.JWT_SECRET as jwt.Secret, options);

@@ -155,29 +155,11 @@ const LayoutList: React.FC = () => {
         navigate(`/layouts`);
       }
     });
-    // try {
-    //   /*const response = */await layoutApi.deleteLayout(id);
-    //   const newLayouts = layouts.filter(layout => layout.id !== id);
-    //   setLayouts(newLayouts);
-    //   // setError(null);
-    // } catch (error: any) {
-    //   // Show the actual server error message
-    //   //setError(err.response?.data?.error || 'Failed to delete layout');
-    //   toast.error(getErrorMessage(error));
-    // }
     navigate(`/layouts`);
   };
 
-  // const formatDate = (dateString?: string) => {
-  //   if (!dateString) return 'N/A';
-  //   return new Date(dateString).toLocaleDateString();
-  // };
-
   return (
     <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
-      {/* <Typography variant="h4" gutterBottom>
-        {t('Current Layouts')}
-      </Typography> */}
       <PageHeader
         title={t('Layouts')}
         showAdd={isOperator}
@@ -195,28 +177,6 @@ const LayoutList: React.FC = () => {
         <Alert severity="info">{t('No layouts available')}</Alert>
       )}
       
-      {/* {!error && isOperator && (
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={() => navigate('/layout/new')}
-            sx={{ my: 2, mx: 2 }}
-          >
-            {t('Add Layout')}
-          </Button>
-        </Box>
-      )} */}
-
-       {/* {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : layouts.length === 0 ? (
-        <Alert severity="info">No layouts available</Alert>
-      ) : ( */}
-
       <Grid container spacing={3}>
         {layouts.map((layout) => (
           <Grid item xs={12} sm={6} md={4} key={layout.id}>

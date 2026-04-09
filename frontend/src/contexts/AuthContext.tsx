@@ -147,7 +147,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
           // return response.data;
         }
-      } catch (error: any) {
+      } catch (error) {
         logout();
         throw error;
       }

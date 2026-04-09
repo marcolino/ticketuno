@@ -5,7 +5,7 @@ import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { Migrator } from './migrator';
 import { User, NewUser } from '../shared/types/user';
-import { Theater, TheaterStatus, EventStatus, SeatStatus, Seat } from '../shared/types/theater';
+import { Theater, TheaterStatus, EventStatus, SeatStatus, Seat, TheaterConflictDetails } from '../shared/types/theater';
 import { Layout, LayoutJSON } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
 import { GeneratedSeat } from '../shared/types/seat';
@@ -14,6 +14,7 @@ import { Booking, BookingStatus, BookingQueryOptions } from '../shared/types/boo
 import { GeneralSetupType } from '../shared/types/generalSetup';
 import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardResult } from '../shared/types/guard';
 import { EventQueryOptions, PerformanceQueryOptions } from '../shared/types/query';
+import { ROLES, type Role } from '../shared/utils/roles';
 import config from '../config';
 
 // ---------------------------------------------------------------------------
@@ -532,7 +533,7 @@ class Database {
     return result.changes > 0;
   }
 
-  async createToken(userId: string, type: string, expiresInDays: number = 7): Promise<string> { // TODO: 7 in config
+  async createToken(userId: string, type: string, expiresInDays: number = config.auth.tokenExpirationDays): Promise<string> {
     const id = this.uuid();
     const token = this.uuid();
     const expiresAt = new Date();
@@ -607,34 +608,28 @@ class Database {
     return bulk.results[id];
   }
 
-  /*
-  async deleteUser(id: string):
-    Promise<{ deleted: boolean; reason?: string; blockedBy?: ActiveBookingInfo[] }>
-  {
-    const guard = await this.guardUser(id);
-    if (!guard.safe) {
-      return {
-        deleted: false,
-        reason: 'USER_HAS_ACTIVE_BOOKINGS',
-        blockedBy: guard.bookings,
-      };
-    }
+  /**
+   * Checks if all given user ids exist and have a role strictly lower than `actorRole`.
+   * @returns true if all ids are valid and every target role < actorRole
+   */
+  async canDeleteUsers(ids: string[], actorRole: Role): Promise<boolean> {
+    // Roles that are NOT allowed (level >= actorRole)
+    const actorIndex = ROLES.indexOf(actorRole);
+    const forbiddenRoles = ROLES.slice(actorIndex); // e.g. ['operator','admin'] if actor is operator
 
-    const result = await runQuery(
-      this.db, `
-        UPDATE users
-        SET deleted_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-        AND deleted_at IS NULL
-      `,
-      [id], 'soft delete user'
-    );
-    return {
-      deleted: result.changes > 0,
-      ...(result.changes === 0 && { reason: 'USER_NOT_FOUND' }),
-    };
+    const placeholders = ids.map(() => '?').join(',');
+    const row = await getQuery(this.db, `
+      SELECT
+        COUNT(*) AS total_found,
+        SUM(CASE WHEN role IN (${forbiddenRoles.map(() => '?').join(',')}) THEN 1 ELSE 0 END) AS forbidden_count
+      FROM users
+      WHERE id IN (${placeholders})
+      AND deleted_at IS NULL
+    `, [...ids, ...forbiddenRoles]);
+
+    // All ids must exist AND none of them may have a forbidden role
+    return row ? (row.total_found === ids.length && row.forbidden_count === 0) : false;
   }
-  */
 
   // ---------------------------------------------------------------------------
   // Theater methods
@@ -2113,18 +2108,6 @@ class Database {
 
 }
 
-  interface TheaterConflictDetails { // TODO: to /shared/types/....ts
-    //existingPerformanceId: string;
-    performanceDate: string;
-    requestedStartTime: string;
-    requestedEndTime: string;
-    existingPerformanceStartTime: string;
-    existingPerformanceEndTime: string | null;
-    theaterId: string;
-    theaterName: string | null;
-  }
-
-
 // ---------------------------------------------------------------------------
 // Query helpers
 // ---------------------------------------------------------------------------
@@ -2227,8 +2210,5 @@ function areLayoutStructuresEqual(oldJson: LayoutJSON, newJson: LayoutJSON): boo
 
   return true;
 }
-
-// TODO: move to /backend/src/scheduled/jobs.ts
-// setInterval(() => database.releaseExpiredReservations(), 60_000);
 
 export const database = new Database();

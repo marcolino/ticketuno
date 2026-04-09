@@ -8,7 +8,7 @@
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview --host",
-    "test": "echo 'vitest run (TODO)'",
+    "test": "echo 'vitest run (TO DO)'",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
     "unused": "ts-prune",

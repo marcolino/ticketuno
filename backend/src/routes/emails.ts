@@ -37,18 +37,8 @@ router.get('/preview/:template', async (req, res) => {
   const subject = req.body.subject ?? 'Preview Subject';
   const variables = {
     appName: config.app.name,
-    userName: 'Marco',
-    bookingReferenceNumber: 'kjgf345lknf3r934',
-    showName: 'La Bisbetica Domata',
-    dateOfPerformance: '01/04/2026',
-    timeOfPerformance: '20:30',
-    theaterName: 'Il Teatro Regio di Torino',
-    seatNumber: 'Platea-12-C',
-    totalPaidAmount: '50€',
-    theaterPhone: '+39 333 6480983',
-    linkToTermsAndConditions: 'https://ticketuno.fly.dev/terms-and-conditions', // TODO...
-
-  }; // TODO: these variables depend on template...
+    linkToTermsAndConditions: config.email.linkToTermsAndConditions,
+  };
   const lang = req.body.lang ?? 'it';
   const text = 'Please view this email in HTML format.';
   const html = '';
@@ -81,7 +71,7 @@ router.post('/webhook/resend', async (req, res) => {
       case 'email.bounced':
         console.warn('Bounced:', event.data.email_id);
         break;
-      default: // TODO: handle all cases ...
+      default:
         console.warn('Unforeseen event type:', event.type, event.data.email_id);
     }
     

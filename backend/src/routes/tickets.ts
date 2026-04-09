@@ -1,10 +1,9 @@
-import express, {  RequestHandler,/* Request, Response*/ } from 'express'; // TODO: import Request, Response from express in all routes
+import express, {  RequestHandler } from 'express';
 import { database } from '../db/database';
-import { authenticateToken, requireOperator/*, AuthRequest*/ } from '../middleware/auth';
+import { authenticateToken, requireOperator} from '../middleware/auth';
 import { verify } from '../services/hmacService';
 import { authHandler } from '../utils/routeHelper';
 import { TicketValidationResult } from '../shared/types/ticket';
-//import { getErrorMessage } from '../shared/utils/misc';
 import config from '../shared/config';
 const router = express.Router();
 
@@ -16,8 +15,6 @@ router.post('/:payload/validate',
 {
   const payload = req.params.payload;
   const { byDevice } = req.body as { byDevice?: string };
-
-  // TODO !!!
 
   // Basic guard
   if (!payload || typeof payload !== 'string') {

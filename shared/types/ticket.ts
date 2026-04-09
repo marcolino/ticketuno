@@ -36,7 +36,7 @@ export interface EncodeTicketRequest {
   companyName: string; // e.g. 'Broadway Productions Inc.'
 
   eventName: string; // e.g. 'The Phantom of the Opera'
-  venue: string; // e.g. 'Grand Theater – Main Hall'
+  theater: string; // e.g. 'Grand Theater – Main Hall'
   eventDate: string; // ISO date  YYYY-MM-DD
   eventTime: string; // 24-hour   HH:MM
 
@@ -51,7 +51,7 @@ export interface TicketPayload {
   cEmail: string; // customerEmail
   org: string; // companyName
   event: string; // eventName
-  venue: string; // venue
+  theater: string; // theater
   date: string; // eventDate
   time: string; // eventTime
   seat: string; // single seat
@@ -76,7 +76,7 @@ export interface ShowInfo {
   dayOfWeek: string;
   time: string;
   duration: string;
-  venue: string;
+  theaterDescription: string;
   address: string;
   contactPhone: string,
   contactEmail: string,

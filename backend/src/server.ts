@@ -11,7 +11,6 @@ import theaterRoutes from './routes/theaters';
 import eventRoutes from './routes/events';
 import layoutRoutes from './routes/layouts';
 import imageRoutes from './routes/images';
-//import qrcodeRoutes from './routes/qrcodes';
 import ticketRoutes from './routes/tickets';
 import emailRoutes from './routes/emails';
 import setupRoutes from './routes/setup';
@@ -19,18 +18,9 @@ import { database } from './db/database'; // import database AFTER config
 import { loadSetup } from './services/setupService';
 import config from './config';
 
-//import pkg from '../package.json';
-
-//const apiPrefix = 'api'; // TODO: to config
-//const apiVersion = 'v1'; // TODO: to config
-//const prefix = `/${apiPrefix}/${apiVersion}`;
 const prefix = `/${config.app.api.prefix}/${config.app.api.version}`;
 
 const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
-//const frontendPublicDir = path.join(__dirname, '../../', 'frontend', 'public');
-//const frontendDistDir = path.join(__dirname, '../../', 'frontend', 'dist');
-//const frontendDir = process.env.NODE_ENV === 'production' ? frontendDistDir : frontendPublicDir;
-//const maintenanceFilePath = path.join(frontendDir, 'maintenance.html');
 
 const app = express();
 
@@ -46,14 +36,6 @@ app.use((req: Request, res: Response, next) => {
   res.locals.language = req.language;
   next();
 });
-
-// app.get(`${prefix}/health`, (req, res) => {
-//   res.json({
-//     status: 'ok',
-//     timestamp: new Date().toISOString(),
-//     uptime: process.uptime(),
-//   });
-// });
 
 // Serve translation files from shared folder (/shared/locales/{lng}/{ns}.json)
 app.get(`${prefix}/locales/:lng/:ns.json`, (req: Request, res: Response) => {
@@ -80,27 +62,6 @@ app.get(`${prefix}/locales/:lng/:ns.json`, (req: Request, res: Response) => {
   });
 });
 
-// app.use((req, res, next) => {
-//   if (process.env.MAINTENANCE_MODE === '1') {
-//     if (req.accepts('html')) {
-//       return res.status(503).sendFile(maintenanceFilePath);
-//     }
-//     return res.status(503).json({
-//       error: 'maintenance mode',
-//       redirect: '/maintenance.html',// Frontend interceptor needs this
-//     });
-//   }
-//   next();
-// });
-// app.use((req, res, next) => {
-//   if (process.env.MAINTENANCE_MODE === '1') {
-//     return res.status(503).json({
-//       error: 'maintenance mode',
-//     });
-//   }
-//   next();
-// });
-
 if (process.env.NODE_ENV === 'development') {
   app.use((req, res, next) => {
     const delayMs = Number(config.server.delayMilliseconds) || 0;
@@ -126,27 +87,9 @@ app.use(`${prefix}/theaters`, theaterRoutes);
 app.use(`${prefix}/layouts`, layoutRoutes);
 app.use(`${prefix}/events`, eventRoutes);
 app.use(`${prefix}/images`, imageRoutes);
-//app.use(`${prefix}/qrcodes`, qrcodeRoutes);
 app.use(`${prefix}/tickets`, ticketRoutes);
 app.use(`${prefix}/emails`, emailRoutes);
 app.use(`${prefix}/setup`, setupRoutes);
-
-// app.get(`${prefix}/`, (req, res) => {
-//   res.json({ version: pkg.version });
-// });
-
-// // Example route with translation - TODO: debug only
-// app.get(`${prefix}/test`, (req: any, res) => {
-//   // Use req.t for translations in request context
-//   const message = req.t('hello_world');
-//   res.json({ message });
-// });
-
-// /**
-//  * Serve static files (MUST be after API routes, order matters)
-//  */
-// // Serve public assets
-// app.use(express.static(path.join(__dirname, '../public')));
 
 // Serve uploaded images
 app.use('/uploads', express.static(config.uploads.path));
@@ -163,9 +106,6 @@ app.use(
     return res.status(400).json({ error: err.message || req.t('Internal server upload error')});
   }
 
-  // res.status(err.status || 500).json({
-  //   error: err.message || req.t('Internal server error')
-  // });
   if (err instanceof Error) {
     return res.status(500).json({ error: err.message });
   }
@@ -191,7 +131,6 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-
 /* Serve static public files (MUST be after API routes, error and 404 handlers, order matters) */
 if (process.env.NODE_ENV === 'production') {
   const publicDir = path.join(__dirname, '../public');
@@ -210,24 +149,14 @@ if (process.env.NODE_ENV === 'production') {
   });
 } else { // 404 non-API in development mode
   app.get('*', (req, res) => {
-    res.status(404).json({ error: 'Use frontend at localhost:3000' });
+    res.status(404).json({ error: `Use frontend at ${config.host.dev.name}:${config.host.dev.port}` });
   });
 }
-// if (process.env.NODE_ENV === 'production') { // in production mode
-//   app.use(express.static(path.join(__dirname, '../public')));
-//   app.get('*', (req, res) => {
-//     res.sendFile(path.join(__dirname, '../public/index.html'));
-//   });
-// } else { // 404 non-API in development mode
-//   app.get('*', (req, res) => {
-//     res.status(404).json({ error: 'Use frontend at localhost:3000' }); // TODO: use config
-//   });
-// }
 
 database.initialize().then(async () => {
   await loadSetup();
-  app.listen(process.env.PORT, () => {
-    console.log(`Server running on port ${process.env.PORT} in ${process.env.NODE_ENV} mode`);
+  app.listen(process.env.PORT ?? config.host.dev.port, () => {
+    console.log(`Server running on port ${process.env.PORT ?? config.host.dev.port} in ${process.env.NODE_ENV} mode`);
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err);

@@ -1,35 +1,37 @@
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "@/contexts/ToastContext";
-import { getErrorMessage } from "@/shared/utils/misc";
-import useNavigate from "@/hooks/useNavigate";
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from '@/contexts/ToastContext';
+import { i18n } from '@/i18n';
 
-export type TabValue = "login" | "register" | "verify" | "forgot" | "reset";
+import { getErrorMessage } from '@/shared/utils/misc';
+import useNavigate from '@/hooks/useNavigate';
+
+export type TabValue = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 
 export const useAuthFlow = (onClose: () => void) => {
   const { login, register, verifyEmail, resendVerification, forgotPassword, resetPassword } = useAuth();
   const navigate = useNavigate();
 
-  const [tab, setTab] = useState<TabValue>("login");
+  const [tab, setTab] = useState<TabValue>('login');
   const [loading, setLoading] = useState(false);
 
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [registerFirstName, setRegisterFirstName] = useState("");
-  const [registerLastName, setRegisterLastName] = useState("");
-  const [registerPhone, setRegisterPhone] = useState("");
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerFirstName, setRegisterFirstName] = useState('');
+  const [registerLastName, setRegisterLastName] = useState('');
+  const [registerPhone, setRegisterPhone] = useState('');
 
-  const [verifyEmailAddress, setVerifyEmailAddress] = useState("");
-  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyEmailAddress, setVerifyEmailAddress] = useState('');
+  const [verifyCode, setVerifyCode] = useState('');
 
-  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotEmail, setForgotEmail] = useState('');
 
-  const [resetEmail, setResetEmail] = useState("");
-  const [resetCode, setResetCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
 
   const handleLogin = async () => {
     try {
@@ -42,21 +44,21 @@ export const useAuthFlow = (onClose: () => void) => {
 
       if (response.requiresVerification) {
         setVerifyEmailAddress(response.email);
-        setTab("verify");
-        toast.warning("Please verify your email first");
+        setTab('verify');
+        toast.warning(i18n.t('Please verify your email first'));
         return;
       }
 
-      toast.success("Login successful!");
+      toast.success(i18n.t('Login successful!'));
       onClose();
 
-      const redirect = localStorage.getItem("redirectAfterLogin");
-      localStorage.removeItem("redirectAfterLogin");
+      const redirect = localStorage.getItem('redirectAfterLogin');
+      localStorage.removeItem('redirectAfterLogin');
 
-      navigate(redirect || "/", { replace: true });
+      navigate(redirect || '/', { replace: true });
 
-    } catch (error: any) {
-      toast.warning(`Login failed: ${getErrorMessage(error)}`);
+    } catch (error) {
+      toast.warning(i18n.t('Login failed: {{err}}', { err: getErrorMessage(error) });
     } finally {
       setLoading(false);
     }
@@ -75,12 +77,12 @@ export const useAuthFlow = (onClose: () => void) => {
       });
 
       setVerifyEmailAddress(response.email);
-      setTab("verify");
+      setTab('verify');
 
-      toast.success("Registration successful!");
+      toast.success(i18n.t('Registration successful!'));
 
     } catch (error: any) {
-      toast.error(`Registration failed (${getErrorMessage(error)})`);
+      toast.error(i18n.t('Registration failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -95,13 +97,13 @@ export const useAuthFlow = (onClose: () => void) => {
         code: verifyCode,
       });
 
-      toast.success("Email verified!");
+      toast.success(i18n.t('Email verified'));
       onClose();
 
-      navigate("/", { replace: true });
+      navigate('/', { replace: true });
 
     } catch (error: any) {
-      toast.error(`Verification failed (${getErrorMessage(error)})`);
+      toast.error(i18n.t('Verification failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -120,10 +122,10 @@ export const useAuthFlow = (onClose: () => void) => {
         );
       }
 
-      toast.success('Verification code resent! Check your email.');
+      toast.success(i18n.t('Verification code resent! Check your email.'));
 
     } catch (error: any) {
-      toast.error(`Code resend failed (${getErrorMessage(error)})`);
+      toast.error(i18n.t('Code resend failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -136,12 +138,12 @@ export const useAuthFlow = (onClose: () => void) => {
       await forgotPassword({ email: forgotEmail });
 
       setResetEmail(forgotEmail);
-      setTab("reset");
+      setTab('reset');
 
-      toast.success("Reset code sent!");
+      toast.success(i18n.t('Reset code sent!'));
 
     } catch (error: any) {
-      toast.error(`Reset code failed (${getErrorMessage(error)})`);
+      toast.error(i18n.t('Reset code failed ({{err}}', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }
@@ -157,11 +159,11 @@ export const useAuthFlow = (onClose: () => void) => {
         newPassword,
       });
 
-      setTab("login");
-      toast.success("Password reset successful!");
+      setTab('login');
+      toast.success(i18n.t('Password reset successful'));
 
     } catch (error: any) {
-      toast.error(`Password reset failed (${getErrorMessage(error)})`);
+      toast.error(i18n.t('Password reset failed ({{err}}', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
     }

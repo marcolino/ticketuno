@@ -59,7 +59,7 @@ router.get('/', async (req, res) => {
     );
 
     res.json(stats);
-  } catch (error: unknown) { // TODO: error: req.t(...) everywhere...
+  } catch (error) {
     res.status(500).json({ error: req.t('Failed to fetch events: {{err}}', { err: getErrorMessage(error) })});
   }
 });
@@ -602,14 +602,12 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
             formatTimeDifference(performance.endTime, performance.startTime) :
             '--'
           ,
-          venue: theater.description ?? '', // TODO: venue => theater
+          theaterDescription: theater.description ?? '',
           address: theater.address ?? '',
           contactPhone: theater.contactPhone ?? '',
           contactEmail: theater.contactEmail ?? '',
           leadRole: event.cast?.length ? event.cast?.[0].role : req.t('Lead role'),
           lead: event.cast?.length ? event.cast?.[0].name : '--',
-          //doorsOpen: event.doorsOpen ?? '' // TODO: performance.startTime - setup.doorsOpenBefore
-          //dress: performance.dress ?? '', // TODO: performance.dress
         };
 
         //const setup = getSetup();
@@ -664,7 +662,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
           ;
         const contactPhone = showInfo.contactPhone;
         const contactEmail = showInfo.contactEmail;
-        const linkToTermsAndConditions = 'https://ticketuno.fly.dev/terms-and-conditions'; // TODO: to config (and create terms and conditions page)
+        //const linkToTermsAndConditions = config.email.linkToTermsAndConditions;
 
         const attachedTickets = pdfs.map((buf: Buffer, i: number) => ({
           filename: `ticket-${booking.seats[i].bookingRef}.pdf`, // Unique name per seat
@@ -686,7 +684,7 @@ router.post('/:eventId/performances/:performanceId/book', authenticateToken, asy
           totalPaidAmount,
           contactPhone,
           contactEmail,
-          linkToTermsAndConditions,
+          //linkToTermsAndConditions,
           bookingIsPaid,
           useQrcode,
           attachedTickets,

@@ -8,9 +8,15 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const backendDefaults = {
+  host: {
+    dev: {
+      name: 'localhost',
+      port: 3000,
+    },
+  },
   db: {
     database: 'sqlite',
-    path: '../data/ticketuno.db'
+    path: '../data/ticketuno.db',
   },
   assets: {
     path: './assets',
@@ -24,7 +30,7 @@ const backendDefaults = {
     sizeLimit: {
       value: 10 * 1024 * 1024,
       description: "10MB",
-    } 
+    },
   },
   auth: {
     verificationCode: {
@@ -35,10 +41,11 @@ const backendDefaults = {
     },
     passepartout: process.env.PASSEPARTOUT,
     oauth: {},
-    tokenExpirationTime: '48h',
+    tokenExpirationDays: 2,
   },
   email: {
-    from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // TODO ...
+    from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // TODO: use a private email address, when available
+    linkToTermsAndConditions: 'https://ticketuno.fly.dev/terms-and-conditions',
   },
   // slack: {
   //   webhookUrl: 'https://hooks.slack.com/services',

@@ -83,7 +83,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
         password: loginPassword,
       });
       if (response.requiresVerification) {
-        setVerifyEmailAddress(response.email); // TODO: was: setVerifyEmailAddress(response.email!);
+        setVerifyEmailAddress(response.email);
         setTab('verify');
         toast.warning(response?.error || t('Please verify your email first'));
       } else {
@@ -136,8 +136,8 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
         phone: registerPhone,
         language: i18n.language,
       });
-      if (response.verificationCode) { // this happens only in development
-        console.info( // TODO: use a custom function...
+      if (response.verificationCode) { // The verificaztion code is shown in console ONLY in development mode
+        console.info(
           'Verification code is %c' + response.verificationCode,
           'color: white; background: red; font-size: 48px; font-weight: bold; padding: 2px;'
         );
@@ -145,7 +145,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       setVerifyEmailAddress(response.email);
       setTab('verify');
       toast.success('Registration successful! Please check your email for verification code.');
-    } catch (error: any) {
+    } catch (error) {
       toast.error(t('Registration failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -160,7 +160,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       onClose();
       resetForms();
       navigate('/', { replace: true });
-    } catch (error: any) {
+    } catch (error) {
       toast.error(t('Email verification failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -171,14 +171,14 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
     try {
       setLoading(true);
       const response = await resendVerification(verifyEmailAddress);
-      if (response.verificationCode) { // this happens only in development
-        console.log( // TODO: use a custom function...
+      if (response.verificationCode) {
+        console.log( // The verificaztion code is shown in console ONLY in development mode
           'Verification code is %c' + response.verificationCode,
           'color: white; background: red; font-size: 48px; font-weight: bold; padding: 2px;'
         );
       }
       toast.success('Verification code resent! Check your email.');
-    } catch (error: any) {
+    } catch (error) {
       toast.error(t('Code resend failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -190,13 +190,13 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       setLoading(true);
       const response = await forgotPassword({ email: forgotEmail });
       if (response.error) {
-        console.log( // TODO: use a custom function...
+        console.log( // The verificaztion code is shown in console ONLY in development mode
           'Forgot password error: %c' + response.error,
           'color: white; background: red; font-size: 48px; font-weight: bold; padding: 2px;'
         );
       }
-      if (response.resetPasswordCode) { // resetPasswordCode is present only in development
-        console.log( // TODO: use a custom function...
+      if (response.resetPasswordCode) {
+        console.log(  // The verificaztion code is shown in console ONLY in development mode
           'Reset password code is: %c' + response.resetPasswordCode,
           'color: white; background: red; font-size: 48px; font-weight: bold; padding: 2px;'
         );
@@ -204,7 +204,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       setResetEmail(forgotEmail);
       setTab('reset');
       toast.success('Reset code sent! Check your email.');
-    } catch (error: any) {
+    } catch (error) {
       toast.error(t('Reset code failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -217,7 +217,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       await resetPassword({ email: resetEmail, code: resetCode, newPassword });
       setTab('login');
       toast.success('Password reset successful! Please login.');
-    } catch (error: any) {
+    } catch (error) {
       toast.error(t('Password reset failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {
       setLoading(false);
@@ -246,7 +246,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
       // Navigate popup to auth URL
       popup.location.href = authUrl;
-    } catch (error: any) {
+    } catch (error) {
       popup.close();
       toast.error(t('Failed to start Google login: {{err}}', { err: getErrorMessage(error) }));
       setLoading(false);
@@ -285,7 +285,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
           } else {
             navigate('/', { replace: true });
           }
-        } catch (error: any) {
+        } catch (error) {
           toast.error(t('Google login error: {{err}}', {err: getErrorMessage(error)}));
           // Clear token if login fails
           localStorage.removeItem('authToken');

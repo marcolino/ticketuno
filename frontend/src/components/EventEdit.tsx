@@ -149,7 +149,7 @@ const EventEdit: React.FC = () => {
           converted.theaterId = overrideTheaterId;
         }
         setEvent(converted);
-      } catch (error: any) {
+      } catch (error) {
         toast.error(getErrorMessage(error));
       }
     },
@@ -273,7 +273,7 @@ const EventEdit: React.FC = () => {
   };
 
   // Generic handler for simple fields
-  const handleFieldChange = (field: keyof typeof event) => (value: any) => {
+  const handleFieldChange = (field: keyof typeof event) => (value) => {
     setEvent((prev) => ({ ...prev, [field]: value }));
   };
 

@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import {
   CheckCircle as CheckCircleIcon,
-  ArrowBack as ArrowBackIcon,
+  //ArrowBack as ArrowBackIcon,
   Cancel as CancelIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
@@ -32,11 +32,12 @@ import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
 import { localizedDate } from '@/utils/misc';
 import config from '@/shared/config';
+import { getErrorMessage } from '@/shared/utils/misc';
 
 const PerformanceBooking: React.FC = () => {
   const { t } = useTranslation();
   const { eventId, performanceId } = useParams<{ eventId: string; performanceId: string }>();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const theme = useTheme();
@@ -52,7 +53,6 @@ const PerformanceBooking: React.FC = () => {
   const [layout, setLayout] = useState<LayoutJSON | null>(null);
   const [seatStatusMap, setSeatStatusMap] = useState<Map<string, SeatData>>(new Map());
   const [selectedSeats, setSelectedSeats] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Helper: flatten seats from API response
@@ -70,20 +70,17 @@ const PerformanceBooking: React.FC = () => {
   const loadPerformance = useCallback(async () => {
     if (!eventId || !performanceId) {
       setError(t('Missing event or performance ID'));
-      setLoading(false);
+      //setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
-
+      //setLoading(true);
       const perfResponse = await eventApi.getPerformance(eventId, performanceId);
       setPerformance(perfResponse.data);
-
       const eventResponse = await eventApi.getEventById(eventId);
       const eventData = eventResponse.data;
       setEvent(eventData);
-
       if (!eventData.theater?.currentLayoutId) {
         throw new Error('Theater layout not found');
       }
@@ -91,17 +88,14 @@ const PerformanceBooking: React.FC = () => {
       const layoutResponse = await layoutApi.getLayoutById(eventData.theater.currentLayoutId);
       const layoutData: LayoutJSON = JSON.parse(layoutResponse.data.json);
       setLayout(layoutData);
-
       const seatsResponse = await eventApi.getPerformanceSeats(eventId, performanceId);
       const allSeatsData = flattenSeatsData(seatsResponse.data);
       setSeatStatusMap(new Map(allSeatsData.map(s => [s.seatId, s])));
-
       setError(null);
-    } catch (err: any) {
-      console.error('Error loading performance:', err);
-      setError(err.response?.data?.error || err.message || t('Failed to load performance'));
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      setError(t('Failed to load performance: {{err}}', getErrorMessage(error)));
+    // } finally {
+    //   setLoading(false);
     }
   }, [eventId, performanceId, t, flattenSeatsData, forceLoadPerformance]);
 
@@ -146,8 +140,6 @@ const PerformanceBooking: React.FC = () => {
   // Seat interaction
   const handleSeatClick = useCallback(async (seatId: string, currentStatus?: SeatStatus) => {
     if (!isAuthenticated) {
-      // TODO: XXXXXXXXXXXXXXXXXXXXXXX
-      //const redirectTo = 'http://localhost:3000/event/_alEdz12T-CjIf5i1RvWHg/performance/6GXshU32RIaEMmIiwGm2kw/book';
       const currentPath = location.pathname + location.search + location.hash;
       localStorage.setItem('redirectAfterLogin', currentPath);
       await showDialog({
@@ -267,18 +259,20 @@ const PerformanceBooking: React.FC = () => {
     });
   };
 
-  // Render
-  if (loading) return null;
-
+  if (loading) {
+    return;
+  }
+  
   if (error || !layout || !performance) {
     toast.warning(t('Performance not found'));
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/event/${eventId}`)} sx={{ mt: 2 }}>
-          ⬅ {t('Back to Event')}
-        </Button>
-      </Container>
-    );
+    navigate(-1); // TODO: is it ok? to be tested...
+    // return (
+    //   <Container maxWidth="lg" sx={{ mt: 4 }}>
+    //     <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/event/${eventId}`)} sx={{ mt: 2 }}>
+    //       ⬅ {t('Back to Event')}
+    //     </Button>
+    //   </Container>
+    // );
   }
 
   return (
@@ -309,12 +303,14 @@ const PerformanceBooking: React.FC = () => {
                     {t('Event')} {event.title}
                     {event.description ? ' - ' : ''} {event.description}
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    {t('Performance on')} {new Date(performance.performanceDate).toLocaleDateString()}
-                    {performance.startTime && ' ' + t('since') + ' ' + performance.startTime}
-                    {' '}
-                    {performance.endTime && t('to') + ' ' + performance.endTime}
-                  </Typography>
+                  {performance && (
+                    <Typography variant="body1" color="text.secondary">
+                      {t('Performance on')} {new Date(performance.performanceDate).toLocaleDateString()}
+                      {performance.startTime && ' ' + t('since') + ' ' + performance.startTime}
+                      {' '}
+                      {performance.endTime && t('to') + ' ' + performance.endTime}
+                    </Typography>
+                  )}
                 </Box>
               )}
             </Box>

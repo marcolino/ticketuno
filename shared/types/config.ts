@@ -20,10 +20,14 @@ export interface AppConfig {
       prefix: string;
       version: string;
     };
+    auth: {
+      tokenExpirationTimeWarningAdvanceSeconds: number;
+    };
     codename: string;
     name: string;
     baseUrlBackend: string;
     baseUrlFrontend: string;
+    baseUrlProduction: string;
     languages: Record<string, AppLanguage>;
     defaultLanguage: string;
     defaultCountry: string;

@@ -25,7 +25,7 @@ export const BookingsList: React.FC = () => {
   const [error, setError] = useState('');
 
   // Memoize loadBookings to avoid infinite effect loops
-  const loadBookings = useCallback((userParam: any) => {
+  const loadBookings = useCallback((userParam) => {
     console.log(userParam); // TODO: implement actual loading
   }, []);
 

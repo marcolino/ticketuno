@@ -87,31 +87,7 @@ const TheaterEdit: React.FC = () => {
   });
 
   const [layouts, setLayouts] = useState<Layout[]>([]);
-  //const [selectedLayoutId, setSelectedLayoutId] = useState<string>('');
-  
-  // useEffect(() => {
-  //   if (location.state?.theaterData?.selectedLayoutId) {
-  //     // Update the selected layout state when returning from LayoutEdit
-  //     setSelectedLayoutId(location.state?.theaterData?.selectedLayoutId);
-  //   }
-  // }, [navigate, location.state, location.pathname]);
 
-  // const loadTheater1 = useCallback(async () => {
-  //   try {
-  //     const response = await theaterApi.getTheaterById(id!);
-  //     const theater = response.data;
-  //     console.log('getTheaterById theater:', theater);
-
-  //     // Load current layout for this theater
-  //     const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
-  //     setSelectedLayoutId(layoutResponse.data?.id || '');
-      
-  //     setTheaterData(theater);
-  //     setError('');
-  //   } catch (err: any) {
-  //     setError(err.response?.data?.error || 'Failed to load theater');
-  //   }
-  // }, [id]);
   const loadTheater = useCallback(async () => {
     try {
       const response = await theaterApi.getTheaterById(id!);
@@ -162,9 +138,9 @@ const TheaterEdit: React.FC = () => {
         // Load layouts first so the new layout is available before rendering
         await loadLayouts();
         
-        setTheaterData((prev: any) => ({
+        setTheaterData((prev) => ({
           ...prev,
-          ...location.state.theaterData,  // Merge new layout ID
+          ...location.state.theaterData, // Merge new layout ID
           selectedLayoutId: location.state.theaterData.selectedLayoutId
         }));
         
@@ -189,62 +165,21 @@ const TheaterEdit: React.FC = () => {
         if (layouts.length === 0) {
           await loadLayouts();
         }
-        setTheaterData((prev: any) => ({
+        setTheaterData((prev) => ({
           ...prev,
           currentLayoutId: state.theaterData?.selectedLayoutId
         }));
       })();
-      // // When returning from LayoutEdit with a newly created/edited layout
-      // //setSelectedLayoutId(state.theaterData.selectedLayoutId);
-      // setTheaterData((prev: any) => ({
-      //   ...prev,
-      //   currentLayoutId: state.theaterData?.selectedLayoutId
-      // }));
     }
   }, [location.state]);
   
-  const handleInputChange = (e: any) => {
+  const handleInputChange = (e) => {
     setTheaterData({
       ...theaterData,
       [e.target.name]: e.target.value
     });
   };
-
-  // const setCurrentLayout = async (e: any) => {
-  //   const layoutId = e.target.value;
-  //   if (layoutId === '<new>') { // create new layout
-  //     // create new layout for this theater, or without a theater if it is not yet saved
-  //     navigate('/layout/new', {
-  //       state: {
-  //         theaterData,
-  //         returnTo: `/theater/edit/${id || 'new'}`,
-  //         theaterId: id // Optional: if we have theaterId
-  //       }
-  //     });
-  //   } else {
-  //     // // Update directly in theaterData
-  //     // setTheaterData({
-  //     //   ...theaterData,
-  //     //   selectedLayoutId: layoutId
-  //     // });
-  //     setSelectedLayoutId(layoutId);
-  //   }
-  //   //setSelectedLayoutId(layoutId);
-  // };
-
-  // const handleLayoutSelectORIGINAL = (layoutId: string) => {
-  //   if (layoutId === '<new>') {
-  //     navigate('/layout/new', {
-  //       state: {
-  //         theaterData,
-  //         returnTo: `/theater/edit/${id || 'new'}`,
-  //         theaterId: id // Pass the theater ID if editing existing theater
-  //       }
-  //     });
-  //   } else {
-  //     setTheaterData((prev: any) => ({ ...prev, selectedLayoutId: layoutId }));
-  //   }
-  // }
+  
   const handleLayoutSelect = (layoutId: string) => {
     if (layoutId === '<new>') {
       navigate('/layout/new', {
@@ -259,7 +194,7 @@ const TheaterEdit: React.FC = () => {
       });
     } else {
       //setSelectedLayoutId(layoutId);
-      setTheaterData((prev: any) => ({ 
+      setTheaterData((prev) => ({ 
         ...prev, 
         currentLayoutId: layoutId
       }));

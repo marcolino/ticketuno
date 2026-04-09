@@ -42,3 +42,13 @@ export interface Seat {
   bookedAt?: string;
   reservedUntil?: string;
 }
+
+export interface TheaterConflictDetails {
+  performanceDate: string;
+  requestedStartTime: string;
+  requestedEndTime: string;
+  existingPerformanceStartTime: string;
+  existingPerformanceEndTime: string | null;
+  theaterId: string;
+  theaterName: string | null;
+}

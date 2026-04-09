@@ -647,7 +647,7 @@
                         <ListItem>
                           <TheatersIcon sx={{ mr: 2, color: 'text.secondary' }} />
                           <ListItemText
-                            primary={t('Venue')}
+                            primary={t('Theater')}
                             secondary={event.theater.name}
                           />
                         </ListItem>

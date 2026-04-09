@@ -302,16 +302,16 @@ async function drawTicket(
   });
   cy += cellBoxH + 8;
 
-  // ── Venue / Cast ──────────────────────────────────────────────────────────
+  // ── Theater / Cast ──────────────────────────────────────────────────────────
   const halfW = (MAIN_W - 30) / 2;
   const col2X = TKT_X + 15 + halfW + 10;
 
-  drawLabel(doc, t('Venue'), TKT_X + 15, cy);
+  drawLabel(doc, t('Theater'), TKT_X + 15, cy);
   drawLabel(doc, t('Starring'), col2X, cy);
   cy += 9;
 
   doc.fontSize(9).font('Helvetica-Bold').fillColor(C.text)
-     .text(show.venue, TKT_X + 15, cy, { width: halfW });
+     .text(show.theater, TKT_X + 15, cy, { width: halfW });
   doc.fontSize(9).font('Helvetica-Bold').fillColor(C.text)
      .text(show.lead,  col2X, cy, { width: halfW });
 

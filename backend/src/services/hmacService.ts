@@ -1,11 +1,7 @@
 import crypto from "crypto";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-//
-// In production, load this from an environment variable or a secrets manager.
-// Never commit the real secret to source control.
-
-const HMAC_SECRET = process.env.TICKET_HMAC_SECRET; // TODO
+const HMAC_SECRET = process.env.TICKET_HMAC_SECRET;
 const HMAC_ALGO = "sha256";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

@@ -34,7 +34,6 @@ export const isVerificationCodeValid = (expiry: string): boolean => {
   return new Date(expiry) > new Date();
 };
 
-// TODO: move to email controller
 export const sendVerificationEmail = async (email: string, code: string): Promise<void> => {
   const to = email;
   const subject = i18n.t('Verify your {{appName}} email', { appName: config.app.name });
@@ -107,7 +106,7 @@ export const sendBookingConfirmationEmail = async (
   totalPaidAmount: string,
   contactPhone: string,
   contactEmail: string,
-  linkToTermsAndConditions: string,
+  //linkToTermsAndConditions: string,
   bookingIsPaid: boolean,
   useQrcode: boolean,
   attachedTickets: Attachment[],
@@ -127,7 +126,7 @@ export const sendBookingConfirmationEmail = async (
     totalPaidAmount,
     contactPhone,
     contactEmail,
-    linkToTermsAndConditions,
+    //linkToTermsAndConditions,
     bookingIsPaid,
     useQrcode,
     attachedTickets,

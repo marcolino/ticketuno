@@ -1,14 +1,15 @@
-const ROLES = ['user', 'operator', 'admin'] as const;
-export type Role = typeof ROLES[number];
-
 const ROLE_LEVEL: Record<Role, number> = {
-  user:     1,
+  user: 1,
   operator: 2,
-  admin:    3,
+  admin: 3,
 };
 
 const level = (role: string): number =>
   ROLE_LEVEL[role as Role] ?? 0;
+
+export const ROLES = ['user', 'operator', 'admin'] as const;
+
+export type Role = typeof ROLES[number];
 
 /** Can `actorRole` manage an account that currently has `targetRole`? */
 export const userCanManageAccount = (actorRole: Role, targetRole: Role): boolean =>
