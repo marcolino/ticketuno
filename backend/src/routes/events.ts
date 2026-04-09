@@ -251,6 +251,13 @@ router.get('/:id/guard', authenticateToken, requireOperator, async (req, res) =>
 
 // ========== PERFORMANCES (nested under events) ==========
 
+// No-store for all performance sub-routes - seat availability and booking
+// state change continuously and must never be served from any cache layer.
+router.use('/:id/performances/:performanceId', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 // Get performances for an event
 router.get('/:id/performances', async (req, res) => {
   try {

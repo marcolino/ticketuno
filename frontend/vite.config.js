@@ -4,6 +4,39 @@ import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  build: {
+    chunkSizeWarningLimit: 832, // KB - suppress warnings for known-large vendor chunks
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+
+          'vendor-mui-core': [
+            '@mui/material',
+            '@mui/system',
+            '@mui/utils',
+            '@mui/icons-material',
+            '@emotion/react',
+            '@emotion/styled',
+          ],
+
+          'vendor-mui-x': [
+            '@mui/x-data-grid',
+            '@mui/x-date-pickers',
+          ],
+
+          'vendor-i18n': [
+            'i18next',
+            'react-i18next',
+            'i18next-browser-languagedetector',
+            'i18next-http-backend',
+          ],
+          'vendor-dates': ['date-fns', 'dayjs'],
+          'vendor-qr':    ['jsqr'],
+        },
+      },
+    },
+  },
   plugins: [
     react({
       // Suppress Fast Refresh warnings for specific files
