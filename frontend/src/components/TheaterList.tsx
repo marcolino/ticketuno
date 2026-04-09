@@ -9,7 +9,6 @@ import {
   Button,
   Grid,
   Box,
-  Alert,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -26,6 +25,7 @@ import { Theater } from '@/shared/types/theater';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { handleGuardResult } from '@/utils/guardHandler';
 import PageHeader from './PageHeader';
+import Alert from './Alert';
 
 const TheaterList: React.FC = () => {
   const { t } = useTranslation();
@@ -137,12 +137,6 @@ const TheaterList: React.FC = () => {
       )}
 
       {!loading && !error && theaters && theaters.length === 0 && (
-        <Alert severity="info">
-          {t('No theaters available')}
-        </Alert>
-      )}
-
-      {(theaters && theaters.length === 0) && (
         <Alert severity="info">
           {t('No theaters available')}
         </Alert>

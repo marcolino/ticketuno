@@ -55,6 +55,8 @@ export default defineConfig({
       manifest: false,
 
       workbox: {
+        clientsClaim: true, // SW claims open pages immediately on activation
+        
         // Precache all built static assets.
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
 
