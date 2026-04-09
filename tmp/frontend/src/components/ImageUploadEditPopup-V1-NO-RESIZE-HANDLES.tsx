@@ -1,3 +1,5 @@
+// ImageUploadEditPopup.tsx
+
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
@@ -7,97 +9,21 @@ import {
   Card, CardContent, CardMedia,
   Chip, Stack, Slider,
   FormControl, InputLabel, Select, MenuItem,
-  TextField, Tooltip,
+  TextField, Tooltip, //CircularProgress,
 } from '@mui/material';
 import {
   Close, CloudUpload, InsertPhoto, CheckCircle,
   RestartAlt, Undo, Redo,
-  RotateLeft, RotateRight, /*ZoomIn, ZoomOut,*/ Flip,
+  RotateLeft, RotateRight, ZoomIn, ZoomOut, Flip,
   Brightness5, Save, History,
 } from '@mui/icons-material';
 import { useDropzone } from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
-import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import Cropper from 'react-easy-crop';
 import imageCompression from 'browser-image-compression';
+import { getCroppedImg } from '@/utils/canvasUtils';
 import { imageApi } from '@/services/api';
 import { ImageType } from '@/shared/types/image';
-
-// ─── Helper: apply filters, rotation, flip to an image element ─────────────
-const applyFiltersAndTransformations = async (
-  imageElement: HTMLImageElement,
-  rotation: number,
-  flip: { horizontal: boolean; vertical: boolean },
-  filters: { brightness: number; contrast: number; saturation: number }
-): Promise<HTMLCanvasElement> => {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d')!;
-
-  const rad = (rotation * Math.PI) / 180;
-  const w = imageElement.naturalWidth;
-  const h = imageElement.naturalHeight;
-  const sin = Math.abs(Math.sin(rad));
-  const cos = Math.abs(Math.cos(rad));
-  const newW = Math.floor(w * cos + h * sin);
-  const newH = Math.floor(w * sin + h * cos);
-  canvas.width = newW;
-  canvas.height = newH;
-
-  ctx.save();
-  ctx.translate(newW / 2, newH / 2);
-  ctx.rotate(rad);
-  ctx.scale(flip.horizontal ? -1 : 1, flip.vertical ? -1 : 1);
-  ctx.drawImage(imageElement, -w / 2, -h / 2, w, h);
-  ctx.restore();
-
-  // Apply brightness, contrast, saturation
-  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const data = imageData.data;
-  const brightnessFactor = filters.brightness / 100;
-  const contrastFactor = filters.contrast / 100;
-  const saturationFactor = filters.saturation / 100;
-
-  for (let i = 0; i < data.length; i += 4) {
-    let r = data[i];
-    let g = data[i + 1];
-    let b = data[i + 2];
-
-    r = (r - 128) * contrastFactor + 128;
-    g = (g - 128) * contrastFactor + 128;
-    b = (b - 128) * contrastFactor + 128;
-
-    r += 255 * (brightnessFactor - 1);
-    g += 255 * (brightnessFactor - 1);
-    b += 255 * (brightnessFactor - 1);
-
-    const gray = 0.2989 * r + 0.587 * g + 0.114 * b;
-    r = gray + (r - gray) * saturationFactor;
-    g = gray + (g - gray) * saturationFactor;
-    b = gray + (b - gray) * saturationFactor;
-
-    data[i] = Math.min(255, Math.max(0, r));
-    data[i + 1] = Math.min(255, Math.max(0, g));
-    data[i + 2] = Math.min(255, Math.max(0, b));
-  }
-  ctx.putImageData(imageData, 0, 0);
-  return canvas;
-};
-
-// ─── Helper: crop a canvas to a PixelCrop ──────────────────────────────────
-const cropCanvas = (sourceCanvas: HTMLCanvasElement, crop: PixelCrop): Promise<Blob> => {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d')!;
-  canvas.width = crop.width;
-  canvas.height = crop.height;
-  ctx.drawImage(
-    sourceCanvas,
-    crop.x, crop.y, crop.width, crop.height,
-    0, 0, crop.width, crop.height
-  );
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', 0.95);
-  });
-};
 
 // ─── Interfaces ──────────────────────────────────────────────────────────────
 
@@ -109,15 +35,16 @@ interface ImageData {
   originalSize?: number;
 }
 
+interface CropState { x: number; y: number; }
 interface FlipState { horizontal: boolean; vertical: boolean; }
 
 interface HistoryState {
+  crop: CropState;
+  zoom: number;
   rotation: number;
-  flip: FlipState;
   brightness: number;
   contrast: number;
   saturation: number;
-  aspect?: number;  // undefined = free
 }
 
 interface Preset {
@@ -137,7 +64,7 @@ interface AspectRatioOption {
 interface ImageUploadEditPopupProps {
   open: boolean;
   onClose: () => void;
-  onSave: (filename: string) => void;
+  onSave: (filename: string) => void;          // ← changed: just the filename
   imageType?: ImageType;
   fixedAspectRatio?: number;
   maxSizeMB?: number;
@@ -146,6 +73,8 @@ interface ImageUploadEditPopupProps {
 }
 
 type StepName = 'upload' | 'confirm' | 'success' | 'edit' | 'preview';
+// simple mode uses:  upload → confirm → success
+// full mode uses:    upload → edit → preview
 
 const ASPECT_RATIO_OPTIONS: AspectRatioOption[] = [
   { label: 'Free', value: 'free' },
@@ -181,13 +110,12 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   } | null>(null);
 
   // ── Edit state (full mode only) ──────────────────────────────────────────
-  const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const imgRef = useRef<HTMLImageElement>(null);
-
+  const [crop, setCrop] = useState<CropState>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
   const [flip, setFlip] = useState<FlipState>({ horizontal: false, vertical: false });
   const [aspect, setAspect] = useState<number | 'free'>(fixedAspectRatio || 'free');
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
   const [brightness, setBrightness] = useState<number>(100);
   const [contrast, setContrast] = useState<number>(100);
@@ -217,11 +145,6 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
   // ── History (full mode) ──────────────────────────────────────────────────
 
-  const getCurrentHistoryState = (): HistoryState => ({
-    rotation, flip, brightness, contrast, saturation,
-    aspect: aspect === 'free' ? undefined : aspect,
-  });
-
   const saveToHistory = useCallback((state: HistoryState) => {
     const newHistory = historyRef.current.slice(0, historyIndex + 1);
     newHistory.push(state);
@@ -230,33 +153,29 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   }, [historyIndex]);
 
   const applyState = useCallback((state: HistoryState) => {
-    setRotation(state.rotation);
-    setFlip(state.flip);
-    setBrightness(state.brightness);
-    setContrast(state.contrast);
-    setSaturation(state.saturation);
-    if (state.aspect !== undefined && fixedAspectRatio === undefined) {
-      setAspect(state.aspect);
-    }
-  }, [fixedAspectRatio]);
+    setCrop(state.crop); setZoom(state.zoom); setRotation(state.rotation);
+    setBrightness(state.brightness); setContrast(state.contrast); setSaturation(state.saturation);
+  }, []);
 
   const handleUndo = useCallback(() => {
     if (historyIndex > 0) {
-      applyState(historyRef.current[historyIndex - 1]);
-      setHistoryIndex(historyIndex - 1);
+      const i = historyIndex - 1;
+      applyState(historyRef.current[i]);
+      setHistoryIndex(i);
     }
   }, [historyIndex, applyState]);
 
   const handleRedo = useCallback(() => {
     if (historyIndex < historyRef.current.length - 1) {
-      applyState(historyRef.current[historyIndex + 1]);
-      setHistoryIndex(historyIndex + 1);
+      const i = historyIndex + 1;
+      applyState(historyRef.current[i]);
+      setHistoryIndex(i);
     }
   }, [historyIndex, applyState]);
 
   useEffect(() => {
     if (!simpleMode && activeStep === 'edit' && uploadedImage) {
-      const current = getCurrentHistoryState();
+      const current: HistoryState = { crop, zoom, rotation, brightness, contrast, saturation };
       const timer = setTimeout(() => {
         if (!historyRef.current.length ||
             JSON.stringify(historyRef.current[historyIndex]) !== JSON.stringify(current)) {
@@ -265,7 +184,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [rotation, flip, brightness, contrast, saturation, aspect,
+  }, [crop, zoom, rotation, brightness, contrast, saturation,
       activeStep, uploadedImage, historyIndex, saveToHistory, simpleMode]);
 
   // ── Compression ──────────────────────────────────────────────────────────
@@ -320,22 +239,12 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
         });
 
         if (simpleMode) {
-          setActiveStep('confirm');
+          setActiveStep('confirm'); // Simple mode: skip editor
         } else {
-          setActiveStep('edit');
-          // Reset all edit states
-          setCrop(undefined);
-          setCompletedCrop(undefined);
-          setRotation(0);
-          setFlip({ horizontal: false, vertical: false });
-          setBrightness(100);
-          setContrast(100);
-          setSaturation(100);
-          setAspect(fixedAspectRatio || 'free');
+          setActiveStep('edit'); // Full mode: open editor
           historyRef.current = [{
-            rotation: 0, flip: { horizontal: false, vertical: false },
+            crop: { x: 0, y: 0 }, zoom: 1, rotation: 0,
             brightness: 100, contrast: 100, saturation: 100,
-            aspect: fixedAspectRatio,
           }];
           setHistoryIndex(0);
         }
@@ -346,7 +255,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [maxSizeMB, compressImage, simpleMode, t, fixedAspectRatio]);
+  }, [maxSizeMB, compressImage, simpleMode, t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -354,6 +263,10 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
     maxSize: maxSizeMB * 1024 * 1024,
     multiple: false,
   });
+
+  const onCropComplete = useCallback((_area: any, pixels: any) => {
+    setCroppedAreaPixels(pixels);
+  }, []);
 
   // ── Presets (full mode) ──────────────────────────────────────────────────
 
@@ -372,9 +285,9 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
   const loadPreset = (p: Preset) => {
     if (p.aspect !== undefined && fixedAspectRatio === undefined) setAspect(p.aspect);
-    if (p.brightness !== undefined) setBrightness(p.brightness);
-    if (p.contrast !== undefined) setContrast(p.contrast);
-    if (p.saturation !== undefined) setSaturation(p.saturation);
+    if (p.brightness  !== undefined) setBrightness(p.brightness);
+    if (p.contrast    !== undefined) setContrast(p.contrast);
+    if (p.saturation  !== undefined) setSaturation(p.saturation);
   };
 
   const deletePreset = (i: number) => {
@@ -385,14 +298,17 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
   // ── Upload actions ───────────────────────────────────────────────────────
 
+  /** Simple mode: upload the compressed file directly, no editing */
   const handleSimpleUpload = async () => {
-    if (!uploadedImage) return;
+    if (!uploadedImage) {
+      return;
+    }
     setIsLoading(true);
     setError('');
     try {
       const { data } = await imageApi.upload(uploadedImage.file, imageType);
       onSave(data.filename);
-      setActiveStep('success');
+      setActiveStep('success'); // don't close yet - show success state
     } catch (err: any) {
       setError(err.response?.data?.error || t('Failed to upload image: {{err}}', { err: err.message }));
     } finally {
@@ -400,41 +316,22 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
     }
   };
 
+  /** Full mode: crop/edit → upload the result */
   const handleFinalSave = async () => {
-    if (!uploadedImage || !completedCrop || !imgRef.current) return;
+    if (!uploadedImage || !croppedAreaPixels) return;
     setIsLoading(true);
     setError('');
     try {
-      // 1. Get displayed image dimensions (the scaled img element)
-      const imgElement = imgRef.current;
-      const displayedWidth = imgElement.clientWidth;
-      const displayedHeight = imgElement.clientHeight;
-
-      // 2. Apply filters, rotation, flip to the original image (full resolution)
-      const filteredCanvas = await applyFiltersAndTransformations(
-        imgElement,  // still works, but uses natural dimensions internally
-        rotation,
-        flip,
+      const croppedBlob = await getCroppedImg(
+        uploadedImage.preview, croppedAreaPixels, rotation, flip,
         { brightness, contrast, saturation }
       );
 
-      // 3. Scale the crop from displayed coordinates to canvas coordinates
-      const scaledCrop = scaleCropToCanvas(
-        completedCrop,
-        displayedWidth,
-        displayedHeight,
-        filteredCanvas.width,
-        filteredCanvas.height
-      );
-
-      // 4. Crop the filtered canvas using the scaled coordinates
-      const croppedBlob = await cropCanvas(filteredCanvas, scaledCrop);
-
-      // 5. Upload
       const { data } = await imageApi.upload(croppedBlob, imageType);
+
       setEditedImage(URL.createObjectURL(croppedBlob));
       setActiveStep('preview');
-      onSave(data.filename);
+      onSave(data.filename); // parent stores filename
     } catch (err: any) {
       setError(err.response?.data?.error || t('Failed to save image: {{err}}', { err: err.message }));
     } finally {
@@ -447,9 +344,9 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   const handleReset = () => {
     setUploadedImage(null); setEditedImage(null);
     setActiveStep('upload'); setError('');
-    setCrop(undefined); setCompletedCrop(undefined);
-    setRotation(0); setFlip({ horizontal: false, vertical: false });
+    setCrop({ x: 0, y: 0 }); setZoom(1); setRotation(0);
     setBrightness(100); setContrast(100); setSaturation(100);
+    setFlip({ horizontal: false, vertical: false });
     setCompressionProgress(0); setCompressedInfo(null);
     historyRef.current = []; setHistoryIndex(-1);
   };
@@ -461,41 +358,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   const filterStyle = {
     filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
   };
-
-  // When aspect ratio changes, auto-adjust the crop to fit
-  const handleAspectChange = (newAspect: number | 'free') => {
-    setAspect(newAspect);
-    if (imgRef.current && crop) {
-      const { width, height } = imgRef.current;
-      const newCrop = makeAspectCrop(
-        { unit: '%', width: crop.width, height: crop.height },
-        newAspect === 'free' ? NaN : newAspect,
-        width,
-        height
-      );
-      setCrop(centerCrop(newCrop, width, height));
-    }
-  };
-
   const getCropperAspect = () => (aspect === 'free' ? undefined : aspect);
-
-  const scaleCropToCanvas = (
-    crop: PixelCrop,
-    displayedWidth: number,
-    displayedHeight: number,
-    canvasWidth: number,
-    canvasHeight: number
-  ): PixelCrop => {
-    const scaleX = canvasWidth / displayedWidth;
-    const scaleY = canvasHeight / displayedHeight;
-    return {
-      x: crop.x * scaleX,
-      y: crop.y * scaleY,
-      width: crop.width * scaleX,
-      height: crop.height * scaleY,
-      unit: 'px',
-    };
-  };
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -503,7 +366,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
     <Dialog
       open={open}
       onClose={handleClose}
-      maxWidth={simpleMode ? 'sm' : 'lg'}
+      maxWidth={simpleMode ? 'sm' : 'lg'}      // ← smaller dialog in simple mode
       fullWidth
       PaperProps={{ sx: { height: '90vh', maxHeight: '800px' } }}
     >
@@ -514,8 +377,19 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
       <DialogContent dividers sx={{ overflow: 'hidden' }}>
 
+        {/* Loading overlay */}
+        {/* {isLoading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', flexDirection: 'column' }}>
+            <CircularProgress />
+            <Typography variant="body2" sx={{ mt: 2 }}>
+              {activeStep === 'edit' ? t('Processing and uploading...') : t('Processing image...')}
+            </Typography>
+          </Box>
+        )} */}
+
         {!isLoading && (
           <>
+            {/* Stepper ── full mode only */}
             {!simpleMode && (
               <Stepper activeStep={activeStep === 'upload' ? 0 : activeStep === 'edit' ? 1 : 2} sx={{ mb: 3 }}>
                 <Step><StepLabel>{t('Upload')}</StepLabel></Step>
@@ -526,7 +400,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
             {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>{error}</Alert>}
 
-            {/* UPLOAD */}
+            {/* ──────────── UPLOAD (both modes) ──────────── */}
             {activeStep === 'upload' && (
               <Box>
                 {compressionProgress > 0 && compressionProgress < 100 && (
@@ -576,7 +450,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
               </Box>
             )}
 
-            {/* CONFIRM (simple mode) */}
+            {/* ──────────── CONFIRM (simple mode only) ──────────── */}
             {simpleMode && activeStep === 'confirm' && uploadedImage && (
               <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <Card sx={{ maxWidth: 480, width: '100%' }}>
@@ -599,51 +473,50 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
               </Box>
             )}
 
-            {/* SUCCESS (simple mode) */}
+            {/* ──────────── SUCCESS (simple mode only) ──────────── */}
             {simpleMode && activeStep === 'success' && (
               <Box sx={{ textAlign: 'center', py: 4 }}>
                 <CheckCircle sx={{ fontSize: 80, color: 'success.main', mb: 2 }} />
-                <Typography variant="h6" gutterBottom>{t('Upload Successful!')}</Typography>
-                <Typography variant="body2" color="text.secondary">{t('The image has been uploaded and saved')}</Typography>
+                <Typography variant="h6" gutterBottom>
+                  {t('Upload Successful!')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {t('The image has been uploaded and saved')}
+                </Typography>
               </Box>
             )}
 
-            {/* EDIT (full mode) */}
+            {/* ──────────── EDIT (full mode only) ──────────── */}
             {!simpleMode && activeStep === 'edit' && uploadedImage && (
               <Box sx={{ height: '60vh', display: 'flex', flexDirection: 'column' }}>
                 <Box sx={{ flex: 1, display: 'flex', gap: 2, overflow: 'hidden' }}>
 
                   {/* Cropper panel */}
-                  <Card sx={{ flex: 3, overflow: 'auto' }}>
-                    <CardContent sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-                      <ReactCrop
-                        crop={crop}
-                        onChange={(_, percentCrop) => setCrop(percentCrop)}
-                        onComplete={(c) => setCompletedCrop(c)}
+                  <Card sx={{ flex: 3 }}>
+                    <CardContent sx={{ position: 'relative', height: '100%', minHeight: '400px' }}>
+                      <Cropper
+                        image={uploadedImage.preview}
+                        crop={crop} zoom={zoom} rotation={rotation}
                         aspect={getCropperAspect()}
-                        ruleOfThirds
-                      >
-                        <img
-                          ref={imgRef}
-                          src={uploadedImage.preview}
-                          alt="Edit"
-                          style={{ maxWidth: '100%', maxHeight: '60vh', ...filterStyle }}
-                          crossOrigin="anonymous"
-                        />
-                      </ReactCrop>
+                        onCropChange={setCrop}
+                        onZoomChange={setZoom}
+                        onCropComplete={onCropComplete}
+                        style={{ containerStyle: { backgroundColor: '#f5f5f5', ...filterStyle } }}
+                      />
                     </CardContent>
                   </Card>
 
                   {/* Controls panel */}
                   <Card sx={{ flex: 1, overflow: 'auto' }}>
                     <CardContent>
+                      {/* Toolbar */}
                       <Stack direction="row" spacing={1} sx={{ mb: 3, flexWrap: 'wrap' }}>
-                        <Tooltip title={t('Undo')}>
-                          <span><IconButton onClick={handleUndo} disabled={historyIndex <= 0} size="small"><Undo /></IconButton></span>
-                        </Tooltip>
-                        <Tooltip title={t('Redo')}>
-                          <span><IconButton onClick={handleRedo} disabled={historyIndex >= historyRef.current.length - 1} size="small"><Redo /></IconButton></span>
-                        </Tooltip>
+                        <Tooltip title={t('Undo')}><span>
+                          <IconButton onClick={handleUndo} disabled={historyIndex <= 0} size="small"><Undo /></IconButton>
+                        </span></Tooltip>
+                        <Tooltip title={t('Redo')}><span>
+                          <IconButton onClick={handleRedo} disabled={historyIndex >= historyRef.current.length - 1} size="small"><Redo /></IconButton>
+                        </span></Tooltip>
                         <Tooltip title={t('Rotate Left')}>
                           <IconButton onClick={() => setRotation(r => r - 90)} size="small"><RotateLeft /></IconButton>
                         </Tooltip>
@@ -655,23 +528,31 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
                             <Flip sx={{ transform: 'scaleX(-1)' }} />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title={t('Zoom Out')}>
+                          <IconButton onClick={() => setZoom(z => Math.max(0.1, z - 0.1))} size="small"><ZoomOut /></IconButton>
+                        </Tooltip>
+                        <Tooltip title={t('Zoom In')}>
+                          <IconButton onClick={() => setZoom(z => Math.min(3, z + 0.1))} size="small"><ZoomIn /></IconButton>
+                        </Tooltip>
                       </Stack>
 
                       {/* Aspect ratio */}
                       {fixedAspectRatio === undefined && (
                         <FormControl fullWidth size="small" sx={{ mb: 3 }}>
                           <InputLabel>{t('Aspect Ratio')}</InputLabel>
-                          <Select
-                            value={aspect}
-                            label={t('Aspect Ratio')}
-                            onChange={(e) => handleAspectChange(e.target.value as number | 'free')}
-                          >
+                          <Select value={aspect} label={t('Aspect Ratio')} onChange={e => setAspect(e.target.value as number | 'free')}>
                             {ASPECT_RATIO_OPTIONS.map(o => (
                               <MenuItem key={o.label} value={o.value}>{o.label}</MenuItem>
                             ))}
                           </Select>
                         </FormControl>
                       )}
+
+                      {/* Zoom */}
+                      <Box sx={{ mb: 3 }}>
+                        <Typography variant="body2" gutterBottom>{t('Zoom: {{z}}x', { z: zoom.toFixed(1) })}</Typography>
+                        <Slider value={zoom} min={0.1} max={3} step={0.1} onChange={(_, v) => setZoom(v as number)} valueLabelDisplay="auto" />
+                      </Box>
 
                       {/* Rotation */}
                       <Box sx={{ mb: 3 }}>
@@ -683,9 +564,9 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
                       <Typography variant="subtitle2" gutterBottom fontWeight="bold">{t('Filters')}</Typography>
 
                       {[
-                        { label: t('Brightness'), value: brightness, set: setBrightness },
-                        { label: t('Contrast'), value: contrast, set: setContrast },
-                        { label: t('Saturation'), value: saturation, set: setSaturation },
+                        { label: t('Brightness'),  value: brightness,  set: setBrightness  },
+                        { label: t('Contrast'),    value: contrast,    set: setContrast    },
+                        { label: t('Saturation'),  value: saturation,  set: setSaturation  },
                       ].map(({ label, value, set }) => (
                         <Box key={label} sx={{ mb: 2 }}>
                           <Stack direction="row" spacing={1} alignItems="center">
@@ -721,7 +602,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
               </Box>
             )}
 
-            {/* PREVIEW (full mode) */}
+            {/* ──────────── PREVIEW (full mode only) ──────────── */}
             {!simpleMode && activeStep === 'preview' && editedImage && uploadedImage && (
               <Box>
                 <Typography variant="h6" gutterBottom>{t('Final Result')}</Typography>
@@ -755,7 +636,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
         )}
       </DialogContent>
 
-      {/* ACTIONS */}
+      {/* ──────────── ACTIONS ──────────── */}
       <DialogActions sx={{ justifyContent: 'space-between', px: 3, py: 2 }}>
         <Box>
           {(activeStep === 'edit' || activeStep === 'confirm') && (
@@ -767,10 +648,14 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
         </Box>
 
         <Box sx={{ display: 'flex', gap: 2 }}>
+          {/* Simple mode: success step - just close */}
           {simpleMode && activeStep === 'success' && (
-            <Button variant="contained" onClick={handleClose} size="small">{t('Done')}</Button>
+            <Button variant="contained" onClick={handleClose} size="small">
+              {t('Done')}
+            </Button>
           )}
 
+          {/* Full mode: Save & Upload on edit */}
           {!simpleMode && activeStep === 'edit' && (
             <Button variant="contained" onClick={handleFinalSave}
               startIcon={<Save />} disabled={isLoading} size="small">
@@ -778,12 +663,14 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
             </Button>
           )}
 
+          {/* Full mode: Start Over on preview */}
           {!simpleMode && activeStep === 'preview' && (
             <Button variant="outlined" onClick={handleReset} startIcon={<RestartAlt />} size="small">
               {t('Start Over')}
             </Button>
           )}
 
+          {/* Cancel / Done */}
           {!(simpleMode && activeStep === 'success') && (
             <Button
               variant={activeStep === 'preview' ? 'contained' : 'outlined'}
@@ -793,12 +680,14 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
             </Button>
           )}
 
+          {/* Simple mode: Upload button on confirm */}
           {simpleMode && activeStep === 'confirm' && (
             <Button variant="contained" onClick={handleSimpleUpload}
               startIcon={<CloudUpload />} disabled={isLoading} size="small">
               {isLoading ? t('Uploading...') : t('Upload')}
             </Button>
           )}
+
         </Box>
       </DialogActions>
     </Dialog>

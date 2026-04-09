@@ -42,6 +42,7 @@ export async function handleGuardResult(
       confirmText: successKey === 'editable' ? t('Continue') : t('Handle bookings'),
       cancelText: t('Cancel'),
       shrinkToContent: true,
+      mode: 'warning',
     });
     if (!confirmed) {
       if (onCancel) onCancel();

@@ -1,0 +1,26 @@
+{
+  "_comment": "Source of truth for PWA manifest. Keep in sync with shared/config.ts (name, codename, defaultLanguage).",
+  "name": "TicketUno",
+  "shortName": "TicketUno",
+  "description": "Theater ticket reservation system",
+  "codename": "ticketuno",
+  "lang": "it",
+  "themeColor": "#6750A4",
+  "backgroundColor": "#ffffff",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "startUrl": "/",
+  "scope": "/",
+  "categories": ["entertainment", "utilities"],
+  "maskableBackgroundColor": "#6750A4",
+  "shortcuts": [
+    {
+      "name": "Prenotazioni",
+      "short_name": "Prenotazioni",
+      "description": "Vedi le tue prenotazioni",
+      "url": "/bookings",
+      "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
+    }
+  ],
+  "screenshots": [ "screenshots/booking-mobile.png" ]
+}

@@ -671,7 +671,7 @@ const EventEdit: React.FC = () => {
         }}
         imageType="poster"
         simpleMode={false}
-        fixedAspectRatio={9 / 16}
+        //fixedAspectRatio={9 / 16}
         maxSizeMB={10}
         title={t('Upload poster image')}
       />

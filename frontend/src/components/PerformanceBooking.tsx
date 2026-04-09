@@ -157,6 +157,7 @@ const PerformanceBooking: React.FC = () => {
         cancelText: 'Cancel',
         confirmText: 'Login',
         shrinkToContent: true,
+        mode: 'warning',
       });
       return;
     }
@@ -207,9 +208,10 @@ const PerformanceBooking: React.FC = () => {
         title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
         content:
           t('You will soon receive an email with booking confirmation.', { count: selectedSeats.size }) + '\n\n' +
-          (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: you can print it or simply use the email your mobile device to show it at the theater.') : ''),
+          (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: show it at the theater.') : ''),
         onConfirm: () => navigate('/'),
         confirmText: 'Ok',
+        mode: 'success',
       });
 
       setSelectedSeats(new Set());
@@ -246,9 +248,11 @@ const PerformanceBooking: React.FC = () => {
             {t('You are about to book {{count}} seats', { count: selectedSeats.size })}
             &nbsp;{t('for')} {localizedDate({ dateString: performance?.performanceDate, locale: user!.language })}:
           </Typography>
-          <Paper sx={{ p: 1, bgcolor: 'grey.100', my: 2 }}>
-            {selectedLabels.join(', ')}
-          </Paper>
+          <Box sx={{ maxHeight: '40vh', overflowY: 'auto', mt: 1 }}>
+            <Paper sx={{ p: 1, my: 2 }}>
+              {selectedLabels.join('\n')}
+            </Paper>
+          </Box>
           {config.app.reservations.purchases.gateway !== 'free' && (
             <Typography variant="h6">
               {t('Total amount')}: ${totalPrice.toFixed(2)}

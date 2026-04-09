@@ -14,6 +14,7 @@ import { ConsentProvider } from './contexts/ConsentContext';
 import OAuthHandler from './components/OAuthHandler';
 import ToastRouteHandler from './components/ToastRouteHandler';
 import { LoadingSpinner } from './components/LoadingSpinner';
+import { usePwa } from './pwa/usePwa';
 import Routes from './Routes';
 import config from '@/config';
 
@@ -30,7 +31,8 @@ import { zhCN } from '@mui/x-date-pickers/locales';
 console.log(`🎭 App ${config.app.name} is starting`);
 
 const App: React.FC = () => {
-const { i18n } = useTranslation();  
+  usePwa();
+  const { i18n } = useTranslation();  
   
   // Map i18next language codes to dayjs locale codes if needed
   const adapterLocale = (lang: string) => {

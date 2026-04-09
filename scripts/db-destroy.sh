@@ -28,7 +28,7 @@ if [ "$answer" != "Y" -a "$answer" != "y" ]; then
 fi
 
 echo "💣 Destroy the machine..."
-fly machine destroy "${MACHINE_ID}" -a "$APP_NAME" --yes
+fly machine destroy "${MACHINE_ID}" -a "$APP_NAME"
 echo "💣 Destroy the volume..."
 fly volumes destroy "${VOLUME_ID}" -a "$APP_NAME" --yes
 

@@ -278,7 +278,13 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
           toast.success('Logged in with Google!');
           onClose();
           resetForms();
-          navigate('/', { replace: true });
+          const redirect = localStorage.getItem('redirectAfterLogin');
+          localStorage.removeItem('redirectAfterLogin');
+          if (redirect) {
+            navigate(redirect);
+          } else {
+            navigate('/', { replace: true });
+          }
         } catch (error: any) {
           toast.error(t('Google login error: {{err}}', {err: getErrorMessage(error)}));
           // Clear token if login fails

@@ -51,9 +51,9 @@ const ActiveBookingsWarning: React.FC<ActiveBookingsWarningProps> = ({
       {/* <Typography variant="h6" sx={{ backgroundColor: "red", lineHeight: 1.2, padding: 1, borderRadius: 1.5 }} color={"white"} fontWeight={600} gutterBottom> */}
       <Typography
         variant="h6"
-        sx={(theme) => ({
-          backgroundColor: theme.palette.error.main, // uses theme's error color
-          color: theme.palette.error.contrastText, // ensures readable text
+        sx={(/*theme*/) => ({
+          //backgroundColor: theme.palette.error.main, // uses theme's error color
+          //color: theme.palette.error.contrastText, // ensures readable text
           lineHeight: 1.2,
           padding: 1,
           borderRadius: '8px', // ensures a little roundness of border, ignoring themes shape.borderRadius differences

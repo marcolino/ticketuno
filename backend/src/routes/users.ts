@@ -484,9 +484,9 @@ router.get('/auth/google/callback', async (req, res) => {
             type: 'GOOGLE_AUTH_ERROR',
             error: '${error}'
           }, '${process.env.FRONTEND_URL}'); // Works in both dev and production
-          window.close(); // Close this popup automatically
+          //window.close(); // Close this popup automatically
         </script>
-        <body>` + req.t('Login error: {{error}}! Closing...', { error }) + `</body>
+        <body>` + req.t('Login error: {{error}}!', { error }) + `</body>
       </html>
     `);
   }

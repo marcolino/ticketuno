@@ -11,6 +11,8 @@ REGIONS="fra"
 CACHE="true"   # Use "false" or "" to disable Docker layer cache
 FORCE=false    # Use --force to deploy even with no detected changes
 
+error_log=$(mktemp)
+
 # Parse flags
 for arg in "$@"; do
   case $arg in
@@ -82,17 +84,23 @@ fi
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 
-echo "🔍 Running pre-deploy checks..."
+# echo "🔍 Running pre-deploy checks..."
 # npm run type-check > /dev/null || {
-#   echo "❌ TypeScript check failed. Fix errors before deploying."
+#   echo "❌ TypeScript check failed. Fix errors before deploying: \`npm run type-check\`."
 #   exit 6
 # }
-
-# TODO: > /tmp/errors; then: cat errors, if errors ...
-npm run check > /dev/null || {
-  echo "❌ Type-check or lint failed. Fix errors before deploying."
+echo "🔍 Running pre-deploy checks..."
+npm run type-check > "$error_log" 2>&1
+exit_code=$?
+if [ $exit_code -ne 0 ]; then
+  echo "❌ TypeScript check (\`npm run type-check\`) failed. View errors? (y/N): "
+  read -r answer
+  if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
+    less "$error_log"
+  fi
+  rm -f "$error_log"
   exit 6
-}
+fi
 
 # ─── Change detection ─────────────────────────────────────────────────────────
 
@@ -156,6 +164,9 @@ fly secrets set \
   NODE_ENV="production" \
   PORT="8080" \
   --app "${APP_NAME}"
+
+echo "📱 Generating PWA assets..."
+npm run pwa:generate
 
 # ─── Version bumps ────────────────────────────────────────────────────────────
 
