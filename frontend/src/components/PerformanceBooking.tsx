@@ -332,7 +332,7 @@ const PerformanceBooking: React.FC = () => {
           }}>
             <Box sx={{ minWidth: 600, height: '100%' }}>
               <LayoutPreviewSVG
-                layout={layout}
+                layout={layout!}
                 seats={seats}
                 interactive={true}
                 bookingView={true}

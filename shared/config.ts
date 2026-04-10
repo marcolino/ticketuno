@@ -8,6 +8,10 @@ const config: AppConfig = {
     api: {
       prefix: 'api',
       version: 'v1',
+      timeoutSeconds: 10,
+      headers: {
+        'Content-Type': 'application/json',
+      }
     },
     auth: {
       tokenExpirationTimeWarningAdvanceSeconds: 5 * 60,

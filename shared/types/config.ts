@@ -19,6 +19,8 @@ export interface AppConfig {
     api: {
       prefix: string;
       version: string;
+      timeoutSeconds: number;
+      headers: {};
     };
     auth: {
       tokenExpirationTimeWarningAdvanceSeconds: number;

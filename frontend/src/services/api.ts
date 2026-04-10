@@ -20,20 +20,52 @@ import { GuardResult, GuardedDeleteResult, GuardedDeleteResultBulk, GuardedUpdat
 import { i18n } from '@/i18n';
 import config from '@/shared/config';
 
-const API_BASE_URL = `/${config.app.api.prefix}/${config.app.api.version}`;
-
-console.log('API_BASE_URL:', API_BASE_URL);
-
 let redirectingToMaintenance = false;
 
+// Maps a mutated URL to the cache name(s) that should be invalidated.
+// Keyed by regex matching the request pathname.
+const CACHE_INVALIDATION_MAP: Array<{
+  pattern: RegExp;
+  caches: string[];
+}> = [
+  { pattern: /\/api\/v\d+\/layouts/, caches: ['api-layouts'] },
+  { pattern: /\/api\/v\d+\/theaters/, caches: ['api-theaters'] },
+  { pattern: /\/api\/v\d+\/events/, caches: ['api-events'] },
+  { pattern: /\/api\/v\d+\/users/, caches: ['api-users'] },
+];
+
+async function invalidateCachesForUrl(url: string): Promise<void> {
+  if (!('caches' in window)) return;
+
+  const pathname = new URL(url, window.location.origin).pathname;
+
+  for (const { pattern, caches: cacheNames } of CACHE_INVALIDATION_MAP) {
+    if (!pattern.test(pathname)) continue;
+
+    for (const cacheName of cacheNames) {
+      try {
+        const cache = await caches.open(cacheName);
+        const keys  = await cache.keys();
+        await Promise.all(keys.map(req => cache.delete(req)));
+        console.debug(`[PWA] Invalidated cache "${cacheName}" after mutation to ${pathname}`);
+      } catch (err) {
+        console.warn(`[PWA] Failed to invalidate cache "${cacheName}":`, err);
+      }
+    }
+  }
+}
+
 // Create the main API instance
+const baseURL = `/${config.app.api.prefix}/${config.app.api.version}`;
+const timeout = config.app.api.timeoutSeconds * 1000;
+const headers = config.app.api.headers;
+console.log('baseURL:', baseURL);
 const api: AxiosInstance = axios.create({
-  //baseURL: `${API_BASE_URL}${API_BASE_PATH}${API_VERSION}`,
-  baseURL: API_BASE_URL,
-  timeout: 10000, // TODO: set default from config...
-  headers: { // TODO: set default from config...
-    'Content-Type': 'application/json',
-  },
+  baseURL,
+  timeout, //: 10000, // TODO: set default from config...
+  headers, //: { // TODO: set default from config...
+    //'Content-Type': 'application/json',
+  //},
 });
 
 // Store the original request method
@@ -189,14 +221,21 @@ api.interceptors.response.use(
 
 // ========== ERRORS MANAGEMENT ==========
 api.interceptors.response.use(
-  (response) => response,
+  async (response) => {
+    const method = response.config.method?.toUpperCase();
+    const isMutation = method && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+    if (isMutation && response.config.url) {
+      await invalidateCachesForUrl(response.config.url);
+    }
+    return response;
+  },
   (error) => {
     // Check maintenance FIRST, before any error normalization
     if (error.response?.status === 503) {
       if (error.response?.data?.offline === true) {
         return Promise.reject({
           ...error,
-          message: i18n.t('You are offline. This operation requires a network connection. Please retry later.'),
+          //message: i18n.t('You are offline. This operation requires a network connection. Please retry later.'),
           response: { ...error.response, data: { error: i18n.t('You are offline') } }
         });
       }
@@ -209,12 +248,12 @@ api.interceptors.response.use(
       // Already on /maintenance — reject with a clean error, not the raw HTML body
       return Promise.reject({
         ...error,
-        message: i18n.t('Service unavailable'), // TODO: test this (i18n.t()) is translated !
+        //message: i18n.t('Service unavailable'), // TODO: test this (i18n.t()) is translated !
         response: { ...error.response, data: { error: i18n.t('maintenance mode') } }
       });
     }
 
-    let message = i18n.t('An unexpected error occurred');
+    const message = i18n.t('An unexpected error occurred');
     const normalizedError = {
       ...error,
       message,

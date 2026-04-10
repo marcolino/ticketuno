@@ -116,7 +116,10 @@ common:
  1 - OK - remove isLoading in all components from useState, and use isLoading fro useLoading
  1 - OK - in all components, handle errors using import { getErrorMessage } from '@/utils/misc':
             change all error.response?.data?.error to getErrorMessage(error)
- 1 -    - PWA handling - "PWA setup automation for theater booking system" with Claude
+ 1 - OK - PWA handling - "PWA setup automation for theater booking system" with Claude
+ 1 -    - check why when deleting a layout (for example), LayoutList must be reloaded to show it
+ 2 -    - when adding a row in a layout, move down accordingly following sectors, if any
+ 2 -    - check "special seats" reservability: staff and unavaliable are not reservable, and others are reservable)
  2 -    - add check for changes in all components (when dirty), before navigating away
  2 -    - add privacy and terms links in the register page
  2 -    - in profile (or in setup/privacy?) add Terms and Privacy pages, and link to open consent dialog
