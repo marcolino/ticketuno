@@ -14,6 +14,11 @@ declare const self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+// Activate the new service worker immediately after install
+self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+
 // Take control of all open tabs as soon as this SW activates —
 // without this, users have to close and reopen the tab.
 self.addEventListener('activate', (event) => {
@@ -145,6 +150,15 @@ registerRoute(
 registerRoute(
   ({ url }) => url.pathname.startsWith('/api/'),
   new NetworkOnly()
+);
+
+// 11. Navigation route
+registerRoute(
+  ({ request }) => request.mode === 'navigate',
+  async () => {
+    const cachedIndex = await caches.match('/index.html');
+    return cachedIndex ?? fetch('/index.html');
+  }
 );
 
 // ── Global catch handler ──────────────────────────────────────────────────────
