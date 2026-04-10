@@ -139,7 +139,7 @@ FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
 
 set -x
 #if ! fly apps list | egrep -q "^${APP_NAME}"; then
-if [ -z "`fly apps list | egrep \"^${APP_NAME}\"`" ]; then
+if [ -z "`fly apps list | egrep \"\s+${APP_NAME}\s+\"`" ]; then
   echo "📦 Creating new Fly.io app..."
   fly apps create "${APP_NAME}" --org personal
 else echo EXISTS
