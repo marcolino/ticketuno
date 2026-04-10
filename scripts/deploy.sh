@@ -137,12 +137,12 @@ FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
 
 # ─── Ensure app exists ────────────────────────────────────────────────────────
 
-set +x
+set -x
 if ! fly apps list | egrep -q "^${APP_NAME}"; then
   echo "📦 Creating new Fly.io app..."
   fly apps create "${APP_NAME}" --org personal
 fi
-set -x
+set +x
 
 # Check if a volume with the given name already exists
 if ! fly volumes list -a "${APP_NAME}" --json | jq -e '.[] | select(.name == "'"${APP_NAME}_data"'")' > /dev/null; then
