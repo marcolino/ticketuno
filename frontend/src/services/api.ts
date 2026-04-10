@@ -197,7 +197,7 @@ api.interceptors.response.use(
         return Promise.reject({
           ...error,
           message: i18n.t('You are offline. This operation requires a network connection. Please retry later.'),
-          response: { ...error.response, data: { error: 'offline' } }
+          response: { ...error.response, data: { error: i18n.t('You are offline') } }
         });
       }
       if (!redirectingToMaintenance && window.location.pathname !== '/maintenance') {
@@ -210,7 +210,7 @@ api.interceptors.response.use(
       return Promise.reject({
         ...error,
         message: i18n.t('Service unavailable'), // TODO: test this (i18n.t()) is translated !
-        response: { ...error.response, data: { error: 'maintenance mode' } }
+        response: { ...error.response, data: { error: i18n.t('maintenance mode') } }
       });
     }
 

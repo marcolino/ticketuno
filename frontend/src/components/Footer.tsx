@@ -10,6 +10,7 @@ import {
   InfoOutlined as InfoOutlinedIcon
 } from '@mui/icons-material';
 import { useDialog } from '../contexts/DialogContext';
+import OnlineStatus from '@/components/OnlineStatus';
 import { globalApi } from '@/services/api';
 import config from '../config';
 import pkg from '../../package.json';
@@ -87,7 +88,11 @@ function Footer({ children }: FooterProps) {
                 <InfoOutlinedIcon sx={{fontSize: 20}} />
               </IconButton>
               
-            </Typography>
+              &emsp;
+              
+              <OnlineStatus />
+  
+            </Typography>          
           </>
         )
         }

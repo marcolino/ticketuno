@@ -119,8 +119,7 @@ const LayoutList: React.FC = () => {
         navigate(`/layout/edit/${id}?readonly=true`);
       }
     } catch (error) {
-      setError(t('Failed to check layout editability: {{error}}', { error }));
-      //toast.error(t('Failed to check layout editability'));
+      setError(t('Failed to check layout editability: {{error}}', { error: getErrorMessage(error) }));
     }
   };
 

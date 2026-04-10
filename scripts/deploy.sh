@@ -8,6 +8,7 @@ set -e
 
 APP_NAME="ticketuno"
 REGIONS="fra"
+ORG="personal"
 CACHE="true"   # Use "false" or "" to disable Docker layer cache
 FORCE=false    # Use --force to deploy even with no detected changes
 
@@ -137,14 +138,12 @@ FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
 
 # ─── Ensure app exists ────────────────────────────────────────────────────────
 
-set -x
-#if ! fly apps list | egrep -q "^${APP_NAME}"; then
 if [ -z "`fly apps list | egrep \"\s+${APP_NAME}\s+\"`" ]; then
   echo "📦 Creating new Fly.io app..."
-  fly apps create "${APP_NAME}" --org personal
-else echo EXISTS
+  fly apps create "${APP_NAME}" --org "${ORG}"
+else
+  echo "✅ App ${APP_NAME} exists already on fly.io, skipping app creation"
 fi
-set +x
 
 # Check if a volume with the given name already exists
 if ! fly volumes list -a "${APP_NAME}" --json | jq -e '.[] | select(.name == "'"${APP_NAME}_data"'")' > /dev/null; then
