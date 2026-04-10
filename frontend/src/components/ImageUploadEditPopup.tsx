@@ -268,6 +268,42 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   }, [rotation, flip, brightness, contrast, saturation, aspect,
       activeStep, uploadedImage, historyIndex, saveToHistory, simpleMode]);
 
+  // Set a default crop when the image loads
+  useEffect(() => {
+    if (activeStep === 'edit' && imgRef.current && !crop) {
+      const img = imgRef.current;
+      
+      const setDefaultCrop = () => {
+        const { naturalWidth, naturalHeight } = img;
+        // For PixelCrop (completed crop) – unit must be 'px'
+        const fullPixelCrop: PixelCrop = {
+          unit: 'px',
+          x: 0,
+          y: 0,
+          width: naturalWidth,
+          height: naturalHeight,
+        };
+        setCompletedCrop(fullPixelCrop);
+        
+        // For ReactCrop display (Crop) – unit can be '%'
+        const fullPercentCrop: Crop = {
+          unit: '%',
+          x: 0,
+          y: 0,
+          width: 100,
+          height: 100,
+        };
+        setCrop(fullPercentCrop);
+      };
+
+      if (img.complete) {
+        setDefaultCrop();
+      } else {
+        img.onload = setDefaultCrop;
+      }
+    }
+  }, [activeStep, imgRef.current, crop]);
+  
   // ── Compression ──────────────────────────────────────────────────────────
 
   const compressImage = useCallback(async (file: File): Promise<File> => {
@@ -419,6 +455,27 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
       );
 
       // 3. Scale the crop from displayed coordinates to canvas coordinates
+      //    (if no crop is defined, use the whole canvas)
+      let cropToUse = completedCrop;
+      if (!cropToUse) {
+        cropToUse = {
+          x: 0,
+          y: 0,
+          width: filteredCanvas.width,
+          height: filteredCanvas.height,
+          unit: 'px',
+        };
+      } else {
+        // Scale crop from displayed coordinates to canvas coordinates
+        cropToUse = scaleCropToCanvas(
+          cropToUse,
+          displayedWidth,
+          displayedHeight,
+          filteredCanvas.width,
+          filteredCanvas.height
+        );
+      }
+      
       const scaledCrop = scaleCropToCanvas(
         completedCrop,
         displayedWidth,

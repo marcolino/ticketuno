@@ -12,7 +12,7 @@
   "startUrl": "/",
   "scope": "/",
   "categories": ["entertainment", "utilities"],
-  "maskableBackgroundColor": "#6750A4",
+  "maskableBackgroundColor": "#ffffff",
   "shortcuts": [
     {
       "name": "Prenotazioni",
