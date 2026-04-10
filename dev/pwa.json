@@ -22,5 +22,5 @@
       "icons": [{ "src": "/icons/icon-96x96.png", "sizes": "96x96" }]
     }
   ],
-  "screenshots": [ "screenshots/booking-mobile.png" ]
+  "screenshots": [ "screenshots/booking-mobile.png", "screenshots/login-1.png" ]
 }

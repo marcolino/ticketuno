@@ -20,13 +20,9 @@ import { GuardResult, GuardedDeleteResult, GuardedDeleteResultBulk, GuardedUpdat
 import { i18n } from '@/i18n';
 import config from '@/shared/config';
 
-// const API_VERSION = import.meta.env.VITE_API_VERSION ?? config.app.api.version;
-// const API_BASE_PATH = import.meta.env.VITE_API_BASE_PATH ?? config.app.api.prefix;
-//const API_VERSION = config.app.api.version;
-//const API_BASE_URL = `/${API_BASE_PATH}/${API_VERSION}`;
 const API_BASE_URL = `/${config.app.api.prefix}/${config.app.api.version}`;
 
-console.log('API_BASE_URL:', API_BASE_URL); // TODO: DEBUG ONLY
+console.log('API_BASE_URL:', API_BASE_URL);
 
 let redirectingToMaintenance = false;
 
@@ -197,6 +193,13 @@ api.interceptors.response.use(
   (error) => {
     // Check maintenance FIRST, before any error normalization
     if (error.response?.status === 503) {
+      if (error.response?.data?.offline === true) {
+        return Promise.reject({
+          ...error,
+          message: i18n.t('You are offline. This operation requires a network connection. Please retry later.'),
+          response: { ...error.response, data: { error: 'offline' } }
+        });
+      }
       if (!redirectingToMaintenance && window.location.pathname !== '/maintenance') {
         redirectingToMaintenance = true;
         window.location.href = '/maintenance';
