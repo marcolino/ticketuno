@@ -260,20 +260,40 @@ const PerformanceBooking: React.FC = () => {
   };
 
   if (loading) {
-    return;
+    return; // the spinner is automatic
   }
   
-  if (error || !layout || !performance) {
-    toast.warning(t('Performance not found'));
-    navigate(-1); // TODO: is it ok? to be tested...
-    // return (
-    //   <Container maxWidth="lg" sx={{ mt: 4 }}>
-    //     <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/event/${eventId}`)} sx={{ mt: 2 }}>
-    //       ⬅ {t('Back to Event')}
-    //     </Button>
-    //   </Container>
-    // );
+  if (error) { // TODO: better handle errors, with custom Alert ...
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <Typography color="error">{error}</Typography>
+        <Button onClick={() => navigate(`/event/${eventId}`)}>
+          {t('Back to Event')}
+        </Button>
+      </Container>
+    );
   }
+
+  if (!layout || !performance) { // TODO: how to handle !layout || !performance ???
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <Typography>{t('Loading performance data...')}</Typography>
+      </Container>
+    );
+  }
+  
+  // if (error || !layout || !performance) {
+  //   toast.warning(t('Performance not found'));
+  //   navigate(-1); // TODO: is it ok? to be tested...
+  //   return;
+  //   // return (
+  //   //   <Container maxWidth="lg" sx={{ mt: 4 }}>
+  //   //     <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/event/${eventId}`)} sx={{ mt: 2 }}>
+  //   //       ⬅ {t('Back to Event')}
+  //   //     </Button>
+  //   //   </Container>
+  //   // );
+  // }
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -331,14 +351,16 @@ const PerformanceBooking: React.FC = () => {
             bgcolor: '#f5f5f5', borderRadius: 2,
           }}>
             <Box sx={{ minWidth: 600, height: '100%' }}>
-              <LayoutPreviewSVG
-                layout={layout!}
-                seats={seats}
-                interactive={true}
-                bookingView={true}
-                onSeatClick={handleSeatClick}
-                getSeatStatus={getSeatStatus}
-              />
+              {layout && (
+                <LayoutPreviewSVG
+                  layout={layout}
+                  seats={seats}
+                  interactive={true}
+                  bookingView={true}
+                  onSeatClick={handleSeatClick}
+                  getSeatStatus={getSeatStatus}
+                />
+              )}
               <LayoutLegend
                 conditions={activeConditions}
                 showStatusLegend={true}

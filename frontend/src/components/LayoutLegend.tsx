@@ -73,10 +73,11 @@ const LayoutLegend: React.FC<LayoutLegendProps> = ({
     { base: '#616161', backrest: '#757575', armrest: '#424242', text: '#eee', label: t('Booked') },
   ];
 
-  const visibleConditions = isEditView
-    ? conditions
-    : conditions //.filter(c => c !== 'Absent' && c !== 'Staff');
-  ;
+  const visibleConditions = conditions;
+  // const visibleConditions = isEditView
+  //   ? conditions
+  //   : conditions //.filter(c => c !== 'Absent' && c !== 'Staff');
+  // ;
 
   if (visibleConditions.length === 0 && !showStatusLegend) return null;
 

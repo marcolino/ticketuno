@@ -132,7 +132,10 @@ const LayoutSeat: React.FC<LayoutSeatProps> = ({
 
   const isClickable = interactive
     //&& !(bookingView && specialCondition === 'Absent')
-    && !(bookingView && specialCondition === 'Staff')
+    && !(bookingView && (
+        (specialCondition === 'Staff') ||
+    (specialCondition === 'Unavailable')
+    ))
     && (!status || status === 'available' || status === 'selected')
   ;
 

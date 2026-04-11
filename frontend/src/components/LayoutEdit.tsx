@@ -129,6 +129,31 @@ const LayoutEdit: React.FC = () => {
       },
     ],
   });
+
+  const getSectionBottomY = (section: SectionJSON): number => {
+    const rowsCount = section.rows.length;
+    if (rowsCount === 0) return section.origin.y;
+    const lastRowY = section.origin.y + (rowsCount - 1) * section.rowSpacing;
+    // The bottom edge is the center of the last row + half the row spacing
+    return lastRowY + section.rowSpacing / 2;
+  };
+
+  const reflowSections = (sections: SectionJSON[]): SectionJSON[] => {
+  if (sections.length <= 1) return sections;
+
+  const newSections = [...sections];
+    for (let i = 1; i < newSections.length; i++) {
+      const prevBottom = getSectionBottomY(newSections[i - 1]);
+      newSections[i] = {
+        ...newSections[i],
+        origin: {
+          ...newSections[i].origin,
+          y: prevBottom + SECTION_VERTICAL_GAP
+        }
+      };
+    }
+    return newSections;
+  };
   
   //const seats = generateSeats(layoutJSON); // No status needed
   const seats = useMemo(() => {
@@ -328,22 +353,53 @@ const LayoutEdit: React.FC = () => {
   // Update section
   const updateSection = (sectionIndex: number, field: string, value: any) => {
     const newSections = [...layoutJSON.sections];
-    if (field.includes('.')) {
+    const oldSection = newSections[sectionIndex];
+    let deltaY = 0;
+
+    // Apply the change and detect delta if it's origin.y
+    if (field === 'origin.y') {
+      const oldY = oldSection.origin.y;
+      deltaY = value - oldY;
+      newSections[sectionIndex] = {
+        ...oldSection,
+        origin: { ...oldSection.origin, y: value }
+      };
+    } else if (field.includes('.')) {
       const [parent, child] = field.split('.');
       newSections[sectionIndex] = {
-        ...newSections[sectionIndex],
+        ...oldSection,
         [parent]: {
-          ...(newSections[sectionIndex] as any)[parent],
+          ...(oldSection as any)[parent],
           [child]: value
         }
       };
     } else {
       newSections[sectionIndex] = {
-        ...newSections[sectionIndex],
+        ...oldSection,
         [field]: value
       };
     }
-    setLayoutJSON({ ...layoutJSON, sections: newSections });
+
+    // If origin Y changed, shift all following sections by the same delta
+    if (field === 'origin.y' && deltaY !== 0) {
+      for (let i = sectionIndex + 1; i < newSections.length; i++) {
+        newSections[i] = {
+          ...newSections[i],
+          origin: {
+            ...newSections[i].origin,
+            y: newSections[i].origin.y + deltaY
+          }
+        };
+      }
+    }
+
+    // For other changes that affect height (rowSpacing, rows), call reflowSections
+    if (field === 'rowSpacing' || field === 'rows') {
+      const reflowed = reflowSections(newSections);
+      setLayoutJSON({ ...layoutJSON, sections: reflowed });
+    } else {
+      setLayoutJSON({ ...layoutJSON, sections: newSections });
+    }
   };
 
   const removeSection = (index: number) => {
@@ -392,14 +448,16 @@ const LayoutEdit: React.FC = () => {
 
     const newSections = [...layoutJSON.sections];
     newSections[sectionIndex].rows.push(newRow);
-    setLayoutJSON({ ...layoutJSON, sections: newSections });
+    const newSectionsReflowed = reflowSections(newSections); // Reflow all sections to avoid overlaps
+    setLayoutJSON({ ...layoutJSON, sections: newSectionsReflowed });
   };
 
   // Remove row
   const removeRow = (sectionIndex: number, rowIndex: number) => {
     const newSections = [...layoutJSON.sections];
     newSections[sectionIndex].rows = newSections[sectionIndex].rows.filter((_, i) => i !== rowIndex);
-    setLayoutJSON({ ...layoutJSON, sections: newSections });
+    const newSectionsReflowed = reflowSections(newSections);
+    setLayoutJSON({ ...layoutJSON, sections: newSectionsReflowed });
   };
 
   // Update row
