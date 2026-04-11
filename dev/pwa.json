@@ -6,13 +6,13 @@
   "codename": "ticketuno",
   "lang": "it",
   "themeColor": "#6750A4",
-  "backgroundColor": "#ffffff",
+  "backgroundColor": "#6750A4",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "startUrl": "/",
   "scope": "/",
   "categories": ["entertainment", "utilities"],
-  "maskableBackgroundColor": "#ffffff",
+  "maskableBackgroundColor": "#6750A4",
   "shortcuts": [
     {
       "name": "Prenotazioni",
