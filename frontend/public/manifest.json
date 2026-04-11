@@ -2,14 +2,14 @@
   "name": "TicketUno",
   "short_name": "TicketUno",
   "description": "Theater ticket reservation system",
-  "version": "1.0.69",
+  "version": "1.0.70",
   "lang": "it",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "orientation": "portrait-primary",
+  "orientation": "natural",
   "theme_color": "#6750A4",
-  "background_color": "#ffffff",
+  "background_color": "#6750A4",
   "categories": [
     "entertainment",
     "utilities"
