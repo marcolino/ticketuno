@@ -6,6 +6,7 @@ import { registerRoute, setCatchHandler } from 'workbox-routing';
 import { StaleWhileRevalidate, NetworkOnly, CacheFirst } from 'workbox-strategies';
 import { ExpirationPlugin } from 'workbox-expiration';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
+import { i18n } from './i18n';
 
 declare const self: ServiceWorkerGlobalScope;
 
@@ -36,46 +37,27 @@ const MUTATION_CACHE_MAP: Array<{ pattern: RegExp; caches: string[] }> = [
   { pattern: /\/api\/v\d+\/auth/,      caches: ['api-users'] },
 ];
 
-async function invalidateRelatedCaches(url: URL): Promise<void> {
-  for (const { pattern, caches: cacheNames } of MUTATION_CACHE_MAP) {
-    if (pattern.test(url.pathname)) {
-      await Promise.all(
-        cacheNames.map(async (name) => {
-          const cache = await caches.open(name);
-          const keys = await cache.keys();
-          await Promise.all(keys.map((req) => cache.delete(req)));
-        })
-      );
-    }
-  }
-}
-
-// ── Non-GET requests: pass through + invalidate on success ───────────────────
+// ── Offline response for non-GET requests ────────────────────────────────────
+// Intercept ALL non-GET requests first, before any route matching.
+// If the network is available the request goes through normally.
+// If offline, return a machine-readable 503 so the frontend can show
+// a proper "you are offline" toast instead of a generic network error.
 self.addEventListener('fetch', (event) => {
-  if (event.request.method === 'GET') return;
+  if (event.request.method === 'GET') return; // handled by routes below
 
   event.respondWith(
-    fetch(event.request)
-      .then(async (response) => {
-        // Only invalidate on success (2xx) — don't wipe cache on 4xx/5xx
-        if (response.ok) {
-          const url = new URL(event.request.url);
-          await invalidateRelatedCaches(url);
+    fetch(event.request).catch(() =>
+      new Response(
+        JSON.stringify({
+          offline: true,
+          error: i18n.t('You are offline. This action requires a network connection.'),
+        }),
+        {
+          status: 503,
+          headers: { 'Content-Type': 'application/json' },
         }
-        return response;
-      })
-      .catch(() =>
-        new Response(
-          JSON.stringify({
-            offline: true,
-            error: 'You are offline. This action requires a network connection.',
-          }),
-          {
-            status: 503,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        )
       )
+    )
   );
 });
 
@@ -87,13 +69,13 @@ self.addEventListener('fetch', (event) => {
 //   new NetworkOnly()
 // );
 
-// 1. NEVER cache: uploads
+// 2. NEVER cache: uploads
 registerRoute(
   ({ url }) => url.pathname.startsWith('/uploads/'),
   new NetworkOnly()
 );
 
-// 2. Locales, genuinely static JSON, safe to cache aggressively
+// 3. Locales — static JSON, safe to cache
 registerRoute(
   ({ url }) => /\/api\/v\d+\/locales\//.test(url.pathname),
   new StaleWhileRevalidate({
@@ -105,7 +87,7 @@ registerRoute(
   })
 );
 
-// 3. Events, short TTL, cache is wiped on any mutation above
+// 4. Events metadata, short TTL, cache is wiped on any mutation above
 registerRoute(
   ({ url }) => /\/api\/v\d+\/events/.test(url.pathname),
   new StaleWhileRevalidate({
@@ -117,7 +99,7 @@ registerRoute(
   })
 );
 
-// 4. Theaters, cache is wiped on any mutation above
+// 5. Theaters, cache is wiped on any mutation above
 registerRoute(
   ({ url }) => /\/api\/v\d+\/theaters/.test(url.pathname),
   new StaleWhileRevalidate({
@@ -129,7 +111,7 @@ registerRoute(
   })
 );
 
-// 5. Layouts, cache is wiped on any mutation above
+// 6. Layouts, cache is wiped on any mutation above
 registerRoute(
   ({ url }) => /\/api\/v\d+\/layouts/.test(url.pathname),
   new StaleWhileRevalidate({
@@ -141,7 +123,7 @@ registerRoute(
   })
 );
 
-// 6. Users (includes /auth/me), short TTL, wiped on auth mutations
+// 7.Users (includes /auth/me), short TTL, wiped on auth mutations
 registerRoute(
   ({ url }) => /\/api\/v\d+\/users/.test(url.pathname),
   new StaleWhileRevalidate({
@@ -153,13 +135,13 @@ registerRoute(
   })
 );
 
-// 7. /api/ catch-all, anything not matched above is NetworkOnly
+// 8. /api/ catch-all — any endpoint not matched above goes NetworkOnly
 registerRoute(
   ({ url }) => url.pathname.startsWith('/api/'),
   new NetworkOnly()
 );
 
-// 8. PWA icons
+// 9. PWA icons
 registerRoute(
   ({ url }) => url.pathname.startsWith('/icons/'),
   new CacheFirst({
@@ -170,7 +152,7 @@ registerRoute(
   })
 );
 
-// 9. Fonts
+// 10. Fonts
 registerRoute(
   ({ url }) => /^https:\/\/fonts\.(googleapis|gstatic)\.com\//.test(url.href),
   new CacheFirst({
@@ -182,7 +164,7 @@ registerRoute(
   })
 );
 
-// 10. Navigation route
+// 11. Navigation route
 registerRoute(
   ({ request }) => request.mode === 'navigate',
   async () => {
@@ -191,9 +173,13 @@ registerRoute(
   }
 );
 
+// ── Global catch handler ──────────────────────────────────────────────────────
+// If a precached navigation request fails (e.g. index.html somehow missing),
+// this is the last resort. For API routes this should never be reached.
 setCatchHandler(async ({ request }) => {
   if (request.destination === 'document') {
-    return caches.match('/index.html').then((r) => r ?? Response.error());
+    // Return cached index.html for navigation failures
+    return caches.match('/index.html').then(r => r ?? Response.error());
   }
   return Response.error();
 });

@@ -1,10 +1,11 @@
 // components/ProtectedRoute.tsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
-import { Box, AlertTitle, Button/*, CircularProgress*/ } from '@mui/material';
-import Alert from './Alert';
+import { useDialog } from '@/contexts/DialogContext';
+// import { Box, AlertTitle, Button/*, CircularProgress*/ } from '@mui/material';
+// import Alert from './Alert';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -20,55 +21,130 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { isAuthenticated, isAdmin, isOperator, loading } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const showDialog = useDialog();
+  const [warningShown, setWarningShown] = useState(false);
 
   if (loading) {
     return null;
   }
 
-  // Not authenticated
-  if (!isAuthenticated) {
-    return (
-      <Alert severity="error">
-        <AlertTitle>{t('Access Denied')}</AlertTitle>
-        {t('You must be logged in to access this page.')}
-        <Box mt={2}>
-          <Button variant="contained" color="warning" onClick={() => navigate('/?authMode=login')}>
-            {t('Login')}
-          </Button>
-        </Box>
-      </Alert>
-    );
-  }
+  useEffect(() => {
+    if (!isAuthenticated && !warningShown) {
+      setWarningShown(true);
+      showDialog({
+        title: t('Access Denied'),
+        content: t('You must be logged in to access this page'),
+        buttons: [
+          {
+            text: 'Login',
+            onClick: () => navigate('/?authMode=login'),
+            variant: 'contained',
+          },
+          {
+            text: 'Go home',
+            onClick: () => navigate('/'),
+            variant: 'contained',
+          },
+        ],
+        mode: 'error',
+      });
+    }
+  }, [isAuthenticated, warningShown, navigate, t]);
 
-  // Admin required but user is not admin
-  if (requireAdmin && !isAdmin) {
-    return (
-      <Alert severity="error">
-        <AlertTitle>{t('Insufficient Permissions')}</AlertTitle>
-          {t('Admin role is required to access this page.')}
-        <Box mt={2}>
-          <Button variant="contained" onClick={() => navigate('/')}>
-            {t('Go to home')}
-          </Button>
-        </Box>
-      </Alert>
-    );
-  }
+  useEffect(() => {
+    if (isAuthenticated && requireAdmin && !isAdmin && !warningShown) {
+      setWarningShown(true);
+      showDialog({
+        title: t('Insufficient Permissions'),
+        content: t('Admin role is required to access this page'),
+        buttons: [
+          {
+            text: 'Login',
+            onClick: () => navigate('/?authMode=login'),
+            variant: 'contained',
+          },
+          {
+            text: 'Go home',
+            onClick: () => navigate('/'),
+            variant: 'contained',
+          },
+        ],
+        mode: 'error',
+      });
+    }
+  }, [isAuthenticated, requireAdmin, isAdmin, warningShown, navigate, t]);
 
-  // Operator required but user is not operator
-  if (requireOperator && !isOperator) {
-    return (
-      <Alert severity="error">
-        <AlertTitle>{t('Insufficient Permissions')}</AlertTitle>
-        {t('Operator role required to access this page.')}
-        <Box mt={2}>
-          <Button variant="contained" onClick={() => navigate('/')}>
-            {t('Go to home')}
-          </Button>
-        </Box>
-      </Alert>
-    );
-  }
+  useEffect(() => {
+    if (isAuthenticated && requireOperator && !isOperator && !warningShown) {
+      setWarningShown(true);
+      showDialog({
+        title: t('Insufficient Permissions'),
+        content: t('Operator role is required to access this page'),
+        buttons: [
+          {
+            text: 'Login',
+            onClick: () => navigate('/?authMode=login'),
+            variant: 'contained',
+          },
+          {
+            text: 'Go home',
+            onClick: () => navigate('/'),
+            variant: 'contained',
+          },
+        ],
+        mode: 'error',
+      });
+    }
+  }, [isAuthenticated, requireOperator, isOperator, warningShown, navigate, t]);
+
+  // While any error condition is true, render nothing (or a fallback)
+  if (!isAuthenticated) return null;
+  if (requireAdmin && !isAdmin) return null;
+
+  // // Not authenticated
+  // if (!isAuthenticated) {
+  //   return (
+  //     <Alert severity="error">
+  //       <AlertTitle>{t('Access Denied')}</AlertTitle>
+  //       {t('You must be logged in to access this page.')}
+  //       <Box mt={2}>
+  //         <Button variant="contained" color="warning" onClick={() => navigate('/?authMode=login')}>
+  //           {t('Login')}
+  //         </Button>
+  //       </Box>
+  //     </Alert>
+  //   );
+  // }
+
+  // // Admin required but user is not admin
+  // if (requireAdmin && !isAdmin) {
+  //   return (
+  //     <Alert severity="error">
+  //       <AlertTitle>{t('Insufficient Permissions')}</AlertTitle>
+  //         {t('Admin role is required to access this page.')}
+  //       <Box mt={2}>
+  //         <Button variant="contained" onClick={() => navigate('/')}>
+  //           {t('Go to home')}
+  //         </Button>
+  //       </Box>
+  //     </Alert>
+  //   );
+  // }
+
+  // // Operator required but user is not operator
+  // if (requireOperator && !isOperator) {
+  //   return (
+  //     <Alert severity="error">
+  //       <AlertTitle>{t('Insufficient Permissions')}</AlertTitle>
+  //       {t('Operator role required to access this page.')}
+  //       <Box mt={2}>
+  //         <Button variant="contained" onClick={() => navigate('/')}>
+  //           {t('Go to home')}
+  //         </Button>
+  //       </Box>
+  //     </Alert>
+  //   );
+  // }
 
   return <>{children}</>;
 };
