@@ -274,13 +274,15 @@ const PerformanceBooking: React.FC = () => {
     );
   }
 
-  if (!layout || !performance) { // TODO: how to handle !layout || !performance ???
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Typography>{t('Loading performance data...')}</Typography>
-      </Container>
-    );
-  }
+  if (loading) return null;
+
+  // if (!layout || !performance) { // TODO: how to handle !layout || !performance ???
+  //   return (
+  //     <Container maxWidth="lg" sx={{ mt: 4 }}>
+  //       <Typography>{t('Loading performance data...')}</Typography>
+  //     </Container>
+  //   );
+  // }
   
   // if (error || !layout || !performance) {
   //   toast.warning(t('Performance not found'));
