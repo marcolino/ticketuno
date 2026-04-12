@@ -108,6 +108,20 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   //   }
   // }, []);
 
+  const logout = useCallback(() => {
+    const currentPath = window.location.pathname;
+    
+    if (!currentPath.startsWith('/unsubscribe')) {
+      localStorage.setItem('redirectAfterLogin', currentPath);
+    }
+
+    setAuthToken(null);
+    localStorage.removeItem('authToken');
+    setToken(null);
+    setUser(null);
+    setIsAuthenticated(false);
+  }, []);
+
   const login = useCallback(
     async (credentials: LoginCredentials) => {
       try {
@@ -154,20 +168,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     },
     [loadProfile]
   );
-
-  const logout = useCallback(() => {
-    const currentPath = window.location.pathname;
-    
-    if (!currentPath.startsWith('/unsubscribe')) {
-      localStorage.setItem('redirectAfterLogin', currentPath);
-    }
-
-    setAuthToken(null);
-    localStorage.removeItem('authToken');
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-  }, []);
 
   const register = useCallback(async (data: RegisterData) => {
     const response = await userApi.register(data);

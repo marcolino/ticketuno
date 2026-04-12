@@ -141,6 +141,12 @@ registerRoute(
   })
 );
 
+// 5b. Profile endpoint, always fresh, never stale
+registerRoute(
+  ({ url }) => /\/api\/v\d+\/users\/profile/.test(url.pathname),
+  new NetworkOnly()
+);
+
 // 6. Users (includes /auth/me), short TTL, wiped on auth mutations
 registerRoute(
   ({ url }) => /\/api\/v\d+\/users/.test(url.pathname),
