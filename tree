@@ -1,0 +1,222 @@
+.
+├── backend
+│   ├── dist
+│   │   ├── config.js
+│   │   ├── db
+│   │   ├── i18n
+│   │   ├── i18n.js
+│   │   ├── middleware
+│   │   ├── routes
+│   │   ├── server.js
+│   │   ├── services
+│   │   ├── shared
+│   │   └── utils
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── src
+│   │   ├── assets
+│   │   ├── config.ts
+│   │   ├── db
+│   │   ├── i18n
+│   │   ├── i18n.ts
+│   │   ├── middleware
+│   │   ├── routes
+│   │   ├── server.ts
+│   │   ├── services
+│   │   ├── shared -> ../../shared
+│   │   ├── templates
+│   │   └── utils
+│   ├── ticketuno-production.db
+│   └── tsconfig.json
+├── data
+│   ├── ticketuno.db
+│   └── uploads
+│       ├── poster-015de0e8900a07071fb7a35f680d4349.jpg
+│       ├── poster-02513118cf250c60bfcb04f446b7f5f6.jpg
+│       ├── poster-028b3039605f1b309eff7aa1e1319335.jpg
+│       ├── poster-0cfd0cc780e5cb38f7e9bf7a15b06556.jpg
+│       ├── poster-1245b5320a8d98041452895db20abb3f.jpg
+│       ├── poster-17f6e544b9ca5ed9f8272848a13ed5ca.jpg
+│       ├── poster-1a556b6e4346156210e41b740ff5ab8a.jpg
+│       ├── poster-1afe7b4fe94ac7b2bfcf4295e203c168.jpg
+│       ├── poster-22ff069c20dae5c0584d8dae74c9d4d6.jpg
+│       ├── poster-322752770f1ff905588b98cca46bbf41.jpg
+│       ├── poster-334b1fcb9588922ef64ed44f25100cad.jpg
+│       ├── poster-36a815fbd538e49ef4b5ef09343a2776.jpg
+│       ├── poster-40c625bb3a8a7d289a3147fe88a62905.jpg
+│       ├── poster-43d35176f11e8c04f016f267bea7fe7b.jpg
+│       ├── poster-4c9729583bc69c73242579f285e2e12b.jpg
+│       ├── poster-4e668c8376f3142dbb93320c1cb2b39c.jpg
+│       ├── poster-504c62930da117871c02949599e64b66.jpg
+│       ├── poster-533e402192ac331b0d92e9c8c58b588e.jpg
+│       ├── poster-5a59c19b66570fb3066645dabc4db21d.jpg
+│       ├── poster-5c0f6a4a2ade8fc29f48461165ce9860.jpg
+│       ├── poster-5d34e16ac3daae68c3a899b8f54e8e53.jpg
+│       ├── poster-5de2591d51f4f1472599aa6d35d48549.jpg
+│       ├── poster-64ca5a48835996f8adaddf67089bff2d.jpg
+│       ├── poster-66047d39d2bf0e49ca84ce60e00813b5.jpg
+│       ├── poster-6c1c36cbef73a5ac77c84e31f198f59d.jpg
+│       ├── poster-6e490255fd7cc925e4eac8668fee67bb.jpg
+│       ├── poster-6e836787c0d28f3b97c796c6d9a43549.jpg
+│       ├── poster-7131c61216500c986fd24c42778374bf.jpg
+│       ├── poster-76fbd5b3c35c3cf9cacb55142e9c46ca.jpg
+│       ├── poster-78d50e664523e99f0ec98e7a1bc9ebe4.jpg
+│       ├── poster-7dc4de9d4221df44c3e041d1c4e4349f.jpg
+│       ├── poster-7e2803c45608ac525122751da0e55312.jpg
+│       ├── poster-7ecb10138028a4f5f11f0cfe061ae94b.jpg
+│       ├── poster-8045711c710c774a1e784e6fea4bae82.jpg
+│       ├── poster-84f9da518242f980be5faf0aee81aeff.jpg
+│       ├── poster-920093deaf302998e5e5477270dbc9c5.jpg
+│       ├── poster-97a0987f34cfa00020bfe40d15eb30a6.jpg
+│       ├── poster-9d19146ee2724590630cebdac0d1bd40.jpg
+│       ├── poster-ad7373384259efa0edb13fbb61140c2c.jpg
+│       ├── poster-b2a8344d2173e59c4f54b474cfe2feba.jpg
+│       ├── poster-b5614b08a1045ddcedd48258f2d6af48.jpg
+│       ├── poster-c1ec7a179213e64caa7f5ede20a52b39.jpg
+│       ├── poster-c5c9e0b763cf46ea712ea42fdb522bd4.jpg
+│       ├── poster-ce9b34ef8a6017ab81fd0ae7a581f786.jpg
+│       ├── poster-d0f597b4d70cb563a24e1e60f7b0cc37.jpg
+│       ├── poster-d71ca9cde4bf83a2974b93e47b1ccf2f.jpg
+│       ├── poster-d92df2b08b539a68d8cfd71a104a3127.jpg
+│       ├── poster-dd5b17d1ce7278ab65cb72404d78ad6d.jpg
+│       ├── poster-dfad29e558d990a2f1fdac409f777eab.jpg
+│       ├── poster-ea7c79e46a565faf9722d60e66279517.jpg
+│       ├── poster-eaeb0480aa0298d95d75c82492942085.jpg
+│       ├── poster-f3572de0b0d92fb3e6a97416dacb7fd6.jpg
+│       └── poster-fe9ea5017c93efcd35719aa8e81c41b1.jpg
+├── DEPLOY.md
+├── dev
+│   ├── build
+│   │   └── build-info-server.json
+│   ├── images
+│   │   ├── logo_black_background.png
+│   │   ├── logo.png
+│   │   └── _logo.svg
+│   ├── pwa.json
+│   ├── screenshots
+│   │   ├── booking-mobile.png
+│   │   └── login-1.png
+│   └── sounds
+│       ├── cat.wav
+│       ├── finish.wav
+│       └── trumpet.wav
+├── Dockerfile
+├── DOCUMENTATION.md
+├── fly.toml
+├── frontend
+│   ├── dist
+│   │   ├── assets
+│   │   ├── icons
+│   │   ├── index.html
+│   │   ├── maintenance.html
+│   │   ├── manifest.json
+│   │   ├── sw.js
+│   │   └── workbox-d834e619.js
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── public
+│   │   ├── icons
+│   │   ├── images
+│   │   ├── maintenance.html
+│   │   └── manifest.json
+│   ├── scripts
+│   │   └── i18n-status
+│   ├── src
+│   │   ├── App.tsx
+│   │   ├── App-V1-PRE-ROUTER-PROVIDER.tsx
+│   │   ├── components
+│   │   ├── config.ts
+│   │   ├── contexts
+│   │   ├── hooks
+│   │   ├── i18n.ts
+│   │   ├── index.tsx
+│   │   ├── pwa
+│   │   ├── Routes.tsx
+│   │   ├── Routes-V1-PRE-ROUTER-PROVIDER.tsx
+│   │   ├── services
+│   │   ├── shared -> ../../shared
+│   │   ├── sw.ts
+│   │   ├── sw-V1-TOO-AGGRESSIVE-CACHING.ts
+│   │   ├── theme
+│   │   └── utils
+│   ├── tsconfig.json
+│   ├── vite.config.js
+│   ├── vite.config-V1-GENERATE_SW.js
+│   └── vite-env.d.ts
+├── i18next.config.js
+├── LICENSE
+├── MIGRATIONS.md
+├── NOTES.md
+├── package.json
+├── package-lock.json
+├── README.md
+├── scripts
+│   ├── db-destroy.sh
+│   ├── db-sync.sh
+│   ├── deploy.sh
+│   ├── extract-mjml-keys.js
+│   ├── generate-pwa-assets.js
+│   ├── generate-pwa-manifest.js
+│   ├── rollback.sh
+│   └── translate.js
+├── shared
+│   ├── config.ts
+│   ├── locales
+│   │   ├── en
+│   │   ├── fr
+│   │   ├── it
+│   │   └── zh
+│   ├── types
+│   │   ├── auth.ts
+│   │   ├── booking.ts
+│   │   ├── config.ts
+│   │   ├── consent.ts
+│   │   ├── dialog.ts
+│   │   ├── email.ts
+│   │   ├── event.ts
+│   │   ├── express.t.ts-UNUSED
+│   │   ├── generalSetup.ts
+│   │   ├── guard.ts
+│   │   ├── image.ts
+│   │   ├── layoutToSeats.ts
+│   │   ├── layout.ts
+│   │   ├── performance.ts
+│   │   ├── query.ts
+│   │   ├── seat.ts
+│   │   ├── theater.ts
+│   │   ├── theme.ts
+│   │   ├── ticket.ts
+│   │   └── user.ts
+│   └── utils
+│       ├── layoutToSeats.ts
+│       ├── misc.ts
+│       └── roles.ts
+├── STRUCTURE.md
+├── tests
+│   ├── backend
+│   │   └── image-test.js
+│   └── frontend
+│       └── image-test.js
+├── tmp
+│   ├── backend
+│   │   ├── src
+│   │   └── tsconfig-V1.json
+│   ├── Dockerfile-V1
+│   ├── Dockerfile-V2
+│   ├── Dockerfile-V3-OK
+│   ├── frontend
+│   │   ├── i18next.config.ts-UNUSED
+│   │   ├── src
+│   │   └── vite.config.js-V1
+│   ├── scripts
+│   │   ├── deploy-V1.sh
+│   │   ├── setup-fly-UNUSED.sh
+│   │   └── translate-V1-GEMINI-ONLY.js
+│   └── shared
+│       └── types
+├── TODO.md
+└── tree
+
+64 directories, 156 files

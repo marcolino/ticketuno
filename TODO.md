@@ -20,6 +20,7 @@ common:
  1 -    - remove all comments in code
  1 -    - resolve all TODO's in code
  2 -    - make a /privacy and a /terms page
+ 3 -    - ask AI to update README, STRUCTURE, DEPLOY, DOCUMENTATION
 
  backend:
  1 - OK - add passepartout

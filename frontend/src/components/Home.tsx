@@ -191,7 +191,7 @@ useEffect(() => {
   };
   const handleProfile = () => {
     handleClose();
-    navigate('/profile');
+    navigate('/user/edit');
   };
 
   // const handleAddTheater = () => {

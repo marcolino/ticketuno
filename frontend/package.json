@@ -39,6 +39,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.3.8",
+    "react-hook-form": "^7.72.1",
     "react-hot-toast": "^2.6.0",
     "react-i18next": "^13.5.0",
     "react-image-crop": "^11.0.10",

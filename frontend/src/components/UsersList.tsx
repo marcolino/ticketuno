@@ -243,7 +243,7 @@ const UsersList: React.FC = () => {
       toast.warning(t('Sorry, your user\'s role cannot edit this user, with role {{role}}', {role: targetUser.role}));
       return;
     }
-    navigate(`/profile/${params.row.id}`);
+    navigate(`/user/edit/${params.row.id}`);
   }
 
   const handleDeleteUser = (user: UserRow) => {

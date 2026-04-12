@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { RouterProvider } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import CssBaseline from '@mui/material/CssBaseline';
 import { useTranslation } from 'react-i18next';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
@@ -10,9 +10,12 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { DialogProvider } from './contexts/DialogContext';
 import { ToastProvider } from './contexts/ToastContext';
 import { LoadingProvider } from './contexts/LoadingContext';
+import { ConsentProvider } from './contexts/ConsentContext';
+import OAuthHandler from './components/OAuthHandler';
+import ToastRouteHandler from './components/ToastRouteHandler';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { usePwa } from './pwa/usePwa';
-import router from './Routes';
+import Routes from './Routes';
 import config from '@/config';
 
 // Import here all locales we support
@@ -75,16 +78,16 @@ const App: React.FC = () => {
                 <PwaInitializer />
                 <CssBaseline />
                 <AuthProvider>
-                  {/*
-                    ConsentProvider, OAuthHandler, and ToastRouteHandler have moved into
-                    RootLayout so they remain inside the router and can use router hooks.
-                    v7_startTransition stays here on RouterProvider; v7_relativeSplatPath
-                    is passed to createBrowserRouter in Routes.tsx.
-                  */}
-                  <RouterProvider
-                    router={router}
-                    future={{ v7_startTransition: true }}
-                  />
+                  <Router future={{
+                    v7_startTransition: true,
+                    v7_relativeSplatPath: true,
+                  }}>
+                    <ConsentProvider>
+                      <OAuthHandler />
+                      <ToastRouteHandler />
+                      <Routes />
+                    </ConsentProvider>
+                  </Router>
                 </AuthProvider>
               </ToastProvider>
             </DialogProvider>

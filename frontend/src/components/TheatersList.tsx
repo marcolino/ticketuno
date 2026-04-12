@@ -27,7 +27,7 @@ import { handleGuardResult } from '@/utils/guardHandler';
 import PageHeader from './PageHeader';
 import Alert from './Alert';
 
-const TheaterList: React.FC = () => {
+const TheatersList: React.FC = () => {
   const { t } = useTranslation();
   const { isOperator, loading } = useAuth();
   const navigate = useNavigate();
@@ -246,4 +246,4 @@ const TheaterList: React.FC = () => {
   );
 };
 
-export default TheaterList;
+export default TheatersList;

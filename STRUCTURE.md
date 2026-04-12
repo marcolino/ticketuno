@@ -25,7 +25,7 @@ theatre
 │   │   │       ├── it.json
 │   │   │       └── fr.json
 │   │   ├── components/
-│   │   │   ├── TheaterList.tsx
+│   │   │   ├── TheatersList.tsx
 │   │   │   ├── TheaterSeating.tsx
 │   │   │   └── LanguageSelector.tsx
 │   │   ├── services/

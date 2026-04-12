@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef, createElement } from 'react';
-import { useParams, useLocation, useBlocker } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, createElement } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMediaQuery, useTheme } from '@mui/material';
-import { useForm, Controller } from 'react-hook-form';
 import {
   Container,
   Box,
@@ -94,8 +93,6 @@ const getDefaultEvent = (): Partial<Event> & {
   //performances: [],
 });
 
-type EventFormValues = ReturnType<typeof getDefaultEvent>;
-
 const EventEdit: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -131,70 +128,16 @@ const EventEdit: React.FC = () => {
   ];
 
   const [theaters, setTheaters] = useState<TheaterStats[]>([]);
+  const [saving, setSaving] = useState(false);
+  const [event, setEvent] = useState<Partial<Event> & {
+    openingDateObj: Dayjs | null;
+    closingDateObj: Dayjs | null;
+    typicalStartTimeObj: Dayjs | null;
+    typicalEndTimeObj: Dayjs | null;
+  }>(getDefaultEvent());
   const [isImageUploadPopupOpen, setIsImageUploadPopupOpen] = useState(false);
 
   const showDialog = useDialog();
-
-  const {
-    register,
-    control,
-    handleSubmit,
-    reset,
-    getValues,
-    setValue,
-    watch,
-    formState: { isDirty, isSubmitting },
-  } = useForm<EventFormValues>({
-    defaultValues: getDefaultEvent(),
-  });
-
-  // Watch only fields needed for cross-field JSX logic
-  const openingDateObj = watch('openingDateObj');
-  const closingDateObj = watch('closingDateObj');
-  const currency = watch('currency');
-  const canceled = watch('canceled');
-
-  // Ref-based escape hatch for intentional navigations (save, sub-flow to theater/new).
-  // isDirty is still true when navigate() fires synchronously after handleSubmit;
-  // the ref is read immediately by the blocker condition, bypassing the render cycle.
-  const skipBlocker = useRef(false);
-
-  // --- Navigation blocker: prompt on unsaved changes ---
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      !skipBlocker.current &&
-      isDirty &&
-      currentLocation.pathname !== nextLocation.pathname
-  );
-
-  useEffect(() => {
-    if (blocker.state !== 'blocked') return;
-    (async () => {
-      const confirmed = await showDialog({
-        title: t('Unsaved changes'),
-        content: t('You have unsaved changes. Leave anyway?'),
-        confirmText: t('Leave'),
-        cancelText: t('Stay'),
-        mode: 'warning',
-      });
-      if (confirmed) {
-        blocker.proceed();
-      } else {
-        blocker.reset();
-      }
-    })();
-  }, [blocker.state]);
-
-  // Handles browser tab close / hard refresh — cases useBlocker cannot intercept
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
 
   const loadEvent = useCallback(
     async (overrideTheaterId?: string) => {
@@ -205,12 +148,12 @@ const EventEdit: React.FC = () => {
         if (overrideTheaterId) {
           converted.theaterId = overrideTheaterId;
         }
-        reset(converted);
+        setEvent(converted);
       } catch (error) {
         toast.error(getErrorMessage(error));
       }
     },
-    [id, reset]
+    [id, toast]
   );
 
   useEffect(() => {
@@ -221,12 +164,15 @@ const EventEdit: React.FC = () => {
       try {
         const response = await theaterApi.getAllTheaters();
         setTheaters(response.data);
+        if (incomingTheaterId) {
+          setEvent((prev) => ({ ...prev, theaterId: incomingTheaterId }));
+        }
       } catch (error) {
         console.error(t('Failed to load theaters: {{err}}', { err: getErrorMessage(error) }));
       }
 
       if (incomingTheaterId && state) {
-        reset({
+        setEvent({
           ...getDefaultEvent(),
           ...state,
           openingDateObj: state.openingDate ? dayjs(state.openingDate) : null,
@@ -241,24 +187,26 @@ const EventEdit: React.FC = () => {
     })();
   }, [isEditMode, loadEvent, location.state, t]);
 
-  const handleSave = handleSubmit(async (data) => {
-    if (!data.title) {
+  const handleSave = async () => {
+    if (!event.title) {
       toast.warning(t('Title is mandatory'));
       return;
     }
-    if (!data.theaterId) {
+    if (!event.theaterId) {
       toast.warning(t('A theater must be selected'));
       return;
     }
 
     try {
+      setSaving(true);
+
       const {
         openingDateObj,
         closingDateObj,
         typicalStartTimeObj,
         typicalEndTimeObj,
         ...cleanEvent
-      } = data;
+      } = event;
 
       const eventData: Partial<Event> = {
         ...cleanEvent,
@@ -296,7 +244,6 @@ const EventEdit: React.FC = () => {
         // Normal success case
         if (result.updated === true) {
           toast.success(t('Event updated successfully!'));
-          skipBlocker.current = true;
           navigate(-1);
           return;
         }
@@ -309,7 +256,6 @@ const EventEdit: React.FC = () => {
         const response = await eventApi.createEvent(eventData);
         if (response.data?.id) {
           toast.success(t('Event created successfully!'));
-          skipBlocker.current = true;
           navigate(-1);
         } else {
           toast.error(t('Failed to create event'));
@@ -321,8 +267,28 @@ const EventEdit: React.FC = () => {
         ? t('Failed to update event: {{err}}', { err })
         : t('Failed to create event: {{err}}', { err });
       toast.error(msg);
+    } finally {
+      setSaving(false);
     }
-  });
+  };
+
+  // Generic handler for simple fields
+  const handleFieldChange = (field: keyof typeof event) => (value) => {
+    setEvent((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleGenresChange = (genres: string[]) => {
+    setEvent((prev) => ({ ...prev, genres }));
+  };
+
+  const handleCastChange = (cast: CastEntry[]) => {
+    setEvent((prev) => ({ ...prev, cast }));
+  };
+
+  const handleCanceledToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const canceled = e.target.checked ? 1 : 0;
+    setEvent((prev) => ({ ...prev, canceled }));
+  };
 
   return (
     <Container maxWidth="lg" sx={{ p: { xs: 2, sm: 4 }, mt: 4, mb: 4 }}>
@@ -336,9 +302,10 @@ const EventEdit: React.FC = () => {
           {/* Title */}
           <Grid item xs={12}>
             <TextField
-              {...register('title')}
               fullWidth
               label={t('Title')}
+              value={event.title || ''}
+              onChange={(e) => handleFieldChange('title')(e.target.value)}
               required
               autoFocus
             />
@@ -347,9 +314,10 @@ const EventEdit: React.FC = () => {
           {/* Description */}
           <Grid item xs={12}>
             <TextField
-              {...register('description')}
               fullWidth
               label={t('Description')}
+              value={event.description || ''}
+              onChange={(e) => handleFieldChange('description')(e.target.value)}
               multiline
               rows={3}
             />
@@ -357,73 +325,57 @@ const EventEdit: React.FC = () => {
 
           {/* Genres */}
           <Grid item xs={6}>
-            <Controller
-              name="genres"
-              control={control}
-              render={({ field }) => (
-                <TagSelector
-                  label={t('Genere')}
-                  storageKey="eventGenresCustom"
-                  presetOptions={GENRES_PRESETS}
-                  value={field.value || []}
-                  onChange={field.onChange}
-                  multiple
-                />
-              )}
+            <TagSelector
+              label={t('Genere')}
+              storageKey="eventGenresCustom"
+              presetOptions={GENRES_PRESETS}
+              value={event.genres || []}
+              onChange={handleGenresChange}
+              multiple
             />
           </Grid>
 
           {/* Language */}
           <Grid item xs={6}>
-            <Controller
-              name="language"
-              control={control}
-              render={({ field }) => (
-                <TagSelector
-                  label={t('Language')}
-                  storageKey="eventLanguageCustom"
-                  presetOptions={LANGUAGES_PRESETS}
-                  value={field.value || ''}
-                  onChange={field.onChange}
-                  multiple={false}
-                />
-              )}
+            <TagSelector
+              label={t('Language')}
+              storageKey="eventLanguageCustom"
+              presetOptions={LANGUAGES_PRESETS}
+              value={event.language || ''}
+              onChange={handleFieldChange('language')}
+              multiple={false}
             />
           </Grid>
 
           {/* Duration & Intermissions */}
           <Grid item xs={12} md={4}>
             <TextField
-              {...register('durationMinutes', { valueAsNumber: true })}
               fullWidth
               label={t('Duration (minutes)')}
               type="number"
+              value={event.durationMinutes || 0}
+              onChange={(e) => handleFieldChange('durationMinutes')(parseInt(e.target.value) || 0)}
               inputProps={{ min: 0 }}
             />
           </Grid>
           <Grid item xs={12} md={4}>
             <TextField
-              {...register('intermissionCount', { valueAsNumber: true })}
               fullWidth
               label={t('Intermissions')}
               type="number"
+              value={event.intermissionCount || 0}
+              onChange={(e) => handleFieldChange('intermissionCount')(parseInt(e.target.value) || 0)}
               inputProps={{ min: 0 }}
             />
           </Grid>
           <Grid item xs={12} md={4}>
-            <Controller
-              name="rating"
-              control={control}
-              render={({ field }) => (
-                <TagSelector
-                  label={t('Rating')}
-                  storageKey="eventRatingCustom"
-                  presetOptions={RATING_PRESETS}
-                  value={field.value || ''}
-                  onChange={field.onChange}
-                  multiple={false}
-                />
-              )}
+            <TagSelector
+              label={t('Rating')}
+              storageKey="eventRatingCustom"
+              presetOptions={RATING_PRESETS}
+              value={event.rating || ''}
+              onChange={handleFieldChange('rating')}
+              multiple={false}
             />
           </Grid>
 
@@ -431,45 +383,37 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12}>
             <FormControl fullWidth required>
               <InputLabel>{t('Theater')}</InputLabel>
-              <Controller
-                name="theaterId"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value || ''}
-                    label={t('Theater')}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === '<new>') {
-                        // Mark intentional navigation so blocker doesn't fire for this sub-flow
-                        skipBlocker.current = true;
-                        navigate('/theater/new', {
-                          state: {
-                            returnTo: `/event/${id ?? 'new'}`,
-                            eventData: {
-                              ...getValues(),
-                              openingDate: getValues('openingDateObj')?.toISOString(),
-                              closingDate: getValues('closingDateObj')?.toISOString(),
-                              typicalStartTime: getValues('typicalStartTimeObj')?.toISOString(),
-                              typicalEndTime: getValues('typicalEndTimeObj')?.toISOString(),
-                            },
-                          },
-                          replace: true,
-                        });
-                      } else {
-                        field.onChange(val);
-                      }
-                    }}
-                  >
-                    <MenuItem value="<new>"><i>{t('New Theater')}</i></MenuItem>
-                    {theaters.map((theater) => (
-                      <MenuItem key={theater.id} value={theater.id}>
-                        {theater.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                )}
-              />
+              <Select
+                value={event.theaterId || ''}
+                label={t('Theater')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === '<new>') {
+                    navigate('/theater/new', {
+                      state: {
+                        returnTo: `/event/${id ?? 'new'}`,
+                        eventData: {
+                          ...event,
+                          openingDate: event.openingDateObj?.toISOString(),
+                          closingDate: event.closingDateObj?.toISOString(),
+                          typicalStartTime: event.typicalStartTimeObj?.toISOString(),
+                          typicalEndTime: event.typicalEndTimeObj?.toISOString(),
+                        },
+                      },
+                      replace: true,
+                    });
+                  } else {
+                    handleFieldChange('theaterId')(val);
+                  }
+                }}
+              >
+                <MenuItem value="<new>"><i>{t('New Theater')}</i></MenuItem>
+                {theaters.map((theater) => (
+                  <MenuItem key={theater.id} value={theater.id}>
+                    {theater.name}
+                  </MenuItem>
+                ))}
+              </Select>
             </FormControl>
           </Grid>
 
@@ -481,37 +425,42 @@ const EventEdit: React.FC = () => {
           </Grid>
           <Grid item xs={12} md={6}>
             <TextField
-              {...register('director')}
               fullWidth
               label={t('Director')}
+              value={event.director || ''}
+              onChange={(e) => handleFieldChange('director')(e.target.value)}
             />
           </Grid>
           <Grid item xs={12} md={6}>
             <TextField
-              {...register('playwright')}
               fullWidth
               label={t('Playwright')}
+              value={event.playwright || ''}
+              onChange={(e) => handleFieldChange('playwright')(e.target.value)}
             />
           </Grid>
           <Grid item xs={12} md={4}>
             <TextField
-              {...register('producer')}
               fullWidth
               label={t('Producer')}
+              value={event.producer || ''}
+              onChange={(e) => handleFieldChange('producer')(e.target.value)}
             />
           </Grid>
           <Grid item xs={12} md={4}>
             <TextField
-              {...register('choreographer')}
               fullWidth
               label={t('Choreographer')}
+              value={event.choreographer || ''}
+              onChange={(e) => handleFieldChange('choreographer')(e.target.value)}
             />
           </Grid>
           <Grid item xs={12} md={4}>
             <TextField
-              {...register('musicalDirector')}
               fullWidth
               label={t('Musical Director')}
+              value={event.musicalDirector || ''}
+              onChange={(e) => handleFieldChange('musicalDirector')(e.target.value)}
             />
           </Grid>
 
@@ -520,16 +469,7 @@ const EventEdit: React.FC = () => {
             <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
               {t('Actors')}
             </Typography>
-            <Controller
-              name="cast"
-              control={control}
-              render={({ field }) => (
-                <CastEditor
-                  value={field.value || []}
-                  onChange={field.onChange}
-                />
-              )}
-            />
+            <CastEditor value={event.cast || []} onChange={handleCastChange} />
           </Grid>
 
           {/* Schedule */}
@@ -540,67 +480,43 @@ const EventEdit: React.FC = () => {
           </Grid>
           <Grid item xs={12} md={6}>
             <Stack direction="row" spacing={1}>
-              <Controller
-                name="openingDateObj"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    label={t('Start Date')}
-                    value={field.value}
-                    onChange={field.onChange}
-                    maxDate={closingDateObj || undefined}
-                    sx={{ width: '100%' }}
-                    slotProps={{
-                      inputAdornment: { sx: { ml: 0 } },
-                      openPickerButton: { sx: { p: '4px' } },
-                    }}
-                  />
-                )}
+              <DatePicker
+                label={t('Start Date')}
+                value={event.openingDateObj}
+                onChange={(newValue) => handleFieldChange('openingDateObj')(newValue)}
+                maxDate={event.closingDateObj || undefined}
+                sx={{ width: '100%' }}
+                slotProps={{
+                  inputAdornment: { sx: { ml: 0 } },
+                  openPickerButton: { sx: { p: '4px' } },
+                }}
               />
-              <Controller
-                name="closingDateObj"
-                control={control}
-                render={({ field }) => (
-                  <DatePicker
-                    label={t('End Date')}
-                    value={field.value}
-                    onChange={field.onChange}
-                    minDate={openingDateObj || undefined}
-                    sx={{ width: '100%' }}
-                    slotProps={{
-                      inputAdornment: { sx: { ml: 0 } },
-                      openPickerButton: { sx: { p: '4px' } },
-                    }}
-                  />
-                )}
+              <DatePicker
+                label={t('End Date')}
+                value={event.closingDateObj}
+                onChange={(newValue) => handleFieldChange('closingDateObj')(newValue)}
+                minDate={event.openingDateObj || undefined}
+                sx={{ width: '100%' }}
+                slotProps={{
+                  inputAdornment: { sx: { ml: 0 } },
+                  openPickerButton: { sx: { p: '4px' } },
+                }}
               />
             </Stack>
           </Grid>
           <Grid item xs={12} md={6}>
             <Stack direction="row" spacing={1}>
-              <Controller
-                name="typicalStartTimeObj"
-                control={control}
-                render={({ field }) => (
-                  <TimePicker
-                    label={isAtLeastMd ? t('Typical Start Time') : t('Start Time')}
-                    value={field.value}
-                    onChange={field.onChange}
-                    sx={{ width: '100%' }}
-                  />
-                )}
+              <TimePicker
+                label={isAtLeastMd ? t('Typical Start Time') : t('Start Time')}
+                value={event.typicalStartTimeObj}
+                onChange={(newValue) => handleFieldChange('typicalStartTimeObj')(newValue)}
+                sx={{ width: '100%' }}
               />
-              <Controller
-                name="typicalEndTimeObj"
-                control={control}
-                render={({ field }) => (
-                  <TimePicker
-                    label={isAtLeastMd ? t('Typical End Time') : t('End Time')}
-                    value={field.value}
-                    onChange={field.onChange}
-                    sx={{ width: '100%' }}
-                  />
-                )}
+              <TimePicker
+                label={isAtLeastMd ? t('Typical End Time') : t('End Time')}
+                value={event.typicalEndTimeObj}
+                onChange={(newValue) => handleFieldChange('typicalEndTimeObj')(newValue)}
+                sx={{ width: '100%' }}
               />
             </Stack>
           </Grid>
@@ -614,49 +530,40 @@ const EventEdit: React.FC = () => {
           <Grid item xs={12} md={2}>
             <FormControl fullWidth>
               <InputLabel>{t('Currency')}</InputLabel>
-              <Controller
-                name="currency"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value || ''}
-                    label={t('Currency')}
-                    onChange={(e) => field.onChange(e.target.value)}
-                  >
-                    <MenuItem value="">{t('none')}</MenuItem>
-                    {Object.entries(config.app.currencies).map(([key, currency]) => (
-                      <MenuItem key={key} value={key}>
-                        {currency.symbol} ({currency.name})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                )}
-              />
+              <Select
+                value={event.currency || ''}
+                label={t('Currency')}
+                onChange={(e) => handleFieldChange('currency')(e.target.value)}
+              >
+                <MenuItem value="">{t('none')}</MenuItem>
+                {Object.entries(config.app.currencies).map(([key, currency]) => (
+                  <MenuItem key={key} value={key}>
+                    {currency.symbol} ({currency.name})
+                  </MenuItem>
+                ))}
+              </Select>
             </FormControl>
           </Grid>
           <Grid item xs={8} md={6}>
-            <Controller
-              name="baseTicketPrice"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  fullWidth
-                  label={t('Base Ticket Price')}
-                  type="text"
-                  value={(field.value ?? 0).toFixed(2)}
-                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                  required
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start" sx={{ mt: -0.2 }}>
-                        {config.app.currencies[currency || '']?.symbol}
-                      </InputAdornment>
-                    ),
-                  }}
-                  inputProps={{ min: 0, step: 1 }}
-                  disabled={!currency}
-                />
-              )}
+            <TextField
+              fullWidth
+              label={t('Base Ticket Price')}
+              type="text"
+              value={(event.baseTicketPrice ?? 0).toFixed(2)}
+              onChange={(e) => {
+                const num = parseFloat(e.target.value) || 0;
+                handleFieldChange('baseTicketPrice')(num);
+              }}
+              required
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ mt: -0.2 }}>
+                    {config.app.currencies[event.currency || '']?.symbol}
+                  </InputAdornment>
+                ),
+              }}
+              inputProps={{ min: 0, step: 1 }}
+              disabled={!event.currency}
             />
           </Grid>
 
@@ -668,10 +575,11 @@ const EventEdit: React.FC = () => {
           </Grid>
           <Grid item xs={6} md={3}>
             <TextField
-              {...register('minimumAge', { valueAsNumber: true })}
               fullWidth
               label={t('Minimum Age')}
               type="number"
+              value={event.minimumAge ?? 0}
+              onChange={(e) => handleFieldChange('minimumAge')(parseInt(e.target.value) || 0)}
               inputProps={{ min: 0 }}
             />
           </Grid>
@@ -679,40 +587,36 @@ const EventEdit: React.FC = () => {
 
           {/* Poster Image */}
           <Grid item xs={12} md={9}>
-            <Controller
-              name="posterImage"
-              control={control}
-              render={({ field }) => (
-                <ImageUploadSection
-                  label={t('Poster Image')}
-                  imageFilename={field.value ?? null}
-                  onUploadClick={() => setIsImageUploadPopupOpen(true)}
-                  onClearClick={() => {
-                    if (field.value) {
-                      imageApi.delete(field.value).catch(() => {});
-                    }
-                    field.onChange(null);
-                  }}
-                />
-              )}
+            <ImageUploadSection
+              label={t('Poster Image')}
+              imageFilename={event.posterImage ?? null}
+              onUploadClick={() => setIsImageUploadPopupOpen(true)}
+              onClearClick={() => {
+                if (event.posterImage) {
+                  imageApi.delete(event.posterImage).catch(() => {});
+                }
+                handleFieldChange('posterImage')(null);
+              }}
             />
           </Grid>
           {isAtLeastMd && <Grid item xs={12} md={9} />}
 
           <Grid item xs={12}>
             <TextField
-              {...register('specialRequirements')}
               fullWidth
               label={t('Special Requirements')}
+              value={event.specialRequirements || ''}
+              onChange={(e) => handleFieldChange('specialRequirements')(e.target.value)}
               multiline
               rows={2}
             />
           </Grid>
           <Grid item xs={12}>
             <TextField
-              {...register('contentWarnings')}
               fullWidth
               label={t('Content Warnings')}
+              value={event.contentWarnings || ''}
+              onChange={(e) => handleFieldChange('contentWarnings')(e.target.value)}
               multiline
               rows={2}
             />
@@ -721,29 +625,21 @@ const EventEdit: React.FC = () => {
           {/* Cancel event (edit mode only) */}
           {isEditMode && (
             <Grid item xs={12}>
-              <Controller
-                name="canceled"
-                control={control}
-                render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={field.value === 1}
-                        onChange={(e) => field.onChange(e.target.checked ? 1 : 0)}
-                      />
-                    }
-                    label={t('Cancel event')}
-                  />
-                )}
+              <FormControlLabel
+                control={
+                  <Switch checked={event.canceled === 1} onChange={handleCanceledToggle} />
+                }
+                label={t('Cancel event')}
               />
             </Grid>
           )}
-          {canceled === 1 && (
+          {event.canceled === 1 && (
             <Grid item xs={12}>
               <TextField
-                {...register('cancelationReason')}
                 fullWidth
                 label={t('Cancelation reason')}
+                value={event.cancelationReason || ''}
+                onChange={(e) => handleFieldChange('cancelationReason')(e.target.value)}
               />
             </Grid>
           )}
@@ -751,11 +647,11 @@ const EventEdit: React.FC = () => {
 
         {/* Action Buttons */}
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 4 }}>
-          <Button variant="outlined" onClick={() => navigate(-1)} disabled={isSubmitting}>
+          <Button variant="outlined" onClick={() => navigate(-1)} disabled={saving}>
             {t('Cancel')}
           </Button>
-          <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={isSubmitting}>
-            {isSubmitting
+          <Button variant="contained" startIcon={<SaveIcon />} onClick={handleSave} disabled={saving}>
+            {saving
               ? isEditMode
                 ? t('Updating...')
                 : t('Creating...')
@@ -771,7 +667,7 @@ const EventEdit: React.FC = () => {
         open={isImageUploadPopupOpen}
         onClose={() => setIsImageUploadPopupOpen(false)}
         onSave={(filename) => {
-          setValue('posterImage', filename, { shouldDirty: true });
+          handleFieldChange('posterImage')(filename);
         }}
         imageType="poster"
         simpleMode={false}

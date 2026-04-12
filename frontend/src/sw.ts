@@ -141,7 +141,7 @@ registerRoute(
   })
 );
 
-// 5b. Profile endpoint, always fresh, never stale
+// 5b. User edit endpoint, always fresh, never stale
 registerRoute(
   ({ url }) => /\/api\/v\d+\/users\/profile/.test(url.pathname),
   new NetworkOnly()
