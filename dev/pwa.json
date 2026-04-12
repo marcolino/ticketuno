@@ -6,7 +6,7 @@
   "codename": "ticketuno",
   "lang": "it",
   "themeColor": "#6750A4",
-  "backgroundColor": "#6750A4",
+  "backgroundColor": "#ffffff",
   "display": "standalone",
   "orientation": "any",
   "_orientation": "NOTE 'natural' should be the the best option here, but PWA can't reliably read the system lock status...",
