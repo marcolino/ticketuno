@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+//import { useTheme } from '@mui/material/styles';
 import { useMediaQuery, useTheme } from '@mui/material';
 import {
   Box,
@@ -134,15 +135,6 @@ const PlusIcon = () => (
   </svg>
 );
 
-/** PencilIcon — inline, used for the inline-edit trigger */
-const PencilIcon = () => (
-  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-  </svg>
-);
-
 /**
  * RemoveButton — a small circular icon-button.
  * Uses error color on hover via inline calculation (no Chip, no IconButton).
@@ -177,81 +169,10 @@ function RemoveButton({ onClick, label }) {
 }
 
 /**
- * EditButton — a small circular icon-button for triggering inline name edit.
- * Uses primary color on hover, mirroring RemoveButton's style.
- */
-function EditButton({ onClick, label }) {
-  const { palette } = useTheme();
-  const primaryColor = palette.primary.main;
-  return (
-    <Box
-      component="button"
-      onClick={onClick}
-      aria-label={label ?? "Edit"}
-      sx={{
-        display: "flex", alignItems: "center", justifyContent: "center",
-        width: 24, height: 24, p: 0,
-        border: "none", borderRadius: "50%",
-        bgcolor: "transparent",
-        color: "text.disabled",
-        cursor: "pointer",
-        flexShrink: 0,
-        fontFamily: "inherit",
-        transition: "color 150ms, background 150ms",
-        "&:hover": {
-          color: primaryColor,
-          bgcolor: `${primaryColor}14`,   // primary @ ~8%
-        },
-      }}
-    >
-      <PencilIcon />
-    </Box>
-  );
-}
-
-/**
  * CastRow — one cast entry: role badge + name + remove button.
  * Entirely custom — no MUI ListItem, no MUI Chip.
- *
- * When `onRename` is provided, the actor name is editable inline:
- * click the pencil icon to enter edit mode, confirm with Enter or blur,
- * cancel with Escape. The role is not editable from this row.
  */
-function CastRow({ role, name, onRemove, onRename }: {
-  role: string;
-  name: string;
-  onRemove: () => void;
-  onRename?: (newName: string) => void;
-}) {
-  const [editing, setEditing]   = useState(false);
-  const [draft,   setDraft]     = useState(name);
-
-  const startEdit = () => {
-    setDraft(name);
-    setEditing(true);
-  };
-
-  const confirmEdit = () => {
-    const trimmed = draft.trim();
-    if (trimmed && trimmed !== name) {
-      onRename?.(trimmed);
-    } else {
-      // restore draft to committed name if empty or unchanged
-      setDraft(name);
-    }
-    setEditing(false);
-  };
-
-  const cancelEdit = () => {
-    setDraft(name);
-    setEditing(false);
-  };
-
-  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (e.key === 'Enter')  { e.preventDefault(); confirmEdit(); }
-    if (e.key === 'Escape') { e.preventDefault(); cancelEdit();  }
-  };
-
+function CastRow({ role, name, onRemove }) {
   return (
     <Box
       sx={{
@@ -262,45 +183,26 @@ function CastRow({ role, name, onRemove, onRename }: {
         py: 0.875,
         borderRadius: 1.5,
         border: "1px solid",
-        borderColor: editing ? "primary.main" : "divider",
+        borderColor: "divider",
         bgcolor: "background.paper",
         transition: "border-color 150ms, background 150ms",
-        "&:hover": { borderColor: editing ? "primary.main" : "primary.light", bgcolor: "action.hover" },
+        "&:hover": { borderColor: "primary.light", bgcolor: "action.hover" },
       }}
     >
       <RoleTag label={role} />
-
-      {editing ? (
-        <NameInput
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={handleKeyDown}
-          inputRef={(el) => el?.focus()}
-          // confirm on blur so clicking away outside also saves
-          // (wrapped in setTimeout to let Escape's cancelEdit fire first)
-          {...{ onBlur: () => setTimeout(confirmEdit, 120) } as any}
-        />
-      ) : (
-        <Typography
-          sx={{
-            flex: 1,
-            fontSize: "0.9rem",
-            fontWeight: 500,
-            color: "text.primary",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {name}
-        </Typography>
-      )}
-
-      {/* Edit button — only shown when onRename is provided and not already editing */}
-      {onRename && !editing && (
-        <EditButton onClick={startEdit} label={`Edit ${name}`} />
-      )}
-
+      <Typography
+        sx={{
+          flex: 1,
+          fontSize: "0.9rem",
+          fontWeight: 500,
+          color: "text.primary",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {name}
+      </Typography>
       <RemoveButton onClick={onRemove} label={`Remove ${name}`} />
     </Box>
   );
@@ -371,9 +273,6 @@ export function CastEditor({
 
   const handleRemove = (i) => commit(cast.filter((_, idx) => idx !== i));
 
-  const handleRename = (i, newName) =>
-    commit(cast.map((entry, idx) => (idx === i ? { ...entry, name: newName } : entry)));
-
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') handleAdd();
   };
@@ -403,7 +302,6 @@ export function CastEditor({
               role={entry.role}
               name={entry.name}
               onRemove={() => handleRemove(i)}
-              onRename={(newName) => handleRename(i, newName)}
             />
           ))}
         </Box>
@@ -640,3 +538,81 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
     </Box>
   );
 }
+
+/*
+// ══════════════════════════════════════════════════════════════════════════════
+//  DEMO
+// ══════════════════════════════════════════════════════════════════════════════
+const demoTheme = createTheme({
+  palette: {
+    primary: { main: "#4F46E5" },
+    background: { default: "#F5F3FF", paper: "#FFFFFF" },
+  },
+  shape: { borderRadius: 8 },
+});
+
+export default function App() {
+  const [cast, setCast] = useState([
+    { role: 'Director',    name: 'Sofia Voss' },
+    { role: 'Lead Actor',  name: 'Marcus Reill' },
+  ]);
+
+  return (
+    <ThemeProvider theme={demoTheme}>
+      <Box sx={{
+        minHeight: "100vh", bgcolor: "background.default",
+        display: "flex", alignItems: "center", justifyContent: "center", p: 4,
+      }}>
+        <Box sx={{
+          width: 480, bgcolor: "background.paper",
+          borderRadius: 3, border: "1px solid", borderColor: "divider",
+          boxShadow: "0 4px 24px rgba(0,0,0,0.07)",
+          overflow: "hidden",
+        }}>
+          {/* Header * /}
+          <Box sx={{ px: 3, pt: 3, pb: 2, borderBottom: "1px solid", borderColor: "divider" }}>
+            <Typography sx={{ fontSize: "1.1rem", fontWeight: 700, color: "text.primary", letterSpacing: "-0.01em" }}>
+              🎭 A Midsummer Night's Dream
+            </Typography>
+            <Typography sx={{ fontSize: "0.82rem", color: "text.secondary", mt: 0.25 }}>
+              Edit event · Cast
+            </Typography>
+          </Box>
+
+          {/* Body * /}
+          <Box sx={{ px: 3, py: 2.5 }}>
+            <CastEditor
+              value={cast}
+              onChange={setCast}
+            />
+          </Box>
+
+          {/* Footer — live output * /}
+          {cast.length > 0 && (
+            <Box sx={{
+              px: 3, py: 2,
+              borderTop: "1px solid", borderColor: "divider",
+              bgcolor: "action.hover",
+            }}>
+              <Typography sx={{ fontSize: "0.67rem", fontWeight: 700, letterSpacing: "0.07em",
+                textTransform: "uppercase", color: "text.disabled", mb: 0.75 }}>
+                onChange value
+              </Typography>
+              <Typography
+                component="pre"
+                sx={{
+                  m: 0, fontSize: "0.72rem", lineHeight: 1.7,
+                  color: "text.secondary", fontFamily: "monospace",
+                  whiteSpace: "pre-wrap", wordBreak: "break-word",
+                }}
+              >
+                {JSON.stringify(cast, null, 2)}
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
+    </ThemeProvider>
+  );
+}
+*/
