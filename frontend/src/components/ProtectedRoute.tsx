@@ -1,11 +1,8 @@
-// components/ProtectedRoute.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
-// import { Box, AlertTitle, Button/*, CircularProgress*/ } from '@mui/material';
-// import Alert from './Alert';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

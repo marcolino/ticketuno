@@ -615,7 +615,7 @@ class Database {
   async canDeleteUsers(ids: string[], actorRole: Role): Promise<boolean> {
     // Roles that are NOT allowed (level >= actorRole)
     const actorIndex = ROLES.indexOf(actorRole);
-    const forbiddenRoles = ROLES.slice(actorIndex); // e.g. ['operator','admin'] if actor is operator
+    const forbiddenRoles = ROLES.slice(actorIndex + 1); // excludes actor's own role; e.g. ['admin'] if actor is operator
 
     const placeholders = ids.map(() => '?').join(',');
     const row = await getQuery(this.db, `

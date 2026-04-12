@@ -1,38 +1,55 @@
-import { Badge, Tooltip } from '@mui/material';
-import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useState, useEffect } from 'react';
+import { Tooltip, Box } from '@mui/material';
+import WifiIcon from '@mui/icons-material/Wifi';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
 
-const OnlineStatus = () => {
-  const isOnline = useOnlineStatus();
+interface OnlineStatusProps {
+  isOnline?: boolean; // If we get it as prop, otherwise manage internally
+}
+
+const OnlineStatus = ({ isOnline: propIsOnline }: OnlineStatusProps) => {
+  const [internalIsOnline, setInternalIsOnline] = useState(
+    typeof navigator !== 'undefined' ? navigator.onLine : true
+  );
+
+  // Use prop if provided, otherwise internal state
+  const isOnline = propIsOnline !== undefined ? propIsOnline : internalIsOnline;
+
+  useEffect(() => {
+    // Only listen to online/offline events if prop is NOT provided
+    if (propIsOnline !== undefined) return;
+
+    const handleOnline = () => setInternalIsOnline(true);
+    const handleOffline = () => setInternalIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [propIsOnline]);
+
   return (
     <Tooltip title={isOnline ? 'Online' : 'Offline'}>
-      <Badge
-        variant="dot"
-        color={isOnline ? 'success' : 'error'}
-        sx={{ '& .MuiBadge-dot': { width: 10, height: 10, borderRadius: '50%' } }}
-      />
+      <Box
+        component="span"
+        sx={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          verticalAlign: 'middle', // fallback for older browsers
+          mb: 0.2
+        }}
+      >
+        {isOnline ? (
+          <WifiIcon fontSize="small" sx={{ color: 'success.main' }} />
+        ) : (
+          <WifiOffIcon fontSize="small" sx={{ color: 'error.main' }} />
+        )}
+      </Box>
     </Tooltip>
   );
 }
 
 export default OnlineStatus;
-
-// import { useOnlineStatus } from '@/hooks/useOnlineStatus';
-// import { Chip } from '@mui/material';
-// import { WifiOff, Wifi } from '@mui/icons-material';
-
-// const OnlineStatusChip = () => {
-//   const isOnline = useOnlineStatus();
-
-//   return (
-//     <Chip
-//       icon={isOnline ? <Wifi /> : <WifiOff />}
-//       label={isOnline ? 'Online' : 'Offline'}
-//       color={isOnline ? 'success' : 'error'}
-//       size="small"
-//       variant="outlined"
-//       sx={{padding: -5}}
-//     />
-//   );
-// };
-
-// export default OnlineStatusChip;

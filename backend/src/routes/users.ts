@@ -653,7 +653,7 @@ router.delete('/', authenticateToken, requireOperator, async (req: AuthRequest, 
     }
     const canDelete = await database.canDeleteUsers(ids, user.role);
     if (!canDelete) {
-      return res.status(403).json({ error: req.t('Cannot delete: some users have equal/higher role or do not exist') });
+      return res.status(403).json({ error: req.t('Cannot delete: some users have higher role or do not exist') });
     }
     
     const result = await database.deleteUsers(ids);

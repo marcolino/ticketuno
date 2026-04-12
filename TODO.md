@@ -122,4 +122,5 @@ common:
  2 -    - implement a mailing system to send bulk emails to a list of users, with variables
  3 -    - find if and where to suggest user to open consent dialog to enable missing consent
             (for pushNotifications for example)
+ 3 -    - remove .env, .env.example
  3 -    - implement tests
