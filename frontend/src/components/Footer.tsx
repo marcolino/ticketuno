@@ -67,11 +67,12 @@ function Footer({ children }: FooterProps) {
                 onClick={async () => await showDialog({
                   title: t('Terms of Service'),
                   content: <iframe src="/terms?embed=1" title="Terms of Service" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />,
-                  showCloseIcon : true,
+                  showCloseIcon: true,
                   shrinkToContent: false,
                   paperSx: { width: { xs: '90vw', sm: '50vw' }, maxWidth: '90vw', height: '90%' },
                 })}
                 underline="always"
+                sx={{ mb: 0.3 }}
               >
                 {t('Terms')}
               </Link>
@@ -86,6 +87,7 @@ function Footer({ children }: FooterProps) {
                   paperSx: { width: { xs: '90vw', sm: '50vw' }, maxWidth: '90vw',  height: '90%' },
                 })}
                 underline="always"
+                sx={{ mb: 0.3 }}  
               >
                 {t('Privacy')}
               </Link>
