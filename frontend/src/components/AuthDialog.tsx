@@ -18,13 +18,14 @@ import {
   LockPerson,
   Visibility,
   VisibilityOff,
-  Google as GoogleIcon,
+  //Google as GoogleIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
+import GoogleIconColored from '@/components/icons/GoogleIconColored';
 import { AuthDialogProps, TabValue } from '@/shared/types/auth';
 
 const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "login" }) => {
@@ -441,13 +442,50 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
             <Button
               fullWidth
               variant="outlined"
-              startIcon={<GoogleIcon />}
+              // startIcon={<GoogleIcon />}
+              // startIcon={<ColoredGoogleIcon />}
+              startIcon={<GoogleIconColored />}
               onClick={handleGoogleLogin}
               disabled={loading}
               size="large"
             >
               {loading ? t('Connecting with Google...') : t('Continue with Google')}
             </Button>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 3 }}>
+              <Typography component="h6" variant="caption" color="textSecondary" align="center">
+                {t('By accessing')} {t('you agree to our')} {' '}
+                <Link
+                  type="button"
+                  component="button"
+                  onClick={async () => await showDialog({
+                    title: t('Terms of Service'),
+                    content: <iframe src="/terms?embed=1" title="Terms of Service" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />,
+                    showCloseIcon : true,
+                    shrinkToContent: false,
+                    paperSx: { width: { xs: '90vw', sm: '50vw' }, maxWidth: '90vw', height: '90%' },
+                  })}
+                  underline="always"
+                >
+                  {t('Terms of Service')}
+                </Link>{' '}
+                {t('and')} {' '}
+                <Link
+                  type="button"
+                  component="button"
+                  onClick={async () => await showDialog({
+                    title: t('Privacy Policy'),
+                    content: <iframe src="/privacy?embed=1" title="PrivacyPolicy" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />,
+                    showCloseIcon : true,
+                    paperSx: { width: { xs: '90vw', sm: '50vw' }, maxWidth: '90vw',  height: '90%' },
+                  })}
+                  underline="always"
+                >
+                  {t('Privacy Policy')}
+                </Link>
+              </Typography>
+            </Box>
+
           </Box>
         )}
 
@@ -547,14 +585,68 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
               {loading ? t('Registering...') : t('Register')}
             </Button>
 
-            <Link
-              component="button"
-              variant="body2"
-              onClick={() => setTab('login')}
-              sx={{ cursor: 'pointer' }}
-            >
-              {t('Already have an account? Login')}
-            </Link>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Link
+                component="button"
+                variant="body2"
+                onClick={() => setTab('login')}
+                sx={{ cursor: 'pointer' }}
+              >
+                {t('Already have an account? Login')}
+              </Link>
+            </Box>
+
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 3 }}>
+              <Typography component="h6" variant="caption" color="textSecondary" align="center">
+                {t('By signing up')} {t('you agree to our')} {' '}
+                <Link
+                  type="button"
+                  component="button"
+                  onClick={async () => await showDialog({
+                    title: t('Terms of Service'),
+                    content: <iframe src="/terms?embed=1" title="Terms of Service" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />,
+                    showCloseIcon : true,
+                    shrinkToContent: false,
+                    paperSx: { width: { xs: '90vw', sm: '50vw' }, maxWidth: '90vw', height: '90%' },
+                  })}
+                  underline="always"
+                >
+                  {t('Terms of Service')}
+                </Link>{' '}
+                {t('and')} {' '}
+                <Link
+                  type="button"
+                  component="button"
+                  onClick={async () => await showDialog({
+                    title: t('Privacy Policy'),
+                    content: <iframe src="/privacy?embed=1" title="PrivacyPolicy" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />,
+                    showCloseIcon : true,
+                    paperSx: { width: { xs: '90vw', sm: '50vw' }, maxWidth: '90vw',  height: '90%' },
+                  })}
+                  underline="always"
+                >
+                  {t('Privacy Policy')}
+                </Link>
+              </Typography>
+            </Box>
+
+            {/* <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 2 }}>
+              <Typography component="h6" variant="caption" color="textSecondary" align="center">
+                {t("By signing up")} {t("you agree to our")} <Link _href="/terms" color="textPrimary" onCLick="alert('t')" target="_blank" rel="noopener noreferrer" >{t("terms of use")}</Link> {" "}
+                {t("and you confirm you have read our")} <Link href="/privacy" color="textPrimary">{t("privacy policy")}</Link>.
+              </Typography>
+          </Box> */}
+        
+            {/* <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Link
+                component="button"
+                variant="body2"
+                onClick={() => navigate('/privacy')}
+                sx={{ cursor: 'pointer' }}
+              >
+                {t('Privacy')}
+              </Link>
+            </Box> */}
           </Box>
         )}
 

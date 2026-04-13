@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Box, Container, Toolbar } from '@mui/material';
 import type { Breakpoint } from '@mui/material';
+import { isEmbed } from './Header';
 
 interface BodyProps {
   children?: ReactNode;
@@ -10,7 +11,7 @@ interface BodyProps {
 function Body({ children, maxWidth = 'xl' }: BodyProps) {
   return (
     <>
-      <Toolbar /> {/* Spacer */}
+      {!isEmbed && <Toolbar />} {/* compensates for fixed AppBar, if not isEmbed */}
       <Box 
         component="main" 
         sx={{

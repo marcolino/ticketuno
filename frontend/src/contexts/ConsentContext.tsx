@@ -11,13 +11,14 @@ import {
   Checkbox,
   Box,
   Typography,
-  //Paper,
   Tooltip,
+  Link,
 } from '@mui/material';
 import { Close as CloseIcon } from '@mui/icons-material';
 import { userApi } from '@/services/api';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from './AuthContext';
+import { useDialog } from '@/contexts/DialogContext';
 import { FullConsent } from '@/shared/types/consent';
 import config from '@/config';
 
@@ -38,6 +39,7 @@ export const ConsentProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { user, loading } = useAuth();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const showDialog = useDialog();
 
   const version = config.app.consent.version;
 

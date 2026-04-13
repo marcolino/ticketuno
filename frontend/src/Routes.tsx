@@ -1,4 +1,3 @@
-//import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { ProtectedRoute as PR } from './components/ProtectedRoute';
 import RootLayout from './components/RootLayout';
@@ -20,6 +19,8 @@ import ConsentEntry from './components/ConsentEntry';
 import GeneralSetup from './components/GeneralSetup';
 import Maintenance from './components/Maintenance';
 import NotFound from './components/NotFound';
+import PrivacyPage from './pages/PrivacyPage';
+import TermsPage from './pages/TermsPage';
 
 const router = createBrowserRouter(
   [
@@ -31,28 +32,30 @@ const router = createBrowserRouter(
           // Home is the persistent layout shell (nav, drawer, etc.) with <Outlet />
           element: <Home />,
           children: [
-            { index: true,                                                    element: <EventList /> },
-            { path: 'events',                                                 element: <EventList /> },
-            { path: 'event/new',                                              element: <PR requireOperator={true}><EventEdit /></PR> },
-            { path: 'event/:id',                                              element: <PerformanceList /> },
-            { path: 'event/edit/:id',                                         element: <PR requireOperator={true}><EventEdit /></PR> },
-            { path: 'event/:eventId/performance/:performanceId/book',         element: <PerformanceBooking /> },
-            { path: 'theaters',                                               element: <PR requireOperator={true}><TheatersList /></PR> },
-            { path: 'theater/new',                                            element: <PR requireOperator={true}><TheaterEdit /></PR> },
-            { path: 'theater/edit/:id',                                       element: <PR requireOperator={true}><TheaterEdit /></PR> },
-            { path: 'layout/new/:theaterId?',                                 element: <PR requireOperator={true}><LayoutEdit /></PR> },
-            { path: 'layout/edit/:id',                                        element: <PR requireOperator={true}><LayoutEdit /></PR> },
-            { path: 'layouts',                                                element: <PR requireOperator={true}><LayoutList /></PR> },
-            // This is not a protected route because users can handle their own bookings too
-            { path: 'bookings',                                               element: <BookingsList /> },
-            { path: 'booking/validate',                                       element: <BookingValidate /> },
-            { path: 'users',                                                  element: <PR requireOperator={true}><UsersList /></PR> },
-            { path: 'profile/:id?',                                           element: <UserEdit /> }, // TODO: /profile => /user/edit
-            { path: 'unsubscribe/:token/:type?',                              element: <Unsubscribe /> },
-            { path: 'consent/:token/:type?',                                  element: <ConsentEntry /> },
-            { path: 'generalSetup',                                           element: <GeneralSetup /> },
-            { path: 'maintenance',                                            element: <Maintenance /> },
-            { path: '*',                                                      element: <NotFound /> },
+            { index: true, element: <EventList /> },
+            { path: 'events', element: <EventList /> },
+            { path: 'event/new', element: <PR requireOperator={true}><EventEdit /></PR> },
+            { path: 'event/:id', element: <PerformanceList /> },
+            { path: 'event/edit/:id', element: <PR requireOperator={true}><EventEdit /></PR> },
+            { path: 'event/:eventId/performance/:performanceId/book', element: <PerformanceBooking /> },
+            { path: 'theaters', element: <PR requireOperator={true}><TheatersList /></PR> },
+            { path: 'theater/new', element: <PR requireOperator={true}><TheaterEdit /></PR> },
+            { path: 'theater/edit/:id', element: <PR requireOperator={true}><TheaterEdit /></PR> },
+            { path: 'layout/new/:theaterId?', element: <PR requireOperator={true}><LayoutEdit /></PR> },
+            { path: 'layout/edit/:id', element: <PR requireOperator={true}><LayoutEdit /></PR> },
+            { path: 'layouts', element: <PR requireOperator={true}><LayoutList /></PR> },
+            // This route does not require operator role because users can handle their own bookings too
+            { path: 'bookings', element: <PR><BookingsList /></PR> },
+            { path: 'booking/validate', element: <PR requireOperator={true}><BookingValidate /></PR> },
+            { path: 'users', element: <PR requireOperator={true}><UsersList /></PR> },
+            { path: 'user/edit/:id?', element: <UserEdit /> },
+            { path: 'unsubscribe/:token/:type?', element: <Unsubscribe /> },
+            { path: 'consent/:token/:type?', element: <ConsentEntry /> },
+            { path: 'generalSetup', element: <PR requireOperator={true}><GeneralSetup /></PR> },
+            { path: 'maintenance', element: <Maintenance /> },
+            { path: 'privacy', element: <PrivacyPage /> },
+            { path: 'terms', element: <TermsPage /> },
+            { path: '*', element: <NotFound /> },
           ],
         },
       ],

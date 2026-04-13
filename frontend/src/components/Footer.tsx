@@ -5,6 +5,7 @@ import {
   Container,
   Typography,
   IconButton,
+  Link,
 } from '@mui/material';
 import {
   InfoOutlined as InfoOutlinedIcon
@@ -56,9 +57,40 @@ function Footer({ children }: FooterProps) {
         {children || (
           <>
             <Typography variant="body2" align="center" color="text.secondary">
+              
               © {new Date().getFullYear()} {t(config.app.name)}
+
+              {' '}
+              <Link
+                type="button"
+                component="button"
+                onClick={async () => await showDialog({
+                  title: t('Terms of Service'),
+                  content: <iframe src="/terms?embed=1" title="Terms of Service" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />,
+                  showCloseIcon : true,
+                  shrinkToContent: false,
+                  paperSx: { width: { xs: '90vw', sm: '50vw' }, maxWidth: '90vw', height: '90%' },
+                })}
+                underline="always"
+              >
+                {t('Terms')}
+              </Link>
+              {' '}
+              <Link
+                type="button"
+                component="button"
+                onClick={async () => await showDialog({
+                  title: t('Privacy Policy'),
+                  content: <iframe src="/privacy?embed=1" title="PrivacyPolicy" style={{ width: '100%', height: '100%', border: 'none', display: 'block' }} />,
+                  showCloseIcon : true,
+                  paperSx: { width: { xs: '90vw', sm: '50vw' }, maxWidth: '90vw',  height: '90%' },
+                })}
+                underline="always"
+              >
+                {t('Privacy')}
+              </Link>
+
               <IconButton
-               
                 onClick={() =>
                   showDialog({
                     title: t('Version'),
@@ -87,11 +119,10 @@ function Footer({ children }: FooterProps) {
               >
                 <InfoOutlinedIcon sx={{fontSize: 20}} />
               </IconButton>
-              
-              &emsp;
-              
+              {' '}
+
               <OnlineStatus />
-  
+
             </Typography>          
           </>
         )

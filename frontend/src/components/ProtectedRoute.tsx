@@ -98,51 +98,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!isAuthenticated) return null;
   if (requireAdmin && !isAdmin) return null;
 
-  // // Not authenticated
-  // if (!isAuthenticated) {
-  //   return (
-  //     <Alert severity="error">
-  //       <AlertTitle>{t('Access Denied')}</AlertTitle>
-  //       {t('You must be logged in to access this page.')}
-  //       <Box mt={2}>
-  //         <Button variant="contained" color="warning" onClick={() => navigate('/?authMode=login')}>
-  //           {t('Login')}
-  //         </Button>
-  //       </Box>
-  //     </Alert>
-  //   );
-  // }
-
-  // // Admin required but user is not admin
-  // if (requireAdmin && !isAdmin) {
-  //   return (
-  //     <Alert severity="error">
-  //       <AlertTitle>{t('Insufficient Permissions')}</AlertTitle>
-  //         {t('Admin role is required to access this page.')}
-  //       <Box mt={2}>
-  //         <Button variant="contained" onClick={() => navigate('/')}>
-  //           {t('Go to home')}
-  //         </Button>
-  //       </Box>
-  //     </Alert>
-  //   );
-  // }
-
-  // // Operator required but user is not operator
-  // if (requireOperator && !isOperator) {
-  //   return (
-  //     <Alert severity="error">
-  //       <AlertTitle>{t('Insufficient Permissions')}</AlertTitle>
-  //       {t('Operator role required to access this page.')}
-  //       <Box mt={2}>
-  //         <Button variant="contained" onClick={() => navigate('/')}>
-  //           {t('Go to home')}
-  //         </Button>
-  //       </Box>
-  //     </Alert>
-  //   );
-  // }
-
   return <>{children}</>;
 };
 

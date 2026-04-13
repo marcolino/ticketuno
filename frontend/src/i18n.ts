@@ -2,7 +2,6 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import HttpBackend from 'i18next-http-backend';
-//import { getCurrentLanguage } from './services/api';
 import config from '@/config';
 
 i18n
@@ -23,7 +22,6 @@ i18n
     // Load from shared folder via API
     backend: {
       loadPath: `/${config.app.api.prefix}/${config.app.api.version}/locales/{{lng}}/{{ns}}.json`,
-      //addPath: `/${config.app.api.prefix}/${config.app.api.version}/locales/{{lng}}/{{ns}}.missing.json`, // For missing translation
       allowMultiLoading: false,
       requestOptions: {
         cache: 'no-cache'
@@ -33,8 +31,8 @@ i18n
     // Disable missing translation feature
     saveMissing: false,
     
-    ns: ['translation'],
-    defaultNS: 'translation',
+    ns: ['common', 'terms', 'privacy'],
+    defaultNS: 'common',
     
     interpolation: {
       escapeValue: false

@@ -6,21 +6,10 @@
  * Automatically translates missing entries in per-language i18n JSON files
  * using a free AI API.
  *
- * Supported namespace formats
- * ───────────────────────────
- *   flat   — key IS the English string  (e.g. shared/locales/en/translation.json)
- *             t("Hello world") in code
- *   nested — key is a structural path, value is the English text
- *             (e.g. shared/locales/en/privacy.json, terms.json)
- *             Internally flattened to dot-paths for translation, then re-nested.
- *
  * Folder convention:
- *   shared/locales/en/translation.json   ← flat source
- *   shared/locales/en/privacy.json       ← nested source
- *   shared/locales/en/terms.json         ← nested source
- *   shared/locales/it/translation.json   ← may be partial
- *   shared/locales/it/privacy.json       ← may be partial or absent
- *   …
+ *   shared/locales/en/translation.json   ← source (English keys + empty values)
+ *   shared/locales/it/translation.json   ← Italian translations (may be partial)
+ *   shared/locales/fr/translation.json   ← French translations (may be partial)
  *
  * Supported providers (set AI_PROVIDER in backend/.env):
  *   groq       — free, fast, no region restrictions. RECOMMENDED.
@@ -41,26 +30,13 @@ const path = require('path');
 
 loadDotEnv();
 
-// ─── Namespace configuration ──────────────────────────────────────────────────
-//
-// Add an entry here for every i18n file you want to keep in sync.
-//
-//   name   — filename without .json (must exist under shared/locales/en/)
-//   nested — true  → structured JSON (arrays + nested objects); values are the
-//                     English strings. Internally flattened to dot-paths for
-//                     diffing and translation, then re-nested when writing.
-//            false → flat JSON where key === English string (existing behaviour)
-//
-const NAMESPACES = [
-  { name: 'common', nested: false },
-  { name: 'privacy', nested: true  },
-  { name: 'terms', nested: true  },
-];
+// ─── Static configuration ─────────────────────────────────────────────────────
+// Edit these directly — they are project-specific and don't belong in .env.
 
-/** Root directory that contains the per-locale sub-folders */
-const LOCALES_ROOT = 'shared/locales';
+/** Path to the English source file */
+const SOURCE_FILE = 'shared/locales/en/translation.json';
 
-/** Target locale codes — must each have a folder under LOCALES_ROOT */
+/** Target locale codes — must each have a folder under shared/locales/ */
 const TARGET_LOCALES = ['it', 'fr', 'zh'];
 
 // ─── Provider configuration ───────────────────────────────────────────────────
@@ -83,6 +59,7 @@ const PROVIDERS = {
   },
   gemini: {
     label:  'Gemini — gemini-2.0-flash',
+    // URL is built lazily after env is loaded
     url:    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
     model:  'gemini-2.0-flash',
     apiKey: process.env.GEMINI_API_KEY,
@@ -145,96 +122,14 @@ const LOCALE_NAMES = {
 // Value = array of instruction strings in plain English.
 //
 const SEMANTIC_HINTS = {
-  '*':  ['This is a theater booking PWA. Prefer a formal, professional register.'],
+  '*':  ['This is a theater booking app. Prefer a formal, professional register.'],
   'it': [
     'Translate "layout" as "planimetria".',
-    'Translate "Data Controller" as "Titolare del trattamento".',
   ],
   'fr': [
     'Translate "layout" as "agencement du théâtre".',
-    'Translate "Data Controller" as "Responsable du traitement".',
   ],
 };
-
-// ─── Flat ↔ Nested utilities ──────────────────────────────────────────────────
-
-/**
- * Recursively flatten a nested object into dot-path keys.
- * Arrays become numeric segments: sections.intro.paragraphs.0, …
- *
- * Only leaf string/number/boolean values are emitted — never sub-objects or
- * arrays themselves (we don't want to translate structural metadata).
- */
-function flattenObject(obj, prefix = '') {
-  const result = {};
-  const entries = Array.isArray(obj)
-    ? obj.map((v, i) => [String(i), v])
-    : Object.entries(obj);
-
-  for (const [key, value] of entries) {
-    const fullKey = prefix ? `${prefix}.${key}` : key;
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-      result[fullKey] = String(value);
-    } else if (value !== null && typeof value === 'object') {
-      Object.assign(result, flattenObject(value, fullKey));
-    }
-    // null / undefined → skip
-  }
-  return result;
-}
-
-/**
- * Reconstruct a nested object from dot-path keys.
- *
- * Numeric path segments → array indices.
- * A node is treated as an array iff ALL its direct children keys are integers.
- */
-function unflattenObject(flat) {
-  // Use a plain Map as our tree to preserve insertion order
-  const root = {};
-
-  for (const [flatKey, value] of Object.entries(flat)) {
-    const parts = flatKey.split('.');
-    let node = root;
-
-    for (let i = 0; i < parts.length - 1; i++) {
-      const part     = parts[i];
-      const nextPart = parts[i + 1];
-      const nextNum  = /^\d+$/.test(nextPart);
-
-      if (node[part] === undefined) {
-        node[part] = nextNum ? [] : {};
-      }
-      node = node[part];
-    }
-
-    const last = parts[parts.length - 1];
-    if (Array.isArray(node)) {
-      node[parseInt(last, 10)] = value;
-    } else {
-      node[last] = value;
-    }
-  }
-
-  return root;
-}
-
-/**
- * Deep-merge `patch` (a flat translation result, already unflattened) into
- * `base` (the existing target nested object).  Arrays are replaced wholesale
- * (never partially merged), objects are merged recursively.
- */
-function deepMerge(base, patch) {
-  if (typeof base !== 'object' || base === null) return patch;
-  if (typeof patch !== 'object' || patch === null) return patch;
-  if (Array.isArray(patch)) return patch;
-
-  const result = { ...base };
-  for (const [key, val] of Object.entries(patch)) {
-    result[key] = deepMerge(base[key], val);
-  }
-  return result;
-}
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -261,26 +156,24 @@ function readJSON(filePath) {
 }
 
 /**
- * Write a JSON file.
- * flat=true  → sort keys alphabetically (consistent with existing flat files)
- * flat=false → preserve structural order (nested files)
+ * Write a JSON file, keys sorted ascending-alphabetically
  */
-function writeJSON(filePath, obj, flat = true) {
+function writeJSON(filePath, obj) {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  const data = flat
-    ? Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b)))
-    : obj;
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+  const sorted = Object.fromEntries(
+    Object.entries(obj).sort(([a], [b]) => a.localeCompare(b))
+  );
+  fs.writeFileSync(filePath, JSON.stringify(sorted, null, 2) + '\n', 'utf8');
 }
 
 /**
  * Back up a file by inserting a timestamp before the final extension.
- *   translation.json  →  old/translation.2025-03-10.14-32-07.json
+ *   translation.json  →  translation.2025-03-10.14-32-07.json
  */
 function backupFile(filePath) {
   if (!fs.existsSync(filePath)) return;
-  const dir = path.join(path.dirname(filePath), 'old');
-  const base = path.basename(filePath, '.json');
+  const dir    = path.dirname(filePath);
+  const base   = path.basename(filePath, '.json');
   const backup = path.join(dir, `${base}.${timestamp()}.json`);
   fs.copyFileSync(filePath, backup);
   console.log(`    🗄️  Backed up → ${backup}`);
@@ -344,17 +237,8 @@ function buildHintsBlock(locales) {
  * Build a translation prompt for a batch of keys.
  * missingByLocale: { locale: { key: englishValue, ... }, ... }
  *   — already filtered to only the keys in this batch.
- *
- * For nested namespaces the keys are dot-paths (e.g. "sections.intro.title");
- * for flat namespaces they are the English strings themselves. In both cases
- * the model receives { key: englishValue } and must return { key: translation }.
  */
-function buildPrompt(missingByLocale, nsName) {
-  const isLegal = ['privacy', 'terms'].includes(nsName);
-  const nsHint  = isLegal
-    ? `\nNAMESPACE: "${nsName}" — these are legal page strings (Privacy Policy / Terms of Service).\n`
-    : '';
-
+function buildPrompt(missingByLocale) {
   const targets = Object.entries(missingByLocale)
     .map(([locale, entries]) => {
       const langName = LOCALE_NAMES[locale] || locale;
@@ -379,7 +263,7 @@ function buildPrompt(missingByLocale, nsName) {
     .join('\n');
 
   return `You are a professional software localisation translator.
-${nsHint}
+
 Translate the JSON strings below into the following languages:
 ${targets}
 
@@ -444,11 +328,12 @@ async function callProvider(prompt) {
     }
 
     if (res.status === 429 && attempt < MAX_RETRIES) {
+      // Use the provider-suggested delay if present (Gemini includes it), else exponential backoff
       let waitSec = Math.pow(2, attempt) * 15;  // 15s → 30s → 60s → 120s
       const retryInfo = data?.error?.details?.find(d => d['@type']?.includes('RetryInfo'));
       if (retryInfo?.retryDelay) {
         const suggested = parseInt(retryInfo.retryDelay, 10);
-        if (!isNaN(suggested)) waitSec = suggested + 2;
+        if (!isNaN(suggested)) waitSec = suggested + 2;  // +2s buffer
       }
       process.stdout.write(`    ⏳  Rate limited. Waiting ${waitSec}s then retrying (${attempt}/${MAX_RETRIES - 1})… `);
       await sleep(waitSec * 1000);
@@ -476,6 +361,7 @@ function parseResponse(raw) {
   while ((match = headerRe.exec(raw)) !== null) {
     const langLabel = match[1].trim();
     let   chunk     = match[2].trim();
+    // Strip accidental markdown fences
     chunk = chunk.replace(/^```[a-z]*\n?/, '').replace(/\n?```$/, '').trim();
     try {
       result[langLabel] = JSON.parse(chunk);
@@ -490,145 +376,6 @@ function parseResponse(raw) {
 /** Map a full language name back to its locale code */
 function langNameToLocale(langName) {
   return Object.entries(LOCALE_NAMES).find(([, name]) => name === langName)?.[0] ?? null;
-}
-
-// ─── Per-namespace translation ────────────────────────────────────────────────
-
-/**
- * Translate all missing strings for a single namespace across all target locales.
- *
- * For flat namespaces  → keys ARE the English strings; existing behaviour.
- * For nested namespaces → objects are flattened to dot-paths for diffing +
- *   translation, then unflattened and deep-merged back before writing.
- */
-async function translateNamespace(ns, provider) {
-  const { name: nsName, nested } = ns;
-  const sourceFile = path.join(LOCALES_ROOT, 'en', `${nsName}.json`);
-
-  if (!fs.existsSync(sourceFile)) {
-    console.warn(`  ⚠️  Source not found, skipping: ${sourceFile}`);
-    return;
-  }
-
-  const rawSource    = readJSON(sourceFile);
-  // For nested files we work on the flat representation internally
-  const flatSource   = nested ? flattenObject(rawSource) : rawSource;
-  const sourceCount  = Object.keys(flatSource).length;
-
-  console.log(`\n  📄  [${nsName}] — ${sourceCount} translatable string(s)`);
-
-  // ── Determine missing strings per locale ────────────────────────────────
-  const localeFiles     = {};  // locale → file path
-  const localeExisting  = {};  // locale → existing raw object (nested or flat)
-  const localeExistFlat = {};  // locale → existing flat object
-  const missingByLocale = {};  // locale → { flatKey: englishValue, ... }
-
-  for (const locale of TARGET_LOCALES) {
-    const langName = LOCALE_NAMES[locale];
-    const filePath = path.join(LOCALES_ROOT, locale, `${nsName}.json`);
-    localeFiles[locale]     = filePath;
-    localeExisting[locale]  = readJSON(filePath);
-    localeExistFlat[locale] = nested ? flattenObject(localeExisting[locale]) : localeExisting[locale];
-
-    const missing = findMissing(flatSource, localeExistFlat[locale]);
-    const count   = Object.keys(missing).length;
-    console.log(`      ${langName} (${locale}): ${count} missing / ${sourceCount} total`);
-    if (count > 0) missingByLocale[locale] = missing;
-  }
-
-  if (Object.keys(missingByLocale).length === 0) {
-    console.log('      ✅  All translations up to date.');
-    return;
-  }
-
-  // ── Build + run batches ─────────────────────────────────────────────────
-  const allMissingKeys = [...new Set(
-    Object.values(missingByLocale).flatMap(e => Object.keys(e))
-  )];
-  const keyBatches  = chunkObject(
-    Object.fromEntries(allMissingKeys.map(k => [k, flatSource[k]])),
-    BATCH_SIZE
-  );
-  const totalBatches = keyBatches.length;
-
-  console.log(`\n      📦  ${allMissingKeys.length} unique string(s) across ${Object.keys(missingByLocale).length} language(s), ${totalBatches} batch(es)\n`);
-
-  // accumulated flat translations per language name, across all batches
-  const accumulated = {};  // langName → { flatKey: translatedValue, ... }
-
-  for (let i = 0; i < keyBatches.length; i++) {
-    const batchKeys = Object.keys(keyBatches[i]);
-    process.stdout.write(`      ⏳  Batch ${i + 1}/${totalBatches} — ${batchKeys.length} key(s)… `);
-
-    const batchMissing = {};
-    for (const [locale, missing] of Object.entries(missingByLocale)) {
-      const subset = Object.fromEntries(
-        batchKeys.filter(k => k in missing).map(k => [k, missing[k]])
-      );
-      if (Object.keys(subset).length > 0) batchMissing[locale] = subset;
-    }
-    if (Object.keys(batchMissing).length === 0) {
-      console.log('(skipped)');
-      continue;
-    }
-
-    let raw;
-    try {
-      raw = await callProvider(buildPrompt(batchMissing, nsName));
-    } catch (err) {
-      console.error(`\n      ❌  API call failed on batch ${i + 1}: ${err.message}`);
-      console.error('          Aborting namespace — no files written for this namespace.');
-      return;
-    }
-
-    if (!raw.trim()) {
-      console.log('⚠️  empty response, skipping.');
-      continue;
-    }
-
-    const parsed = parseResponse(raw);
-    for (const [langName, translations] of Object.entries(parsed)) {
-      accumulated[langName] = { ...(accumulated[langName] ?? {}), ...translations };
-    }
-
-    const summary = Object.keys(parsed)
-      .map(l => `${l} +${Object.keys(parsed[l]).length}`)
-      .join(', ');
-    console.log(`✓  (${summary})`);
-
-    if (i < keyBatches.length - 1) await sleep(2000);
-  }
-
-  // ── Merge & write ───────────────────────────────────────────────────────
-  console.log(`\n      💾  Writing files for [${nsName}]…`);
-
-  for (const [langName, flatTranslations] of Object.entries(accumulated)) {
-    const locale = langNameToLocale(langName);
-    if (!locale || !missingByLocale[locale]) {
-      console.warn(`      ⚠️  Unexpected language "${langName}" in response — skipping.`);
-      continue;
-    }
-
-    let merged;
-    if (nested) {
-      // Merge the new flat translations with existing flat, then unflatten
-      const mergedFlat = { ...localeExistFlat[locale], ...flatTranslations };
-      const unflat     = unflattenObject(mergedFlat);
-      merged           = deepMerge(localeExisting[locale], unflat);
-    } else {
-      merged = { ...localeExisting[locale], ...flatTranslations };
-    }
-
-    backupFile(localeFiles[locale]);
-    writeJSON(localeFiles[locale], merged, /* flat sort */ !nested);
-    console.log(`      ✅  ${langName} (${locale}): +${Object.keys(flatTranslations).length} string(s) → ${localeFiles[locale]}`);
-  }
-
-  for (const locale of Object.keys(missingByLocale)) {
-    if (!accumulated[LOCALE_NAMES[locale]]) {
-      console.warn(`      ⚠️  No translations received for ${LOCALE_NAMES[locale]} (${locale}). Re-run to retry.`);
-    }
-  }
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -648,24 +395,139 @@ async function main() {
     process.exit(1);
   }
 
+  // ── Validate source ───────────────────────────────────────────────────────
+  if (!fs.existsSync(SOURCE_FILE)) {
+    console.error(`❌  Source file not found: ${SOURCE_FILE}`);
+    process.exit(1);
+  }
   const unknownLocales = TARGET_LOCALES.filter(l => !LOCALE_NAMES[l]);
   if (unknownLocales.length) {
     console.error(`❌  Unknown locale code(s): ${unknownLocales.join(', ')} — add them to LOCALE_NAMES.`);
     process.exit(1);
   }
 
-  console.log(`\n🤖  Provider: ${provider.label}`);
-  console.log(`🌐  Target locales: ${TARGET_LOCALES.map(l => `${l} (${LOCALE_NAMES[l]})`).join(', ')}`);
-  console.log(`📁  Namespaces: ${NAMESPACES.map(ns => `${ns.name} [${ns.nested ? 'nested' : 'flat'}]`).join(', ')}\n`);
+  // ── Load source ───────────────────────────────────────────────────────────
+  const source      = readJSON(SOURCE_FILE);
+  const sourceCount = Object.keys(source).length;
+  console.log(`\n📂  Source: ${SOURCE_FILE}  (${sourceCount} keys)`);
+  console.log(`🤖  Provider: ${provider.label}\n`);
 
-  // Process each namespace independently
-  for (const ns of NAMESPACES) {
-    await translateNamespace(ns, provider);
-    // Small pause between namespaces to stay clear of rate limits
-    await sleep(1000);
+  // ── Determine missing strings per locale ──────────────────────────────────
+  const localeFiles     = {};  // locale → file path
+  const localeExisting  = {};  // locale → existing translations object
+  const missingByLocale = {};  // locale → { key: englishValue, ... }
+
+  for (const locale of TARGET_LOCALES) {
+    const langName = LOCALE_NAMES[locale];
+    const filePath = path.join(
+      path.dirname(path.dirname(SOURCE_FILE)), locale, 'translation.json'
+    );
+    localeFiles[locale]    = filePath;
+    localeExisting[locale] = readJSON(filePath);
+
+    const missing = findMissing(source, localeExisting[locale]);
+    const count   = Object.keys(missing).length;
+    console.log(`    ${langName} (${locale}): ${count} missing / ${sourceCount} total`);
+    if (count > 0) missingByLocale[locale] = missing;
   }
 
-  console.log('\n✅  All namespaces processed.\n');
+  const totalMissing = Object.values(missingByLocale)
+    .reduce((n, e) => n + Object.keys(e).length, 0);
+
+  if (totalMissing === 0) {
+    console.log('\n✅  All translations are up to date. Nothing to do.');
+    return;
+  }
+
+  // ── Build batches ─────────────────────────────────────────────────────────
+  //
+  // We batch by the union of all missing keys across locales, so each API
+  // call always translates the same keys into all target languages at once.
+  // This minimises total calls while keeping prompts within token limits.
+  //
+  const allMissingKeys = [...new Set(
+    Object.values(missingByLocale).flatMap(e => Object.keys(e))
+  )];
+  const keyBatches  = chunkObject(
+    Object.fromEntries(allMissingKeys.map(k => [k, source[k]])),
+    BATCH_SIZE
+  );
+  const totalBatches = keyBatches.length;
+
+  console.log(`\n📦  ${totalMissing} string(s) across ${Object.keys(missingByLocale).length} language(s)`);
+  console.log(`    Split into ${totalBatches} batch(es) of up to ${BATCH_SIZE} keys.\n`);
+
+  // Accumulated translations per language name, merged across all batches
+  const accumulated = {};  // langName → { key: translatedValue, ... }
+
+  for (let i = 0; i < keyBatches.length; i++) {
+    const batchKeys = Object.keys(keyBatches[i]);
+    process.stdout.write(`  ⏳  Batch ${i + 1}/${totalBatches} — ${batchKeys.length} key(s)… `);
+
+    // Narrow missingByLocale to only the keys in this batch
+    const batchMissing = {};
+    for (const [locale, missing] of Object.entries(missingByLocale)) {
+      const subset = Object.fromEntries(
+        batchKeys.filter(k => k in missing).map(k => [k, missing[k]])
+      );
+      if (Object.keys(subset).length > 0) batchMissing[locale] = subset;
+    }
+    if (Object.keys(batchMissing).length === 0) {
+      console.log('(skipped — all keys already translated for every locale)');
+      continue;
+    }
+
+    let raw;
+    try {
+      raw = await callProvider(buildPrompt(batchMissing));
+    } catch (err) {
+      console.error(`\n❌  API call failed on batch ${i + 1}: ${err.message}`);
+      console.error('    Aborting — no files have been written yet.');
+      process.exit(1);
+    }
+
+    if (!raw.trim()) {
+      console.log('⚠️  empty response, skipping.');
+      continue;
+    }
+
+    const parsed = parseResponse(raw);
+    for (const [langName, translations] of Object.entries(parsed)) {
+      accumulated[langName] = { ...(accumulated[langName] ?? {}), ...translations };
+    }
+
+    const summary = Object.keys(parsed)
+      .map(l => `${l} +${Object.keys(parsed[l]).length}`)
+      .join(', ');
+    console.log(`✓  (${summary})`);
+
+    // Small pause between batches to stay clear of per-minute rate caps
+    if (i < keyBatches.length - 1) await sleep(2000);
+  }
+
+  // ── Merge & write all locale files at once ────────────────────────────────
+  console.log('\n💾  Writing updated translation files…');
+
+  for (const [langName, translations] of Object.entries(accumulated)) {
+    const locale = langNameToLocale(langName);
+    if (!locale || !missingByLocale[locale]) {
+      console.warn(`    ⚠️  Unexpected language "${langName}" in response — skipping.`);
+      continue;
+    }
+    const merged = { ...localeExisting[locale], ...translations };
+    backupFile(localeFiles[locale]);
+    writeJSON(localeFiles[locale], merged);
+    console.log(`    ✅  ${langName} (${locale}): +${Object.keys(translations).length} string(s) → ${localeFiles[locale]}`);
+  }
+
+  // Warn about locales that received nothing
+  for (const locale of Object.keys(missingByLocale)) {
+    if (!accumulated[LOCALE_NAMES[locale]]) {
+      console.warn(`    ⚠️  No translations received for ${LOCALE_NAMES[locale]} (${locale}). Re-run to retry.`);
+    }
+  }
+
+  console.log('\n✅  Done.');
 }
 
 main().catch(err => {

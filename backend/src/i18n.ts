@@ -10,8 +10,8 @@ i18n
     fallbackLng: 'en',
     preload: ['en', 'it', 'fr', 'zh'],
     load: 'languageOnly', // 'it-IT' becomes 'it'
-    ns: ['translation'],
-    defaultNS: 'translation',
+    ns: ['common', 'terms', 'privacy'],
+    defaultNS: 'common',
     returnEmptyString: false,
     returnNull: false,
     backend: {

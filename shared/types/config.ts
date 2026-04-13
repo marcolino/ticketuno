@@ -16,6 +16,10 @@ export type CurrencyCode = string;
 
 export interface AppConfig {
   app: {
+    holder: {
+      name: string; // Legal name of the person or entity operating the service (shown in legal pages)
+      email: string; // Contact / privacy e-mail address (shown in legal pages as a mailto link)
+    },
     api: {
       prefix: string;
       version: string;
@@ -72,5 +76,5 @@ export interface AppConfig {
   },
   slack: {
     webhookUrl: string,
-  }
+  },
 }

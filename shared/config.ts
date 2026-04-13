@@ -5,6 +5,10 @@ const codename = 'ticketuno';
 
 const config: AppConfig = {
   app: {
+    holder: {
+      name: "Marco Solari",
+      email: "marcosolari@gmail.com",
+    },
     api: {
       prefix: 'api',
       version: 'v1',
@@ -82,7 +86,7 @@ const config: AppConfig = {
   },
   slack: {
     webhookUrl: 'https://hooks.slack.com/services',
-  }
+  },
 };
 
 export type CurrencyCode = keyof typeof config.app.currencies;

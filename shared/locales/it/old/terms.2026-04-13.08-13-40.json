@@ -1,0 +1,112 @@
+{
+  "title": "Termini di Servizio",
+  "lastUpdatedLabel": "Ultimo aggiornamento",
+  "lastUpdatedDate": "1 gennaio 2025",
+  "sections": {
+    "acceptance": {
+      "title": "1. Accettazione dei Termini",
+      "paragraphs": [
+        "Accedendo o utilizzando {{appName}} (il \"Servizio\") gestito da {{operatorName}} (\"noi\", \"ci\" o \"nostro\"), accetti di essere vincolato dai presenti Termini di Servizio (\"Termini\"). Se non accetti questi Termini, non puoi utilizzare il Servizio.",
+        "I presenti Termini costituiscono un accordo legalmente vincolante tra te e il Titolare. Per creare un account o utilizzare il Servizio devi avere almeno 16 anni."
+      ]
+    },
+    "serviceDescription": {
+      "title": "2. Descrizione del Servizio",
+      "paragraphs": [
+        "{{appName}} è una piattaforma web di biglietteria che consente a teatri e organizzatori di eventi di pubblicare spettacoli e agli utenti di sfogliare, prenotare e ricevere biglietti per tali eventi.",
+        "Operiamo come piattaforma tecnologica e agente del teatro o dell'organizzatore dell'evento (il \"Venue\"). Il contratto per la partecipazione si forma tra te e il Venue; facilitiamo la transazione per suo conto.",
+        "Ci riserviamo il diritto di modificare, sospendere o interrompere il Servizio (o qualsiasi sua parte) in qualsiasi momento con ragionevole preavviso."
+      ]
+    },
+    "account": {
+      "title": "3. Registrazione e Sicurezza dell'Account",
+      "paragraphs": [
+        "Per effettuare una prenotazione è necessario registrare un account fornendo informazioni accurate e complete. Sei responsabile della riservatezza delle credenziali del tuo account.",
+        "Accetti di notificarci immediatamente qualora tu sospetti un uso non autorizzato del tuo account. Non siamo responsabili per le perdite derivanti dalla mancata protezione delle tue credenziali.",
+        "Ci riserviamo il diritto di sospendere o chiudere account che violino i presenti Termini o che risultino inattivi per un periodo prolungato."
+      ]
+    },
+    "bookings": {
+      "title": "4. Prenotazioni e Biglietti",
+      "paragraphs": [
+        "Tutte le prenotazioni sono soggette alla disponibilità dei posti al momento dell'acquisto. Una prenotazione è confermata solo quando ricevi l'e-mail di conferma con il tuo biglietto o codice QR.",
+        "I biglietti possono essere emessi come documenti PDF e/o codici QR. Ove vengano utilizzati codici QR, ciascun codice è univoco per la prenotazione e non deve essere copiato o condiviso.",
+        "I biglietti sono personali e non trasferibili, salvo esplicita autorizzazione del Venue. Il Venue ha il diritto di rifiutare l'ingresso se il biglietto viene presentato da una persona diversa dall'intestatario, a propria discrezione.",
+        "Non siamo responsabili per biglietti persi o inaccessibili a causa di indirizzi e-mail errati forniti in fase di registrazione."
+      ]
+    },
+    "cancellations": {
+      "title": "5. Cancellazioni e Rimborsi",
+      "paragraphs": [
+        "Le politiche di cancellazione e rimborso sono stabilite dal Venue e comunicate al momento della prenotazione. Applichiamo tali politiche per conto del Venue.",
+        "In caso di cancellazione o modifica sostanziale di uno spettacolo da parte del Venue, i titolari dei biglietti interessati verranno notificati e i rimborsi saranno elaborati in conformità alla politica del Venue.",
+        "Per le prenotazioni gratuite, le cancellazioni possono essere effettuate tramite il proprio account entro la scadenza indicata dal Venue. Ti invitiamo a cancellare tempestivamente se non puoi partecipare, per liberare i posti per altri ospiti.",
+        "Ci riserviamo il diritto di annullare prenotazioni che appaiano fraudolente, duplicate o in violazione dei presenti Termini."
+      ]
+    },
+    "conduct": {
+      "title": "6. Comportamento Vietato",
+      "paragraphs": [
+        "Nell'utilizzo del Servizio ti impegni a non:",
+        "Fornire informazioni false, fuorvianti o fraudolente durante la registrazione o la prenotazione.",
+        "Utilizzare strumenti automatizzati (bot, scraper) per accedere al Servizio o acquisire biglietti in blocco.",
+        "Rivendere o trasferire biglietti a scopo di lucro senza il previo consenso scritto del Venue.",
+        "Tentare di aggirare i controlli di accesso, interferire con l'infrastruttura del Servizio o introdurre codice malevolo.",
+        "Molestare, minacciare o maltrattare altri utenti o il personale del Venue.",
+        "Violare qualsiasi legge o normativa applicabile.",
+        "La violazione di tali disposizioni può comportare la sospensione immediata dell'account e, ove opportuno, la segnalazione alle autorità competenti."
+      ]
+    },
+    "intellectualProperty": {
+      "title": "7. Proprietà Intellettuale",
+      "paragraphs": [
+        "Tutti i contenuti, il design, il software e i marchi presenti sul Servizio sono di proprietà di {{operatorName}} o dei suoi licenzianti e sono tutelati dalle leggi sulla proprietà intellettuale applicabili.",
+        "Ti viene concessa una licenza limitata, non esclusiva e non trasferibile per accedere e utilizzare il Servizio esclusivamente per scopi personali e non commerciali.",
+        "Non puoi riprodurre, distribuire, modificare o creare opere derivate da qualsiasi contenuto del Servizio senza nostra previa autorizzazione scritta."
+      ]
+    },
+    "warranties": {
+      "title": "8. Esclusione di Garanzie",
+      "paragraphs": [
+        "Il Servizio è fornito «così com'è» e «come disponibile», senza garanzie di alcun tipo, espresse o implicite, incluse ma non limitate a quelle di commerciabilità, idoneità per uno scopo specifico o non violazione.",
+        "Non garantiamo che il Servizio sarà ininterrotto, privo di errori o esente da virus o altri componenti dannosi. Non siamo responsabili per la qualità, la sicurezza o la legalità degli eventi pubblicati sulla piattaforma."
+      ]
+    },
+    "liability": {
+      "title": "9. Limitazione di Responsabilità",
+      "paragraphs": [
+        "Nella misura massima consentita dalla legge applicabile, {{operatorName}} e i suoi affiliati, dipendenti e agenti non saranno responsabili per danni indiretti, incidentali, speciali, consequenziali o punitivi derivanti dall'utilizzo o dall'impossibilità di utilizzo del Servizio.",
+        "La nostra responsabilità totale verso di te per danni diretti non supererà l'importo da te pagato per la prenotazione oggetto del reclamo, o €50, se superiore.",
+        "Nulla nei presenti Termini limita la responsabilità per morte o lesioni personali causate da negligenza, frode o qualsiasi altra responsabilità che non possa essere esclusa per legge."
+      ]
+    },
+    "indemnification": {
+      "title": "10. Manleva",
+      "paragraphs": [
+        "Accetti di manlevare e tenere indenne {{operatorName}} e i suoi affiliati, funzionari, dipendenti e agenti da qualsiasi reclamo, danno, perdita o spesa (compresi ragionevoli onorari legali) derivanti dall'utilizzo del Servizio, dalla violazione dei presenti Termini o dalla violazione di diritti di terzi."
+      ]
+    },
+    "governingLaw": {
+      "title": "11. Legge Applicabile e Foro Competente",
+      "paragraphs": [
+        "I presenti Termini sono disciplinati dalla legge italiana, indipendentemente dalle norme sui conflitti di legge. Qualsiasi controversia derivante da o relativa ai presenti Termini o al Servizio sarà soggetta alla giurisdizione esclusiva dei tribunali italiani.",
+        "Se sei un consumatore residente nell'Unione Europea, puoi beneficiare delle disposizioni obbligatorie di tutela dei consumatori della legge del tuo paese di residenza.",
+        "La Commissione Europea mette a disposizione una piattaforma di risoluzione delle controversie online all'indirizzo https://ec.europa.eu/consumers/odr/ che puoi utilizzare per risolvere eventuali controversie."
+      ]
+    },
+    "changes": {
+      "title": "12. Modifiche ai Termini",
+      "paragraphs": [
+        "Ci riserviamo il diritto di modificare i presenti Termini in qualsiasi momento. In caso di modifiche sostanziali, ti notificheremo via e-mail o tramite un avviso in evidenza sul Servizio almeno 15 giorni prima dell'entrata in vigore delle modifiche.",
+        "Il continuo utilizzo del Servizio dopo la data di efficacia dei Termini rivisti costituisce accettazione degli stessi. Se non accetti i nuovi Termini, devi cessare di utilizzare il Servizio."
+      ]
+    },
+    "contact": {
+      "title": "13. Contattaci",
+      "paragraphs": [
+        "Per qualsiasi domanda o dubbio riguardante i presenti Termini, contattaci:"
+      ],
+      "emailLabel": "E-mail"
+    }
+  }
+}

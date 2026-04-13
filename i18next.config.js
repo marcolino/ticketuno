@@ -21,7 +21,7 @@ module.exports = defineConfig({
       '!' + path.join(projectRoot, 'backend/node_modules/**'),
     ],
     output: path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json'),
-    defaultNS: 'translation',
+    defaultNS: 'common',
     keySeparator: false,
     nsSeparator: false,
     contextSeparator: '_',

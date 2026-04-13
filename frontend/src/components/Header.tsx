@@ -1,11 +1,15 @@
-import { AppBar, Toolbar, Typography } from '@mui/material';
+import { AppBar, Toolbar } from '@mui/material';
 import { ReactNode } from 'react';
 
 interface HeaderProps {
   children?: ReactNode;
 }
 
+export const isEmbed = new URLSearchParams(window.location.search).has('embed');
+
 function Header({ children }: HeaderProps) {
+  if (isEmbed) return null; // hide the whole toolbar
+
   return (
     <AppBar 
       position="fixed"
@@ -16,7 +20,7 @@ function Header({ children }: HeaderProps) {
       }}
     >
       <Toolbar>
-        {children || <Typography variant="h6">App</Typography>}
+        {children}
       </Toolbar>
     </AppBar>
   );

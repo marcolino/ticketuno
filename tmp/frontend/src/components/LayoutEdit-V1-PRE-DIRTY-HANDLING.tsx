@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef, createElement } from 'react';
-import { useParams, useLocation, useSearchParams, useBlocker } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, createElement } from 'react';
+import { useParams, useLocation, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -92,53 +92,6 @@ const LayoutEdit: React.FC = () => {
   const [error, setError] = useState('');
 
   const showDialog = useDialog();
-
-  // isDirty is a plain boolean — this component manages a deeply nested custom data
-  // structure (layoutJSON) that doesn't fit React Hook Form. We track dirty state
-  // manually: set to true in every user-triggered mutation, never in load functions.
-  const [isDirty, setIsDirty] = useState(false);
-
-  // Ref-based escape hatch for intentional navigations (save).
-  // isDirty is still true when navigate() fires synchronously after save;
-  // the ref is read immediately by the blocker condition, bypassing the render cycle.
-  const skipBlocker = useRef(false);
-
-  // --- Navigation blocker: prompt on unsaved changes ---
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      !skipBlocker.current &&
-      isDirty &&
-      currentLocation.pathname !== nextLocation.pathname
-  );
-
-  useEffect(() => {
-    if (blocker.state !== 'blocked') return;
-    (async () => {
-      const confirmed = await showDialog({
-        title: t('Unsaved changes'),
-        content: t('You have unsaved changes. Leave anyway?'),
-        confirmText: t('Leave'),
-        cancelText: t('Stay'),
-        mode: 'warning',
-      });
-      if (confirmed) {
-        blocker.proceed();
-      } else {
-        blocker.reset();
-      }
-    })();
-  }, [blocker.state]);
-
-  // Handles browser tab close / hard refresh — cases useBlocker cannot intercept
-  useEffect(() => {
-    if (!isDirty) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = '';
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [isDirty]);
   
   // Layout fields
   const SECTION_VERTICAL_GAP = 115;
@@ -264,7 +217,6 @@ const LayoutEdit: React.FC = () => {
         setLayoutDescription(layout.description || '');
         setLayoutJSON(JSON.parse(layout.json));
         setTheaterId(layout.theaterId);
-        // Loading does not mark the form dirty — isDirty stays false
         //setIsEditable(isEditable ?? true);
 
         // Disable all inputs and hide marking toolbar when locked:
@@ -342,7 +294,6 @@ const LayoutEdit: React.FC = () => {
 
   // Update stage
   const updateStage = (field: string, value: number | string) => {
-    setIsDirty(true);
     setLayoutJSON({
       ...layoutJSON,
       stage: { ...layoutJSON.stage, [field]: value }
@@ -382,7 +333,6 @@ const LayoutEdit: React.FC = () => {
       ]
     };
 
-    setIsDirty(true);
     setLayoutJSON(prev => ({
       ...prev,
       sections: [...prev.sections, newSection]
@@ -443,7 +393,6 @@ const LayoutEdit: React.FC = () => {
       }
     }
 
-    setIsDirty(true);
     // For other changes that affect height (rowSpacing, rows), call reflowSections
     if (field === 'rowSpacing' || field === 'rows') {
       const reflowed = reflowSections(newSections);
@@ -454,7 +403,6 @@ const LayoutEdit: React.FC = () => {
   };
 
   const removeSection = (index: number) => {
-    setIsDirty(true);
     setLayoutJSON(prev => {
       const newSections = prev.sections.filter((_, i) => i !== index);
 
@@ -501,7 +449,6 @@ const LayoutEdit: React.FC = () => {
     const newSections = [...layoutJSON.sections];
     newSections[sectionIndex].rows.push(newRow);
     const newSectionsReflowed = reflowSections(newSections); // Reflow all sections to avoid overlaps
-    setIsDirty(true);
     setLayoutJSON({ ...layoutJSON, sections: newSectionsReflowed });
   };
 
@@ -510,7 +457,6 @@ const LayoutEdit: React.FC = () => {
     const newSections = [...layoutJSON.sections];
     newSections[sectionIndex].rows = newSections[sectionIndex].rows.filter((_, i) => i !== rowIndex);
     const newSectionsReflowed = reflowSections(newSections);
-    setIsDirty(true);
     setLayoutJSON({ ...layoutJSON, sections: newSectionsReflowed });
   };
 
@@ -532,7 +478,6 @@ const LayoutEdit: React.FC = () => {
         [field]: value
       };
     }
-    setIsDirty(true);
     setLayoutJSON({ ...layoutJSON, sections: newSections });
   };
 
@@ -583,7 +528,6 @@ const LayoutEdit: React.FC = () => {
             mode: 'warning',
           });
           if (!confirmed) {
-            skipBlocker.current = true;
             navigate('/bookings');
           }
           return;
@@ -592,7 +536,6 @@ const LayoutEdit: React.FC = () => {
         // Normal success case
         if (result.updated === true) {
           toast.success(t('Event updated successfully!'));
-          skipBlocker.current = true;
           navigate(-1);
           return;
         }
@@ -613,7 +556,6 @@ const LayoutEdit: React.FC = () => {
       // });
 
        // Navigate back with selectedLayoutId
-      skipBlocker.current = true;
       if (returnTo) {
         navigate(returnTo, {
           state: {
@@ -638,8 +580,6 @@ const LayoutEdit: React.FC = () => {
   };
 
   // Cancel layout
-  // Note: cancel() does NOT set skipBlocker — the blocker will intercept it naturally
-  // and ask the user to confirm leaving with unsaved changes, which is correct UX.
   const cancel = async () => {
     // Navigate back with original theater data
     if (returnTo) {
@@ -663,7 +603,6 @@ const LayoutEdit: React.FC = () => {
   const handleMarkingSeatClick = useCallback((seatId: string) => {
     if (!markingActive || !markingCondition) return;
 
-    setIsDirty(true);
     setLayoutJSON(prev => {
       const current = { ...(prev.seatConditions || {}) };
 
@@ -722,7 +661,7 @@ const LayoutEdit: React.FC = () => {
                 label={t('Layout name')}
                 type="text"
                 value={layoutName}
-                onChange={(e) => { setIsDirty(true); setLayoutName(e.target.value); }}
+                onChange={(e) => setLayoutName(e.target.value)}
                 required
                 autoFocus
               />
@@ -733,7 +672,7 @@ const LayoutEdit: React.FC = () => {
                 label={t('Layout description')}
                 type="text"
                 value={layoutDescription}
-                onChange={(e) => { setIsDirty(true); setLayoutDescription(e.target.value); }}
+                onChange={(e) => setLayoutDescription(e.target.value)}
               />
             </Box>
 

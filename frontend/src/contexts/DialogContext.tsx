@@ -37,6 +37,8 @@ export type DialogOptions = {
   showCloseIcon?: boolean;
   shrinkToContent?: boolean;
 
+  paperSx?: object;
+
   mode?: 'success' | 'info' | 'warning' | 'error';
 };
 
@@ -82,8 +84,8 @@ export const DialogProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         disableScrollLock
         PaperProps={
           options?.shrinkToContent
-            ? { sx: { width: "auto", maxWidth: "90vw" } }
-            : undefined
+            ? { sx: { width: "auto", maxWidth: "90vw", ...options.paperSx } }
+            : { sx: options?.paperSx }
         }
       >
         {options && (
