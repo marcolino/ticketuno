@@ -4,7 +4,7 @@ import { i18n } from '../i18n';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
-import { authenticateToken } from '../middleware/auth';
+import { requireAuthentication } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { getErrorMessage } from '../shared/utils/misc';
 import config from '../config';
@@ -63,7 +63,7 @@ const upload = multer({
 });
 
 // POST /api/images/upload — returns the filename to store on the entity
-router.post('/upload', authenticateToken, upload.single('image'), async (req: AuthRequest, res: Response) => {
+router.post('/upload', requireAuthentication, upload.single('image'), async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: req.t('No file uploaded') });
@@ -84,7 +84,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req: Au
   }
 });
 /*
-router.post('/upload', authenticateToken, upload.single('image'), async (req: AuthRequest, res: Response) => {
+router.post('/upload', requireAuthentication, upload.single('image'), async (req: AuthRequest, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: req.t('No file uploaded') });
@@ -102,7 +102,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req: Au
 */
 
 // DELETE /api/images/:filename — clean up file from disk
-router.delete('/:filename', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.delete('/:filename', requireAuthentication, async (req: AuthRequest, res: Response) => {
   try {
     const { filename } = req.params;
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {

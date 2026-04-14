@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { database } from '../db/database';
-import { authenticateToken, requireOperator } from '../middleware/auth';
+import { requireAuthentication, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { Layout } from '../shared/types/layout';
 import { i18n } from '../i18n';
@@ -9,7 +9,7 @@ import { getErrorMessage } from '../shared/utils/misc';
 const router = Router();
 
 // Protected: create layout (operator only)
-router.post('/', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
   try {
     const layout = req.body;
     const id = await database.createLayout(layout);
@@ -21,7 +21,7 @@ router.post('/', authenticateToken, requireOperator, async (req: AuthRequest, re
 
 
 // Public: get all layouts
-router.get('/', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.get('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
   try {
     const layouts = await database.getAllLayouts();
     res.json(layouts);
@@ -57,7 +57,7 @@ router.get('/:theaterId', async (req, res) => {
 });
 
 // Protected: update layout by id (operator only)
-router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.put('/:id', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
   try {
     const updates: Partial<Layout> = {
       name: req.body.name,
@@ -72,7 +72,7 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
 });
 
 // Protected: delete layout by id (operator only)
-router.delete('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.delete('/:id', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
   try {
     res.json(await database.deleteLayout(req.params.id));
   } catch (error) {
@@ -90,7 +90,7 @@ router.delete('/:id', authenticateToken, requireOperator, async (req: AuthReques
   // }
 });
 
-router.get('/:id/guard', authenticateToken, requireOperator, async (req, res) => {
+router.get('/:id/guard', requireAuthentication, requireOperator, async (req, res) => {
   try {
     const guard = await database.guardLayout(req.params.id);
     res.json({ safe: guard.safe, blockedBy: guard.bookings });

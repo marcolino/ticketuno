@@ -1,0 +1,11 @@
+<!-- 
+  Wrapper for operator-authored bulk emails.
+  Variables available: body (HTML string).
+  
+  The {{{body}}} triple-brace syntax (Handlebars / MJML-handlebars)
+  renders the body as raw HTML so line breaks and simple tags are preserved.
+-->
+
+<mj-text>
+  {{{body}}}
+</mj-text>

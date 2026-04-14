@@ -14,9 +14,15 @@ declare const self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
-// Activate the new service worker immediately after install
-self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting());
+// // Activate the new service worker immediately after install
+// self.addEventListener('install', (event) => {
+//   event.waitUntil(self.skipWaiting());
+// });
+// Skip waiting only when the user confirms via the toast:
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Take control of all open tabs as soon as this SW activates —

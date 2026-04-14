@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
 //import { i18n } from '../i18n';
-import { authenticateToken, generateToken, requireOperator } from '../middleware/auth';
+import { requireAuthentication, generateToken, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
 //import { GuardedDeleteResult, GuardedDeleteResultBulk } from '../shared/types/guard';
@@ -526,7 +526,7 @@ router.get('/', async (req, res) => {
 
 // GET /profile     → own profile
 // GET /profile/:id → another user's profile (if permitted)
-router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res) => {
+router.get('/profile/:userId?', requireAuthentication, async (req: AuthRequest, res) => {
   try {
     const targetId = req.params.userId ?? req.userId!;
     const isSelf = targetId === req.userId;
@@ -567,7 +567,7 @@ router.get('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
 
 // PUT /profile → own profile
 // PUT /profile/:id → another user's profile (if permitted)
-router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res) => {
+router.put('/profile/:userId?', requireAuthentication, async (req: AuthRequest, res) => {
   try {
     const actorId = req.userId!;
     const actorRole = req.userRole ?? '';
@@ -623,7 +623,7 @@ router.put('/profile/:userId?', authenticateToken, async (req: AuthRequest, res)
 });
 
 // Protected: delete one user by id (operator only) (could be deprecated, probably unused)
-router.delete('/:userId', authenticateToken, requireOperator, async (req, res) => {
+router.delete('/:userId', requireAuthentication, requireOperator, async (req, res) => {
   console.warn('DELETE /users/:userId endpoint is DEPRECATED')
   try {
     res.json(await database.deleteUser(req.params.userId));
@@ -633,7 +633,7 @@ router.delete('/:userId', authenticateToken, requireOperator, async (req, res) =
 });
 
 // Protected: bulk delete endpoint: handles both single and multiple ids (operator only)
-router.delete('/', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.delete('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -665,7 +665,7 @@ router.delete('/', authenticateToken, requireOperator, async (req: AuthRequest, 
 
 // PUT /consent → own consent
 // PUT /consent/:id → another user's consent (if permitted)
-router.put('/consent/:userId?', authenticateToken, async (req: AuthRequest, res) => {
+router.put('/consent/:userId?', requireAuthentication, async (req: AuthRequest, res) => {
   try {
     const actorId = req.userId!;
     const targetId = req.params.userId ?? actorId;

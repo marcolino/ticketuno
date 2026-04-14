@@ -32,6 +32,7 @@ import { GridRowSelectionModel, DataGrid, GridColDef } from '@mui/x-data-grid';
 
 import Alert from './Alert';
 import PageHeader from './PageHeader';
+import EmailBulkDialog from './EmailBulkDialog';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
@@ -335,6 +336,29 @@ const UsersList: React.FC = () => {
     });
   };
 
+  const handleBulkEmail = () => {
+    const selectedIds = Array.from(rowSelectionModel.ids);
+    if (!selectedIds.length) return;
+
+    const selectedUsers = users!
+    .filter((u) => selectedIds.includes(u.id))
+      .map((u) => ({ id: u.id, name: u.firstName ?? '', surname: u.lastName ?? '', email: u.email }))
+    ;
+    
+    showDialog({
+      title: 'Send bulk email',
+      content: (close) => (
+        <EmailBulkDialog
+          recipients={selectedUsers}
+          onClose={close}
+        />
+      ),
+      cancelText: t('Cancel'),
+      showCloseIcon: true,
+      paperSx: { maxWidth: { xs: '90vw', sm: 720 } },
+    });
+  };
+  
   //
   // Bulk action buttons — defined once, shared between xs and sm+ renderings
   //
@@ -342,7 +366,7 @@ const UsersList: React.FC = () => {
     <Button variant="contained" key="delete" color="error" onClick={handleBulkDelete} startIcon={<DeleteSweep />}>
       {t('Delete selected')}
     </Button>,
-    <Button variant="contained" key="email" startIcon={<Email />}>
+    <Button variant="contained" key="email" color="info" onClick={handleBulkEmail} startIcon={<Email />} >
       {t('Send email')}
     </Button>,
   ];

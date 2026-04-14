@@ -36,7 +36,6 @@ import useNavigate from '@/hooks/useNavigate';
 import { ticketApi } from '@/services/api';
 import { useDialog } from '@/contexts/DialogContext';
 import { getErrorMessage } from '@/shared/utils/misc';
-// ─── Fake API (replace with your real fetch) ──────────────────────────────────
 
 async function validateTicket(code: string): Promise<TicketValidationResult> {
   const encodedCode = encodeURIComponent(code);

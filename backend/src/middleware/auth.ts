@@ -4,7 +4,7 @@ import { AuthRequest } from '../shared/types/auth';
 import config from '../config';
 
 
-export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireAuthentication = (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 

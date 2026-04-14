@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { database } from '../db/database';
 import { getErrorMessage } from '../shared/utils/misc';
-import { authenticateToken } from '../middleware/auth';
+import { requireAuthentication } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { loadSetup, refreshSetup, getSetup } from '../services/setupService';
 //import config from '../config';
@@ -23,7 +23,7 @@ router.get('/', async (req, res) => {
 });
 
 // Private: Update setup
-router.post('/', authenticateToken, async (req: AuthRequest, res) => {
+router.post('/', requireAuthentication, async (req: AuthRequest, res) => {
   try {
     const setup = req.body;
     await database.saveSetup(setup);

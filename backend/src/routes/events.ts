@@ -2,7 +2,7 @@ import { Router, /*Request,*/ Response } from 'express';
 import path from 'path';
 //import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
-import { authenticateToken, requireOperator } from '../middleware/auth';
+import { requireAuthentication, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { generateTickets } from '../services/ticketService';
 import { notify } from '../services/notificationService';
@@ -98,7 +98,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Protected: Create new event (admin only)
-router.post('/', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
   try {
     const {
       title, description, genres, durationMinutes, intermissionCount, rating, language,
@@ -176,7 +176,7 @@ router.post('/', authenticateToken, requireOperator, async (req: AuthRequest, re
 });
 
 // Protected: Update event (admin only)
-router.put('/:id', authenticateToken, requireOperator, async (req, res) => {
+router.put('/:id', requireAuthentication, requireOperator, async (req, res) => {
   try {
 
     // Check if title is set and not null
@@ -203,7 +203,7 @@ router.put('/:id', authenticateToken, requireOperator, async (req, res) => {
 });
 
 // Protected: Delete event (operator only)
-router.delete('/:id', authenticateToken, requireOperator, async (req, res) => {
+router.delete('/:id', requireAuthentication, requireOperator, async (req, res) => {
   try {
     const result = await database.deleteEvent(req.params.id);
     res.json(result);
@@ -212,7 +212,7 @@ router.delete('/:id', authenticateToken, requireOperator, async (req, res) => {
   }
 });
 // // Protected: Delete event (operator only)
-// router.delete('/:id', authenticateToken, requireOperator, async (req, res) => {
+// router.delete('/:id', requireAuthentication, requireOperator, async (req, res) => {
 //   try {
 //     const event = await database.getEventById(req.params.id);
 //     if (!event) {
@@ -240,7 +240,7 @@ router.delete('/:id', authenticateToken, requireOperator, async (req, res) => {
 //   }
 // });
 
-router.get('/:id/guard', authenticateToken, requireOperator, async (req, res) => {
+router.get('/:id/guard', requireAuthentication, requireOperator, async (req, res) => {
   try {
     const guard = await database.guardEvent(req.params.id);
     res.json({ safe: guard.safe, blockedBy: guard.bookings });
@@ -307,7 +307,7 @@ router.get('/:eventId/performances/:performanceId', async (req, res) => {
 });
 
 // Protected: Create performance for an event (admin only)
-router.post('/:eventId/performances', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.post('/:eventId/performances', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
   try {
     const { performanceDate, startTime, endTime } = req.body;
     const eventId = req.params.eventId;
@@ -387,7 +387,7 @@ router.post('/:eventId/performances', authenticateToken, requireOperator, async 
 });
 
 // Protected: Update performance (admin only)
-router.put('/:eventId/performances/:performanceId', authenticateToken, requireOperator, async (req, res) => {
+router.put('/:eventId/performances/:performanceId', requireAuthentication, requireOperator, async (req, res) => {
   try {
     const { eventId, performanceId } = req.params;
     const performance = await database.getPerformanceById(performanceId);
@@ -494,7 +494,7 @@ router.get('/:eventId/performances/:performanceId/seats/:sectionName', async (re
 });
 
 // Protected: Book seats for a performance
-router.post('/:eventId/performances/:performanceId/book', authenticateToken, async (req: AuthRequest, res: Response) => {
+router.post('/:eventId/performances/:performanceId/book', requireAuthentication, async (req: AuthRequest, res: Response) => {
   try {
     const { seatIds } = req.body;
     const { eventId, performanceId } = req.params;

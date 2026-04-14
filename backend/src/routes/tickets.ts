@@ -1,6 +1,6 @@
 import express, {  RequestHandler } from 'express';
 import { database } from '../db/database';
-import { authenticateToken, requireOperator} from '../middleware/auth';
+import { requireAuthentication, requireOperator} from '../middleware/auth';
 import { verify } from '../services/hmacService';
 import { authHandler } from '../utils/routeHelper';
 import { TicketValidationResult } from '../shared/types/ticket';
@@ -9,7 +9,7 @@ const router = express.Router();
 
 // Protected: Validate a ticket (from QrCode)
 router.post('/:payload/validate',
-  authenticateToken as RequestHandler,
+  requireAuthentication as RequestHandler,
   requireOperator as RequestHandler,
   authHandler(async (req, res) =>
 {

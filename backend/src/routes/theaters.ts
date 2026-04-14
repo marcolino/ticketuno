@@ -1,7 +1,7 @@
 import express, { Request } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
-import { authenticateToken, requireOperator } from '../middleware/auth';
+import { requireAuthentication, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { Theater, TheaterStats/*, Section*/ } from '../shared/types/theater';
 import { getErrorMessage } from '../shared/utils/misc';
@@ -9,7 +9,7 @@ import { getErrorMessage } from '../shared/utils/misc';
 const router = express.Router();
 
 // Public: Get all theaters with stats
-router.get('/', authenticateToken, requireOperator, async (req, res) => {
+router.get('/', requireAuthentication, requireOperator, async (req, res) => {
   try {
     const theaters = await database.getAllTheaters();
     if (!theaters) {
@@ -65,7 +65,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Protected, Operator: Create new theater
-router.post('/', authenticateToken, requireOperator, async (req, res) => {
+router.post('/', requireAuthentication, requireOperator, async (req, res) => {
   try {
     const { name, description, stageType, address, websiteUrl, status, currentLayoutId } = req.body;
     if (!name) {
@@ -93,7 +93,7 @@ router.post('/', authenticateToken, requireOperator, async (req, res) => {
 });
 
 // Protected: update theater by id (operator only)
-router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, res) => {
+router.put('/:id', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
   try {
 
     // Check if title is set and not null
@@ -139,7 +139,7 @@ router.put('/:id', authenticateToken, requireOperator, async (req: AuthRequest, 
 });
 
 // Protected: delete theater by id (operator only)
-router.delete('/:id', authenticateToken, requireOperator, async (req: Request, res) => {
+router.delete('/:id', requireAuthentication, requireOperator, async (req: Request, res) => {
   try {
     res.json(await database.deleteTheater(req.params.id));
   } catch (error) {
@@ -177,7 +177,7 @@ router.delete('/:id', authenticateToken, requireOperator, async (req: Request, r
 });
 
 // Protected, Operator: Update theater
-router.put('/:id', authenticateToken, requireOperator, async (req, res) => {
+router.put('/:id', requireAuthentication, requireOperator, async (req, res) => {
   try {
     const theaterId = req.params.id;
     const { name, description, /*sections*/ stageType, address, websiteUrl, status} = req.body;

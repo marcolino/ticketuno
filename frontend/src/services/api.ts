@@ -374,6 +374,18 @@ export const userApi = {
   },
 };
 
+export const emailApi = {
+  sendBulk: (payload: {
+    recipients?: { id: string; name: string; surname: string; email: string }[];
+    userIds?: string[];
+    subject: string;
+    body: string;
+  }) => api.post<{ message: string; sent: number; total: number; failed: { email: string; reason: string }[] }>(
+    '/emails/bulk',
+    payload,
+  ),
+};
+
 export const theaterApi = {
   getAllTheaters: () =>
     api.get<Theater[]>('/theaters'),

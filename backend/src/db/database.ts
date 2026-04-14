@@ -474,7 +474,20 @@ class Database {
     return row ? this.mapRowToUser(row) : null;
   }
 
+  async getUsersByIds(ids: string[]): Promise<User[]> {
+    if (!ids.length) return [];
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = await allQuery(this.db, `
+      SELECT *
+      FROM users
+     WHERE id IN (${placeholders})
+      AND deleted_at IS NULL
+    `, ids, 'get users by ids');
+    return this.mapRowsToUsers(rows);
+  }
+
   async getUsersByRole(role: string): Promise<User[]> {
+    if (!role) return [];
     const rows = await allQuery(this.db, `
       SELECT *
       FROM users

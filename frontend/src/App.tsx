@@ -7,7 +7,8 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AuthProvider from './contexts/AuthContext';
 import { SetupProvider } from './contexts/SetupContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import { DialogProvider } from './contexts/DialogContext';
+//import { DialogProvider } from './contexts/DialogContext';
+import { DialogProvider, DialogRenderer } from './contexts/DialogContext'; 
 import { ToastProvider } from './contexts/ToastContext';
 import { LoadingProvider } from './contexts/LoadingContext';
 import { LoadingSpinner } from './components/LoadingSpinner';
@@ -70,24 +71,22 @@ const App: React.FC = () => {
         <ThemeProvider>
           <LoadingProvider>
             <LoadingSpinner />
-            <DialogProvider>
-              <ToastProvider>
-                <PwaInitializer />
-                <CssBaseline />
+            <ToastProvider>
+              <PwaInitializer />
+              <CssBaseline />
+              <DialogProvider>
                 <AuthProvider>
+                  <DialogRenderer />
                   {/*
                     ConsentProvider, OAuthHandler, and ToastRouteHandler have moved into
                     RootLayout so they remain inside the router and can use router hooks.
                     v7_startTransition stays here on RouterProvider; v7_relativeSplatPath
                     is passed to createBrowserRouter in Routes.tsx.
                   */}
-                  <RouterProvider
-                    router={router}
-                    future={{ v7_startTransition: true }}
-                  />
+                  <RouterProvider router={router} future={{ v7_startTransition: true }} />
                 </AuthProvider>
-              </ToastProvider>
-            </DialogProvider>
+              </DialogProvider>
+            </ToastProvider>
           </LoadingProvider>
         </ThemeProvider>
       </SetupProvider>
