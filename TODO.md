@@ -121,6 +121,6 @@ common:
  3 - OK - rename Profile to UserEdit (no)
  3 - OK - rename Event/Layout/Theater List to Events/Theaters/Layouts List (no...)
  3 - OK - add all users profile handling
- 2 -    - implement a mailing system to send bulk emails to a list of users, with variables
- 3 -    - remove .env, .env.example
+ 2 - OK - implement a mailing system to send bulk emails to a list of users, with variables
+ 3 - OK - remove .env, .env.example
  3 -    - implement tests

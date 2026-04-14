@@ -132,7 +132,7 @@ app.use('/api/*', (req, res) => {
 });
 
 /* Serve static public files (MUST be after API routes, error and 404 handlers, order matters) */
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV !== 'development') {
   const publicDir = path.join(__dirname, '../public');
 
   // Cache hashed assets for a long time

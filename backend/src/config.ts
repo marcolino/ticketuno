@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 
 // Load .env in development
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV === 'development') {
   dotenv.config({ path: path.join(__dirname, '../.env') });
 }
 
@@ -59,7 +59,7 @@ const config = {
 };
 
 // safety checks
-if (process.env.NODE_ENV === 'production') {
+if (process.env.NODE_ENV !== 'development') {
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET must be set in production!');
   if (process.env.JWT_SECRET.includes('change-this-in-production')) {
     throw new Error('JWT_SECRET must be a secure value in production environment!');

@@ -3,14 +3,25 @@
 # Deploy app to Fly.io
 # Tags: backend-vX.Y.Z and frontend-vX.Y.Z are created independently,
 #       only when changes are detected in the respective directory.
+#
+# Usage:
+#   ./deploy.sh                 → deploy to production
+#   ./deploy.sh --staging       → deploy to staging (no version bump, no tag)
+#   ./deploy.sh --force         → force production deploy even with no changes
+#   ./deploy.sh --no-cache      → disable Docker layer cache
 
 set -e
 
 APP_NAME="ticketuno"
 REGIONS="fra"
 ORG="personal"
-CACHE="true"   # Use "false" or "" to disable Docker layer cache
-FORCE=false    # Use --force to deploy even with no detected changes
+CACHE="true"
+FORCE=false
+STAGING=false
+ENV_FILE="backend/.env"
+FLY_CONFIG="fly.toml"
+VOLUME_NAME="ticketuno_data"
+DEPLOY_NODE_ENV="staging"
 
 error_log=$(mktemp)
 
@@ -19,46 +30,57 @@ for arg in "$@"; do
   case $arg in
     --force) FORCE=true ;;
     --no-cache) CACHE="false" ;;
+    --staging) STAGING=true ;;
   esac
 done
 
+# ─── Staging overrides ────────────────────────────────────────────────────────
+
+if [ "$STAGING" = true ]; then
+  APP_NAME="ticketuno-staging"
+  FLY_CONFIG="fly.staging.toml"
+  VOLUME_NAME="ticketuno_staging_data"
+  DEPLOY_NODE_ENV="staging"
+fi
+
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-# Last tag for a component (e.g. "backend" → "backend-v1.0.23")
 get_last_tag() {
   local component=$1
   git tag --list "${component}-v*" --sort=-version:refname | head -1
 }
 
-# Returns 0 (true) if the component directory changed since its last tag
 has_changes() {
   local component=$1
   local last_tag
   last_tag=$(get_last_tag "$component")
 
   if [ -z "$last_tag" ]; then
-    return 0  # No previous tag = first deploy, treat as changed
+    return 0
   fi
 
-  # Include deploy.sh itself, and exclude package lock files
   if ! git diff --quiet "${last_tag}" HEAD \
     -- "${component}/" deploy.sh \
     ":(exclude)${component}/package-lock.json" \
     ":(exclude)${component}/yarn.lock" \
     ":(exclude)${component}/pnpm-lock.yaml"
   then
-    return 0  # Changed
+    return 0
   fi
 
-  return 1  # No changes
+  return 1
 }
 
 # ─── Pre-flight checks ────────────────────────────────────────────────────────
 
-echo "🚀 Deploying app \"${APP_NAME}\" to Fly.io..."
+if [ "$STAGING" = true ]; then
+  echo "🚀 Deploying app \"${APP_NAME}\" (STAGING) to Fly.io..."
+else
+  echo "🚀 Deploying app \"${APP_NAME}\" (PRODUCTION) to Fly.io..."
+fi
 
-if [ "$(basename "${PWD}")" != "${APP_NAME}" ]; then
-  echo "❌ Current directory is $(basename "${PWD}"), not ${APP_NAME}."
+if [ "$(basename "${PWD}")" != "ticketuno" ]; then
+  echo "❌ Current directory is $(basename "${PWD}"), not ticketuno."
   exit 1
 fi
 
@@ -72,12 +94,11 @@ if ! fly auth whoami &> /dev/null; then
   exit 3
 fi
 
-if [ ! -f "backend/.env" ]; then
-  echo "❌ backend/.env not found. Create it from backend/.env.example"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "❌ ${ENV_FILE} not found. Create it from backend/.env.example"
   exit 4
 fi
 
-# Ensure clean state — we never want a tag pointing to uncommitted changes
 if [ -n "$(git status --porcelain | grep -vE 'package-lock.json|yarn.lock|pnpm-lock.yaml')" ]; then
   echo "❌ Working directory is dirty. Commit or stash changes before deploying."
   exit 5
@@ -85,11 +106,6 @@ fi
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 
-# echo "🔍 Running pre-deploy checks..."
-# npm run type-check > /dev/null || {
-#   echo "❌ TypeScript check failed. Fix errors before deploying: \`npm run type-check\`."
-#   exit 6
-# }
 echo "🔍 Running pre-deploy checks..."
 npm run type-check > "$error_log" 2>&1
 exit_code=$?
@@ -103,32 +119,38 @@ if [ $exit_code -ne 0 ]; then
   exit 6
 fi
 
-# ─── Change detection ─────────────────────────────────────────────────────────
+# ─── Change detection (production only) ──────────────────────────────────────
 
 BACKEND_CHANGED=false
 FRONTEND_CHANGED=false
 
-has_changes "backend"  && BACKEND_CHANGED=true
-has_changes "frontend" && FRONTEND_CHANGED=true
-
-if [ "$BACKEND_CHANGED" = false ] && [ "$FRONTEND_CHANGED" = false ]; then
-  if [ "$FORCE" = false ]; then
-    echo ""
-    echo "⚠️  No changes detected in backend or frontend since last deploy."
-    echo "   Last tags:"
-    echo "     $(get_last_tag backend  || echo 'backend:  none')"
-    echo "     $(get_last_tag frontend || echo 'frontend: none')"
-    echo ""
-    echo "   Options:"
-    echo "     ./deploy.sh --force          re-deploy without bumping versions"
-    echo "     git commit --allow-empty ... add a marker commit, then re-run"
-    exit 7
-  else
-    echo "⚠️  No changes detected, but --force was passed. Skipping version bumps."
-  fi
+if [ "$STAGING" = true ]; then
+  # Staging always deploys — no version bookkeeping
+  BACKEND_CHANGED=true
+  FRONTEND_CHANGED=true
 else
-  [ "$BACKEND_CHANGED"  = false ] && echo "⚠️  No changes in backend  — version will not be bumped."
-  [ "$FRONTEND_CHANGED" = false ] && echo "⚠️  No changes in frontend — version will not be bumped."
+  has_changes "backend"  && BACKEND_CHANGED=true
+  has_changes "frontend" && FRONTEND_CHANGED=true
+
+  if [ "$BACKEND_CHANGED" = false ] && [ "$FRONTEND_CHANGED" = false ]; then
+    if [ "$FORCE" = false ]; then
+      echo ""
+      echo "⚠️  No changes detected in backend or frontend since last deploy."
+      echo "   Last tags:"
+      echo "     $(get_last_tag backend  || echo 'backend:  none')"
+      echo "     $(get_last_tag frontend || echo 'frontend: none')"
+      echo ""
+      echo "   Options:"
+      echo "     ./deploy.sh --force          re-deploy without bumping versions"
+      echo "     git commit --allow-empty ... add a marker commit, then re-run"
+      exit 7
+    else
+      echo "⚠️  No changes detected, but --force was passed. Skipping version bumps."
+    fi
+  else
+    [ "$BACKEND_CHANGED"  = false ] && echo "⚠️  No changes in backend  — version will not be bumped."
+    [ "$FRONTEND_CHANGED" = false ] && echo "⚠️  No changes in frontend — version will not be bumped."
+  fi
 fi
 
 # ─── Read current versions ────────────────────────────────────────────────────
@@ -138,75 +160,68 @@ FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
 
 # ─── Ensure app exists ────────────────────────────────────────────────────────
 
-if [ -z "`fly apps list | egrep \"\s+${APP_NAME}\s+\"`" ]; then
-  echo "📦 Creating new Fly.io app..."
+if [ -z "$(fly apps list | grep -E "\s+${APP_NAME}\s+")" ]; then
+  echo "📦 Creating new Fly.io app \"${APP_NAME}\"..."
   fly apps create "${APP_NAME}" --org "${ORG}"
 else
-  echo "✅ App ${APP_NAME} exists already on fly.io, skipping app creation"
+  echo "✅ App ${APP_NAME} exists on fly.io, skipping creation."
 fi
 
-# Check if a volume with the given name already exists
-if ! fly volumes list -a "${APP_NAME}" --json | jq -e '.[] | select(.name == "'"${APP_NAME}_data"'")' > /dev/null; then
-  echo "❌ Volume ${APP_NAME}_data does NOT exist. Creating..."
-  fly volumes create "${APP_NAME}_data" --region "${REGIONS}" --size 1 --app "${APP_NAME}"
+if ! fly volumes list -a "${APP_NAME}" --json | jq -e '.[] | select(.name == "'"${VOLUME_NAME}"'")' > /dev/null; then
+  echo "📦 Volume ${VOLUME_NAME} not found. Creating..."
+  fly volumes create "${VOLUME_NAME}" --region "${REGIONS}" --size 1 --app "${APP_NAME}"
 else
-  echo "✅ Volume ${APP_NAME}_data already exists. Skipping creation."
+  echo "✅ Volume ${VOLUME_NAME} already exists."
 fi
-  
+
 # ─── Secrets ─────────────────────────────────────────────────────────────────
 
-echo "🔐 Importing secrets..."
-cat backend/.env | fly secrets import --app "${APP_NAME}"
-# fly secrets set \
-#   BACKEND_URL="https://${APP_NAME}.fly.dev" \
-#   FRONTEND_URL="https://${APP_NAME}.fly.dev" \
-#   NODE_ENV="production" \
-#   PORT="8080" \
-#   --app "${APP_NAME}"
+echo "🔐 Importing secrets from ${ENV_FILE}..."
+cat "${ENV_FILE}" | fly secrets import --app "${APP_NAME}"
 fly secrets set \
-  NODE_ENV="production" \
+  NODE_ENV="${DEPLOY_NODE_ENV}" \
   PORT="8080" \
   --app "${APP_NAME}"
 
 echo "📱 Generating PWA assets..."
 npm run pwa:generate
 
-# ─── Version bumps ────────────────────────────────────────────────────────────
+# ─── Version bumps (production only) ─────────────────────────────────────────
 
-if [ "$BACKEND_CHANGED" = true ]; then
-  echo "🔢 Bumping backend version..."
-  (cd backend && npm version patch --no-git-tag-version)
-  BACKEND_VERSION=$(node -p "require('./backend/package.json').version")
-  echo "   → backend v${BACKEND_VERSION}"
-fi
-
-if [ "$FRONTEND_CHANGED" = true ]; then
-  echo "🔢 Bumping frontend version..."
-  (cd frontend && npm version patch --no-git-tag-version)
-  FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
-  echo "   → frontend v${FRONTEND_VERSION}"
-fi
-
-# ─── Commit + tag + push ─────────────────────────────────────────────────────
-
-if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
-  COMMIT_MSG="chore: deploy"
-  [ "$BACKEND_CHANGED"  = true ] && COMMIT_MSG="${COMMIT_MSG} backend-v${BACKEND_VERSION}"
-  [ "$FRONTEND_CHANGED" = true ] && COMMIT_MSG="${COMMIT_MSG} frontend-v${FRONTEND_VERSION}"
-
-  echo "📝 Committing version bumps..."
-  git add backend/package.json frontend/package.json
-  git commit -m "${COMMIT_MSG}"
-
+if [ "$STAGING" = false ]; then
   if [ "$BACKEND_CHANGED" = true ]; then
-    git tag -a "backend-v${BACKEND_VERSION}"  -m "Backend v${BACKEND_VERSION}"
-  fi
-  if [ "$FRONTEND_CHANGED" = true ]; then
-    git tag -a "frontend-v${FRONTEND_VERSION}" -m "Frontend v${FRONTEND_VERSION}"
+    echo "🔢 Bumping backend version..."
+    (cd backend && npm version patch --no-git-tag-version)
+    BACKEND_VERSION=$(node -p "require('./backend/package.json').version")
+    echo "   → backend v${BACKEND_VERSION}"
   fi
 
-  echo "⬆️  Pushing to origin..."
-  git push origin main --tags
+  if [ "$FRONTEND_CHANGED" = true ]; then
+    echo "🔢 Bumping frontend version..."
+    (cd frontend && npm version patch --no-git-tag-version)
+    FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
+    echo "   → frontend v${FRONTEND_VERSION}"
+  fi
+fi
+
+# ─── Commit + tag + push (production only) ───────────────────────────────────
+
+if [ "$STAGING" = false ]; then
+  if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
+    COMMIT_MSG="chore: deploy"
+    [ "$BACKEND_CHANGED"  = true ] && COMMIT_MSG="${COMMIT_MSG} backend-v${BACKEND_VERSION}"
+    [ "$FRONTEND_CHANGED" = true ] && COMMIT_MSG="${COMMIT_MSG} frontend-v${FRONTEND_VERSION}"
+
+    echo "📝 Committing version bumps..."
+    git add backend/package.json frontend/package.json
+    git commit -m "${COMMIT_MSG}"
+
+    [ "$BACKEND_CHANGED"  = true ] && git tag -a "backend-v${BACKEND_VERSION}"  -m "Backend v${BACKEND_VERSION}"
+    [ "$FRONTEND_CHANGED" = true ] && git tag -a "frontend-v${FRONTEND_VERSION}" -m "Frontend v${FRONTEND_VERSION}"
+
+    echo "⬆️  Pushing to origin..."
+    git push origin main --tags
+  fi
 fi
 
 fly secrets set \
@@ -216,28 +231,25 @@ fly secrets set \
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 
-echo "🏗️  Building and deploying..."
+echo "🏗️  Building and deploying to ${APP_NAME}..."
 CACHE_FLAGS=""
 if [ "$CACHE" = "" ] || [ "$CACHE" = "false" ]; then
   CACHE_FLAGS="--no-cache --buildkit"
 fi
-fly deploy --app "${APP_NAME}" --regions "${REGIONS}" ${CACHE_FLAGS}
+fly deploy --config "${FLY_CONFIG}" --app "${APP_NAME}" --regions "${REGIONS}" ${CACHE_FLAGS}
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
 
 echo ""
-echo "Versions:"
-echo "  backend:  v${BACKEND_VERSION} (tag: $(get_last_tag backend))"
-echo "  frontend: v${FRONTEND_VERSION} (tag: $(get_last_tag frontend))"
-echo ""
-echo "✅ Deploy complete at https://${APP_NAME}.fly.dev"
-# echo ""
-# echo "Useful commands:"
-# echo "  fly logs --app ${APP_NAME}              View logs"
-# echo "  fly ssh console --app ${APP_NAME}       SSH into container"
-# echo "  fly status --app ${APP_NAME}            Check status"
-# echo "  git tag --list 'backend-v*'             List backend deploy history"
-# echo "  git tag --list 'frontend-v*'            List frontend deploy history"
-# echo "  ./rollback.sh backend 1.0.23            Roll back backend to v1.0.23"
+if [ "$STAGING" = true ]; then
+  echo "✅ Staging deploy complete at https://${APP_NAME}.fly.dev"
+  echo "   (No version bump. Run ./deploy.sh when ready for production.)"
+else
+  echo "Versions:"
+  echo "  backend:  v${BACKEND_VERSION} (tag: $(get_last_tag backend))"
+  echo "  frontend: v${FRONTEND_VERSION} (tag: $(get_last_tag frontend))"
+  echo ""
+  echo "✅ Production deploy complete at https://ticketuno.fly.dev"
+fi
 
 exit 0

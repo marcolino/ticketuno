@@ -83,7 +83,7 @@ router.post('/register', async (req, res) => {
     res.status(201).json({ 
       message: req.t('Registration successful. Please check your email for verification code.'),
       email: user.email,
-      ...(process.env.NODE_ENV !== 'production' && { verificationCode }),
+      ...(process.env.NODE_ENV === 'development' && { verificationCode }),
     });
     
     // const profile: UserProfile = {
@@ -202,7 +202,7 @@ router.post('/resend-verification', async (req, res) => {
 
     res.json({
       message: req.t('A verification code sent to the specified email'),
-      ...(process.env.NODE_ENV !== 'production' && { verificationCode }),
+      ...(process.env.NODE_ENV === 'development' && { verificationCode }),
     });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to resend verification code: {{err}}', {err: getErrorMessage(error)}) });
@@ -305,7 +305,7 @@ router.post('/forgot-password', async (req, res) => {
       // Don't reveal if user exists
       return res.json({
         message: req.t('A reset code has been be sent to the requested email, if it exists'),
-        ...(process.env.NODE_ENV !== 'production' && { error: req.t('User not found') }),
+        ...(process.env.NODE_ENV === 'development' && { error: req.t('User not found') }),
       });
     }
 
@@ -321,7 +321,7 @@ router.post('/forgot-password', async (req, res) => {
 
     res.json({
       message: req.t('A reset code has been be sent to the requested email, if it exists'),
-      ...(process.env.NODE_ENV !== 'production' && { resetPasswordCode }),
+      ...(process.env.NODE_ENV === 'development' && { resetPasswordCode }),
     });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to process password reset request: {{err}}', {err: getErrorMessage(error)}) });
@@ -485,7 +485,7 @@ router.get('/auth/google/callback', async (req, res) => {
           window.opener.postMessage({
             type: 'GOOGLE_AUTH_ERROR',
             error: '${error}'
-          }, '${process.env.FRONTEND_URL}'); // Works in both dev and production
+          }, '${config.app.baseUrlFrontend}'); // Works in both dev and production
           //window.close(); // Close this popup automatically
         </script>
         <body>` + req.t('Login error: {{error}}!', { error }) + `</body>

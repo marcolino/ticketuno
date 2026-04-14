@@ -31,12 +31,14 @@ const config: AppConfig = {
     },
     codename: codename,
     name: name,
-    baseUrlBackend: (process.env.NODE_ENV === 'production') ?
-      `https://${codename}.fly.dev` :
+    baseUrlBackend:
+      (process.env.NODE_ENV === 'production') ? `https://${codename}.fly.dev` :
+      (process.env.NODE_ENV === 'staging') ? `https://${codename}-staging.fly.dev` :
       'http://localhost:3001'
     ,
-    baseUrlFrontend: (process.env.NODE_ENV === 'production') ?
-      `https://${codename}.fly.dev` :
+    baseUrlFrontend:
+      (process.env.NODE_ENV === 'production') ? `https://${codename}.fly.dev` :
+      (process.env.NODE_ENV === 'staging') ? `https://${codename}-staging.fly.dev` :
       'http://localhost:3000'
     ,
     baseUrlProduction: `https://${codename}.fly.dev`,
