@@ -30,17 +30,15 @@ import dayjs, { Dayjs } from 'dayjs';
 import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
 import useNavigate from '@/hooks/useNavigate';
 import { eventApi, theaterApi, imageApi } from '@/services/api';
-import { Event/*, EventPerformance*/} from '@/shared/types/event';
+import { Event} from '@/shared/types/event';
 import { TheaterStats } from '@/shared/types/theater';
-//import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { useDialog } from '@/contexts/DialogContext';
-//import { handleGuardResult } from '@/utils/guardHandler';
 import TagSelector from './TagSelector';
 import ImageUploadSection from './ImageUploadSection';
 import ImageUploadEditPopup from './ImageUploadEditPopup';
-import { CastEditor, type CastEntry } from './CastEditor';
+import { CastEditor } from './CastEditor';
 import config from '@/config';
 
 // Helper to convert Event from API to form state (Dayjs for dates/times)
@@ -190,7 +188,7 @@ const EventEdit: React.FC = () => {
     if (!isDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = '';
+      (e as any).returnValue = '';
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
@@ -214,8 +212,8 @@ const EventEdit: React.FC = () => {
   );
 
   useEffect(() => {
-    const state = (location.state as any)?.eventData;
-    const incomingTheaterId = (location.state as any)?.eventData?.selectedTheaterId as string | undefined;
+    const state = (location.state)?.eventData;
+    const incomingTheaterId = (location.state)?.eventData?.selectedTheaterId as string | undefined;
 
     (async () => {
       try {

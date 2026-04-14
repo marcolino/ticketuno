@@ -19,8 +19,8 @@ common:
  3 - OK - implement an auditing system - "Audit Implementation Guide" with ChatGPT (done instead with slack)
  3 - OK - ask AI to update README, STRUCTURE, DEPLOY, DOCUMENTATION
  1 - OK - resolve all TypeScript warnings in code
- 1 -    - remove all comments in code
- 1 -    - resolve all TODO's in code
+ 2 - OK - resolve all TODO's in code
+ 2 -    - remove all comments in code
  3 -    - implement pushNotifications
 
  backend:
@@ -52,7 +52,7 @@ common:
  2 - OK - add a bookings component for operators/admins, with a ticket convalidation view (with a QRCode?)
  2 - OK - add a check to avoid deleting currently logged user
  3 - OK - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API..." - NO
- 2 -    - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
+ 2 - OK - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
  2 -    - complete tickets buy process, optionally redirecting to stripe for payment
  3 -    - make a script to backup database, and schedule it, daily
  3 -    - make a method to clean up unreferenced images from /data/images, and schedule it, weekly
@@ -117,10 +117,10 @@ common:
  2 - OK - add check for changes in all components (when dirty), before navigating away
  2 - OK - add privacy and terms links in the register page
  2 - OK - in profile (or in setup/privacy?) add Terms and Privacy pages, and link to open consent dialog
+ 2 - OK - implement a mailing system to send bulk emails to a list of users, with variables
  3 - OK - in LayoutEdit, add a 'signle seat' mode, to mark single seats as absent, vip, handicap, baby, unavailable
  3 - OK - rename Profile to UserEdit (no)
  3 - OK - rename Event/Layout/Theater List to Events/Theaters/Layouts List (no...)
  3 - OK - add all users profile handling
- 2 - OK - implement a mailing system to send bulk emails to a list of users, with variables
  3 - OK - remove .env, .env.example
  3 -    - implement tests

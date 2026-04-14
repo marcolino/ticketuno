@@ -8,11 +8,10 @@ import {
 } from "react";
 import { setupApi } from "@/services/api";
 import { GeneralSetupType } from "@/shared/types/generalSetup";
-//import config from "@/shared/config";
+import config from '@/shared/config';
 
-// TODO: use it server side
 export const defaultSetup: GeneralSetupType = {
-  currency: 'EUR',
+  currency: config.app.defaultCurrency,
   timeout: 10,
   enableNotifications: true,
   launchDate: null,

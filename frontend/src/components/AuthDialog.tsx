@@ -20,6 +20,7 @@ import {
   VisibilityOff,
   //Google as GoogleIcon,
 } from '@mui/icons-material';
+import { isAxiosError } from 'axios';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
@@ -27,6 +28,7 @@ import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
 import GoogleIconColored from '@/components/icons/GoogleIconColored';
 import { AuthDialogProps, TabValue } from '@/shared/types/auth';
+import config from '@/shared/config';
 
 const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "login" }) => {
   const { login, register, verifyEmail, resendVerification, forgotPassword, resetPassword/*, googleLogin*/ } = useAuth();
@@ -100,8 +102,8 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
           navigate('/', { replace: true });
         }
       }
-    } catch (error: any) {
-      if (error.response?.data?.reason === 'RETRY_WITH_GOOGLE_OAUTH') {
+    } catch (error) {
+      if (isAxiosError(error) && error.response?.data?.reason === 'RETRY_WITH_GOOGLE_OAUTH') {
         showDialog({
           title: t('It looks like you did register via Google'),
           content: t('Retry to login with Google, or set a password'),
@@ -242,7 +244,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
 
     try {
       // Now fetch the URL asynchronously
-      const response = await fetch('/api/v1/users/auth/google'); // TODO: /api and v1 from  config
+      const response = await fetch(`${config.app.api.prefix}/${config.app.api.version}/users/auth/google`);
       const { authUrl } = await response.json();
 
       // Navigate popup to auth URL
@@ -260,8 +262,9 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       // Check the origin
       if (
         event.origin !== window.location.origin && 
-        event.origin !== 'http://localhost:3001' &&  // TODO: from config
-        event.origin !== 'https://ticketuno.fly.dev' // TODO: from config
+        event.origin !== config.app.baseUrlBackendDevelopment && 
+        event.origin !== config.app.baseUrlStaging &&
+        event.origin !== config.app.baseUrlProduction
       ) {
         toast.error(t('Invalid message origin: {{origin}}', {origin: event.origin}));
         return;

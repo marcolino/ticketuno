@@ -34,10 +34,11 @@ function Footer({ children }: FooterProps) {
         setBackendVersion(response?.data?.version ?? '?');
         setBackendLastCommit(response?.data?.lastCommit ?? '?');
         setBackendLastCommitDate(response?.data?.lastCommitDate ?? '?');
-     } catch (err: any) {
-        setBackendVersion(err?.message ?? '¿');
-        setBackendLastCommit(err?.message ?? '¿');
-        setBackendLastCommitDate(err?.message ?? '¿');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        setBackendVersion(message ? ` (${message})` : '?');
+        setBackendLastCommit(message ? ` (${message})` : '?');
+        setBackendLastCommitDate(message ? ` (${message})` : '?');
       }
     })();
   });
@@ -125,6 +126,13 @@ function Footer({ children }: FooterProps) {
 
               <OnlineStatus />
 
+              <Box component="span" sx={{ ml: 1, fontSize: '0.9em' }}>
+                {
+                  process.env.NODE_ENV === 'development' ? '🛠️' :
+                    process.env.NODE_ENV === 'staging' ? '🚀' :
+                      ''
+                }
+              </Box>
             </Typography>          
           </>
         )

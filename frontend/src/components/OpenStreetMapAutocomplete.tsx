@@ -1,19 +1,28 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Autocomplete, TextField, CircularProgress } from '@mui/material';
-import { OpenStreetMapProvider } from 'leaflet-geosearch';
+import { OpenStreetMapProvider} from 'leaflet-geosearch';
 
-// Define TypeScript interfaces
-interface OpenStreetMapResult {
-  label: string;
-  x: number;
-  y: number;
-  [key: string]: any; // For other properties that might be in the result
-}
+// // Define TypeScript interfaces
+// interface OpenStreetMapResult {
+//   label: string;
+//   x: number;
+//   y: number;
+//   [key: string]: unknown; // For other properties that might be in the result
+// }
+// type GeosearchResult = {
+//   x: number;
+//   y: number;
+//   label: string;
+//   bounds: [[number, number], [number, number]];
+//   raw: Record<string, unknown>;
+// };
+type SearchResultArray = Awaited<ReturnType<OpenStreetMapProvider['search']>>;
 
 interface OpenStreetMapAutocompleteProps {
   name?: string;
   value: string;
-  onChange: (address: string) => void;
+  //onChange: (address: string) => void;
+  onChange: (event: { target: { name?: string; value: string } }) => void;
   placeholder?: string;
 }
 
@@ -24,7 +33,9 @@ const OpenStreetMapAutocomplete: React.FC<OpenStreetMapAutocompleteProps> = ({
   placeholder = 'Indirizzo stradale' 
 }) => {
   const [inputValue, setInputValue] = useState('');
-  const [options, setOptions] = useState<OpenStreetMapResult[]>([]);
+  //const [options, setOptions] = useState([]);
+  //const [options, setOptions] = useState<GeosearchResult[]>([]);
+  const [options, setOptions] = useState<SearchResultArray>([]);
   const [loading, setLoading] = useState(false);
   
   // Initialize the provider. useMemo prevents recreating it on every render.
@@ -47,14 +58,19 @@ const OpenStreetMapAutocomplete: React.FC<OpenStreetMapAutocompleteProps> = ({
         // 1. Cast to any: await provider.search({ query: inputValue } as any)
         // 2. Or check if it's supported in your version of leaflet-geosearch
         const results = await provider.search({ query: inputValue });
-        
+
         // Filter results for Italy if needed (client-side filtering)
-        const italianResults = results.filter((result: OpenStreetMapResult) => 
-          result.label.toLowerCase().includes('italy') || 
-          result.label.toLowerCase().includes('italia') ||
-          // You can add more specific filtering logic here
-          true // Remove this line if you want strict filtering
+        // const italianResults = results.filter((result: OpenStreetMapResult) => 
+        //   result.label.toLowerCase().includes('italy') || 
+        //   result.label.toLowerCase().includes('italia') ||
+        //   // We can add more specific filtering logic here
+        //   true // Remove this line if you want strict filtering
+        // );
+        const italianResults = results.filter((result) =>
+          result.label.toLowerCase().includes('italy') ||
+          result.label.toLowerCase().includes('italia')
         );
+
         
         if (active) {
           setOptions(italianResults);
@@ -91,12 +107,8 @@ const OpenStreetMapAutocomplete: React.FC<OpenStreetMapAutocompleteProps> = ({
         // This fires on selection (click or Enter on a suggestion)
 
         const addressString = typeof newValue === 'string' ? newValue : newValue?.label || '';
-        onChange({ target: { name: name || 'address', value: addressString } } as any);
+        onChange({ target: { name: name || 'address', value: addressString } });
         
-
-        // const addressString = typeof newValue === 'string' ? newValue : newValue?.label || '';
-        // onChange(addressString);
-
         // Also sync the input field's displayed text
         setInputValue(addressString);
       }}
@@ -113,7 +125,8 @@ const OpenStreetMapAutocomplete: React.FC<OpenStreetMapAutocompleteProps> = ({
             // If the user typed something but didn't select a suggestion,
             // treat the typed text as the final value.
             if (event.target.value !== value) {
-              onChange(event.target.value);
+              //onChange(event.target.value);
+              onChange({ target: { name: name || 'address', value: event.target.value } });
             }
           }}
           InputProps={{

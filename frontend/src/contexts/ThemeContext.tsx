@@ -7,24 +7,15 @@ import React, {
 } from 'react';
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
 import { CssBaseline, useMediaQuery } from '@mui/material';
-
 import { native, custom } from '@/theme';
+import {
+  ThemeType,
+  Platform,
+  ThemeMode,
+  ThemePreference,
+  ThemeContextValue,
+} from '@/shared/types/theme';
 import config from '@/config';
-
-import { ThemeType, Platform, ThemeMode, ThemePreference } from '@/shared/types/theme';
-// TODO: put in some types file, export there and import here...
-// type ThemeType = 'native' | 'custom';
-// type Platform = 'android' | 'ios';
-// type ThemeMode = 'light' | 'dark';
-// type ThemePreference = ThemeMode | 'system';
-
-interface ThemeContextValue {
-  themePreference: ThemePreference;
-  setThemePreference: (mode: ThemePreference) => void;
-  effectiveMode: ThemeMode;
-  themeType: ThemeType;
-  platform: Platform;
-}
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 

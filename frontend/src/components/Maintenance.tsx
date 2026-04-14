@@ -7,6 +7,7 @@ import {
 import useNavigate from '@/hooks/useNavigate';
 import { globalApi } from '@/services/api';
 import { useTheme } from '@mui/material/styles';
+import config from '@/shared/config';
 
 const Maintenance = () => {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ const Maintenance = () => {
     setRetrying(true);
     setError(false);
     try {
-      await fetch('/api/v1/health'); // TODO: api and v1 from config
+      await fetch(`${config.app.api.prefix}/${config.app.api.version}/health`);
       await globalApi.health();
       window.location.href = '/'; // back to app home if healthy
     } catch {

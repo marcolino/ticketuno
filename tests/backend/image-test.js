@@ -1,11 +1,12 @@
 // Example test with supertest
 const request = require('supertest');
 const app = require('./server');
+const config = require('./shared/config');
 
 describe('Image Upload', () => {
   it('should upload an image', async () => {
     const response = await request(app)
-      .post('/api/v1/images/upload') // TODO: /api and v1 from config
+      .post(`${config.app.api.prefix}/${config.app.api.version}/images/upload`)
       .attach('image', 'test-image.jpg')
       .field('imageType', 'poster')
       .expect(201);

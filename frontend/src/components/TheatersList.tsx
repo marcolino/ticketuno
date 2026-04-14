@@ -34,7 +34,7 @@ const TheatersList: React.FC = () => {
   const showDialog = useDialog();
   const [theaters, setTheaters] = useState<Theater[] | null>(null); // ← null = not loaded
   const [layouts, setLayouts] = useState<Layout[] | null>(null); // ← null = not loaded
-  const [error, setError] = useState<string | null>(null); // TODO ... do we use error ?
+  const [error, setError] = useState<string | null>(null);
   const [navigateTo, setNavigateTo] = useState<string | null>(null);
 
   useEffect(() => {

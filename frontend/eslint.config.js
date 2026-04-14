@@ -31,7 +31,7 @@ export default [
       // TS recommended rules
       ...tsPlugin.configs.recommended.rules,
 
-      "@typescript-eslint/no-explicit-any": "off", // TODO: provisional setting, remove all any's
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ];

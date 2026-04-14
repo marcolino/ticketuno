@@ -152,11 +152,11 @@ function GeneralSetup() {
   /* Sidebar content desktop */
   const SidebarContent = (
     <List sx={{ width: 220 }}>
-      {['app', 'preferences', 'security'].map((s) => (
+      {(['app', 'preferences', 'security'] as const).map((s) => (
         <ListItemButton
           key={s}
           selected={section === s}
-          onClick={() => setSection(s as any)}
+          onClick={() => setSection(s)}
           sx={{
             borderRadius: 1,
             '&.Mui-selected': {
@@ -241,11 +241,11 @@ function GeneralSetup() {
           <Box sx={{ flex: 1, p: 2 }}>
 
             {/* MOBILE ACCORDION */}
-            {isMobile && ['app', 'preferences', 'security'].map((s) => (
+            {isMobile && (['app', 'preferences', 'security'] as const).map((s) => (
               <Accordion
                 key={s}
                 expanded={section === s}
-                onChange={() => setSection(s as any)}
+                onChange={() => setSection(s)}
                 disableGutters
                 elevation={0}
                 square={false}

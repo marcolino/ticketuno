@@ -2,6 +2,12 @@ import type { AppConfig } from './types/config';
 
 const name = 'TicketUno';
 const codename = 'ticketuno';
+const baseUrlFrontendDevelopment = 'http://localhost:3000';
+const baseUrlBackendDevelopment = 'http://localhost:3001';
+const baseUrlFrontendStaging = `https://${codename}-staging.fly.dev`;
+const baseUrlBackendStaging = `https://${codename}-staging.fly.dev`;
+const baseUrlFrontendProduction = `https://${codename}.fly.dev`;
+const baseUrlBackendProduction = `https://${codename}.fly.dev`;
 
 const config: AppConfig = {
   app: {
@@ -32,16 +38,19 @@ const config: AppConfig = {
     codename: codename,
     name: name,
     baseUrlBackend:
-      (process.env.NODE_ENV === 'production') ? `https://${codename}.fly.dev` :
-      (process.env.NODE_ENV === 'staging') ? `https://${codename}-staging.fly.dev` :
-      'http://localhost:3001'
+      (process.env.NODE_ENV === 'production') ? baseUrlBackendProduction :
+      (process.env.NODE_ENV === 'staging') ? baseUrlBackendStaging :
+      baseUrlBackendDevelopment
     ,
     baseUrlFrontend:
-      (process.env.NODE_ENV === 'production') ? `https://${codename}.fly.dev` :
-      (process.env.NODE_ENV === 'staging') ? `https://${codename}-staging.fly.dev` :
-      'http://localhost:3000'
+      (process.env.NODE_ENV === 'production') ? baseUrlFrontendProduction :
+      (process.env.NODE_ENV === 'staging') ? baseUrlFrontendStaging :
+      baseUrlFrontendDevelopment
     ,
-    baseUrlProduction: `https://${codename}.fly.dev`,
+    baseUrlProduction: baseUrlFrontendProduction,
+    baseUrlStaging: baseUrlFrontendStaging,
+    baseUrlBackendDevelopment,
+    baseUrlFrontendDevelopment,
     languages: {
       en: { name: 'English', flag: '🇬🇧' },
       it: { name: 'Italiano', flag: '🇮🇹' },
@@ -81,19 +90,22 @@ const config: AppConfig = {
         qrcode: {
         },
         format: 'A4',
-        nominal: false, // to set to true must be implemented the attendees name request when booking...
+        nominal: false, // to set this to true we must beforehand
+                        // implement the attendees name request when booking
       },
       purchases: {
         gateways: {
           'free': {}, // no payment requested
-          'stripe': {} // TODO ...
+          'stripe': {} // Stripe gateway
         },
         gateway: 'free',
       }
-    }
+    },
+    images: {
+      uploadFolder: '/uploads',
+    },
   },
   server: {
-    //delayMilliseconds: 3 * 1000,
   },
   slack: {
     webhookUrl: 'https://hooks.slack.com/services',

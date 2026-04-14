@@ -139,7 +139,7 @@ const ScanRow: React.FC<{ entry: TicketScanEntry; isNew: boolean }> = ({ entry, 
             <Chip
               size="small"
               label={`× ${entry.duplicateCount}`}
-              color={meta.color as any}
+              color={meta.color}
               variant="outlined"
               sx={{ height: 20, fontSize: 11, cursor: 'default' }}
             />

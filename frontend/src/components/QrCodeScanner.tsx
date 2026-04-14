@@ -211,9 +211,7 @@ const successPop = keyframes`
 `;
 
 // Countdown ring shrinks from full circle to nothing over `duration` seconds
-// TODO: why duration is not used ?
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const cooldownShrink = (_duration: number) => keyframes`
+const cooldownShrink = () => keyframes`
   0%   { stroke-dashoffset: 0; }
   100% { stroke-dashoffset: 126; }   /* 2π × r=20 ≈ 126 */
 `;
@@ -317,7 +315,7 @@ const ScanningLabel = styled(Box)(({ theme }) => ({
 
 /** Animated circular countdown ring shown during the cooldown period. */
 const CooldownRing: React.FC<{ durationMs: number }> = ({ durationMs }) => {
-  const shrink = cooldownShrink(durationMs / 1000);
+  const shrink = cooldownShrink();
   const durationS = `${durationMs / 1000}s`;
   const circumference = 2 * Math.PI * 20; // r=20 → ≈125.7
 
@@ -656,9 +654,7 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({
     });
 
     if (code?.data) {
-      //code.data = "qewrqewrqewrqwer"; // TODO ...
-
-      // ── Successful decode ──
+      // Successful decode
       if (enableSounds) playSuccessSound();
       setScannedValue(code.data);
       setScannerState('cooldown'); // show overlay + ring

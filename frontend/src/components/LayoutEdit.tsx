@@ -134,23 +134,20 @@ const LayoutEdit: React.FC = () => {
     if (!isDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = '';
+      (e as any).returnValue = '';
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
   
-  // Layout fields
-  const SECTION_VERTICAL_GAP = 115;
-  const [layoutName, setLayoutName] = useState('');
-  const [layoutDescription, setLayoutDescription] = useState('');
-  const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>({ // TODO: to config
+  // Layout
+  const LAYOUT_DEFAULT: LayoutJSON = {
     version: 1,
     stage: { x: 300, y: 40, width: 400, height: 50, label: t('Stage') },
     sections: [
       {
-        id: 'platea',
-        label: 'Platea',
+        id: t('stalls'),
+        label: t('Stalls'),
         origin: { x: 500, y: 200 },
         rowSpacing: 64,
         seatSpacing: 52,
@@ -161,8 +158,8 @@ const LayoutEdit: React.FC = () => {
         ]
       },
       {
-        id: 'galleria',
-        label: 'Galleria',
+        id: t('balcony'),
+        label: t('Balcony'),
         origin: { x: 500, y: 475 },
         rowSpacing: 64,
         seatSpacing: 52,
@@ -175,7 +172,13 @@ const LayoutEdit: React.FC = () => {
         ],
       },
     ],
-  });
+  };
+
+  // Layout fields
+  const SECTION_VERTICAL_GAP = 115;
+  const [layoutName, setLayoutName] = useState('');
+  const [layoutDescription, setLayoutDescription] = useState('');
+  const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>(LAYOUT_DEFAULT);
 
   const getSectionBottomY = (section: SectionJSON): number => {
     const rowsCount = section.rows.length;
@@ -264,53 +267,6 @@ const LayoutEdit: React.FC = () => {
         setLayoutDescription(layout.description || '');
         setLayoutJSON(JSON.parse(layout.json));
         setTheaterId(layout.theaterId);
-        // Loading does not mark the form dirty — isDirty stays false
-        //setIsEditable(isEditable ?? true);
-
-        // Disable all inputs and hide marking toolbar when locked:
-        // TODO: handle layout.lockInfo ...
-        /*
-        if (!layout.isEditable) {
-          toast.warning(t('This layout cannot be modified')); // some active booking is present...
-          if (layout.lockInfo) {
-            const reservedTotal = layout.lockInfo.reduce((sum, lock) => sum + lock.reserved, 0);
-            const bookedTotal = layout.lockInfo.reduce((sum, lock) => sum + lock.booked, 0);
-            showDialog({
-              title: t('This layout cannot be modified'),
-              content: (
-                <Typography
-                  variant="subtitle1"
-                  color="text.secondary"
-                  component="div" // render as inline element
-                  sx={{ lineHeight: 1.5 }}
-                >
-                  <strong>
-                    {reservedTotal > 0 && bookedTotal > 0
-                      ? t('There are these active reservations / bookings')
-                      : reservedTotal > 0
-                        ? t('There are these active reservations')
-                        : t('There are these active bookings')
-                    }:
-                  </strong>
-                  {
-                    layout.lockInfo.map((lock, index) => (
-                      <Box key={index} sx={{ mt: 1, ml: 1 }}>
-                        {t('Event')}: <i>{lock.eventTitle}</i><br />
-                        {t('Performance date')}: <i>{lock.performanceDate} {lock.startTime}</i><br />
-                        {lock.reserved > 0 && <>{t('Reserved seats')}: <i>{lock.reserved}</i><br /></>}
-                        {lock.booked > 0 && <>{t('Booked seats')}: <i>{lock.booked}</i><br /></>}
-                      </Box>
-                    ))
-                  }
-                </Typography>
-              ),
-              confirmText: 'Ok',
-              shrinkToContent: true,
-            });
-          }
-          //console.warn("Layout is read-only:", layout)
-        }
-        */
 
         // If we have theaterId from the layout, load theater details
         if (layout.theaterId) {
@@ -323,13 +279,6 @@ const LayoutEdit: React.FC = () => {
       }
     }
   }, [id, t, loadTheater]);
-
-  // useEffect(() => {
-  //   if (!isOperator) {
-  //     navigate(-1);
-  //     return;
-  //   }
-  // }, [isOperator, navigate]);
 
   useEffect(() => {
     // If we have theaterData from location state, use it
@@ -401,33 +350,57 @@ const LayoutEdit: React.FC = () => {
   };
 
   // Update section
-  const updateSection = (sectionIndex: number, field: string, value: any) => {
+  const updateSection = (sectionIndex: number, field: string, value: unknown) => {
     const newSections = [...layoutJSON.sections];
     const oldSection = newSections[sectionIndex];
     let deltaY = 0;
 
+    const asNumber = (v: unknown): number => {
+      if (typeof v !== 'number') throw new Error('Expected number');
+      return v;
+    };
+
     // Apply the change and detect delta if it's origin.y
     if (field === 'origin.y') {
+      const newY = asNumber(value);
       const oldY = oldSection.origin.y;
-      deltaY = value - oldY;
+      //deltaY = value - oldY;
+      deltaY = newY - oldY;
       newSections[sectionIndex] = {
         ...oldSection,
-        origin: { ...oldSection.origin, y: value }
+        origin: { ...oldSection.origin, y: newY }
       };
     } else if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      newSections[sectionIndex] = {
-        ...oldSection,
-        [parent]: {
-          ...(oldSection as any)[parent],
-          [child]: value
+      //const [parent, child] = field.split('.');
+      const [parent, child] = field.split('.') as ['origin' | 'rowSpacing' | 'seatSpacing' | 'rows', string];
+      // Only 'origin' is an object; other fields are primitives, but we handle generically
+      if (parent === 'origin') {
+        const originKey = child as keyof typeof oldSection.origin; // 'x' | 'y'
+        newSections[sectionIndex] = {
+          ...oldSection,
+          origin: {
+            ...oldSection.origin,
+            [originKey]: value // value should be number, but we trust caller
+          }
+        };
+      } else {
+        // For other nested fields (none exist in SectionJSON except origin)
+        // If you extend later, handle generically:
+        const parentKey = parent as keyof SectionJSON;
+        const oldParent = oldSection[parentKey];
+        if (typeof oldParent === 'object' && oldParent !== null) {
+          newSections[sectionIndex] = {
+            ...oldSection,
+            [parentKey]: {
+              ...(oldParent as Record<string, unknown>),
+              [child]: value
+            }
+          };
+        } else {
+          // fallback – shouldn't happen
+          newSections[sectionIndex] = { ...oldSection, [parentKey]: value };
         }
-      };
-    } else {
-      newSections[sectionIndex] = {
-        ...oldSection,
-        [field]: value
-      };
+      }
     }
 
     // If origin Y changed, shift all following sections by the same delta

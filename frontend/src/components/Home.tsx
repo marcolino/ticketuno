@@ -97,53 +97,34 @@ const Home: React.FC = () => {
     }
   };
 
-  // // TODO: DEBUG ONLY!
-  // useEffect(() => {
-  //   console.log('xxx Home mounted');
-  //   return () => console.log('xxx Home unmounted');
-  // }, []);
-  // useEffect(() => {
-  //   console.log('xxx authDialogOpen changed to:', authDialogOpen);
-  // }, [authDialogOpen]);
-  // useEffect(() => {
-  //   console.log('xxx isAuthenticated changed to:', isAuthenticated);
-  // }, [isAuthenticated]);
-  // useEffect(() => {
-  //   console.log('xxx user changed:', user);
-  // }, [user]);
-  // useEffect(() => {
-  //   console.log('xxx Home mounted, path:', window.location.pathname);
-  //   return () => console.log('xxx Home unmounted, path was:', window.location.pathname);
-  // }, []);
-  
-useEffect(() => {
-  const params = new URLSearchParams(location.search);
-  const authModeParam = params.get("authMode"); // "login" or "register"
-  const legacyLoginParam = params.get("login");
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const authModeParam = params.get("authMode"); // "login" or "register"
+    const legacyLoginParam = params.get("login");
 
-  let initialTab: "login" | "register" | null = null;
-  if (authModeParam === "login" || legacyLoginParam === "true") {
-    initialTab = "login";
-  } else if (authModeParam === "register") {
-    initialTab = "register";
-  }
+    let initialTab: "login" | "register" | null = null;
+    if (authModeParam === "login" || legacyLoginParam === "true") {
+      initialTab = "login";
+    } else if (authModeParam === "register") {
+      initialTab = "register";
+    }
 
-  if (initialTab) {
-    setAuthDialogInitialTab(initialTab);
-    setAuthDialogOpen(true);
+    if (initialTab) {
+      setAuthDialogInitialTab(initialTab);
+      setAuthDialogOpen(true);
 
-    // Remove both possible params from URL
-    params.delete("authMode");
-    params.delete("login");
-    navigate(
-      {
-        pathname: location.pathname,
-        search: params.toString(),
-      },
-      { replace: true }
-    );
-  }
-}, [location.search, navigate]);
+      // Remove both possible params from URL
+      params.delete("authMode");
+      params.delete("login");
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString(),
+        },
+        { replace: true }
+      );
+    }
+  }, [location.search, navigate]);
   
   const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -301,7 +282,7 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
             onClick={() => navigate('/')} 
             sx={{ display: 'inline', cursor: 'pointer' }}
           >
-            {t('TicketUno')} {/* TODO: from config */}
+            {config.app.name}
           </Box> 
         </Typography>
 

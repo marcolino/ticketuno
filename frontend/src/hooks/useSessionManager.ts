@@ -14,6 +14,7 @@ interface Props {
 }
 
 const WARNING_BEFORE_TOKEN_EXPIRATION_MS = config.app.auth.tokenExpirationTimeWarningAdvanceSeconds * 1000; // milliseconds
+const WARNING_BEFORE_TOKEN_EXPIRATION_MINUTES = Math.round(config.app.auth.tokenExpirationTimeWarningAdvanceSeconds / 60);
 
 export default function useSessionManager({ token, logout }: Props) {
   const { t } = useTranslation();
@@ -70,9 +71,8 @@ export default function useSessionManager({ token, logout }: Props) {
       warningTimer.current = setTimeout(() => {
         showDialog({
           title: 'Session expiring soon',
-          content: t('Your session will expire in {{minutes}} minutes. Please save your work.', {minutes: 5}), // TODO: to config
+          content: t('Your session will expire in {{minutes}} minutes. Please save your work.', {minutes: WARNING_BEFORE_TOKEN_EXPIRATION_MINUTES}),
           confirmText: t('Ok'),
-          //hideCancel: true,
         });
       }, timeLeft - WARNING_BEFORE_TOKEN_EXPIRATION_MS);
     }

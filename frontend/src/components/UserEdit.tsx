@@ -75,7 +75,6 @@ const Profile: React.FC/*<ProfileProps>*/ = () => {
   const roleOptions = currentUser ? assignableRoles(currentUser.role).reverse() : [];
 
   const {
-    register,
     control,
     handleSubmit,
     reset,
@@ -127,7 +126,7 @@ const Profile: React.FC/*<ProfileProps>*/ = () => {
     if (!isDirty) return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = '';
+      (e as any).returnValue = '';
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);

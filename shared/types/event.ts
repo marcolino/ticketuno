@@ -1,3 +1,4 @@
+import { Theater } from './theater';
 export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'canceled';
 
 export interface Event {
@@ -48,13 +49,10 @@ export interface EventPerformance {
   performanceDate: string;
   startTime: string;
   endTime?: string;
-  //canceled: number;
-  //status: EventStatus;
   availableSeats?: number;
   bookedSeats?: number;
   createdAt?: string;
   updatedAt?: string;
-  //canceledAt?: string;
 }
 
 export interface EventStats {
@@ -73,7 +71,7 @@ export interface EventStats {
 }
 
 export interface EventWithDetails extends Event {
-  theater?: any;
+  theater?: Theater;
   performances?: EventPerformance[];
 }
 

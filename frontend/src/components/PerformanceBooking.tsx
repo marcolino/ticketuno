@@ -16,7 +16,9 @@ import {
   //ArrowBack as ArrowBackIcon,
   Cancel as CancelIcon,
   Close as CloseIcon,
+  ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
+import Alert from './Alert';
 import { eventApi, layoutApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
@@ -73,6 +75,8 @@ const PerformanceBooking: React.FC = () => {
       //setLoading(false);
       return;
     }
+
+    //if (eventId) { setError(t('AAAAArgh!')); return; }
 
     try {
       //setLoading(true);
@@ -207,14 +211,14 @@ const PerformanceBooking: React.FC = () => {
       });
 
       setSelectedSeats(new Set());
-    } catch (err: any) {
-      console.error('Booking error:', err);
-      if (err.originalError && err.originalError.unavailableSeats?.length > 0) {
+    } catch (error: any) {
+      //console.error('Booking error:', error);
+      if (error.originalError && error.originalError.unavailableSeats?.length > 0) {
         await showDialog({
           title: t('Attention'),
           content:
             t('These seats are not available anymore:\n') +
-            err.originalError.unavailableSeats
+            error.originalError.unavailableSeats
               .map((seatId: string) => seatLabelById.get(seatId) ?? seatId)
               .join(', '),
           confirmText: 'Ok',
@@ -223,7 +227,7 @@ const PerformanceBooking: React.FC = () => {
         setForceLoadPerformance(true);
         return;
       }
-      toast.error(err.response?.data?.error || err.message || t('Booking failed'));
+      toast.error(getErrorMessage(error));
     }
   };
 
@@ -260,42 +264,8 @@ const PerformanceBooking: React.FC = () => {
   };
 
   if (loading) {
-    return; // the spinner is automatic
+    return;
   }
-  
-  if (error) { // TODO: better handle errors, with custom Alert ...
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Typography color="error">{error}</Typography>
-        <Button onClick={() => navigate(`/event/${eventId}`)}>
-          {t('Back to Event')}
-        </Button>
-      </Container>
-    );
-  }
-
-  if (loading) return null;
-
-  // if (!layout || !performance) { // TODO: how to handle !layout || !performance ???
-  //   return (
-  //     <Container maxWidth="lg" sx={{ mt: 4 }}>
-  //       <Typography>{t('Loading performance data...')}</Typography>
-  //     </Container>
-  //   );
-  // }
-  
-  // if (error || !layout || !performance) {
-  //   toast.warning(t('Performance not found'));
-  //   navigate(-1); // TODO: is it ok? to be tested...
-  //   return;
-  //   // return (
-  //   //   <Container maxWidth="lg" sx={{ mt: 4 }}>
-  //   //     <Button startIcon={<ArrowBackIcon />} onClick={() => navigate(`/event/${eventId}`)} sx={{ mt: 2 }}>
-  //   //       ⬅ {t('Back to Event')}
-  //   //     </Button>
-  //   //   </Container>
-  //   // );
-  // }
 
   return (
     <Box sx={{ flexGrow: 1, minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -318,8 +288,8 @@ const PerformanceBooking: React.FC = () => {
               {event && (
                 <Box>
                   <Typography variant="body1" color="text.secondary">
-                    {t('Theater')} {event.theater.name}
-                    {event.theater.description ? ' - ' : ''} {event.theater.description}
+                    {t('Theater')} {event.theater?.name}
+                    {event.theater?.description ? ' - ' : ''} {event.theater?.description}
                   </Typography>
                   <Typography variant="body1" color="text.secondary">
                     {t('Event')} {event.title}
@@ -347,29 +317,44 @@ const PerformanceBooking: React.FC = () => {
           </Box>
 
           {/* Layout */}
-          <Box sx={{
-            width: '100%', mb: 4,
-            overflowX: 'auto', overflowY: 'hidden',
-            bgcolor: '#f5f5f5', borderRadius: 2,
-          }}>
-            <Box sx={{ minWidth: 600, height: '100%' }}>
-              {layout && (
-                <LayoutPreviewSVG
-                  layout={layout}
-                  seats={seats}
-                  interactive={true}
-                  bookingView={true}
-                  onSeatClick={handleSeatClick}
-                  getSeatStatus={getSeatStatus}
-                />
-              )}
-              <LayoutLegend
-                conditions={activeConditions}
-                showStatusLegend={true}
-                isEditView={false}
-              />
+          {error ? (
+            <Box sx={{ mt: 2 }}>
+              <Alert
+                severity="error"
+                action={
+                  <Button color="inherit" sx={{backgroundColor: 'secondary.main'}} size="small" onClick={() => navigate(-1)}>
+                    <ArrowBackIcon />
+                  </Button>
+                }
+              >
+                {error}
+              </Alert>
             </Box>
-          </Box>
+          ) : (
+            <Box sx={{
+              width: '100%', mb: 4,
+              overflowX: 'auto', overflowY: 'hidden',
+              bgcolor: '#f5f5f5', borderRadius: 2,
+            }}>
+              <Box sx={{ minWidth: 600, height: '100%' }}>
+                {layout && (
+                  <LayoutPreviewSVG
+                    layout={layout}
+                    seats={seats}
+                    interactive={true}
+                    bookingView={true}
+                    onSeatClick={handleSeatClick}
+                    getSeatStatus={getSeatStatus}
+                  />
+                )}
+                <LayoutLegend
+                  conditions={activeConditions}
+                  showStatusLegend={true}
+                  isEditView={false}
+                />
+              </Box>
+            </Box>
+          )}
 
           {/* Booking summary */}
           {selectedSeats.size > 0 && (

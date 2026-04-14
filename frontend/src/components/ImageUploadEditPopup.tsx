@@ -15,11 +15,12 @@ import {
   RotateLeft, RotateRight, /*ZoomIn, ZoomOut,*/ Flip,
   Brightness5, Save, History,
 } from '@mui/icons-material';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, FileRejection} from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import imageCompression from 'browser-image-compression';
+import { getErrorMessage } from '@/shared/utils/misc';
 import { imageApi } from '@/services/api';
 import { ImageType } from '@/shared/types/image';
 
@@ -327,7 +328,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
   // ── Drop handler ─────────────────────────────────────────────────────────
 
-  const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
     setError(''); setCompressionProgress(0); setCompressedInfo(null);
 
     if (rejectedFiles.length > 0) {
@@ -429,8 +430,8 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
       const { data } = await imageApi.upload(uploadedImage.file, imageType);
       onSave(data.filename);
       setActiveStep('success');
-    } catch (err: any) {
-      setError(err.response?.data?.error || t('Failed to upload image: {{err}}', { err: err.message }));
+    } catch (error) {
+      setError(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -492,8 +493,8 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
       setEditedImage(URL.createObjectURL(croppedBlob));
       setActiveStep('preview');
       onSave(data.filename);
-    } catch (err: any) {
-      setError(err.response?.data?.error || t('Failed to save image: {{err}}', { err: err.message }));
+    } catch (error) {
+      setError(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }

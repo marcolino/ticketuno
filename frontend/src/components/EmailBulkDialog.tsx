@@ -59,7 +59,7 @@ interface EmailBulkDialogProps {
 
 // ── API call ─────────────────────────────────────────────────────────────────
 
-async function sendEmailBulk(payload: { // TODO: remove payload here, in services/api and in backend/routes/email
+async function sendEmailBulk(payload: {
   recipients: EmailBulkRecipient[];
   subject: string;
   body: string;
@@ -189,7 +189,7 @@ export default function EmailBulkDialog({
           {t('Click a variable to insert it at the cursor (works in Subject and Body)')}:
         </Typography>
         <Stack direction="row" flexWrap="wrap" gap={0.75}>
-          {getEmailBulkVariables.map(({ key, label, description }) => (
+          {getEmailBulkVariables().map(({ key, label, description }) => (
             <Tooltip key={key} title={description} placement="top" arrow>
               <Chip
                 label={`{{${label}}}`}

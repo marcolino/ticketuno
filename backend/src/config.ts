@@ -47,15 +47,11 @@ const backendDefaults = {
     from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // TODO: use a private email address, when available
     linkToTermsAndConditions: 'https://ticketuno.fly.dev/terms-and-conditions',
   },
-  // slack: {
-  //   webhookUrl: 'https://hooks.slack.com/services',
-  // }
 };
 
 const config = {
   ...sharedConfig,
   ...backendDefaults,
-  //env: process.env,
 };
 
 // safety checks

@@ -3,7 +3,6 @@ import { useLocation, useParams, useBlocker } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useForm, Controller } from 'react-hook-form';
 import {
-  //useTheme,
   Container,
   Box,
   Typography,
@@ -19,11 +18,8 @@ import {
   Curtains as CurtainsIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
-// import PhoneInput from 'react-phone-input-2';
-// import 'react-phone-input-2/lib/material.css';
 import PhoneInput from './PhoneInput';
 import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
-// import TextFieldPhone from './TextFieldPhone';
 import TagSelector from './TagSelector';
 import ActiveBookingsWarning from './ActiveBookingsWarning';
 import { theaterApi, layoutApi } from '@/services/api';
@@ -40,13 +36,11 @@ const TheaterEdit: React.FC = () => {
   const { t } = useTranslation();
   const showDialog = useDialog();
   const toast = useToast();
-  //const theme = useTheme();
   const { id } = useParams<{ id: string }>();
   const { isOperator } = useAuth();
 
   const isEditMode = id && id !== 'new';
 
-  // TODO: to config
   const STAGE_PRESETS = [
     t('Proscenium (Italian style)'),
     t('Proscenium with Apron (prominent stage)'),
@@ -59,9 +53,6 @@ const TheaterEdit: React.FC = () => {
     returnTo?: string;
     eventData?: Record<string, unknown>;
   };
-
-  //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
-  //const [error, setError] = useState('');
 
   // To avoid updating it if not changed, to avoid unuseful guard warnings
   const [originalLayoutId, setOriginalLayoutId] = useState<string>('');
@@ -80,7 +71,6 @@ const TheaterEdit: React.FC = () => {
       websiteUrl: '',
       status: 'active',
       currentLayoutId: '',
-      //selectedLayoutId: '',
     },
   });
 

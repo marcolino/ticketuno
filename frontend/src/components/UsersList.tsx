@@ -64,11 +64,25 @@ function useDebounce<T>(value: T, delay: number) {
 //
 // Filter Panel
 //
-const FilterPanel = memo(({ show, filters, onFilterChange, currentUserRole }: any) => {
+interface FilterValues {
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+}
+
+interface FilterPanelProps {
+  show: boolean;
+  filters: FilterValues;
+  onFilterChange: (filters: FilterValues) => void;
+  currentUserRole: Role | undefined;
+}
+
+const FilterPanel = memo(({ show, filters, onFilterChange, currentUserRole }: FilterPanelProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
 
-  const handleChange = (field: string, value: any) => {
+  const handleChange = (field: keyof FilterValues, value: string) => {
     onFilterChange({ ...filters, [field]: value });
   };
 
@@ -144,7 +158,6 @@ const UsersList: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [users, setUsers] = useState<UserProfile[] | null>(null);
-  //const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const [showFilters, setShowFilters] = useState(false);

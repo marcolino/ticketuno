@@ -43,6 +43,9 @@ export interface AppConfig {
     baseUrlBackend: string;
     baseUrlFrontend: string;
     baseUrlProduction: string;
+    baseUrlStaging: string;
+    baseUrlBackendDevelopment: string;
+    baseUrlFrontendDevelopment: string;
     languages: Record<string, AppLanguage>;
     defaultLanguage: string;
     defaultCountry: string;
@@ -78,6 +81,9 @@ export interface AppConfig {
         gateways: Record<string, Record<string, unknown>>;
         gateway: string;
       };
+    };
+    images: {
+      uploadFolder: string;
     };
   };
   server: {

@@ -17,7 +17,7 @@ export interface Theater {
   updatedAt?: string;
 }
 
-export interface TheaterStats { // TODO: dispose TheaterStats, use Theater...
+export interface TheaterStats {
   id: string;
   name: string;
   description?: string;

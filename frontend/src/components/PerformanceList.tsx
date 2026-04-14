@@ -1,6 +1,6 @@
   import React, { useEffect, useState, useCallback } from 'react';
-  import { useParams/*, useNavigate*/ } from 'react-router-dom';
-  import { t } from 'i18next';
+  import { useParams } from 'react-router-dom';
+  import i18n, { t } from 'i18next';
   import {
     Container,
     Box,
@@ -64,6 +64,7 @@
   import { useAuth } from '@/contexts/AuthContext';
   import { useDialog } from '@/contexts/DialogContext';
   import { useToast } from '@/contexts/ToastContext';
+  import config from '@/shared/config';
 
   // Form interface for performance with Dayjs
   interface EventPerformanceForm {
@@ -110,8 +111,10 @@
 
     const showDialog = useDialog();
 
-    dayjs.locale('it'); // TODO: Set to current locale dynamically
-
+    useEffect(() => {
+      dayjs.locale(i18n.language.split('-')[0]); // Handles 'it-IT' → 'it'
+    }, [i18n.language]);
+    
     const loadEvent = useCallback(async () => {
       try {
         const response = await eventApi.getEventById(id!);
@@ -148,23 +151,6 @@
         loadEvent();
       }
     }, [id, loadEvent]);
-
-    // useEffect(() => {
-    //   if (!loading && !event) {
-    //     toast.warning(t('Event not found'));
-    //   }
-    //   if (error) {
-    //     toast.warning(error);
-    //   }
-    // }, [loading, event, error]);
-
-    // Convert EventPerformance to EventPerformanceForm (for editing)
-    // const performanceToForm = (perf: EventPerformance): EventPerformanceForm => ({
-    //   ...perf,
-    //   performanceDate: perf.performanceDate ? dayjs(perf.performanceDate) : null,
-    //   startTime: perf.startTime ? dayjs(`1970-01-01T${perf.startTime}`) : null,
-    //   endTime: perf.endTime ? dayjs(`1970-01-01T${perf.endTime}`) : null,
-    // });
 
     const performanceToForm = (perf: EventPerformance): EventPerformanceForm => ({
       ...perf,
@@ -218,7 +204,6 @@
         availableSeats: event?.maxCapacity || 0,
         bookedSeats: 0,
         seatData: '[]',
-        //status: 'scheduled',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -231,21 +216,12 @@
     };
 
     const handleDeletePerformance = (performanceId: string) => {
-      //setPerformanceToDelete(performanceId);
-      //setDeleteDialogOpen(true);
       showDialog({
         title: t('Confirm Performance Delete'),
         content: t('Are you sure you want to delete this performance?\nThis action cannot be undone.'),
         cancelText: t('Cancel'),
         confirmText: t('Delete'),
         onConfirm: () => confirmDelete(id!, performanceId),
-        // buttons: [
-        //   {
-        //     text: "Alternative option",
-        //     onClick: alternativeAction,
-        //     variant: "outlined",
-        //   },
-        // ],
       });
     };
 
@@ -300,10 +276,10 @@
       
       switch (action) {
         case 'cancel':
-          alert(`Bulk cancel ${selectedIds.length} performances - TODO: implement`);
+          alert(`Bulk cancel ${selectedIds.length} performances - TODO: implement this method`);
           break;
         case 'delete':
-          alert(`Bulk delete ${selectedIds.length} performances - TODO: implement`);
+          alert(`Bulk delete ${selectedIds.length} performances - TODO: implement this method`);
           break;
       }
     };
@@ -495,7 +471,7 @@
     //   );
     // }
 
-    const posterImageUrl = event && event.posterImage ? `/uploads/${event.posterImage}` : null; // TODO: '/uploads' to config
+    const posterImageUrl = event && event.posterImage ? `${config.app.images.uploadFolder}/${event.posterImage}` : null;
 
     // Performance card component for mobile
     const MobilePerformanceCard = ({ performance }: { performance: EventPerformance }) => (
@@ -536,23 +512,6 @@
         </CardContent>
       </Card>
     );
-
-    // // TODO: integrate Alert error and Alert warning in component output, like in other components
-    // if (error) {
-    //   return (
-    //     <Alert severity="error">
-    //       {error}
-    //     </Alert>
-    //   )
-    // }
-    
-    // if (!event) {
-    //   return (
-    //     <Alert severity="warning">
-    //       {t('No events present')}
-    //     </Alert>
-    //   );
-    // }
     
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -770,10 +729,12 @@
               }}>
                 {event && (
                   <Box>
-                    <Typography sx={{ typography: 'h6' }}>
-                      {t('Theater')}: {event.theater.name}
-                      {event.theater.description ? ' - ' : ''} {event.theater.description}
-                    </Typography>
+                    {event.theater && (
+                      <Typography sx={{ typography: 'h6' }}>
+                        {t('Theater')}: {event.theater.name}
+                        {event.theater.description ? ' - ' : ''} {event.theater.description}
+                      </Typography>
+                    )}
                     <Typography sx={{ typography: 'h6' }}>
                       {t('Event')}: {event.title}
                       {event.description ? ' - ' : ''} {event.description}
@@ -910,7 +871,7 @@
           )}
         </Paper>
 
-        {/* Edit/Add Performance Dialog */} {/* TODO: use useDialog ? */}
+        {/* Edit/Add Performance Dialog */}
         <Dialog
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
@@ -922,16 +883,11 @@
             {performanceToEdit?.id ? t('Edit Performance') : t('Add Performance')}
           </DialogTitle>
           <DialogContent>
-            {/* {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )} */}
             <Stack spacing={3} sx={{ mt: 2 }}>
               <DatePicker
                 label={t('Performance Date')}
                 value={performanceToEdit?.performanceDate ?? null}
-                onChange={handlePerformanceDateChange as any}
+                onChange={handlePerformanceDateChange}
                 format="L"
                 minDate={dayjs()}
                 slotProps={{
@@ -947,7 +903,7 @@
               <TimePicker
                 label={t('Start Time')}
                 value={performanceToEdit?.startTime ?? null}
-                onChange={handleStartTimeChange as any}
+                onChange={handleStartTimeChange}
                 ampm={false}
                 slotProps={{
                   textField: {
@@ -960,7 +916,7 @@
               <TimePicker
                 label={t('End Time')}
                 value={performanceToEdit?.endTime ?? null}
-                onChange={handleEndTimeChange as any}
+                onChange={handleEndTimeChange}
                 ampm={false}
                 slotProps={{
                   textField: {

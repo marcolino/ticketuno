@@ -278,7 +278,7 @@ function CastRow({ role, name, onRemove, onRename }: {
           inputRef={(el) => el?.focus()}
           // confirm on blur so clicking away outside also saves
           // (wrapped in setTimeout to let Escape's cancelEdit fire first)
-          {...{ onBlur: () => setTimeout(confirmEdit, 120) } as any}
+          {...{ onBlur: () => setTimeout(confirmEdit, 120) }}
         />
       ) : (
         <Typography

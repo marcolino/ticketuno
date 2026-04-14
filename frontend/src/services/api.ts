@@ -22,6 +22,10 @@ import config from '@/shared/config';
 
 let redirectingToMaintenance = false;
 
+interface RequestConfigWithMeta extends InternalAxiosRequestConfig {
+  metadata?: { triggerLoading: boolean };
+}
+
 // Maps a mutated URL to the cache name(s) that should be invalidated.
 // Keyed by regex matching the request pathname.
 const CACHE_INVALIDATION_MAP: Array<{
@@ -62,10 +66,8 @@ const headers = config.app.api.headers;
 console.log('baseURL:', baseURL);
 const api: AxiosInstance = axios.create({
   baseURL,
-  timeout, //: 10000, // TODO: set default from config...
-  headers, //: { // TODO: set default from config...
-    //'Content-Type': 'application/json',
-  //},
+  timeout,
+  headers,
 });
 
 // Store the original request method
@@ -149,7 +151,7 @@ api.interceptors.request.use((config) => {
 
   if (shouldTriggerLoading) {
     loadingControls!.eventLoading();
-    (config as any).metadata = { triggerLoading: true };
+    (config as RequestConfigWithMeta).metadata = { triggerLoading: true };
   }
 
   return config;
@@ -157,13 +159,13 @@ api.interceptors.request.use((config) => {
 
 api.interceptors.response.use(
   (response) => {
-    if ((response.config as any).metadata?.triggerLoading) {
+    if ((response.config as RequestConfigWithMeta).metadata?.triggerLoading) {
       loadingControls!.hideLoading();
     }
     return response;
   },
   (error) => {
-    if ((error.config as any)?.metadata?.triggerLoading) {
+    if ((error.config as RequestConfigWithMeta | undefined)?.metadata?.triggerLoading) {
       loadingControls!.hideLoading();
     }
     return Promise.reject(error);
@@ -172,14 +174,14 @@ api.interceptors.response.use(
 
 // Override shortcut methods to use our custom request
 ['get', 'delete', 'head'].forEach(method => {
-  (api as any)[method] = function(url: string, config?: InternalAxiosRequestConfig) {
-    return (api as any).request({ ...config, method, url });
+  (api as unknown as Record<string, unknown>)[method] = function(url: string, config?: InternalAxiosRequestConfig) {
+    return api.request({ ...config, method, url });
   };
 });
 
 ['post', 'put', 'patch'].forEach(method => {
-  (api as any)[method] = function(url: string, data?: any, config?: InternalAxiosRequestConfig) {
-    return (api as any).request({ ...config, method, url, data });
+  (api as unknown as Record<string, unknown>)[method] = function(url: string, data?: unknown, config?: InternalAxiosRequestConfig) {
+    return api.request({ ...config, method, url, data });
   };
 });
 // ========== END LOADING INTERCEPTORS ==========
@@ -209,10 +211,6 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       window.dispatchEvent(new Event("unauthorized")); // handled in AuthProvider, in frontend
-      // // Token expired or invalid
-      // setAuthToken(null);
-      // // Optionally redirect to login page
-      // // window.location.href = '/'; // TODO: force login dialog to open
     }
     return Promise.reject(error);
   }
@@ -244,11 +242,9 @@ api.interceptors.response.use(
         window.location.href = '/maintenance';
         return new Promise(() => {});
       }
-      //return new Promise(() => { }); // Swallow — never resolve/reject
-      // Already on /maintenance — reject with a clean error, not the raw HTML body
+      // Already on /maintenance: reject with a clean error, not the raw HTML body
       return Promise.reject({
         ...error,
-        //message: i18n.t('Service unavailable'), // TODO: test this (i18n.t()) is translated !
         response: { ...error.response, data: { error: i18n.t('maintenance mode') } }
       });
     }
@@ -264,46 +260,6 @@ api.interceptors.response.use(
     return Promise.reject(normalizedError);
   }
 );
-
-// api.interceptors.response.use(
-//   (response) => response,
-//   (error) => {
-//     let message = i18n.t('An unexpected error occurred'); // TODO: check if this translates correctly
-//     /*
-//     if (error.response?.data?.error) {
-//       message = error.response.data.error;
-//     } else if (error.response?.data?.message) {
-//       message = error.response.data.message;
-//     } else if (error.response?.status) {
-//       // Status-specific default messages
-//       const statusMessages: Record<number, string> = {
-//         400: i18n.t('Invalid request. Please check your input.'),
-//         401: i18n.t('You must be logged in to perform this action.'),
-//         403: i18n.t('You do not have permission to perform this action.'),
-//         404: i18n.t('The requested resource was not found.'),
-//         409: i18n.t('This operation conflicts with existing data.'),
-//         422: i18n.t('Validation failed. Please check your input.'),
-//         500: i18n.t('Server error. Please try again later.'),
-//         502: i18n.t('Bad gateway. Server is temporarily unavailable.'),
-//         503: i18n.t('Service unavailable. Please try again later.'),
-//       };
-//       message = statusMessages[error.response.status] || error.response.statusText || message;
-//     } else if (error.message) {
-//       message = error.message;
-//     } else if (error.request) {
-//       message = i18n.t('No response from server. Please check your connection.');
-//     }
-//     */
-//     const normalizedError = {
-//       ...error,
-//       message,
-//       statusCode: error.response?.status,
-//       originalError: error.response?.data,
-//     };
-
-//     return Promise.reject(normalizedError);
-//   }
-// );
 // ========== END ERRORS MANAGEMENT ==========
 
 // ========== API ENDPOINTS ==========
