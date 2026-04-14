@@ -353,7 +353,7 @@ const UsersList: React.FC = () => {
           onClose={close}
         />
       ),
-      cancelText: t('Cancel'),
+      //cancelText: t('Cancel'),
       showCloseIcon: true,
       paperSx: { maxWidth: { xs: '90vw', sm: 720 } },
     });

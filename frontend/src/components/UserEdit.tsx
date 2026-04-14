@@ -283,32 +283,43 @@ const Profile: React.FC/*<ProfileProps>*/ = () => {
         )} */}
 
         <Box sx={{ mt: 3 }}>
-          <TextField
-            {...register('firstName')}
-            fullWidth
-            label="First Name"
-            sx={{ mb: 2 }}
+          <Controller
+            name="firstName"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label={t('First name')}
+                sx={{ mb: 2 }}
+              />
+            )}
           />
-          <TextField
-            {...register('lastName')}
-            fullWidth
-            label="Last Name"
-            sx={{ mb: 2 }}
+          <Controller
+            name="lastName"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label={t('Last name')}
+                sx={{ mb: 2 }}
+              />
+            )}
           />
-          <TextField
-            {...register('email')}
-            fullWidth
-            label="Email"
-            type="email"
-            sx={{ mb: 2 }}
+         <Controller
+            name="firstName"
+            control={control}
+            render={({ field }) => (
+              <TextField
+                {...field}
+                fullWidth
+                label={t('Email')}
+                type="email"
+                sx={{ mb: 2 }}
+              />
+            )}
           />
-          {/* <TextField
-            fullWidth
-            label="Phone"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            sx={{ mb: 2 }}
-          /> */}
           <Controller
             name="phone"
             control={control}

@@ -1,8 +1,5 @@
-//import { database } from '../db/database';
 import emailService from './emailService';
-//import { EMAIL_BULK_VARIABLES } from '../shared/utils/emailBulkVariables';
 import { getErrorMessage } from '../shared/utils/misc';
-//import { i18n } from '../i18n';
 import config from '../config';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

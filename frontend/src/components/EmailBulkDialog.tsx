@@ -36,8 +36,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { emailApi } from '@/services/api';
 import { getErrorMessage } from '@/shared/utils/misc';
-import { EMAIL_BULK_VARIABLES } from '@/shared/utils/emailBulkVariables';
+import { getEmailBulkVariables } from '@/shared/utils/emailBulkVariables';
 import { t } from 'i18next';
+import config from '@/shared/config';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -102,11 +103,15 @@ function insertAtCursor(
 
 // ── Preview: replace {{Var}} with example values ─────────────────────────────
 
-const PREVIEW_VALS: Record<string, string> = { // TODO ...
-  UserName: 'Alice',
-  UserSurname: 'Bianchi',
-  UserEmail: 'alice.bianchi@mail.com',
-  AppName: 'TicketUno',
+const PREVIEW_VALS: Record<string, string> = {
+  UserName: config.app.email.bulk.preview.UserName,
+  UserSurname: config.app.email.bulk.preview.UserSurname,
+  UserEmail: config.app.email.bulk.preview.UserEmail,
+  AppName: config.app.name,
+  // UserName: 'Alice',
+  // UserSurname: 'Bianchi',
+  // UserEmail: 'alice.bianchi@mail.com',
+  // AppName: 'TicketUno',
 };
 
 function renderPreview(text: string): string {
@@ -125,7 +130,6 @@ export default function EmailBulkDialog({
   const [subject, setSubject] = useState('');
   const [body, setBody] = useState('');
   const [mode, setMode] = useState<'edit' | 'preview'>('edit');
-  //const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{ sent: number; failed: number } | null>(null);
 
@@ -165,12 +169,12 @@ export default function EmailBulkDialog({
     return (
       <Box sx={{ p: 1 }}>
         <Alert severity={success.failed > 0 ? 'warning' : 'success'} sx={{ mb: 2 }}>
-          <strong>{success.sent}</strong> email{success.sent !== 1 ? 's' : ''} sent successfully.
+          {t('{{count}} emails sent successfully', { count: success.sent })}
           {success.failed > 0 && (
-            <> &nbsp;<strong>{success.failed}</strong> failed — check server logs.</>
+            t('{{count}} emails send failed', { count: success.failed })
           )}
         </Alert>
-        <Button variant="outlined" onClick={onClose} fullWidth>Close</Button>
+        <Button variant="contained" onClick={onClose}>{t('Close')}</Button>
       </Box>
     );
   }
@@ -179,18 +183,13 @@ export default function EmailBulkDialog({
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, p: 1 }}>
 
-      {/* Recipient summary */}
-      <Alert severity="info" icon={false} sx={{ py: 0.5 }}>
-        Sending to <strong>{recipients.length}</strong> recipient{recipients.length !== 1 ? 's' : ''}.
-      </Alert>
-
       {/* Variable chip toolbar */}
       <Box>
         <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-          Click a variable to insert it at the cursor (works in Subject and Body):
+          {t('Click a variable to insert it at the cursor (works in Subject and Body)')}:
         </Typography>
         <Stack direction="row" flexWrap="wrap" gap={0.75}>
-          {EMAIL_BULK_VARIABLES.map(({ key, label, description }) => (
+          {getEmailBulkVariables.map(({ key, label, description }) => (
             <Tooltip key={key} title={description} placement="top" arrow>
               <Chip
                 label={`{{${label}}}`}
@@ -210,15 +209,17 @@ export default function EmailBulkDialog({
 
       {/* Subject */}
       <TextField
-        label="Subject"
+        label={t('Subject')}
         value={subject}
         onChange={(e) => setSubject(e.target.value)}
-        onFocus={() => { lastFocused.current = 'subject'; }}
+        onFocus={() => { lastFocused.current = 'subject' }}
         inputRef={subjectRef}
         fullWidth
         size="small"
         disabled={loading}
-        placeholder="e.g. Hello {{UserName}}, here's an update!"
+        placeholder={
+          t('Hello') + ' ' + '{{UserName}}' + ', ' + t('here\'s an update!')
+        }
         inputProps={{ spellCheck: true }}
       />
 
@@ -232,11 +233,11 @@ export default function EmailBulkDialog({
         >
           <ToggleButton value="edit">
             <EditIcon fontSize="small" sx={{ mr: 0.5 }} />
-            Edit
+            {t('Edit')}
           </ToggleButton>
           <ToggleButton value="preview">
             <VisibilityIcon fontSize="small" sx={{ mr: 0.5 }} />
-            Preview
+            {t('Preview')}
           </ToggleButton>
         </ToggleButtonGroup>
       </Box>
@@ -254,7 +255,12 @@ export default function EmailBulkDialog({
           maxRows={20}
           fullWidth
           disabled={loading}
-          placeholder={"Dear {{UserName}},\n\nWrite your message here...\n\nBest regards,\nThe Team"}
+          placeholder={
+            t('Dear') + ' ' + '{{UserName}}' + ',\n\n' +
+            t('Write your message here...') + '\n\n' +
+            t('Best regards') + ',\n' +
+            t('The Team')
+          }
           inputProps={{
             spellCheck: true,
             style: { fontFamily: 'monospace', fontSize: '0.875rem', lineHeight: 1.6 },
@@ -266,7 +272,7 @@ export default function EmailBulkDialog({
       {mode === 'preview' && (
         <Box>
           <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
-            Preview shown for a sample user (Jane Smith).
+            {t('Preview shown for a sample user')}
           </Typography>
           <Box
             sx={{
@@ -283,11 +289,11 @@ export default function EmailBulkDialog({
             }}
           >
             <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-              Subject: {renderPreview(subject) || <em>empty</em>}
+              {t('Subject')}: {renderPreview(subject) || <em>{t('empty')}</em>}
             </Typography>
             <Divider sx={{ my: 1 }} />
             <Typography component="div" sx={{ whiteSpace: 'pre-wrap' }}>
-              {renderPreview(body) || <Typography color="text.secondary"><em>empty</em></Typography>}
+              {renderPreview(body) || <Typography color="text.secondary"><em>{t('empty')}</em></Typography>}
             </Typography>
           </Box>
         </Box>
@@ -299,7 +305,7 @@ export default function EmailBulkDialog({
       {/* Actions */}
       <Stack direction="row" justifyContent="flex-end" spacing={1} sx={{ pt: 1 }}>
         <Button onClick={onClose} disabled={loading}>
-          Cancel
+          {t('Cancel')}
         </Button>
         <Button
           variant="contained"
@@ -308,7 +314,7 @@ export default function EmailBulkDialog({
           onClick={handleSend}
           disabled={loading || !subject.trim() || !body.trim()}
         >
-          {loading ? 'Sending…' : `Send to ${recipients.length} recipient${recipients.length !== 1 ? 's' : ''}`}
+          {loading ? t('Sending…') : t('Send to {{count}} recipients', { count: recipients.length})}
         </Button>
       </Stack>
     </Box>

@@ -20,6 +20,15 @@ const config: AppConfig = {
     auth: {
       tokenExpirationTimeWarningAdvanceSeconds: 5 * 60,
     },
+    email: {
+      bulk: {
+        preview: {
+          UserName: 'Alice',
+          UserSurname: 'Bianchi',
+          UserEmail: 'alice.bianchi@mail.com',
+        },
+      },
+    },
     codename: codename,
     name: name,
     baseUrlBackend: (process.env.NODE_ENV === 'production') ?

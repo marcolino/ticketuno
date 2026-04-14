@@ -29,6 +29,15 @@ export interface AppConfig {
     auth: {
       tokenExpirationTimeWarningAdvanceSeconds: number;
     };
+    email: {
+      bulk: {
+        preview: {
+          UserName: string;
+          UserSurname: string;
+          UserEmail: string;
+        },
+      },
+    },
     codename: string;
     name: string;
     baseUrlBackend: string;
