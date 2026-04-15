@@ -178,7 +178,6 @@ router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest
 // Protected: Update event (admin only)
 router.put('/:id', requireAuthentication, requireOperator, async (req, res) => {
   try {
-
     // Check if title is set and not null
     if (req.body.title !== undefined && (req.body.title === '' || req.body.title === null)) {
       return res.status(400).json({ error: req.t('Title cannot be empty') });

@@ -10,7 +10,10 @@ node_modules/
 **/dist
 
 # Environment
-**/.env
+#**/.env
+
+# file with gist ID (https://gist.github.com/USERNAME/GIST-ID) with git-cript secret key
+.gist-id
 
 # Databases
 /data

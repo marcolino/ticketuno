@@ -316,7 +316,7 @@ const PerformanceBooking: React.FC = () => {
             </IconButton>
           </Box>
 
-          {/* Layout */}
+          {/* Layout */} {/* TODO: why do we use this Alert with navigate(-1) only here? Or in all Edit components errors, or never... (always toast.error and navigate(-1)...) */}
           {error ? (
             <Box sx={{ mt: 2 }}>
               <Alert

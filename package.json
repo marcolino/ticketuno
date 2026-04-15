@@ -52,6 +52,8 @@
     "pwa:assets": "node scripts/generate-pwa-assets.js",
     "pwa:manifest": "node scripts/generate-pwa-manifest.js",
     "pwa:generate": "npm run pwa:assets && npm run pwa:manifest",
+    "key:push": "base64 ~/git-crypt-ticketuno.key > /tmp/ticketuno.git.crypt.env.b64 && gh gist edit $(cat .gist-id) /tmp/ticketuno.git.crypt.env.b64 && rm /tmp/ticketuno.git.crypt.env.b64",
+    "key:pull": "gh gist view $(cat .gist-id) --filename ticketuno.git.crypt.env.b64 --raw | base64 -d > ~/git-crypt-ticketuno.key && chmod 600 ~/git-crypt-ticketuno.key",
     "deploy:staging": "./scripts/deploy.sh --staging && npm run play-ok || npm run play-ko",
     "deploy:prod": "./scripts/deploy.sh && npm run play-ok || npm run play-ko",
     "deploy-UNUSED": "./scripts/deploy.sh && npm run play-ok || npm run play-ko",

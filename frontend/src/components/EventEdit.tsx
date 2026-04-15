@@ -300,7 +300,7 @@ const EventEdit: React.FC = () => {
         }
 
         // Fallback error
-        toast.error(t('Failed to update event'));
+        toast.error(t('Event not updated'));
         return;
       } else {
         // Create mode: unchanged, but you could also adapt if needed
@@ -310,15 +310,11 @@ const EventEdit: React.FC = () => {
           skipBlocker.current = true;
           navigate(-1);
         } else {
-          toast.error(t('Failed to create event'));
+          toast.error(t('Event not created'));
         }
       }
     } catch (error) {
-      const err = getErrorMessage(error);
-      const msg = isEditMode
-        ? t('Failed to update event: {{err}}', { err })
-        : t('Failed to create event: {{err}}', { err });
-      toast.error(msg);
+      toast.error(getErrorMessage(error));
     }
   });
 
