@@ -46,4 +46,4 @@ for (const key of [...foundKeys].sort()) {
 fs.mkdirSync(path.dirname(outputFile), { recursive: true });
 fs.writeFileSync(outputFile, lines.join('\n'));
 
-console.log(`Generated ${foundKeys.size} MJML translation keys.`);
+//console.log(`Generated ${foundKeys.size} MJML translation keys.`);

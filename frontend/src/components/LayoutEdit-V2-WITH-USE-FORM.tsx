@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useMemo, createElement } from 'react';
-import { useParams, useLocation, useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useMemo, useRef, createElement } from 'react';
+import { useParams, useLocation, useSearchParams, useBlocker } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   Button,
@@ -8,6 +8,7 @@ import {
   Box,
   Typography,
   Grid,
+  //Alert,
   IconButton,
   Accordion,
   AccordionSummary,
@@ -22,19 +23,20 @@ import {
   Cancel as CancelIcon,
   ViewCompact as ViewCompactIcon,
 } from '@mui/icons-material';
-import equal from 'fast-deep-equal';
+//import { useDialog } from '../contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
+//import PageHeader from './PageHeader';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
 import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
 import Alert from './Alert';
 import { useDialog } from '@/contexts/DialogContext';
-import useUnsavedChanges from '@/hooks/useUnsavedChanges';
 import SeatMarkingToolbar, { MarkingCondition } from './SeatMarkingToolbar';
 import { layoutApi, theaterApi } from '@/services/api';
 import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
 import { SpecialCondition } from '@/shared/types/seat';
 import { generateSeats,  } from '@/shared/utils/layoutToSeats';
+//import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@/shared/utils/misc';
 
@@ -48,7 +50,7 @@ interface LocationState {
   returnTo?: string;
   parentReturnTo?: string,
   parentEventData?: string,
-  theaterId?: string;
+  theaterId?: string; // You can also pass theaterId directly
 }
 
 const LayoutEdit: React.FC = () => {
@@ -89,21 +91,63 @@ const LayoutEdit: React.FC = () => {
   
   const [error, setError] = useState('');
 
-  const [initialSnapshot, setInitialSnapshot] = useState<any>(null);
-
   const showDialog = useDialog();
+
+  // isDirty is a plain boolean — this component manages a deeply nested custom data
+  // structure (layoutJSON) that doesn't fit React Hook Form. We track dirty state
+  // manually: set to true in every user-triggered mutation, never in load functions.
+  const [isDirty, setIsDirty] = useState(false);
+
+  // Ref-based escape hatch for intentional navigations (save).
+  // isDirty is still true when navigate() fires synchronously after save;
+  // the ref is read immediately by the blocker condition, bypassing the render cycle.
+  const skipBlocker = useRef(false);
+
+  // --- Navigation blocker: prompt on unsaved changes ---
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      !skipBlocker.current &&
+      isDirty &&
+      currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    (async () => {
+      const confirmed = await showDialog({
+        title: t('Unsaved changes'),
+        content: t('You have unsaved changes. Leave anyway?'),
+        confirmText: t('Leave'),
+        cancelText: t('Stay'),
+        mode: 'warning',
+      });
+      if (confirmed) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    })();
+  }, [blocker.state]);
+
+  // Handles browser tab close / hard refresh — cases useBlocker cannot intercept
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      (e as any).returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
   
-  // Layout fields
-  const SECTION_VERTICAL_GAP = 115;
-  const [layoutName, setLayoutName] = useState('');
-  const [layoutDescription, setLayoutDescription] = useState('');
-  const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>({ // TODO: to config
+  // Layout
+  const LAYOUT_DEFAULT: LayoutJSON = {
     version: 1,
     stage: { x: 300, y: 40, width: 400, height: 50, label: t('Stage') },
     sections: [
       {
-        id: 'platea',
-        label: 'Platea',
+        id: t('stalls'),
+        label: t('Stalls'),
         origin: { x: 500, y: 200 },
         rowSpacing: 64,
         seatSpacing: 52,
@@ -114,8 +158,8 @@ const LayoutEdit: React.FC = () => {
         ]
       },
       {
-        id: 'galleria',
-        label: 'Galleria',
+        id: t('balcony'),
+        label: t('Balcony'),
         origin: { x: 500, y: 475 },
         rowSpacing: 64,
         seatSpacing: 52,
@@ -128,7 +172,13 @@ const LayoutEdit: React.FC = () => {
         ],
       },
     ],
-  });
+  };
+
+  // Layout fields
+  const SECTION_VERTICAL_GAP = 115;
+  const [layoutName, setLayoutName] = useState('');
+  const [layoutDescription, setLayoutDescription] = useState('');
+  const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>(LAYOUT_DEFAULT);
 
   const getSectionBottomY = (section: SectionJSON): number => {
     const rowsCount = section.rows.length;
@@ -212,19 +262,11 @@ const LayoutEdit: React.FC = () => {
       try {
         const response = await layoutApi.getLayoutById(id!);
         const layout = response.data;
-        const loadedJson = JSON.parse(layout.json);
         
         setLayoutName(layout.name);
         setLayoutDescription(layout.description || '');
-        setLayoutJSON(loadedJson);
+        setLayoutJSON(JSON.parse(layout.json));
         setTheaterId(layout.theaterId);
-        
-        setInitialSnapshot({
-          layoutName: layout.name,
-          layoutDescription: layout.description || '',
-          theaterId: layout.theaterId,
-          layoutJSON: loadedJson,
-        });
 
         // If we have theaterId from the layout, load theater details
         if (layout.theaterId) {
@@ -243,22 +285,13 @@ const LayoutEdit: React.FC = () => {
     if (theaterData?.name) {
       setTheaterName(theaterData.name);
     }
+    
     loadLayout();
   }, [loadLayout, theaterData]);
 
-  useEffect(() => {
-    if (!isEditMode) {
-      setInitialSnapshot({
-        layoutName: '',
-        layoutDescription: '',
-        theaterId,
-        layoutJSON,
-      });
-    }
-  }, []);
-  
   // Update stage
   const updateStage = (field: string, value: number | string) => {
+    setIsDirty(true);
     setLayoutJSON({
       ...layoutJSON,
       stage: { ...layoutJSON.stage, [field]: value }
@@ -298,6 +331,7 @@ const LayoutEdit: React.FC = () => {
       ]
     };
 
+    setIsDirty(true);
     setLayoutJSON(prev => ({
       ...prev,
       sections: [...prev.sections, newSection]
@@ -316,33 +350,57 @@ const LayoutEdit: React.FC = () => {
   };
 
   // Update section
-  const updateSection = (sectionIndex: number, field: string, value: any) => {
+  const updateSection = (sectionIndex: number, field: string, value: unknown) => {
     const newSections = [...layoutJSON.sections];
     const oldSection = newSections[sectionIndex];
     let deltaY = 0;
 
+    const asNumber = (v: unknown): number => {
+      if (typeof v !== 'number') throw new Error('Expected number');
+      return v;
+    };
+
     // Apply the change and detect delta if it's origin.y
     if (field === 'origin.y') {
+      const newY = asNumber(value);
       const oldY = oldSection.origin.y;
-      deltaY = value - oldY;
+      //deltaY = value - oldY;
+      deltaY = newY - oldY;
       newSections[sectionIndex] = {
         ...oldSection,
-        origin: { ...oldSection.origin, y: value }
+        origin: { ...oldSection.origin, y: newY }
       };
     } else if (field.includes('.')) {
-      const [parent, child] = field.split('.');
-      newSections[sectionIndex] = {
-        ...oldSection,
-        [parent]: {
-          ...(oldSection as any)[parent],
-          [child]: value
+      //const [parent, child] = field.split('.');
+      const [parent, child] = field.split('.') as ['origin' | 'rowSpacing' | 'seatSpacing' | 'rows', string];
+      // Only 'origin' is an object; other fields are primitives, but we handle generically
+      if (parent === 'origin') {
+        const originKey = child as keyof typeof oldSection.origin; // 'x' | 'y'
+        newSections[sectionIndex] = {
+          ...oldSection,
+          origin: {
+            ...oldSection.origin,
+            [originKey]: value // value should be number, but we trust caller
+          }
+        };
+      } else {
+        // For other nested fields (none exist in SectionJSON except origin)
+        // If you extend later, handle generically:
+        const parentKey = parent as keyof SectionJSON;
+        const oldParent = oldSection[parentKey];
+        if (typeof oldParent === 'object' && oldParent !== null) {
+          newSections[sectionIndex] = {
+            ...oldSection,
+            [parentKey]: {
+              ...(oldParent as Record<string, unknown>),
+              [child]: value
+            }
+          };
+        } else {
+          // fallback – shouldn't happen
+          newSections[sectionIndex] = { ...oldSection, [parentKey]: value };
         }
-      };
-    } else {
-      newSections[sectionIndex] = {
-        ...oldSection,
-        [field]: value
-      };
+      }
     }
 
     // If origin Y changed, shift all following sections by the same delta
@@ -358,6 +416,7 @@ const LayoutEdit: React.FC = () => {
       }
     }
 
+    setIsDirty(true);
     // For other changes that affect height (rowSpacing, rows), call reflowSections
     if (field === 'rowSpacing' || field === 'rows') {
       const reflowed = reflowSections(newSections);
@@ -368,6 +427,7 @@ const LayoutEdit: React.FC = () => {
   };
 
   const removeSection = (index: number) => {
+    setIsDirty(true);
     setLayoutJSON(prev => {
       const newSections = prev.sections.filter((_, i) => i !== index);
 
@@ -414,6 +474,7 @@ const LayoutEdit: React.FC = () => {
     const newSections = [...layoutJSON.sections];
     newSections[sectionIndex].rows.push(newRow);
     const newSectionsReflowed = reflowSections(newSections); // Reflow all sections to avoid overlaps
+    setIsDirty(true);
     setLayoutJSON({ ...layoutJSON, sections: newSectionsReflowed });
   };
 
@@ -422,6 +483,7 @@ const LayoutEdit: React.FC = () => {
     const newSections = [...layoutJSON.sections];
     newSections[sectionIndex].rows = newSections[sectionIndex].rows.filter((_, i) => i !== rowIndex);
     const newSectionsReflowed = reflowSections(newSections);
+    setIsDirty(true);
     setLayoutJSON({ ...layoutJSON, sections: newSectionsReflowed });
   };
 
@@ -443,6 +505,7 @@ const LayoutEdit: React.FC = () => {
         [field]: value
       };
     }
+    setIsDirty(true);
     setLayoutJSON({ ...layoutJSON, sections: newSections });
   };
 
@@ -470,15 +533,6 @@ const LayoutEdit: React.FC = () => {
       if (!id) {
         const response = await layoutApi.createLayout(layoutData);
         savedLayout = response.data;
-
-        setInitialSnapshot({
-          layoutName,
-          layoutDescription,
-          theaterId,
-          layoutJSON,
-        });
-        allowNextNavigation();
-
         toast.success('Layout created successfully!');
       } else {
         const response = await layoutApi.updateLayout(id, layoutData);
@@ -502,6 +556,7 @@ const LayoutEdit: React.FC = () => {
             mode: 'warning',
           });
           if (!confirmed) {
+            skipBlocker.current = true;
             navigate('/bookings');
           }
           return;
@@ -509,16 +564,8 @@ const LayoutEdit: React.FC = () => {
 
         // Normal success case
         if (result.updated === true) {
-          setInitialSnapshot({
-            layoutName,
-            layoutDescription,
-            theaterId,
-            layoutJSON,
-          });
-
-          allowNextNavigation();
-          
           toast.success(t('Event updated successfully!'));
+          skipBlocker.current = true;
           navigate(-1);
           return;
         }
@@ -527,8 +574,19 @@ const LayoutEdit: React.FC = () => {
         toast.error(t('Failed to update event'));
         return;
       }
+      
+      // Navigate back with updated theater data
+      // navigate(((returnTo || -1) as any), {
+      //   state: {
+      //     theaterData: {
+      //       ...theaterData,
+      //       selectedLayoutId: savedLayout.id
+      //     }
+      //   }
+      // });
 
        // Navigate back with selectedLayoutId
+      skipBlocker.current = true;
       if (returnTo) {
         navigate(returnTo, {
           state: {
@@ -553,9 +611,9 @@ const LayoutEdit: React.FC = () => {
   };
 
   // Cancel layout
+  // Note: cancel() does NOT set skipBlocker — the blocker will intercept it naturally
+  // and ask the user to confirm leaving with unsaved changes, which is correct UX.
   const cancel = async () => {
-    allowNextNavigation();
-
     // Navigate back with original theater data
     if (returnTo) {
       navigate(returnTo || '/layouts', {
@@ -578,6 +636,7 @@ const LayoutEdit: React.FC = () => {
   const handleMarkingSeatClick = useCallback((seatId: string) => {
     if (!markingActive || !markingCondition) return;
 
+    setIsDirty(true);
     setLayoutJSON(prev => {
       const current = { ...(prev.seatConditions || {}) };
 
@@ -596,23 +655,6 @@ const LayoutEdit: React.FC = () => {
       return { ...prev, seatConditions: current };
     });
   }, [markingActive, markingCondition]);
-
-  const currentSnapshot = useMemo(
-    () => ({
-      layoutName,
-      layoutDescription,
-      theaterId,
-      layoutJSON,
-    }),
-    [layoutName, layoutDescription, theaterId, layoutJSON]
-  );
-
-  const isDirty = useMemo(() => {
-    if (!initialSnapshot) return false;
-    return !equal(initialSnapshot, currentSnapshot);
-  }, [initialSnapshot, currentSnapshot]);
-  
-  const { allowNextNavigation } = useUnsavedChanges(isDirty);
 
   return (
     <Box sx={{ p: 2 }}>
@@ -653,7 +695,7 @@ const LayoutEdit: React.FC = () => {
                 label={t('Layout name')}
                 type="text"
                 value={layoutName}
-                onChange={(e) => setLayoutName(e.target.value)}
+                onChange={(e) => { setIsDirty(true); setLayoutName(e.target.value); }}
                 required
                 autoFocus
               />
@@ -664,7 +706,7 @@ const LayoutEdit: React.FC = () => {
                 label={t('Layout description')}
                 type="text"
                 value={layoutDescription}
-                onChange={(e) => setLayoutDescription(e.target.value)}
+                onChange={(e) => { setIsDirty(true); setLayoutDescription(e.target.value); }}
               />
             </Box>
 

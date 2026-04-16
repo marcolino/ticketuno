@@ -23,6 +23,7 @@ import {
   ListItemButton,
   ToggleButtonGroup,
   ToggleButton,
+  Tooltip,
 } from '@mui/material';
 import {
   //EventSeat as EventSeatIcon,
@@ -405,17 +406,23 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                   aria-label={t("Theme selection")}
                   sx={{ my: -0.5 }}
                 >
-                  <ToggleButton value="system" sx={{ py: 0.5, textTransform: 'lowercase' }}>
-                    <SettingsSuggestIcon fontSize="small" />{themePreference === 'system' ? ` (${t(effectiveMode)})` : ''}
-                  </ToggleButton>
+                  <Tooltip title={t('Use "system" theme: your device \'s default theme will be used')}>
+                    <ToggleButton value="system" sx={{ py: 0.5, textTransform: 'lowercase' }}>
+                      <SettingsSuggestIcon fontSize="small" />{themePreference === 'system' ? ` (${t(effectiveMode)})` : ''}
+                    </ToggleButton>
+                  </Tooltip>
 
-                  <ToggleButton value="light" sx={{py: 0}}>
-                    <LightModeIcon fontSize="small" />
-                  </ToggleButton>
-
-                  <ToggleButton value="dark" sx={{py: 0}}>
-                    <DarkModeIcon fontSize="small" />
-                  </ToggleButton>
+                  <Tooltip title={t('Use "light" theme: light colors will be used')}>
+                    <ToggleButton value="light" sx={{py: 0}}>
+                      <LightModeIcon fontSize="small" />
+                    </ToggleButton>
+                  </Tooltip>
+  
+                  <Tooltip title={t('Use "dark" theme: dark colors will be used')}>
+                    <ToggleButton value="dark" sx={{ py: 0 }}>
+                      <DarkModeIcon fontSize="small" />
+                    </ToggleButton>
+                  </Tooltip>
 
                 </ToggleButtonGroup>
               </MenuItem>

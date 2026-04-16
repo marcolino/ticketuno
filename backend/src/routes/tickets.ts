@@ -3,6 +3,7 @@ import { database } from '../db/database';
 import { requireAuthentication, requireOperator} from '../middleware/auth';
 import { verify } from '../services/hmacService';
 import { authHandler } from '../utils/routeHelper';
+import { humanizedDate } from '../utils/misc';
 import { TicketValidationResult } from '../shared/types/ticket';
 import config from '../shared/config';
 const router = express.Router();
@@ -75,10 +76,14 @@ router.post('/:payload/validate',
     return res.json({
       status: 'already_used',
       ref,
-      label: req.t('Already scanned at {{when}}', {
-        when:
-          new Date((booking.scannedAt as unknown as string).replace(' ', 'T') + 'Z').
-          toLocaleTimeString(config.app.defaultLanguage, { timeZone: config.app.defaultTimezone })
+      label: req.t('Already scanned {{when}}', {
+        when: humanizedDate(
+          booking.scannedAt as unknown as string,
+          config.app.defaultLanguage,
+          config.app.defaultTimezone,
+          req.t.bind(req),
+        ),
+        interpolation: { escapeValue: false }
       }),
     } satisfies TicketValidationResult);
   }

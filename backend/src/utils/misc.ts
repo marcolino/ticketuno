@@ -93,6 +93,75 @@ export const formatTimeDifference = (
   return parts.join(' ');
 }
 
+
+/**
+ *Formats a "humanized" date (for today and yestarday and tomorrow)
+ * @param dateInput - Date input
+ * @param locale - Locale to which format the date string
+ * @param timeZone - Date input
+ * @returns Humanized date
+ */
+export const humanizedDate = (
+  dateInput: string | Date,
+  locale: string,
+  timeZone: string,
+  t: (key: string, params?: Record<string, unknown>) => string
+) => {
+  const date = new Date(
+    typeof dateInput === 'string'
+      ? dateInput.replace(' ', 'T') + 'Z'
+      : dateInput
+  );
+
+  const now = new Date();
+
+  const dateOnly = (d: Date) =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d); // YYYY-MM-DD
+
+  const targetDay = dateOnly(date);
+  const today = dateOnly(now);
+
+  const yesterdayDate = new Date(now);
+  yesterdayDate.setDate(now.getDate() - 1);
+  const yesterday = dateOnly(yesterdayDate);
+
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(now.getDate() + 1);
+  const tomorrow = dateOnly(tomorrowDate);
+
+  const time = date.toLocaleTimeString(locale, {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  if (targetDay === today) {
+    return t('today') + ', ' + time;
+  }
+
+  if (targetDay === yesterday) {
+    return t('yesterday') + ', ' + time;
+  }
+
+  if (targetDay === tomorrow) {
+    return t('tomorrow') + ', ' + time;
+  }
+
+  return t('on') + ' ' + date.toLocaleString(locale, {
+    timeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 /** Helpers *************************************************************************************/
 
 /**

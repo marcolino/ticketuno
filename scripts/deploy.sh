@@ -21,7 +21,7 @@ STAGING=false
 ENV_FILE="backend/.env"
 FLY_CONFIG="fly.toml"
 VOLUME_NAME="ticketuno_data"
-DEPLOY_NODE_ENV="staging"
+DEPLOY_NODE_ENV="production"
 
 error_log=$(mktemp)
 
@@ -103,6 +103,12 @@ if [ -n "$(git status --porcelain | grep -vE 'package-lock.json|yarn.lock|pnpm-l
   echo "❌ Working directory is dirty. Commit or stash changes before deploying."
   exit 5
 fi
+
+if ! npm run i18n:status &> /dev/null; then
+  echo "❌ Some translations are missing. Complete translations before deploying."
+  exit 6
+fi
+echo "All translations are OK"; exit 77
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 
@@ -231,12 +237,12 @@ fly secrets set \
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 
-echo "🏗️  Building and deploying to ${APP_NAME}..."
+echo "🏗️  Building and deploying to ${APP_NAME} with VITE_MODE: "
 CACHE_FLAGS=""
 if [ "$CACHE" = "" ] || [ "$CACHE" = "false" ]; then
   CACHE_FLAGS="--no-cache --buildkit"
 fi
-fly deploy --config "${FLY_CONFIG}" --app "${APP_NAME}" --regions "${REGIONS}" ${CACHE_FLAGS}
+fly deploy --build-arg VITE_MODE="${DEPLOY_NODE_ENV}" --config "${FLY_CONFIG}" --app "${APP_NAME}" --regions "${REGIONS}" ${CACHE_FLAGS} 
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
 

@@ -61,7 +61,7 @@ function Footer({ children }: FooterProps) {
               
               © {new Date().getFullYear()} {t(config.app.name)}
 
-              {' '}
+              {' • '}
               <Link
                 type="button"
                 component="button"
@@ -77,7 +77,7 @@ function Footer({ children }: FooterProps) {
               >
                 {t('Terms')}
               </Link>
-              {' '}
+              {' • '}
               <Link
                 type="button"
                 component="button"
@@ -92,7 +92,8 @@ function Footer({ children }: FooterProps) {
               >
                 {t('Privacy')}
               </Link>
-
+              {' • '}
+              
               <IconButton
                 onClick={() =>
                   showDialog({
@@ -128,8 +129,8 @@ function Footer({ children }: FooterProps) {
 
               <Box component="span" sx={{ ml: 1, fontSize: '0.9em' }}>
                 {
-                  process.env.NODE_ENV === 'development' ? '🛠️' :
-                    process.env.NODE_ENV === 'staging' ? '🚀' :
+                  import.meta.env.MODE === 'development' ? '🛠️' :
+                    import.meta.env.MODE === 'staging' ? '🚀' :
                       ''
                 }
               </Box>

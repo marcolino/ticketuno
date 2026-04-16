@@ -10,19 +10,20 @@ A full-stack theater seat reservation system built with React, Node.js, and SQLi
 
 **Public**
 - Theater and event browsing
+- Poster image upload (and editing) per event
 - Interactive seat map with real-time availability
 - Online seat booking with booking reference generation
 - PDF ticket download with QR code
 - Booking confirmation email (HTML via MJML templates)
 - Multi-language UI: English, Italian, French, Chinese
 
-**Admin**
+**Private**
 - Theater, layout, event, and performance management
 - Visual seat layout editor with condition markers (wheelchair, hazard, restricted view, staff, family)
-- Role-based access control (admin, manager, staff)
+- Role-based access control (admin, operator, user)
 - Bulk user management with guarded destructive actions
-- Guard system: blocks deletions of theaters, events, performances, or layout changes when active bookings exist
-- Poster image upload per event
+- Guard system: blocks editing/deletions of theaters, events, performances, or layout changes
+  when active bookings exist
 - i18n status tooling and translation scripts
 
 **Technical**
@@ -107,25 +108,32 @@ cp .env.example .env
 Key variables (see full list in [`DEPLOY.md`](./DEPLOY.md)):
 
 ```env
-PORT=3001
-JWT_SECRET=your-secret-key
-ADMIN_USER_EMAIL=admin@example.com
-ADMIN_USER_PASSWORD=your-admin-password
-DB_PATH=./data/ticketuno.db
-VITE_API_URL=http://localhost:3001/api
+JWT_SECRET=your-jwt-secret-change-this-in-production
+PASSEPARTOUT=your-passepartout-password-change-this-in-production
+ADMIN_USER_EMAIL=admin@mail.com
+ADMIN_USER_PASSWORD=your-admin-password-change-this-in-production
+OPERATOR_USER_EMAIL=operator@mail.com
+OPERATOR_USER_PASSWORD=your-operator-password-change-this-in-production
+MAINTENANCE_MODE=0
+```
+
+# Edit shared/config.ts with your settings
+```bash
+vi shared/config.ts
+# Edit shared/config.ts with your settings
 ```
 
 ### 3. Run in development
 
 ```bash
 # Backend (with hot reload)
-cd backend && npm run dev
+cd backend && npm run dev # (or run your preferred debugger)
 
 # Frontend (separate terminal)
 cd frontend && npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`, backend on `http://localhost:3001`.
+Frontend runs on `http://localhost:3000`, backend on `http://localhost:3001`.
 
 ---
 
@@ -178,13 +186,19 @@ npm run db:backup   # Backup SQLite database
 Translations live in `shared/locales/{en,it,fr,zh}/`. To check coverage:
 
 ```bash
-cd frontend && npm run i18n:status
+npm run i18n:status
+```
+
+To extract strings to be translated from the code:
+
+```bash
+npm run i18n:extract
 ```
 
 To generate or update translations automatically:
 
 ```bash
-node scripts/translate.js
+npm run i18n:auto
 ```
 
 ---

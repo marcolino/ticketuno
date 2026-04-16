@@ -44,31 +44,22 @@ npm run deploy
 Create `.env` in the **repo root**:
 
 ```env
-NODE_ENV=production
-PORT=8080
-
-# Auth
-JWT_SECRET=your-super-secret-jwt-key-change-this
-
-# Initial admin account (created on first startup)
-ADMIN_USER_EMAIL=admin@example.com
-ADMIN_USER_PASSWORD=your-admin-password-change-this
-
-# Database (persistent volume in production)
-DB_PATH=/data/ticketuno.db
-
-# Frontend API base URL (used at Vite build time)
-VITE_API_URL=https://ticketuno.fly.dev/api
-
-# Email (optional — ticket confirmation emails)
-SMTP_HOST=smtp.example.com
-SMTP_PORT=587
-SMTP_USER=noreply@example.com
-SMTP_PASS=your-smtp-password
-SMTP_FROM=noreply@example.com
+JWT_SECRET=your-jwt-secret-change-this-in-production
+PASSEPARTOUT=your-passepartout-password-change-this-in-production
+ADMIN_USER_EMAIL=admin@mail.com
+ADMIN_USER_PASSWORD=your-admin-password-change-this-in-production
+OPERATOR_USER_EMAIL=operator@mail.com
+OPERATOR_USER_PASSWORD=your-operator-password-change-this-in-production
+EMAIL_TOKEN_SECRET=your-token-secret-for-email-unsubscribe-change-this-in-production
+GOOGLE_CLIENT_ID=your-google-client-id-for-google-oauth
+GOOGLE_CLIENT_SECRET=your-google-client-secret-for-google-oauth
+TICKET_HMAC_SECRET=your-hmac-secret-for-qrcodes-encryption
+RESEND_API_KEY=your-resend-api-key-for-emails
+GEMINI_API_KEY=your-gemini-api-key-for-translations
+GROQ_API_KEY=your-grok-api-key-for-translations
+SLACK_WEBHOOK_TOKEN=your-slack-webhook-token
+MAINTENANCE_MODE=0
 ```
-
-> **Note:** Frontend environment variables must be prefixed `VITE_` (not `REACT_APP_`). They are inlined at build time by Vite.
 
 ---
 

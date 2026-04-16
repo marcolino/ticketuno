@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback, createElement } from 'react';
-import { useLocation, useParams  } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef, createElement } from 'react';
+import { useLocation, useParams, useBlocker } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useForm, Controller } from 'react-hook-form';
 import {
-  //useTheme,
   Container,
   Box,
   Typography,
@@ -18,11 +18,8 @@ import {
   Curtains as CurtainsIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
-// import PhoneInput from 'react-phone-input-2';
-// import 'react-phone-input-2/lib/material.css';
 import PhoneInput from './PhoneInput';
 import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
-// import TextFieldPhone from './TextFieldPhone';
 import TagSelector from './TagSelector';
 import ActiveBookingsWarning from './ActiveBookingsWarning';
 import { theaterApi, layoutApi } from '@/services/api';
@@ -30,7 +27,6 @@ import { Layout } from '@/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useDialog } from '@/contexts/DialogContext';
-import useUnsavedChanges from '@/hooks/useUnsavedChanges';
 import { getErrorMessage } from '@/shared/utils/misc';
 import config from '@/shared/config';
 
@@ -40,20 +36,16 @@ const TheaterEdit: React.FC = () => {
   const { t } = useTranslation();
   const showDialog = useDialog();
   const toast = useToast();
-  //const theme = useTheme();
   const { id } = useParams<{ id: string }>();
   const { isOperator } = useAuth();
 
   const isEditMode = id && id !== 'new';
 
-  const [isDirty, setIsDirty] = useState(false);
-  useUnsavedChanges(isDirty);
-
   const STAGE_PRESETS = [
     t('Proscenium (Italian style)'),
     t('Proscenium with Apron (prominent stage)'),
     t('Arena (Circular o semi-circular)'),
-    t('Thrust'),
+    t('Thrust '),
     t('Black Box'),
   ];
 
@@ -62,20 +54,14 @@ const TheaterEdit: React.FC = () => {
     eventData?: Record<string, unknown>;
   };
 
-  //const [theaters, setTheaters] = useState<TheaterStats[]>([]);
-  const [saving, setSaving] = useState(false);
-  //const [error, setError] = useState('');
-
   // To avoid updating it if not changed, to avoid unuseful guard warnings
   const [originalLayoutId, setOriginalLayoutId] = useState<string>('');
 
-  // Theater fields
-  const [theaterData, setTheaterData] = useState(() => {
+  const [layouts, setLayouts] = useState<Layout[]>([]);
+
+  const { register, control, handleSubmit, reset, getValues, setValue, formState: { isDirty, isSubmitting } } = useForm({
     // Check if we have state passed from caller
-    if (location.state?.theaterData) {
-      return location.state.theaterData;
-    }
-    return {
+    defaultValues: location.state?.theaterData ?? {
       name: '',
       description: '',
       stageType: '',
@@ -85,11 +71,40 @@ const TheaterEdit: React.FC = () => {
       websiteUrl: '',
       status: 'active',
       currentLayoutId: '',
-      //selectedLayoutId: '',
-    };
+    },
   });
 
-  const [layouts, setLayouts] = useState<Layout[]>([]);
+  // Ref-based escape hatch for intentional navigations (save, sub-flow to layout/new).
+  // reset(data) schedules a re-render but navigate() fires synchronously before it
+  // completes, so isDirty is still true when the blocker evaluates. The ref is
+  // synchronous and is visible to the blocker condition immediately.
+  const skipBlocker = useRef(false);
+
+  // --- Navigation blocker: prompt on unsaved changes ---
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      !skipBlocker.current &&
+      isDirty &&
+      currentLocation.pathname !== nextLocation.pathname
+  );
+
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return;
+    (async () => {
+      const confirmed = await showDialog({
+        title: t('Unsaved changes'),
+        content: t('You have unsaved changes. Leave anyway?'),
+        confirmText: t('Leave'),
+        cancelText: t('Stay'),
+        mode: 'warning',
+      });
+      if (confirmed) {
+        blocker.proceed();
+      } else {
+        blocker.reset();
+      }
+    })();
+  }, [blocker.state]);
 
   const loadTheater = useCallback(async () => {
     try {
@@ -97,15 +112,22 @@ const TheaterEdit: React.FC = () => {
       const theater = response.data;
       console.log('getTheaterById theater:', theater);
 
-      setTheaterData({
+      reset({
         ...theater,
         currentLayoutId: theater.currentLayoutId || '', // Ensure currentLayoutId is set
         contactPhone: theater.contactPhone || '', // Ensure contactPhone is set
         contactEmail: theater.contactEmail || '', // Ensure contactEmail is set
       });
       setOriginalLayoutId(theater.currentLayoutId || '');
-      setIsDirty(false);
+      // // Load current layout for this theater
+      // const layoutResponse = await theaterApi.getTheaterLayoutCurrent(id!);
+      // reset({
+      //   ...theater,
+      //   selectedLayoutId: layoutResponse.data?.id || ''
+      // });
+      //setError('');
     } catch (error) {
+      //setError(err.response?.data?.error || 'Failed to load theater');
       toast.error(getErrorMessage(error));
     }
   }, [id]);
@@ -134,14 +156,14 @@ const TheaterEdit: React.FC = () => {
         // Load layouts first so the new layout is available before rendering
         await loadLayouts();
         
-        setTheaterData((prev) => ({
-          ...prev,
+        reset({
+          ...getValues(),
           ...location.state.theaterData, // Merge new layout ID
-          selectedLayoutId: location.state.theaterData.selectedLayoutId
-        }));
+          currentLayoutId: location.state.theaterData.selectedLayoutId,
+        });
         
-        setIsDirty(true);
-        
+        // // Load layouts AFTER setting state (so new layout appears)
+        // await loadLayouts();
         return; // Skip theater load - we're editing existing
       }
 
@@ -161,28 +183,18 @@ const TheaterEdit: React.FC = () => {
         if (layouts.length === 0) {
           await loadLayouts();
         }
-        setTheaterData((prev) => ({
-          ...prev,
-          currentLayoutId: state.theaterData?.selectedLayoutId
-        }));
+        setValue('currentLayoutId', state.theaterData?.selectedLayoutId, { shouldDirty: true });
       })();
     }
   }, [location.state]);
   
-  const handleInputChange = (e) => {
-    setTheaterData({
-      ...theaterData,
-      [e.target.name]: e.target.value
-    });
-    setIsDirty(true);
-  };
-  
   const handleLayoutSelect = (layoutId: string) => {
     if (layoutId === '<new>') {
-
+      // Mark intentional navigation so blocker doesn't fire for this sub-flow
+      skipBlocker.current = true;
       navigate('/layout/new', {
         state: { 
-          theaterData, 
+          theaterData: getValues(), 
           returnTo: `/theater/edit/${id || 'new'}`,
           theaterId: id,  // pass the theater ID if editing existing theater
           parentReturnTo: returnTo,
@@ -190,15 +202,10 @@ const TheaterEdit: React.FC = () => {
         },
         replace: true,
       });
-      return;
+    } else {
+      //setSelectedLayoutId(layoutId);
+      setValue('currentLayoutId', layoutId, { shouldDirty: true });
     }
-
-    setTheaterData((prev) => ({ 
-      ...prev, 
-      currentLayoutId: layoutId
-    }));
-  
-    setIsDirty(true);
   };
   
   const contactPhoneValidate = (value: string) => {
@@ -209,22 +216,21 @@ const TheaterEdit: React.FC = () => {
     }
   };
   
-  const handleSave = async () => {
-    if (!theaterData.name.trim()) {
+  const handleSave = handleSubmit(async (data) => {
+    if (!data.name.trim()) {
       toast.warning(t('Name is required'));
       return;
     }
-    if (!theaterData.currentLayoutId) {
+    if (!data.currentLayoutId) {
       toast.warning(t('A layout is required'));
       return;
     }
     try {
-      setSaving(true);
       //setError('');
 
       let savedId: string;
       if (isEditMode) {
-        const payload = { ...theaterData };
+        const payload = { ...data };
         if (payload.currentLayoutId === originalLayoutId) {
           delete payload.currentLayoutId; // Unchanged, skip guard
         }
@@ -246,15 +252,29 @@ const TheaterEdit: React.FC = () => {
             mode: 'warning',
           });
           if (!confirmed) {
-            setIsDirty(false);
             navigate('/bookings');
           }
           return;
         }
+        // if (!response.data.updated) {
+        //   if (response.data.reason === 'THEATER_HAS_ACTIVE_BOOKINGS') {
+        //     await showDialog({
+        //       title: t('Active Bookings Exist'),
+        //       content: response.data.blockedBy ?
+        //         <ActiveBookingsWarning bookings={response.data.blockedBy} action={'theater'}  /> :
+        //         <>{t('No bookings info')}</>
+        //       ,
+        //       cancelText: t('Cancel'),
+        //       onCancel: () => { },
+        //       shrinkToContent: true,
+        //     });
+        //     return;
+        //   }
+        // }
         if (result.updated === true) {
           savedId = id!;
-          setIsDirty(false);
           toast.success(t('Theater updated successfully!'));
+          skipBlocker.current = true;
           navigate(-1);
           return;
         }
@@ -262,12 +282,12 @@ const TheaterEdit: React.FC = () => {
         toast.error(t('Failed to update theater'));
         return;
       } else {
-        const response = await theaterApi.createTheater(theaterData);
+        const response = await theaterApi.createTheater(data);
         savedId = response.data;
         toast.success(t('Theater created successfully!'));
       }
 
-      setIsDirty(false);
+      skipBlocker.current = true;
       if (returnTo) {
         navigate(returnTo, {
           state: {
@@ -286,10 +306,8 @@ const TheaterEdit: React.FC = () => {
         getErrorMessage(error) ||
         t('Failed to {{action}} theater', { action: isEditMode ? t('update') : t('create') })
       );
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   // const validatePhone = (phone: string) => {
   //   if (!phone || phone.length < 8) {
@@ -317,10 +335,8 @@ const TheaterEdit: React.FC = () => {
         <Grid container spacing={3}>
           <Grid item xs={12} md={8}>
             <TextField
-              name="name"
+              {...register('name')}
               label={t('Name')}
-              value={theaterData.name}
-              onChange={handleInputChange}
               fullWidth
               required
               autoFocus
@@ -329,10 +345,8 @@ const TheaterEdit: React.FC = () => {
 
           <Grid item xs={12}>
             <TextField
-              name="description"
+              {...register('description')}
               label={t('Description')}
-              value={theaterData.description}
-              onChange={handleInputChange}
               multiline
               rows={3}
               fullWidth
@@ -340,16 +354,19 @@ const TheaterEdit: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} md={4}>
-            <TagSelector
-              label={t('Stage Type')}
-              storageKey='eventStageCustom'
-              presetOptions={STAGE_PRESETS}
-              value={theaterData.stageType}
-              //onChange={handleInputChange}
-              onChange={(value) => {
-                setTheaterData({ ...theaterData, stageType: value });
-                setIsDirty(true);
-              }}
+            <Controller
+              name="stageType"
+              control={control}
+              render={({ field }) => (
+                <TagSelector
+                  label={t('Stage Type')}
+                  storageKey='eventStageCustom'
+                  presetOptions={STAGE_PRESETS}
+                  value={field.value}
+                  //onChange={handleInputChange}
+                  onChange={field.onChange}
+                />
+              )}
             />
             {/* <TextField
               name="stageType"
@@ -369,45 +386,50 @@ const TheaterEdit: React.FC = () => {
           </Grid>
 
           <Grid item xs={12} md={8}>
-            <OpenStreetMapAutocomplete
+            <Controller
               name="address"
-              value={theaterData.address}
-              onChange={handleInputChange}
-              placeholder={t('Indirizzo stradale')}
+              control={control}
+              render={({ field }) => (
+                <OpenStreetMapAutocomplete
+                  name="address"
+                  value={field.value}
+                  onChange={(e) => field.onChange(e.target.value)}
+                  placeholder={t('Indirizzo stradale')}
+                />
+              )}
             />
           </Grid>
           <Grid item xs={12} md={4}>
             <TextField
-              name="websiteUrl"
+              {...register('websiteUrl')}
               label="Website URL"
-              value={theaterData.websiteUrl}
-              onChange={handleInputChange}
               fullWidth
             />
           </Grid>
 
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth>
-              <PhoneInput
-                label={t('Contact phone number')}
-                value={theaterData.contactPhone}
-                onChange={(value) => {
-                  setTheaterData(prev => ({ ...prev, contactPhone: value }));
-                  setIsDirty(true);
-                }}
-                onBlur={() => contactPhoneValidate(theaterData.contactPhone)}
-                defaultCountry={config.app.defaultLanguage}
+              <Controller
+                name="contactPhone"
+                control={control}
+                render={({ field }) => (
+                  <PhoneInput
+                    label={t('Contact phone number')}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={() => contactPhoneValidate(field.value)}
+                    defaultCountry={config.app.defaultLanguage}
+                  />
+                )}
               />
             </FormControl>
           </Grid>
           <Grid item xs={12} sm={4}>
             <FormControl fullWidth>
               <TextField
-                name="contactEmail"
+                {...register('contactEmail')}
                 type="email"
                 label="Contact email"
-                value={theaterData.contactEmail}
-                onChange={handleInputChange}
                 fullWidth={false}
               />
             </FormControl>
@@ -435,31 +457,34 @@ const TheaterEdit: React.FC = () => {
 
           <Grid item xs={12} md={6}>
             <FormControl fullWidth required>
-              <TextField
-                select
-                fullWidth
-                required
-                label={t('Layout')}
-                name="selectedLayoutId"
-                value={
-                  layouts.some(l => l.id === theaterData.currentLayoutId)
-                    ? theaterData.currentLayoutId
-                    : ''
-                }
-                onChange={(e) => {
-                  handleLayoutSelect(e.target.value);
-                  setIsDirty(true);
-                }}
-              >
-                <MenuItem value={"<new>"}>
-                  <i>{t('New Layout')}</i>
-                </MenuItem>
-                {layouts.map((layout, index) => (
-                  <MenuItem key={index} value={layout.id}>
-                    {layout.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              <Controller
+                name="currentLayoutId"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    select
+                    fullWidth
+                    required
+                    label={t('Layout')}
+                    name="selectedLayoutId"
+                    value={
+                      layouts.some(l => l.id === field.value)
+                        ? field.value
+                        : ''
+                    }
+                    onChange={(e) => handleLayoutSelect(e.target.value)}
+                  >
+                    <MenuItem value={"<new>"}>
+                      <i>{t('New Layout')}</i>
+                    </MenuItem>
+                    {layouts.map((layout, index) => (
+                      <MenuItem key={index} value={layout.id}>
+                        {layout.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                )}
+              />
             </FormControl>
           </Grid>
 
@@ -476,7 +501,7 @@ const TheaterEdit: React.FC = () => {
                 navigate(-1);
               }
             }}
-            disabled={saving}
+            disabled={isSubmitting}
           >
             {t('Cancel')}
           </Button>
@@ -484,9 +509,9 @@ const TheaterEdit: React.FC = () => {
             variant="contained"
             startIcon={<SaveIcon />}
             onClick={handleSave}
-            disabled={saving}
+            disabled={isSubmitting}
           >
-            {saving ?
+            {isSubmitting ?
               (isEditMode ? t('Updating...') : t('Creating...')) :
               (isEditMode ? t('Update Theater') : t('Create Theater'))
             }

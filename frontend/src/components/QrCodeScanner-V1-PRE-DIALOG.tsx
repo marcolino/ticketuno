@@ -1,3 +1,10 @@
+/**
+ * Dependencies:
+ *   "jsqr": "^1.4.0"
+ *   "@mui/material", "@mui/icons-material", "@emotion/react", "@emotion/styled"
+ *   "react-i18next", "i18next"
+ */
+
 import React, {
   useCallback,
   useEffect,
@@ -16,16 +23,19 @@ import {
   DialogContent,
   Divider,
   Fade,
+  IconButton,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
   Stack,
+  Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
 import { alpha, styled, keyframes } from '@mui/material/styles';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import CloseIcon from '@mui/icons-material/Close';
 import QrCodeScannerIcon from '@mui/icons-material/QrCodeScanner';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import BlockIcon from '@mui/icons-material/Block';
@@ -211,13 +221,7 @@ const cooldownShrink = () => keyframes`
 const ViewfinderWrapper = styled(Box)(({ theme }) => ({
   position: 'relative',
   width: '100%',
-  // Height fills the visible viewport minus the scanner dialog's own chrome:
-  //   header ≈ 56px (icon + title + border)
-  //   actions ≈ 72px (button row + padding)
-  //   DialogContent padding: 24px top + 24px bottom = 48px
-  //   status labels / breathing room ≈ 60px
-  // Cap at the viewport width so it stays square-ish on wide screens.
-  height: 'min(calc(100dvh - 336px), calc(100vw - 100px))',
+  aspectRatio: '1 / 1',
   borderRadius: theme.shape.borderRadius * 2,
   overflow: 'hidden',
   backgroundColor: '#000',
@@ -470,7 +474,7 @@ const DeniedPanel: React.FC<DeniedPanelProps> = ({
             <ListItemText primary={
               <Stack direction="row" alignItems="center" spacing={0.75}>
                 <RefreshIcon sx={{ fontSize: 15, color: 'text.secondary' }} />
-                <Typography variant="body2">{t('Return here and tap "Check Again"')}</Typography>
+                <Typography variant="body2">{t('Come back here and tap "Check Again"')}</Typography>
               </Stack>
             } />
           </ListItem>
@@ -478,7 +482,7 @@ const DeniedPanel: React.FC<DeniedPanelProps> = ({
       </Box>
 
       {isMobile && (
-        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+        <Typography variant="caption" color="text.secondary" textAlign="center">
           {t('💡 On mobile, uninstalling and reinstalling this app also resets camera permission.')}
         </Typography>
       )}
@@ -707,8 +711,6 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({
     onClose?.();
   };
 
-  // Full close: stops camera, resets all state, calls onClose.
-  // Used by backdrop click AND by the "Stop scanning" button.
   const handleClose = () => {
     if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
     stopCamera();
@@ -717,6 +719,12 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({
     setErrorMsg('');
     setStillDenied(false);
     onClose?.();
+  };
+
+  const handleStop = () => {
+    if (cooldownTimer.current) clearTimeout(cooldownTimer.current);
+    stopCamera();
+    setScannerState('idle');
   };
 
   const handleRetry = () => {
@@ -748,7 +756,7 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, px: 3, pt: 2.5, pb: 1 }}>
           <CameraAltIcon color="primary" />
           <Typography variant="h6" fontWeight={700}>
-            {t('Scan Ticket QR Code')}
+            {t('Scan Tickets QR Code')}
           </Typography>
         </Box>
         <DialogContent>
@@ -783,24 +791,26 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({
         TransitionProps={{ timeout: 300 }}
         PaperProps={{ elevation: 8, sx: { borderRadius: 3, overflow: 'hidden' } }}
       >
-        {/* Header — no close button; "Stop scanning" in actions serves that role */}
+        {/* Header */}
         <Box sx={{
-          display: 'flex', alignItems: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           px: 2.5, py: 1.5, borderBottom: `1px solid ${theme.palette.divider}`,
         }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <QrCodeScannerIcon color="primary" sx={{ fontSize: 22 }} />
             <Typography variant="subtitle1" fontWeight={700} letterSpacing={0.3}>
-              {t('Scan Ticket QR Code')}
+              {t('Scan Tickets QR Code')}
             </Typography>
           </Stack>
+          <Tooltip title={t('Cancel')}>
+            <IconButton size="small" onClick={handleClose} edge="end">
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         </Box>
 
         {/* Body */}
-        <DialogContent sx={{
-          p: 2,
-          overflow: 'hidden',
-        }}>
+        <DialogContent sx={{ p: 3 }}>
           <Stack spacing={2.5} alignItems="center">
 
             {!isDenied && (
@@ -916,17 +926,15 @@ export const QrCodeScanner: React.FC<QrCodeScannerProps> = ({
             </Button>
           )}
 
-          {/* "Stop scanning" closes the dialog entirely — same as the old × button.
-              The old "Stop" kept the dialog open in idle state, which was a dead end. */}
           {(scannerState === 'active' || isCooldown) && (
             <Button
               variant="outlined"
               size="medium"
               color="inherit"
-              onClick={handleClose}
+              onClick={handleStop}
               sx={{ borderRadius: 2, px: 3 }}
             >
-              {t('Stop scanning')}
+              {t('Stop')}
             </Button>
           )}
 

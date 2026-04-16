@@ -18,7 +18,7 @@ const config: AppConfig = {
     api: {
       prefix: 'api',
       version: 'v1',
-      timeoutSeconds: 10,
+      timeoutSeconds: (process.env.NODE_ENV === 'development') ? 5 : 15, // TODO: use 7 or 10 in case of production-pro (fly.io pro plan), 15 for free plan, with host shut down soon,,,
       headers: {
         'Content-Type': 'application/json',
       }

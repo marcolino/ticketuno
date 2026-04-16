@@ -829,14 +829,6 @@
                 {performances && performances.map((performance) => (
                   <MobilePerformanceCard key={performance.id} performance={performance} />
                 ))}
-                {/* {performances.slice(0, 10).map((performance) => (
-                  <MobilePerformanceCard key={performance.id} performance={performance} />
-                ))}
-                {performances.length > 10 && (
-                  <Alert severity="info" sx={{ mt: 2 }}>
-                    {t('Showing 10 of {{total}} performances. Use desktop view for full table.', { total: performances.length })}
-                  </Alert>
-                )} */}
               </Box>
 
               {/* Desktop DataGrid */}

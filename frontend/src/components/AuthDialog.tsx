@@ -18,7 +18,7 @@ import {
   LockPerson,
   Visibility,
   VisibilityOff,
-  //Google as GoogleIcon,
+  Close as CloseIcon,
 } from '@mui/icons-material';
 import { isAxiosError } from 'axios';
 import useNavigate from '@/hooks/useNavigate';
@@ -350,7 +350,8 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
     >
       <DialogTitle
         sx={{
-          mx: { xs: 5, sm: 10 },
+          position: 'relative',
+          _mx: { xs: 5, sm: 10 },
           display: 'flex', 
           alignItems: 'center',
           justifyContent: 'center' 
@@ -365,6 +366,19 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
           {tab === 'verify' && 'Verify Email'}
           {tab === 'forgot' && 'Forgot Password'}
           {tab === 'reset' && 'Reset Password'}
+
+          <IconButton
+            size="small"
+            onClick={handleClose}
+            sx={{
+              position: 'absolute',
+              right: 20,
+              top: 20,
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+
         </Box>
       </DialogTitle>
       <DialogContent

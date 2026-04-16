@@ -144,6 +144,7 @@ interface ImageUploadEditPopupProps {
   maxSizeMB?: number;
   title?: string;
   simpleMode?: boolean;
+  existingImageUrl?: string;
 }
 
 type StepName = 'upload' | 'confirm' | 'success' | 'edit' | 'preview';
@@ -168,6 +169,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   maxSizeMB = 5,
   title = 'Upload & Edit Image',
   simpleMode = false,
+  existingImageUrl,
 }) => {
   const { t } = useTranslation();
 
@@ -200,6 +202,8 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   const [presets, setPresets] = useState<Preset[]>([]);
   const [presetName, setPresetName] = useState<string>('');
 
+  const objectUrlRef = useRef<string | null>(null);
+
   // ── Effects ──────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -215,6 +219,62 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   useEffect(() => {
     setAspect(fixedAspectRatio !== undefined ? fixedAspectRatio : 'free');
   }, [fixedAspectRatio]);
+
+  // ── Load existing image ───────────────────────────────────────────────────
+  const loadExistingImage = useCallback(async (url: string) => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const blob = await response.blob();
+      const filename = url.split('/').pop()?.split('?')[0] || 'existing-image.jpg';
+      const file = new File([blob], filename, { type: blob.type });
+
+      // Revoke any previous object URL before creating a new one
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+      const preview = URL.createObjectURL(blob);
+      objectUrlRef.current = preview;
+
+      setUploadedImage({
+        file,
+        preview,
+        name: filename,
+        size: blob.size,
+      });
+
+      if (simpleMode) {
+        setActiveStep('confirm');
+      } else {
+        setCrop(undefined);
+        setCompletedCrop(undefined);
+        setRotation(0);
+        setFlip({ horizontal: false, vertical: false });
+        setBrightness(100);
+        setContrast(100);
+        setSaturation(100);
+        setAspect(fixedAspectRatio ?? 'free');
+        historyRef.current = [{
+          rotation: 0, flip: { horizontal: false, vertical: false },
+          brightness: 100, contrast: 100, saturation: 100,
+          aspect: fixedAspectRatio,
+        }];
+        setHistoryIndex(0);
+        setActiveStep('edit');
+      }
+    } catch (err) {
+      setError(t('Failed to load existing image: {{msg}}', { msg: getErrorMessage(err) }));
+    } finally {
+      setIsLoading(false);
+    }
+  }, [simpleMode, fixedAspectRatio, t]);
+
+  // ── Auto-load when dialog opens with an existing image ────────────────────
+  useEffect(() => {
+    if (open && existingImageUrl) {
+      loadExistingImage(existingImageUrl);
+    }
+  }, [open, existingImageUrl]);
 
   // ── History (full mode) ──────────────────────────────────────────────────
 
@@ -503,6 +563,11 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   // ── Reset / Close ────────────────────────────────────────────────────────
 
   const handleReset = () => {
+    // Revoke any object URL we created for the existing image
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
     setUploadedImage(null); setEditedImage(null);
     setActiveStep('upload'); setError('');
     setCrop(undefined); setCompletedCrop(undefined);

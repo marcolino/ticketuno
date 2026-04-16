@@ -124,3 +124,35 @@ common:
  3 - OK - add all users profile handling
  3 - OK - remove .env, .env.example
  3 -    - implement tests
+
+bugs:
+ 2 - OK - in ImageUploadEditPopup: if an image is present, allow user to edit current image OR upload a new image
+ 2 - OK - in EventEdit, Description and all inputs show label over the value... (solved ditching useForm)
+ 2 - OK - base ticket price, on mobile: cannot use backspace
+ 2 - OK - correctly implement useBlocker from react-router-dom
+ 2 - OK - Add ticketuno-staging to google developer console oauth
+ 3 - OK - add ENVIRONMENT.md to project and implement it
+ 3 - OK - change: Nessuna rappresentazione disponibile al momento => Nessuno spettacolo...
+ 3 - OK - the Privacy and Terms in Footer should be translated
+ 3 - OK - strings commedia, ... should be in i18n static (no...)
+ 3 -    - staging character is not shown in footer... (DONE, TO BE TESTED)
+ 3 - OK - "Scansiona il codice QR del biglietto" => "Scansiona il codice QR dei biglietti"
+ 3 - OK - In not production/staging modes, increase server timeout (until we a re on a free plan)
+ 3 - OK - "Scansiona il codice QR del biglietto": "Ferma" is not useful, rename as "Stop scanning",
+          and link to current closing cross callback, and remove closing cross.
+ 3 - OK - Convalid reservations: no need for base page, just make a popup.
+Events 'canceled' when Edited show all empty fields... See database.ts...
+ 3 - OK - Terms and privacy text in Footer on mobile are not vertically aligned
+ 3 - OK - Terms and Privacy are not translated on mobile
+ 3 - OK - "Impostazioni sono state reimpostate" => "Le imp..."
+ 3 - OK - Add cross icon to close AuthDialog
+ 3 - OK - Add tooltips to theme selection buttons
+ 3 -    - Ask AI to implement BookingsList, like UsersList
+ 3 -    - Force translations to be completed before deploying
+ 3 -    - In ImageEditor make the original image and edited image container scrollable
+ 1 -    - Creating an event, roles are not saved
+ 3 -    - (i) versione: copy from farmatime version dialog, and add mode (development, staging, production)
+ 3 -    - In EventList, if empty currency, say no price
+ 3 -    - Add payments gateway in setup.
+ 3 -    - Setup: Payments / enabled [], gateway: ["Stripe", ...] and look at config if we should move some key to setup...
+ 3 -    - In EventEdit, if !setup.payments, disable both currency and price selectors.
