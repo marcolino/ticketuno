@@ -105,7 +105,7 @@ router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest
       director, playwright, producer, choreographer, musicalDirector, theaterId, stageType,
       openingDate, closingDate, baseTicketPrice, currency, specialRequirements, minimumAge,
       typicalStartTime, typicalEndTime, posterImage, trailerUrl, websiteUrl,
-      socialMediaLinks, maxCapacity, contentWarnings
+      socialMediaLinks, maxCapacity, contentWarnings, canceled, cast,
     } = req.body;
 
     // Check if title is set
@@ -164,6 +164,7 @@ router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest
       socialMediaLinks,
       status: 'scheduled',
       canceled: 0,
+      cast,
       maxCapacity,
       contentWarnings
     };

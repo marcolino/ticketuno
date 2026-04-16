@@ -143,6 +143,15 @@ const PencilIcon = () => (
   </svg>
 );
 
+const FloppyIcon = () => (
+  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+    <polyline points="17 21 17 13 7 13 7 21"/>
+    <polyline points="7 3 7 8 15 8"/>
+  </svg>
+);
+
 /**
  * RemoveButton — a small circular icon-button.
  * Uses error color on hover via inline calculation (no Chip, no IconButton).
@@ -209,6 +218,35 @@ function EditButton({ onClick, label }) {
   );
 }
 
+function SaveButton({ onClick, label }) {
+  const { palette } = useTheme();
+  const color = palette.success?.main ?? palette.primary.main;
+  return (
+    <Box
+      component="button"
+      onClick={onClick}
+      aria-label={label ?? "Save"}
+      sx={{
+        display: "flex", alignItems: "center", justifyContent: "center",
+        width: 24, height: 24, p: 0,
+        border: "none", borderRadius: "50%",
+        bgcolor: "transparent",
+        color: "text.disabled",
+        cursor: "pointer",
+        flexShrink: 0,
+        fontFamily: "inherit",
+        transition: "color 150ms, background 150ms",
+        "&:hover": {
+          color,
+          bgcolor: `${color}14`,
+        },
+      }}
+    >
+      <FloppyIcon />
+    </Box>
+  );
+}
+
 /**
  * CastRow — one cast entry: role badge + name + remove button.
  * Entirely custom — no MUI ListItem, no MUI Chip.
@@ -223,8 +261,8 @@ function CastRow({ role, name, onRemove, onRename }: {
   onRemove: () => void;
   onRename?: (newName: string) => void;
 }) {
-  const [editing, setEditing]   = useState(false);
-  const [draft,   setDraft]     = useState(name);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
 
   const startEdit = () => {
     setDraft(name);
@@ -248,8 +286,8 @@ function CastRow({ role, name, onRemove, onRename }: {
   };
 
   const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
-    if (e.key === 'Enter')  { e.preventDefault(); confirmEdit(); }
-    if (e.key === 'Escape') { e.preventDefault(); cancelEdit();  }
+    if (e.key === 'Enter') { e.preventDefault(); confirmEdit(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
   };
 
   return (
@@ -276,30 +314,20 @@ function CastRow({ role, name, onRemove, onRename }: {
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
           inputRef={(el) => el?.focus()}
-          // confirm on blur so clicking away outside also saves
-          // (wrapped in setTimeout to let Escape's cancelEdit fire first)
-          {...{ onBlur: () => setTimeout(confirmEdit, 120) }}
+          // No onBlur — the Save button is the explicit commit action
         />
       ) : (
-        <Typography
-          sx={{
-            flex: 1,
-            fontSize: "0.9rem",
-            fontWeight: 500,
-            color: "text.primary",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
+        <Typography sx={{ flex: 1, fontSize: "0.9rem", fontWeight: 500,
+          color: "text.primary", overflow: "hidden",
+          textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {name}
         </Typography>
       )}
 
+      {/* Asve button — only shown when onRename is provided and already editing */}
+      {onRename && editing  && <SaveButton onClick={confirmEdit} label={`Save ${draft}`} />}
       {/* Edit button — only shown when onRename is provided and not already editing */}
-      {onRename && !editing && (
-        <EditButton onClick={startEdit} label={`Edit ${name}`} />
-      )}
+      {onRename && !editing && <EditButton onClick={startEdit} label={`Edit ${name}`} />}
 
       <RemoveButton onClick={onRemove} label={`Remove ${name}`} />
     </Box>

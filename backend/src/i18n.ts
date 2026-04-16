@@ -3,9 +3,6 @@ import Backend from 'i18next-fs-backend';
 import middleware from 'i18next-http-middleware';
 import path from 'path';
 
-const ROOT = path.resolve(__dirname, '../../');
-console.log("ROOT:", ROOT);
-
 i18n
   .use(Backend)
   .use(middleware.LanguageDetector)
@@ -18,20 +15,11 @@ i18n
     returnEmptyString: false,
     returnNull: false,
     backend: {
-
-      // loadPath: path.join(__dirname, '..', '..', 'shared', 'locales', '{{lng}}', '{{ns}}.json'),
-      // addPath: path.join(__dirname, '..', '..', 'shared', 'locales', '{{lng}}', '{{ns}}.missing.json'),
-
-      // loadPath: path.join(ROOT, 'shared/locales/{{lng}}/{{ns}}.json'),
-
       loadPath: (lng: string, ns: string) => {
         const staticNs = ['terms', 'privacy'];
         const base = staticNs.includes(ns) ? 'locales-static' : 'locales';
         return path.join(__dirname, '..', '..', 'shared', base, lng, ns, '.json');
       },
-      
-      //addPath: path.join(ROOT, 'shared/locales/{{lng}}/{{ns}}.missing.json'),
-  
       retries: 0, // Stop retrying on failure
     },
     detection: {

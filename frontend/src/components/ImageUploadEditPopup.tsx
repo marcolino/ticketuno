@@ -207,11 +207,6 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
-  useEffect(() => { // TODO: DEBUG ONLY!
-    console.log("ACTIVE STEP CHANGED:", activeStep);
-  }, [activeStep]);
-  
-
   useEffect(() => {
     if (!simpleMode) {
       const saved = localStorage.getItem('imageEditorPresets');

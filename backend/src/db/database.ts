@@ -1399,6 +1399,11 @@ class Database {
     };
 
     Object.entries(updates).forEach(([key, value]) => {
+      if (key === 'cast') {
+        fields.push('cast_members = ?');
+        values.push(JSON.stringify(value ?? []));
+        return;
+      }
       if (fieldMap[key] && value !== undefined) {
         fields.push(`${fieldMap[key]} = ?`);
         if (key === 'isActive' || key === 'isSoldOut' || key === 'canceled') {

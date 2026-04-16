@@ -97,13 +97,13 @@ const LayoutEdit: React.FC = () => {
   const SECTION_VERTICAL_GAP = 115;
   const [layoutName, setLayoutName] = useState('');
   const [layoutDescription, setLayoutDescription] = useState('');
-  const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>({ // TODO: to config
+  const [layoutJSON, setLayoutJSON] = useState<LayoutJSON>({
     version: 1,
     stage: { x: 300, y: 40, width: 400, height: 50, label: t('Stage') },
     sections: [
       {
         id: 'platea',
-        label: 'Platea',
+        label: t('Platea'),
         origin: { x: 500, y: 200 },
         rowSpacing: 64,
         seatSpacing: 52,
@@ -115,7 +115,7 @@ const LayoutEdit: React.FC = () => {
       },
       {
         id: 'galleria',
-        label: 'Galleria',
+        label: t('Galleria'),
         origin: { x: 500, y: 475 },
         rowSpacing: 64,
         seatSpacing: 52,

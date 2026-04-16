@@ -31,14 +31,6 @@
   # Create symlink for shared types inside src directory
   RUN ln -sf ../../shared src/shared
 
-  # DEBUG ONLY ############################################################################################
-  #RUN echo "=== DEBUG: Checking /app/ directory ===" && ls -la /app/
-  #RUN echo "=== DEBUG: Looking for 'shared' folder ===" && find /app -name "shared" -type d 2>/dev/null
-  # RUN echo "=== DEBUG: Contents of potential shared locations ===" && \
-  #     (ls -la /app/shared/ 2>/dev/null || echo "/app/shared/ not found") && \
-  #     (ls -la /app/backend/shared/ 2>/dev/null || echo "/app/backend/shared/ not found")
-  #########################################################################################################
-
   # Final production image
   FROM node:18-alpine
 
@@ -78,7 +70,7 @@
     CMD node -e "require('http').get('http://localhost:8080/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
   # DEBUG ONLY ############################################################################################
-  RUN echo "=== FINAL STAGE DEBUG ===" && find / -name "shared" -type d 2>/dev/null | head -20
+  #RUN echo "=== FINAL STAGE DEBUG ===" && find / -name "shared" -type d 2>/dev/null | head -20
   #########################################################################################################
 
   CMD ["node", "dist/server.js"]

@@ -8,18 +8,18 @@
  *
  * Supported namespace formats
  * ───────────────────────────
- *   flat   — key IS the English string  (e.g. shared/locales/en/common.json)
+ *   flat   — key IS the English string  (e.g. shared/locales/en/translation.json)
  *             t("Hello world") in code
  *   nested — key is a structural path, value is the English text
  *             (e.g. shared/locales/en/privacy.json, terms.json)
  *             Internally flattened to dot-paths for translation, then re-nested.
  *
  * Folder convention:
- *   shared/locales/en/common.json ← flat source
- *   shared/locales-static/en/privacy.json ← nested static source
- *   shared/locales-static/en/terms.json ← nested static source
- *   shared/locales/it/common.json ← may be partial
- *   shared/locales-static/it/privacy.json ← may be partial
+ *   shared/locales/en/translation.json   ← flat source
+ *   shared/locales/en/privacy.json       ← nested source
+ *   shared/locales/en/terms.json         ← nested source
+ *   shared/locales/it/translation.json   ← may be partial
+ *   shared/locales/it/privacy.json       ← may be partial or absent
  *   …
  *
  * Supported providers (set AI_PROVIDER in backend/.env):
@@ -52,9 +52,9 @@ loadDotEnv();
 //            false → flat JSON where key === English string (existing behaviour)
 //
 const NAMESPACES = [
-  { name: 'common', nested: false, root: 'shared/locales' },
-  { name: 'privacy', nested: true, root: 'shared/locales-static' },
-  { name: 'terms', nested: true, root: 'shared/locales-static' },
+  { name: 'common', nested: false },
+  { name: 'privacy', nested: true  },
+  { name: 'terms', nested: true  },
 ];
 
 /** Root directory that contains the per-locale sub-folders */
@@ -275,7 +275,7 @@ function writeJSON(filePath, obj, flat = true) {
 
 /**
  * Back up a file by inserting a timestamp before the final extension.
- *   common.json  →  old/common.2025-03-10.14-32-07.json
+ *   translation.json  →  old/translation.2025-03-10.14-32-07.json
  */
 function backupFile(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -503,13 +503,10 @@ function langNameToLocale(langName) {
  */
 async function translateNamespace(ns, provider) {
   const { name: nsName, nested } = ns;
-  //const sourceFile = path.join(LOCALES_ROOT, 'en', `${nsName}.json`);
-  const baseRoot = ns.root || LOCALES_ROOT;
-  const sourceFile = path.join(baseRoot, 'en', `${nsName}.json`);
-  
+  const sourceFile = path.join(LOCALES_ROOT, 'en', `${nsName}.json`);
+
   if (!fs.existsSync(sourceFile)) {
-    //console.warn(`  ⚠️  Source not found, skipping: ${sourceFile}`);
-    console.log(`  ⚠️  No source file for [${nsName}] in ${baseRoot}/en — skipping namespace.`);
+    console.warn(`  ⚠️  Source not found, skipping: ${sourceFile}`);
     return;
   }
 
@@ -528,11 +525,9 @@ async function translateNamespace(ns, provider) {
 
   for (const locale of TARGET_LOCALES) {
     const langName = LOCALE_NAMES[locale];
-    //const filePath = path.join(LOCALES_ROOT, locale, `${nsName}.json`);
-    const baseRoot = ns.root || LOCALES_ROOT;
-    const filePath = path.join(baseRoot, locale, `${nsName}.json`);
-    localeFiles[locale] = filePath;
-    localeExisting[locale] = readJSON(filePath);
+    const filePath = path.join(LOCALES_ROOT, locale, `${nsName}.json`);
+    localeFiles[locale]     = filePath;
+    localeExisting[locale]  = readJSON(filePath);
     localeExistFlat[locale] = nested ? flattenObject(localeExisting[locale]) : localeExisting[locale];
 
     const missing = findMissing(flatSource, localeExistFlat[locale]);
