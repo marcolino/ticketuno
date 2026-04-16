@@ -165,4 +165,3 @@ database.initialize().then(async () => {
   console.error('Failed to initialize database:', err);
   process.exit(1);
 });
-

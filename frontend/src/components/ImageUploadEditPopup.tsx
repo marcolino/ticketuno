@@ -174,6 +174,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   const { t } = useTranslation();
 
   const [activeStep, setActiveStep] = useState<StepName>('upload');
+  const [initialUrl, setInitialUrl] = useState<string | null>(null);
   const [uploadedImage, setUploadedImage] = useState<ImageData | null>(null);
   const [editedImage, setEditedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -206,6 +207,11 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
+  useEffect(() => { // TODO: DEBUG ONLY!
+    console.log("ACTIVE STEP CHANGED:", activeStep);
+  }, [activeStep]);
+  
+
   useEffect(() => {
     if (!simpleMode) {
       const saved = localStorage.getItem('imageEditorPresets');
@@ -220,6 +226,25 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
     setAspect(fixedAspectRatio !== undefined ? fixedAspectRatio : 'free');
   }, [fixedAspectRatio]);
 
+  // ── Auto-load when dialog opens with an existing image ────────────────────
+  // useEffect(() => {
+  //   if (open && existingImageUrl) {
+  //     loadExistingImage(existingImageUrl);
+  //   }
+  // }, [open, existingImageUrl]);
+
+  useEffect(() => {
+    if (open) {
+      setInitialUrl(existingImageUrl ?? null);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (initialUrl) {
+      loadExistingImage(initialUrl);
+    }
+  }, [initialUrl]);
+  
   // ── Load existing image ───────────────────────────────────────────────────
   const loadExistingImage = useCallback(async (url: string) => {
     setIsLoading(true);
@@ -269,13 +294,6 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
     }
   }, [simpleMode, fixedAspectRatio, t]);
 
-  // ── Auto-load when dialog opens with an existing image ────────────────────
-  useEffect(() => {
-    if (open && existingImageUrl) {
-      loadExistingImage(existingImageUrl);
-    }
-  }, [open, existingImageUrl]);
-
   // ── History (full mode) ──────────────────────────────────────────────────
 
   const getCurrentHistoryState = (): HistoryState => ({
@@ -315,7 +333,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
     }
   }, [historyIndex, applyState]);
 
-  useEffect(() => {
+   useEffect(() => {
     if (!simpleMode && activeStep === 'edit' && uploadedImage) {
       const current = getCurrentHistoryState();
       const timer = setTimeout(() => {
@@ -329,41 +347,41 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   }, [rotation, flip, brightness, contrast, saturation, aspect,
       activeStep, uploadedImage, historyIndex, saveToHistory, simpleMode]);
 
-  // Set a default crop when the image loads
-  useEffect(() => {
-    if (activeStep === 'edit' && imgRef.current && !crop) {
-      const img = imgRef.current;
+  // // Set a default crop when the image loads
+  // useEffect(() => {
+  //   if (activeStep === 'edit' && imgRef.current && !crop) {
+  //     const img = imgRef.current;
       
-      const setDefaultCrop = () => {
-        const { naturalWidth, naturalHeight } = img;
-        // For PixelCrop (completed crop) – unit must be 'px'
-        const fullPixelCrop: PixelCrop = {
-          unit: 'px',
-          x: 0,
-          y: 0,
-          width: naturalWidth,
-          height: naturalHeight,
-        };
-        setCompletedCrop(fullPixelCrop);
+  //     const setDefaultCrop = () => {
+  //       const { naturalWidth, naturalHeight } = img;
+  //       // For PixelCrop (completed crop) – unit must be 'px'
+  //       const fullPixelCrop: PixelCrop = {
+  //         unit: 'px',
+  //         x: 0,
+  //         y: 0,
+  //         width: naturalWidth,
+  //         height: naturalHeight,
+  //       };
+  //       setCompletedCrop(fullPixelCrop);
         
-        // For ReactCrop display (Crop) – unit can be '%'
-        const fullPercentCrop: Crop = {
-          unit: '%',
-          x: 0,
-          y: 0,
-          width: 100,
-          height: 100,
-        };
-        setCrop(fullPercentCrop);
-      };
+  //       // For ReactCrop display (Crop) – unit can be '%'
+  //       const fullPercentCrop: Crop = {
+  //         unit: '%',
+  //         x: 0,
+  //         y: 0,
+  //         width: 100,
+  //         height: 100,
+  //       };
+  //       setCrop(fullPercentCrop);
+  //     };
 
-      if (img.complete) {
-        setDefaultCrop();
-      } else {
-        img.onload = setDefaultCrop;
-      }
-    }
-  }, [activeStep, imgRef.current, crop]);
+  //     if (img.complete) {
+  //       setDefaultCrop();
+  //     } else {
+  //       img.onload = setDefaultCrop;
+  //     }
+  //   }
+  // }, [activeStep, imgRef.current, crop]);
   
   // ── Compression ──────────────────────────────────────────────────────────
 
@@ -498,61 +516,34 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
   };
 
   const handleFinalSave = async () => {
-    if (!uploadedImage || !completedCrop || !imgRef.current) return;
+    if (!uploadedImage || !imgRef.current) return;
+
+    const imgElement = imgRef.current;
+    const displayedWidth = imgElement.clientWidth;
+    const displayedHeight = imgElement.clientHeight;
+
+    // Always fall back to full image if no crop was drawn
+    const effectiveCrop: PixelCrop = completedCrop ?? {
+      unit: 'px', x: 0, y: 0,
+      width: imgElement.naturalWidth,
+      height: imgElement.naturalHeight,
+    };
+
     setIsLoading(true);
     setError('');
     try {
-      // 1. Get displayed image dimensions (the scaled img element)
-      const imgElement = imgRef.current;
-      const displayedWidth = imgElement.clientWidth;
-      const displayedHeight = imgElement.clientHeight;
-
-      // 2. Apply filters, rotation, flip to the original image (full resolution)
       const filteredCanvas = await applyFiltersAndTransformations(
-        imgElement,  // still works, but uses natural dimensions internally
-        rotation,
-        flip,
-        { brightness, contrast, saturation }
+        imgElement, rotation, flip, { brightness, contrast, saturation }
       );
-
-      // 3. Scale the crop from displayed coordinates to canvas coordinates
-      //    (if no crop is defined, use the whole canvas)
-      let cropToUse = completedCrop;
-      if (!cropToUse) {
-        cropToUse = {
-          x: 0,
-          y: 0,
-          width: filteredCanvas.width,
-          height: filteredCanvas.height,
-          unit: 'px',
-        };
-      } else {
-        // Scale crop from displayed coordinates to canvas coordinates
-        cropToUse = scaleCropToCanvas(
-          cropToUse,
-          displayedWidth,
-          displayedHeight,
-          filteredCanvas.width,
-          filteredCanvas.height
-        );
-      }
-      
       const scaledCrop = scaleCropToCanvas(
-        completedCrop,
-        displayedWidth,
-        displayedHeight,
-        filteredCanvas.width,
-        filteredCanvas.height
+        effectiveCrop, displayedWidth, displayedHeight,
+        filteredCanvas.width, filteredCanvas.height
       );
-
-      // 4. Crop the filtered canvas using the scaled coordinates
       const croppedBlob = await cropCanvas(filteredCanvas, scaledCrop);
-
-      // 5. Upload
       const { data } = await imageApi.upload(croppedBlob, imageType);
       setEditedImage(URL.createObjectURL(croppedBlob));
-      setActiveStep('preview');
       onSave(data.filename);
+      setActiveStep('preview');
     } catch (error) {
       setError(getErrorMessage(error));
     } finally {
@@ -752,6 +743,13 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
                           alt="Edit"
                           style={{ maxWidth: '100%', maxHeight: '60vh', ...filterStyle }}
                           crossOrigin="anonymous"
+                          onLoad={(e) => {
+                            if (!crop) {
+                              const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+                              setCompletedCrop({ unit: 'px', x: 0, y: 0, width: w, height: h });
+                              setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
+                            }
+                          }}
                         />
                       </ReactCrop>
                     </CardContent>
@@ -846,7 +844,13 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
 
             {/* PREVIEW (full mode) */}
             {!simpleMode && activeStep === 'preview' && editedImage && uploadedImage && (
-              <Box>
+              <Box sx={{
+                  display: 'flex',
+                  flexDirection: { xs: 'column', md: 'row' },
+                  gap: 3,
+                  overflowY: { xs: 'auto', md: 'visible' },
+                  maxHeight: { xs: '66vh', md: 'none' },
+                }}>
                 <Typography variant="h6" gutterBottom>{t('Final Result')}</Typography>
                 <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
                   <Card sx={{ flex: 1 }}>
@@ -856,7 +860,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
                         sx={{ borderRadius: 1, maxHeight: 300, objectFit: 'contain' }} />
                       <Box sx={{ mt: 2 }}>
                         <Chip label={`${(uploadedImage.size / 1024 / 1024).toFixed(2)} MB`} size="small" variant="outlined" sx={{ mr: 1 }} />
-                        <Chip label={t('Original')} size="small" />
+                        <Chip label={t('Original')} variant="outlined" size="small" />
                       </Box>
                     </CardContent>
                   </Card>
@@ -867,7 +871,7 @@ const ImageUploadEditPopup: React.FC<ImageUploadEditPopupProps> = ({
                         sx={{ borderRadius: 1, maxHeight: 300, objectFit: 'contain' }} />
                       <Box sx={{ mt: 2 }}>
                         <Chip label={t('Uploaded')} color="success" size="small" icon={<CheckCircle />} sx={{ mr: 1 }} />
-                        <Chip label={t('Ready to use')} variant="outlined" size="small" />
+                        <Chip label={t('Final')} variant="outlined" size="small" />
                       </Box>
                     </CardContent>
                   </Card>
