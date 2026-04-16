@@ -188,8 +188,8 @@ fly secrets set \
   PORT="8080" \
   --app "${APP_NAME}"
 
-echo "📱 Generating PWA assets..."
-npm run pwa:generate
+#echo "📱 Generating PWA assets..."
+#npm run pwa:generate
 
 # ─── Version bumps (production only) ─────────────────────────────────────────
 

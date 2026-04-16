@@ -41,7 +41,7 @@ function Footer({ children }: FooterProps) {
         setBackendLastCommitDate(message ? ` (${message})` : '?');
       }
     })();
-  });
+  }, []);
 
   return (
     <Box
