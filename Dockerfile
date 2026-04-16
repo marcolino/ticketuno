@@ -6,9 +6,7 @@
   RUN npm ci
   COPY frontend/ ./
   COPY shared/ ../shared/
-  RUN npm run pwa:generate
   ARG VITE_MODE=production
-  RUN npm run pwa:generate
   RUN npm run build -- --mode ${VITE_MODE}
 
   FROM node:18-alpine AS backend-builder
