@@ -126,6 +126,7 @@ common:
  3 -    - implement tests
 
 bugs:
+ 1 - OK - Creating an event, cast roles are not saved
  2 - OK - in ImageUploadEditPopup: if an image is present, allow user to edit current image OR upload a new image
  2 - OK - in EventEdit, Description and all inputs show label over the value... (solved ditching useForm)
  2 - OK - base ticket price, on mobile: cannot use backspace
@@ -149,10 +150,9 @@ Events 'canceled' when Edited show all empty fields... See database.ts...
  3 - OK - Add tooltips to theme selection buttons
  3 - OK - Force translations to be completed before deploying
  3 - OK - In ImageEditor make the original image and edited image container scrollable
- 3 -    - Ask AI to implement BookingsList, like UsersList
- 1 -    - Creating an event, roles are not saved
- 3 -    - (i) versione: copy from farmatime version dialog, and add mode (development, staging, production)
- 3 -    - In EventList, if empty currency, say no price
- 3 -    - Add payments gateway in setup.
+ 3 - OK - (i) versione: copy from farmatime version dialog, and add mode (development, staging, production)
+ 2 -    - Ask AI to implement BookingsList, like UsersList
  3 -    - Setup: Payments / enabled [], gateway: ["Stripe", ...] and look at config if we should move some key to setup...
- 3 -    - In EventEdit, if !setup.payments, disable both currency and price selectors.
+ 3 -    - In EventList, if !setup.payments.enabled, say no price
+ 3 -    - In EventEdit, remove empty currency from currencies menu; !setup.payments.enabled, disable currency and price
+

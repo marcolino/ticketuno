@@ -105,6 +105,13 @@ function Footer({ children }: FooterProps) {
                         component="div" // render as inline element
                         sx={{ lineHeight: 1.5 }}
                       >
+                        <div>{t("This app is produced by")} {config.app.holder.name}</div>
+                        <div>{t("You can reach us at email")} &lt;{config.app.holder.email}&gt;</div>
+                        <div>{t("App mode")} {t("is")} {
+                          import.meta.env.MODE === 'development' ? t('development') :
+                            import.meta.env.MODE === 'staging' ? t('staging') :
+                              t('production')
+                        }</div>
                         <div>{t('Frontend')}:&nbsp;<strong>v{pkg.version}</strong></div>
                         <div>{t('Backend')}:&nbsp;<strong>v{backendVersion}</strong></div>
                         <div>
