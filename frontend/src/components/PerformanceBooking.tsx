@@ -76,8 +76,6 @@ const PerformanceBooking: React.FC = () => {
       return;
     }
 
-    //if (eventId) { setError(t('AAAAArgh!')); return; }
-
     try {
       //setLoading(true);
       const perfResponse = await eventApi.getPerformance(eventId, performanceId);
@@ -203,7 +201,7 @@ const PerformanceBooking: React.FC = () => {
       await showDialog({
         title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
         content:
-          t('You will soon receive an email with booking confirmation.', { count: selectedSeats.size }) + '\n\n' +
+          t('You will soon receive an email with booking confirmation') + '.\n\n' +
           (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: show it at the theater.') : ''),
         onConfirm: () => navigate('/'),
         confirmText: 'Ok',

@@ -1,0 +1,111 @@
+{
+  "title": "Politique de confidentialité",
+  "lastUpdatedLabel": "Dernière mise à jour",
+  "lastUpdatedDate": "1 janvier 2025",
+  "sections": {
+    "intro": {
+      "title": "1. Introduction",
+      "paragraphs": [
+        "{{appName}} (\"nous\", \"notre\" ou \"nos\") est un service de billetterie de théâtre en ligne exploité par {{operatorName}} (l'\"Exploitant\"). Cette Politique de confidentialité explique comment nous collectons, utilisons et protégeons vos données personnelles lorsque vous utilisez notre Service sur {{appUrl}}.",
+        "En créant un compte ou en effectuant une réservation, vous reconnaissez avoir lu et compris cette Politique de confidentialité. Si vous n'êtes pas d'accord, veuillez ne pas utiliser le Service."
+      ]
+    },
+    "dataCollected": {
+      "title": "2. Données que nous collectons",
+      "paragraphs": [
+        "Nous collectons les catégories suivantes de données personnelles :",
+        "Données du compte : votre nom, adresse e-mail, numéro de téléphone et mot de passe (stocké sous forme hachée) lors de votre inscription.",
+        "Données de réservation : les événements, représentations et places que vous réservez, votre historique de commandes, références de réservation et codes QR qui vous sont délivrés.",
+        "Données de paiement : lorsqu'une transaction payante est traitée, les informations de paiement sont gérées directement par notre prestataire de paiement et ne sont pas conservées sur nos serveurs au-delà de ce qui est strictement nécessaire.",
+        "Données d'utilisation : adresse IP, type de navigateur, informations sur l'appareil, pages visitées et horodatages, collectés automatiquement lorsque vous interagissez avec le Service.",
+        "Données de communication : messages que vous nous envoyez par e-mail ou via le Service."
+      ]
+    },
+    "dataUse": {
+      "title": "3. Comment nous utilisons vos données",
+      "paragraphs": [
+        "Nous utilisons vos données personnelles pour :",
+        "Fournir le Service : traiter les réservations, émettre les billets et codes QR, et gérer votre compte.",
+        "Communiquer avec vous : envoyer les confirmations de réservation, billets par e-mail et mises à jour importantes du Service.",
+        "Envoyer des communications marketing : uniquement si vous avez donné votre consentement explicite, nous pouvons envoyer des newsletters ou offres promotionnelles.",
+        "Améliorer le Service : analyser les habitudes d'utilisation afin d'améliorer les fonctionnalités et l'expérience utilisateur.",
+        "Respecter les obligations légales : conserver les registres comme l'exige la loi applicable, y compris la réglementation fiscale italienne.",
+        "Prévenir la fraude et les abus : protéger la sécurité et l'intégrité du Service."
+      ]
+    },
+    "legalBasis": {
+      "title": "4. Base juridique du traitement (RGPD)",
+      "paragraphs": [
+        "Nous traitons vos données sur les bases juridiques suivantes conformément au Règlement général sur la protection des données (RGPD) de l'UE et au Code italien de protection des données personnelles (D.Lgs. 196/2003 tel que modifié par le D.Lgs. 101/2018) :",
+        "Exécution du contrat (Art. 6(1)(b) RGPD) : le traitement de vos données de compte et de réservation est nécessaire pour fournir le Service que vous avez demandé.",
+        "Consentement (Art. 6(1)(a) RGPD) : les communications marketing et les cookies analytiques facultatifs sont traités uniquement avec votre consentement explicite, que vous pouvez retirer à tout moment.",
+        "Obligation légale (Art. 6(1)(c) RGPD) : nous conservons certains registres afin de respecter les lois fiscales et comptables italiennes.",
+        "Intérêts légitimes (Art. 6(1)(f) RGPD) : prévention de la fraude, surveillance de la sécurité et analyses de base pour améliorer le Service."
+      ]
+    },
+    "dataSharing": {
+      "title": "5. Partage des données et tiers",
+      "paragraphs": [
+        "Nous ne vendons pas vos données personnelles. Nous pouvons les partager uniquement dans les circonstances suivantes :",
+        "Prestataires de services : nous faisons appel à des sous-traitants de confiance (par ex. hébergeurs, services d'envoi d'e-mails, prestataires de paiement) qui agissent sur nos instructions et sont liés par des accords de traitement des données.",
+        "Exploitants de théâtre : les détails de réservation sont partagés avec le théâtre ou l'organisateur de l'événement à des fins d'admission et de gestion de capacité.",
+        "Exigences légales : nous pouvons divulguer des données aux autorités compétentes lorsque la loi l'exige ou pour protéger nos droits légaux.",
+        "Tout transfert en dehors de l'Espace économique européen est soumis à des garanties appropriées (par ex. Clauses contractuelles types)."
+      ]
+    },
+    "dataRetention": {
+      "title": "6. Conservation des données",
+      "paragraphs": [
+        "Nous conservons vos données uniquement aussi longtemps que nécessaire aux fins décrites dans cette Politique :",
+        "Les données du compte sont conservées tant que votre compte reste actif. En cas de suppression du compte, nous effaçons vos données personnelles dans un délai de 30 jours, sous réserve des obligations légales de conservation.",
+        "Les registres de réservation et de paiement sont conservés pendant 10 ans conformément à la législation fiscale italienne (art. 2220 c.c.).",
+        "Les journaux d'utilisation sont anonymisés ou supprimés dans un délai de 12 mois.",
+        "Les registres de consentement marketing sont conservés jusqu'au retrait de votre consentement, plus 2 ans à titre de preuve de conformité."
+      ]
+    },
+    "yourRights": {
+      "title": "7. Vos droits",
+      "paragraphs": [
+        "Conformément au RGPD, vous disposez des droits suivants concernant vos données personnelles :",
+        "Droit d'accès (Art. 15) : obtenir une copie des données que nous détenons sur vous.",
+        "Droit de rectification (Art. 16) : demander la correction de données inexactes ou incomplètes.",
+        "Droit à l'effacement (Art. 17) : demander la suppression de vos données lorsqu'aucune base légale supérieure ne justifie leur conservation.",
+        "Droit à la limitation (Art. 18) : demander que nous limitions le traitement de vos données dans certaines circonstances.",
+        "Droit à la portabilité des données (Art. 20) : recevoir vos données dans un format structuré et lisible par machine.",
+        "Droit d'opposition (Art. 21) : vous opposer au traitement fondé sur les intérêts légitimes ou à des fins de marketing direct.",
+        "Droit de retirer votre consentement : lorsque le traitement est fondé sur le consentement, vous pouvez le retirer à tout moment sans affecter la licéité du traitement antérieur.",
+        "Pour exercer l'un de ces droits, veuillez nous contacter à l'adresse ci-dessous. Nous répondrons dans un délai de 30 jours. Vous avez également le droit d'introduire une réclamation auprès de l'Autorité italienne de protection des données (Garante per la protezione dei dati personali — www.garanteprivacy.it)."
+      ]
+    },
+    "cookies": {
+      "title": "8. Cookies et technologies similaires",
+      "paragraphs": [
+        "Nous utilisons des cookies et technologies similaires comme suit :",
+        "Cookies strictement nécessaires : requis pour le fonctionnement du Service (par ex. session d'authentification, préférence linguistique, enregistrement du consentement). Ils ne peuvent pas être désactivés.",
+        "Cookies analytiques : utilisés pour comprendre comment les utilisateurs interagissent avec le Service. Ils ne sont installés qu'avec votre consentement et peuvent être désactivés dans vos préférences de cookies.",
+        "Nous n'utilisons pas de cookies publicitaires ou de suivi à des fins marketing de tiers.",
+        "Vous pouvez gérer vos préférences de cookies à tout moment via la bannière de paramètres des cookies ou les paramètres de votre navigateur."
+      ]
+    },
+    "childrens": {
+      "title": "9. Confidentialité des enfants",
+      "paragraphs": [
+        "Le Service ne s'adresse pas aux enfants de moins de 16 ans. Nous ne collectons pas sciemment de données personnelles auprès d'enfants de moins de 16 ans. Si vous pensez qu'un enfant nous a fourni des données personnelles sans consentement parental, veuillez nous contacter et nous les supprimerons rapidement."
+      ]
+    },
+    "changes": {
+      "title": "10. Modifications de cette Politique",
+      "paragraphs": [
+        "Nous pouvons mettre à jour cette Politique de confidentialité de temps à autre. Lorsque nous apportons des modifications importantes, nous vous en informerons par e-mail ou au moyen d'un avis visible sur le Service, et mettrons à jour la date de \"dernière mise à jour\" en haut de cette page.",
+        "Votre utilisation continue du Service après l'entrée en vigueur des modifications constitue votre acceptation de la Politique révisée."
+      ]
+    },
+    "contact": {
+      "title": "11. Nous contacter",
+      "paragraphs": [
+        "Pour toute question, demande ou réclamation concernant cette Politique de confidentialité ou nos pratiques en matière de données, veuillez contacter le Responsable du traitement :"
+      ],
+      "emailLabel": "E-mail"
+    }
+  }
+}

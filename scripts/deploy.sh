@@ -108,7 +108,6 @@ if ! npm run i18n:status &> /dev/null; then
   echo "❌ Some translations are missing. Complete translations before deploying."
   exit 6
 fi
-echo "All translations are OK"; exit 77
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 

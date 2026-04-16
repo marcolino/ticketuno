@@ -90,6 +90,6 @@ export interface AppConfig {
     [key: string]: number;
   },
   slack: {
-    webhookUrl: string,
+    webhookUrl: string;
   },
 }

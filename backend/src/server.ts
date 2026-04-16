@@ -21,6 +21,7 @@ import config from './config';
 const prefix = `/${config.app.api.prefix}/${config.app.api.version}`;
 
 const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
+const localesStaticDir = path.join(__dirname, '../..', 'shared', 'locales-static');
 
 const app = express();
 
@@ -40,7 +41,9 @@ app.use((req: Request, res: Response, next) => {
 // Serve translation files from shared folder (/shared/locales/{lng}/{ns}.json)
 app.get(`${prefix}/locales/:lng/:ns.json`, (req: Request, res: Response) => {
   const { lng, ns } = req.params;
-  const filePath = path.join(localesDir, lng, `${ns}.json`);
+  const staticNS = ['terms', 'privacy'];
+  const dir = staticNS.includes(ns) ? localesStaticDir : localesDir;
+  const filePath = path.join(dir, lng, `${ns}.json`);
   
   // Check if file exists
   fs.access(filePath, fs.constants.F_OK, (err) => {

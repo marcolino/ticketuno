@@ -1,0 +1,112 @@
+{
+  "title": "Conditions d'utilisation",
+  "lastUpdatedLabel": "Dernière mise à jour",
+  "lastUpdatedDate": "1 janvier 2025",
+  "sections": {
+    "acceptance": {
+      "title": "1. Acceptation des conditions",
+      "paragraphs": [
+        "En accédant à {{appName}} (le \"Service\") ou en l'utilisant, exploité par {{operatorName}} (\"nous\", \"notre\" ou \"nos\"), vous acceptez d'être lié par les présentes Conditions d'utilisation (les \"Conditions\"). Si vous n'acceptez pas ces Conditions, vous ne pouvez pas utiliser le Service.",
+        "Ces Conditions constituent un accord juridiquement contraignant entre vous et l'Exploitant. Vous devez avoir au moins 16 ans pour créer un compte ou utiliser le Service."
+      ]
+    },
+    "serviceDescription": {
+      "title": "2. Description du Service",
+      "paragraphs": [
+        "{{appName}} est une plateforme de billetterie en ligne qui permet aux théâtres et organisateurs d'événements de publier des représentations et permet aux utilisateurs de consulter, réserver et recevoir des billets pour ces événements.",
+        "Nous agissons en tant que plateforme technologique et mandataire du théâtre ou de l'organisateur de l'événement (le \"Lieu\"). Le contrat de participation est conclu entre vous et le Lieu ; nous facilitons la transaction en leur nom.",
+        "Nous nous réservons le droit de modifier, suspendre ou interrompre le Service (ou toute partie de celui-ci) à tout moment moyennant un préavis raisonnable."
+      ]
+    },
+    "account": {
+      "title": "3. Inscription au compte et sécurité",
+      "paragraphs": [
+        "Pour effectuer une réservation, vous devez créer un compte en fournissant des informations exactes et complètes. Vous êtes responsable du maintien de la confidentialité de vos identifiants de compte.",
+        "Vous acceptez de nous informer immédiatement si vous suspectez toute utilisation non autorisée de votre compte. Nous ne sommes pas responsables des pertes résultant de votre incapacité à protéger vos identifiants.",
+        "Nous nous réservons le droit de suspendre ou de résilier les comptes qui enfreignent ces Conditions ou qui restent inactifs pendant une période prolongée."
+      ]
+    },
+    "bookings": {
+      "title": "4. Réservations et billets",
+      "paragraphs": [
+        "Toutes les réservations sont soumises à la disponibilité des places au moment de l'achat. Une réservation n'est confirmée que lorsque vous recevez un e-mail de confirmation avec votre billet ou code QR.",
+        "Les billets peuvent être délivrés sous forme de documents PDF et/ou de codes QR. Lorsque des codes QR sont utilisés, chaque code QR est unique à la réservation et ne doit pas être copié ou partagé.",
+        "Les billets sont personnels et non transférables, sauf si le Lieu autorise expressément le transfert. Le Lieu a le droit de refuser l'entrée si un billet est présenté par une personne autre que le réservataire enregistré, à la discrétion du Lieu.",
+        "Nous ne sommes pas responsables des billets perdus ou inaccessibles en raison d'adresses e-mail incorrectes fournies lors de l'inscription."
+      ]
+    },
+    "cancellations": {
+      "title": "5. Annulations et remboursements",
+      "paragraphs": [
+        "Les politiques d'annulation et de remboursement sont fixées par le Lieu et communiquées au moment de la réservation. Nous appliquons ces politiques au nom du Lieu.",
+        "Si une représentation est annulée ou substantiellement modifiée par le Lieu, les détenteurs de billets concernés seront informés et les remboursements seront traités conformément à la politique du Lieu.",
+        "Pour les réservations gratuites, les annulations peuvent être effectuées via votre compte jusqu'à la date limite indiquée par le Lieu. Veuillez annuler rapidement si vous ne pouvez pas assister, afin de libérer des places pour d'autres invités.",
+        "Nous nous réservons le droit d'annuler les réservations qui semblent frauduleuses, dupliquées ou contraires aux présentes Conditions."
+      ]
+    },
+    "conduct": {
+      "title": "6. Comportements interdits",
+      "paragraphs": [
+        "Lorsque vous utilisez le Service, vous acceptez de ne pas :",
+        "Fournir des informations fausses, trompeuses ou frauduleuses lors de l'inscription ou de la réservation.",
+        "Utiliser des outils automatisés (bots, extracteurs) pour accéder au Service ou acquérir des billets en masse.",
+        "Revendre ou transférer des billets à des fins commerciales sans le consentement écrit préalable du Lieu.",
+        "Tenter de contourner les contrôles d'accès, perturber l'infrastructure du Service ou introduire du code malveillant.",
+        "Harceler, menacer ou maltraiter d'autres utilisateurs ou le personnel du Lieu.",
+        "Violer toute loi ou réglementation applicable.",
+        "La violation de ces dispositions peut entraîner la suspension immédiate du compte et, le cas échéant, un signalement aux autorités compétentes."
+      ]
+    },
+    "intellectualProperty": {
+      "title": "7. Propriété intellectuelle",
+      "paragraphs": [
+        "Tout le contenu, la conception, les logiciels et les marques du Service sont la propriété de {{operatorName}} ou de ses concédants de licence et sont protégés par les lois applicables en matière de propriété intellectuelle.",
+        "Il vous est accordé une licence limitée, non exclusive et non transférable pour accéder au Service et l'utiliser uniquement à des fins personnelles et non commerciales.",
+        "Vous ne pouvez pas reproduire, distribuer, modifier ou créer des œuvres dérivées à partir de tout contenu du Service sans notre autorisation écrite préalable."
+      ]
+    },
+    "warranties": {
+      "title": "8. Exclusion de garanties",
+      "paragraphs": [
+        "Le Service est fourni \"tel quel\" et \"selon disponibilité\", sans garantie d'aucune sorte, expresse ou implicite, y compris notamment les garanties de qualité marchande, d'adéquation à un usage particulier ou d'absence de contrefaçon.",
+        "Nous ne garantissons pas que le Service sera ininterrompu, exempt d'erreurs ou exempt de virus ou autres composants nuisibles. Nous ne sommes pas responsables de la qualité, de la sécurité ou de la légalité des événements répertoriés sur la plateforme."
+      ]
+    },
+    "liability": {
+      "title": "9. Limitation de responsabilité",
+      "paragraphs": [
+        "Dans toute la mesure permise par la loi applicable, {{operatorName}} ainsi que ses sociétés affiliées, employés et agents ne pourront être tenus responsables de tout dommage indirect, accessoire, spécial, consécutif ou punitif résultant de votre utilisation ou de votre incapacité à utiliser le Service.",
+        "Notre responsabilité totale cumulée envers vous pour les dommages directs ne dépassera pas le montant que vous avez payé pour la réservation faisant l'objet de la réclamation, ou 50 €, selon le montant le plus élevé.",
+        "Aucune disposition des présentes Conditions ne limite la responsabilité en cas de décès ou de blessure corporelle causés par négligence, fraude ou toute autre responsabilité ne pouvant être exclue par la loi."
+      ]
+    },
+    "indemnification": {
+      "title": "10. Indemnisation",
+      "paragraphs": [
+        "Vous acceptez d'indemniser et de dégager de toute responsabilité {{operatorName}} ainsi que ses sociétés affiliées, dirigeants, employés et agents contre toute réclamation, dommage, perte ou dépense (y compris des frais juridiques raisonnables) résultant de votre utilisation du Service, de votre violation des présentes Conditions ou de la violation de droits de tiers."
+      ]
+    },
+    "governingLaw": {
+      "title": "11. Droit applicable et juridiction",
+      "paragraphs": [
+        "Les présentes Conditions sont régies par les lois de l'Italie, sans égard aux principes de conflit de lois. Tout litige découlant des présentes Conditions ou du Service, ou s'y rapportant, sera soumis à la compétence exclusive des tribunaux italiens.",
+        "Si vous êtes un consommateur résidant dans l'Union européenne, vous pouvez également bénéficier des dispositions impératives de protection des consommateurs de la loi de votre pays de résidence.",
+        "La Commission européenne met à disposition une plateforme de règlement en ligne des litiges à l'adresse https://ec.europa.eu/consumers/odr/ que vous pouvez utiliser pour résoudre les litiges."
+      ]
+    },
+    "changes": {
+      "title": "12. Modifications des Conditions",
+      "paragraphs": [
+        "Nous nous réservons le droit de modifier ces Conditions à tout moment. Lorsque nous apportons des modifications importantes, nous vous en informerons par e-mail ou par un avis visible sur le Service au moins 15 jours avant l'entrée en vigueur des modifications.",
+        "Votre utilisation continue du Service après la date d'entrée en vigueur des Conditions révisées constitue votre acceptation. Si vous n'acceptez pas les nouvelles Conditions, vous devez cesser d'utiliser le Service."
+      ]
+    },
+    "contact": {
+      "title": "13. Nous contacter",
+      "paragraphs": [
+        "Pour toute question ou préoccupation concernant ces Conditions, veuillez nous contacter :"
+      ],
+      "emailLabel": "E-mail"
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "title": "Informativa sulla Privacy",
+  "lastUpdatedLabel": "Ultimo aggiornamento",
+  "lastUpdatedDate": "1 gennaio 2025",
+  "sections": {
+    "intro": {
+      "title": "1. Introduzione",
+      "paragraphs": [
+        "{{appName}} (\"noi\", \"ci\" o \"nostro\") è un servizio web di biglietteria teatrale gestito da {{operatorName}} (il \"Titolare\"). La presente Informativa sulla Privacy spiega come raccogliamo, utilizziamo e proteggiamo i tuoi dati personali quando utilizzi il nostro Servizio all'indirizzo {{appUrl}}.",
+        "Creando un account o effettuando una prenotazione, dichiari di aver letto e compreso la presente Informativa. Se non sei d'accordo, ti invitiamo a non utilizzare il Servizio."
+      ]
+    },
+    "dataCollected": {
+      "title": "2. Dati che Raccogliamo",
+      "paragraphs": [
+        "Raccogliamo le seguenti categorie di dati personali:",
+        "Dati dell'account: nome, indirizzo e-mail, numero di telefono e password (memorizzata in forma cifrata) al momento della registrazione.",
+        "Dati di prenotazione: eventi, spettacoli e posti prenotati, storico degli ordini, riferimenti di prenotazione e codici QR emessi.",
+        "Dati di pagamento: in caso di transazioni a pagamento, i dettagli del pagamento sono gestiti direttamente dal nostro processore di pagamento e non vengono conservati sui nostri server oltre quanto strettamente necessario.",
+        "Dati di utilizzo: indirizzo IP, tipo di browser, informazioni sul dispositivo, pagine visitate e timestamp, raccolti automaticamente durante l'interazione con il Servizio.",
+        "Dati di comunicazione: messaggi che ci invii tramite e-mail o attraverso il Servizio."
+      ]
+    },
+    "dataUse": {
+      "title": "3. Come Utilizziamo i Tuoi Dati",
+      "paragraphs": [
+        "Utilizziamo i tuoi dati personali per:",
+        "Erogare il Servizio: elaborare prenotazioni, emettere biglietti e codici QR e gestire il tuo account.",
+        "Comunicare con te: inviare conferme di prenotazione, e-mail con i biglietti e aggiornamenti importanti sul Servizio.",
+        "Inviare comunicazioni di marketing: solo previo tuo consenso esplicito, potremmo inviare newsletter o offerte promozionali.",
+        "Migliorare il Servizio: analizzare i pattern di utilizzo per migliorare funzionalità ed esperienza utente.",
+        "Adempiere agli obblighi di legge: conservare i registri richiesti dalla normativa applicabile, incluse le normative fiscali italiane.",
+        "Prevenire frodi e abusi: proteggere la sicurezza e l'integrità del Servizio."
+      ]
+    },
+    "legalBasis": {
+      "title": "4. Base Giuridica del Trattamento (GDPR)",
+      "paragraphs": [
+        "Trattiamo i tuoi dati sulla base delle seguenti basi giuridiche ai sensi del Regolamento UE 2016/679 (GDPR) e del Codice in materia di protezione dei dati personali (D.Lgs. 196/2003 come modificato dal D.Lgs. 101/2018):",
+        "Esecuzione del contratto (art. 6, par. 1, lett. b) GDPR): il trattamento dei dati dell'account e di prenotazione è necessario per fornire il Servizio richiesto.",
+        "Consenso (art. 6, par. 1, lett. a) GDPR): le comunicazioni di marketing e i cookie analitici facoltativi vengono trattati solo con il tuo consenso esplicito, che puoi revocare in qualsiasi momento.",
+        "Obbligo di legge (art. 6, par. 1, lett. c) GDPR): conserviamo determinati registri per adempiere agli obblighi fiscali e contabili italiani.",
+        "Legittimo interesse (art. 6, par. 1, lett. f) GDPR): prevenzione delle frodi, monitoraggio della sicurezza e analisi di base per migliorare il Servizio."
+      ]
+    },
+    "dataSharing": {
+      "title": "5. Condivisione dei Dati e Terze Parti",
+      "paragraphs": [
+        "Non vendiamo i tuoi dati personali. Potremmo condividerli solo nelle seguenti circostanze:",
+        "Fornitori di servizi: ci avvaliamo di responsabili del trattamento affidabili (es. provider di hosting, servizi di consegna e-mail, processori di pagamento) che agiscono su nostra istruzione e sono vincolati da accordi sul trattamento dei dati.",
+        "Gestori dei teatri: i dettagli della prenotazione vengono condivisi con il teatro o l'organizzatore dell'evento ai fini dell'ammissione e della gestione della capienza.",
+        "Obblighi di legge: potremmo divulgare i dati alle autorità competenti quando richiesto dalla legge o per tutelare i nostri diritti.",
+        "Tutti i trasferimenti al di fuori dello Spazio Economico Europeo sono soggetti a garanzie adeguate (es. Clausole Contrattuali Standard)."
+      ]
+    },
+    "dataRetention": {
+      "title": "6. Conservazione dei Dati",
+      "paragraphs": [
+        "Conserviamo i tuoi dati solo per il tempo necessario agli scopi descritti nella presente Informativa:",
+        "I dati dell'account vengono conservati per tutto il tempo in cui il tuo account è attivo. In seguito alla cancellazione dell'account, eliminiamo i tuoi dati personali entro 30 giorni, salvo obblighi di conservazione legale.",
+        "I registri di prenotazione e pagamento vengono conservati per 10 anni in conformità alla normativa fiscale italiana (art. 2220 c.c.).",
+        "I log di utilizzo vengono anonimizzati o eliminati entro 12 mesi.",
+        "I consensi al marketing vengono conservati fino alla revoca del consenso, più 2 anni come prova di conformità."
+      ]
+    },
+    "yourRights": {
+      "title": "7. I Tuoi Diritti",
+      "paragraphs": [
+        "Ai sensi del GDPR, hai i seguenti diritti riguardo ai tuoi dati personali:",
+        "Diritto di accesso (art. 15): ottenere una copia dei dati che deteniamo su di te.",
+        "Diritto di rettifica (art. 16): richiedere la correzione di dati inesatti o incompleti.",
+        "Diritto alla cancellazione (art. 17): richiedere la cancellazione dei tuoi dati ove non sussista una base giuridica prevalente per la conservazione.",
+        "Diritto di limitazione (art. 18): richiedere che limitiamo il trattamento dei tuoi dati in determinate circostanze.",
+        "Diritto alla portabilità (art. 20): ricevere i tuoi dati in un formato strutturato e leggibile da dispositivo automatico.",
+        "Diritto di opposizione (art. 21): opporsi al trattamento basato su legittimo interesse o a fini di marketing diretto.",
+        "Diritto di revocare il consenso: ove il trattamento sia basato sul consenso, puoi revocarlo in qualsiasi momento senza pregiudicare la liceità del trattamento precedente.",
+        "Per esercitare qualsiasi diritto, contattaci all'indirizzo indicato in fondo a questa pagina. Risponderemo entro 30 giorni. Hai inoltre il diritto di proporre reclamo al Garante per la protezione dei dati personali (www.garanteprivacy.it)."
+      ]
+    },
+    "cookies": {
+      "title": "8. Cookie e Tecnologie Simili",
+      "paragraphs": [
+        "Utilizziamo cookie e tecnologie simili come segue:",
+        "Cookie tecnici necessari: indispensabili per il funzionamento del Servizio (es. sessione di autenticazione, preferenza di lingua, registro del consenso). Non possono essere disattivati.",
+        "Cookie analitici: utilizzati per comprendere come gli utenti interagiscono con il Servizio. Vengono impostati solo con il tuo consenso e possono essere disattivati nelle preferenze cookie.",
+        "Non utilizziamo cookie pubblicitari o di tracciamento per finalità di marketing di terze parti.",
+        "Puoi gestire le tue preferenze cookie in qualsiasi momento tramite il banner delle impostazioni cookie o le impostazioni del tuo browser."
+      ]
+    },
+    "childrens": {
+      "title": "9. Privacy dei Minori",
+      "paragraphs": [
+        "Il Servizio non è rivolto a minori di 16 anni. Non raccogliamo consapevolmente dati personali di minori di 16 anni. Se ritieni che un minore ci abbia fornito dati personali senza il consenso genitoriale, contattaci e provvederemo alla loro eliminazione tempestiva."
+      ]
+    },
+    "changes": {
+      "title": "10. Modifiche alla Presente Informativa",
+      "paragraphs": [
+        "Potremmo aggiornare la presente Informativa sulla Privacy di volta in volta. In caso di modifiche sostanziali, ti notificheremo via e-mail o tramite un avviso in evidenza sul Servizio, e aggiorneremo la data di «ultimo aggiornamento» in cima a questa pagina.",
+        "Il continuo utilizzo del Servizio dopo l'entrata in vigore delle modifiche costituisce accettazione dell'Informativa aggiornata."
+      ]
+    },
+    "contact": {
+      "title": "11. Contattaci",
+      "paragraphs": [
+        "Per qualsiasi domanda, richiesta o reclamo riguardante la presente Informativa sulla Privacy o le nostre pratiche in materia di dati, contatta il Titolare del trattamento:"
+      ],
+      "emailLabel": "E-mail"
+    }
+  }
+}

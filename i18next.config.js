@@ -27,7 +27,7 @@ module.exports = defineConfig({
     contextSeparator: '_',
     functions: ['t', 'i18next.t', 'i18n.t', 'req.t'],
     trans: false,
-    lngs: ['en', 'it', 'fr', 'zh'],
+    //lngs: ['en', 'it', 'fr', 'zh'],
   },
   types: {
     input: [path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json')],
