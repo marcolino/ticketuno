@@ -147,8 +147,8 @@ Events 'canceled' when Edited show all empty fields... See database.ts...
  3 - OK - "Impostazioni sono state reimpostate" => "Le imp..."
  3 - OK - Add cross icon to close AuthDialog
  3 - OK - Add tooltips to theme selection buttons
+ 3 - OK - Force translations to be completed before deploying
  3 -    - Ask AI to implement BookingsList, like UsersList
- 3 -    - Force translations to be completed before deploying
  3 -    - In ImageEditor make the original image and edited image container scrollable
  1 -    - Creating an event, roles are not saved
  3 -    - (i) versione: copy from farmatime version dialog, and add mode (development, staging, production)
