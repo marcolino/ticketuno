@@ -21,6 +21,7 @@ common:
  3 - OK - implement pushNotifications
  1 - OK - resolve all TypeScript warnings in code
  2 - OK - resolve all TODO's in code
+ 1 -    - i18n:extract:  ..._many: "" !
  2 -    - remove all comments in code
 
  backend:
