@@ -64,6 +64,7 @@
     "db:destroy": "scripts/db-destroy.sh",
     "detached-volumes:destroy": "fly volumes list --json | jq -r '.[] | select(.attached_machine_id == null or .attached_machine_id == \"\") | .id' | xargs -I {} fly volumes delete --yes {}",
     "web-push-generate-vapid-keys": "npx web-push generate-vapid-keys",
+    "check-git-leaks": "gitleaks detect --source . --log-opts='--all' -v",
     "archive": "scripts/archive-temporary-files.sh",
     "play-ok": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/trumpet.wav",
     "play-ko": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/finish.wav"

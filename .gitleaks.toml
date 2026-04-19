@@ -1,0 +1,11 @@
+# .gitleaks.toml
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "git-crypt encrypted files"
+paths = [
+  '''backend/\.env'''
+]
+

@@ -18,10 +18,10 @@ common:
  3 - OK - use some tool to find unused code and components (ts-prune)
  3 - OK - implement an auditing system - "Audit Implementation Guide" with ChatGPT (done instead with slack)
  3 - OK - ask AI to update README, STRUCTURE, DEPLOY, DOCUMENTATION
+ 3 - OK - implement pushNotifications
  1 - OK - resolve all TypeScript warnings in code
  2 - OK - resolve all TODO's in code
  2 -    - remove all comments in code
- 3 -    - implement pushNotifications
 
  backend:
  1 - OK - add passepartout
@@ -123,7 +123,7 @@ common:
  3 - OK - rename Event/Layout/Theater List to Events/Theaters/Layouts List (no...)
  3 - OK - add all users profile handling
  3 - OK - remove .env, .env.example
- 2 -    - add a consents popup button or link in Profile component
+ 2 - OK - add a consents popup button or link in Profile component
  2 -    - ask AI to implement BookingsList, like UsersList
  3 -    - implement tests
 
