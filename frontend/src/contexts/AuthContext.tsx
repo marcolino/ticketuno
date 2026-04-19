@@ -65,8 +65,6 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await userApi.getProfile();
 
       const rawUser = response.data;
-      console.log("******************* typeof rawUser.consent:", typeof rawUser.consent, rawUser.consent);
-
       const userData: User = {
         ...rawUser,
         consent: rawUser.consent, // Ensure consent is already an object/parsed

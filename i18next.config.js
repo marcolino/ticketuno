@@ -32,5 +32,6 @@ module.exports = defineConfig({
   types: {
     input: [path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json')],
     output: path.join(projectRoot, 'shared/types/i18next.d.ts')
-  }
+  },
+  debug: false,
 });

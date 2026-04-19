@@ -1,45 +1,66 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Box,
-  Container,
-  Paper,
-  Grid,
-  TextField,
-  MenuItem,
-  Divider,
-  Select,
-  InputLabel,
-  FormControl,
-  Button,
-  List,
-  ListItemButton,
-  ListItemText,
-  useMediaQuery,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Typography,
-  Switch,
-  FormControlLabel
+  Box, Container, Paper, Grid, TextField, MenuItem,
+  Divider, Select, InputLabel, FormControl, Button, List,
+  ListItemButton, ListItemText, useMediaQuery, Accordion,
+  AccordionSummary, AccordionDetails, Typography,
+  Switch, FormControlLabel, InputAdornment, IconButton,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
   AccessTime as AccessTimeIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
-}  from '@mui/icons-material';
+  Visibility, VisibilityOff,
+} from '@mui/icons-material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useToast } from '@/contexts/ToastContext';
-import { useSetupRefresh, defaultSetup } from '@/contexts/SetupContext';
+import { useSetupRefresh, defaultSetup, deepMerge } from '@/contexts/SetupContext';
 import { setupApi } from '@/services/api';
 import PageHeader from './PageHeader';
 import { getErrorMessage } from '@/shared/utils/misc';
-import { GeneralSetupType } from '@/shared/types/generalSetup';
+import {
+  GeneralSetupType, GeneralSetupSections,
+  PaymentGateway, DeepPartial,
+} from '@/shared/types/generalSetup';
 import config from '@/config';
 
+// ── Constants ───────────────────────────────────────────────────
 const currencies = Object.keys(config.app.currencies);
 
+const SECTIONS: GeneralSetupSections[] = ['app', 'preferences', 'security', 'payments'];
+
+const PAYMENT_GATEWAYS: { value: PaymentGateway; label: string }[] = [
+  { value: 'stripe',   label: 'Stripe'   },
+  { value: 'revolut',  label: 'Revolut'  },
+  { value: 'paypal',   label: 'PayPal'   },
+  { value: 'sumup',    label: 'SumUp'    },
+];
+
+// ── Typed handleChange ──────────────────────────────────────────
+// Keeps section → key → value fully typed.
+type SectionSetter = <
+  S extends GeneralSetupSections,
+  K extends keyof GeneralSetupType[S]
+>(section: S, key: K, value: GeneralSetupType[S][K]) => void;
+
+// ── Deep diff ───────────────────────────────────────────────────
+function deepDiff<T extends object>(current: T, original: T): DeepPartial<T> {
+  const diff: DeepPartial<T> = {};
+  for (const key of Object.keys(current) as (keyof T)[]) {
+    const c = current[key], o = original[key];
+    if (typeof c === 'object' && c !== null && typeof o === 'object' && o !== null) {
+      const nested = deepDiff(c as object, o as object);
+      if (Object.keys(nested).length) (diff as Record<string, unknown>)[key as string] = nested;
+    } else if (c !== o) {
+      diff[key] = c;
+    }
+  }
+  return diff;
+}
+
+// ── Component ───────────────────────────────────────────────────
 function GeneralSetup() {
   const theme = useTheme();
   const { t } = useTranslation();
@@ -47,100 +68,77 @@ function GeneralSetup() {
   const toast = useToast();
   const refreshSetup = useSetupRefresh();
 
-  const [section, setSection] = useState<'app' | 'preferences' | 'security'>('app');
+  const [section, setSection] = useState<GeneralSetupSections>('app');
   const [initialStatus, setInitialStatus] = useState<GeneralSetupType | null>(null);
   const [status, setStatus] = useState<GeneralSetupType>(defaultSetup);
-  const [saving, setSaving] = useState<boolean>(false);
+  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Captured once on mount — never changes. Reset always goes back here.
   const entryStatusRef = useRef<GeneralSetupType | null>(null);
 
-  const handleChange = (key: keyof GeneralSetupType, value: unknown) => {
-    setStatus((prev) => ({ ...prev, [key]: value as GeneralSetupType[typeof key] }));
+  // ── Typed change handler ──────────────────────────────────────
+  const handleChange: SectionSetter = (sec, key, value) => {
+    setStatus(prev => ({
+      ...prev,
+      [sec]: { ...prev[sec], [key]: value },
+    }));
   };
-  
+
+  // ── Load ──────────────────────────────────────────────────────
   useEffect(() => {
     (async () => {
       try {
         const response = await setupApi.load();
-        const merged: GeneralSetupType = { ...defaultSetup, ...response.data };
+        const merged: GeneralSetupType = deepMerge(defaultSetup, response.data);
         setStatus(merged);
         setInitialStatus(merged);
-        entryStatusRef.current = merged;   // lock in the entry snapshot
+        entryStatusRef.current = merged;
         toast.success(t('Settings loaded'));
       } catch (error) {
-        const msg = getErrorMessage(error);
-        setSaveError(msg);
+        setSaveError(getErrorMessage(error));
       }
     })();
   }, []);
 
-  /* Dirty detection (vs last-saved, drives auto-save) */
-  const isDirty = useMemo(() => {
-    if (!initialStatus) return false;
-    return JSON.stringify(status) !== JSON.stringify(initialStatus);
-  }, [status, initialStatus]);
+  // ── Dirty detection ───────────────────────────────────────────
+  const isDirty = useMemo(() =>
+    !!initialStatus && JSON.stringify(status) !== JSON.stringify(initialStatus),
+    [status, initialStatus]);
 
-  /* Reset-button visibility (vs entry snapshot) */
-  const isModifiedSinceEntry = useMemo(() => {
-    if (!entryStatusRef.current) return false;
-    return JSON.stringify(status) !== JSON.stringify(entryStatusRef.current);
-  }, [status]);
+  const isModifiedSinceEntry = useMemo(() =>
+    !!entryStatusRef.current && JSON.stringify(status) !== JSON.stringify(entryStatusRef.current),
+    [status]);
 
-  function diffObject<T extends object>(current: T, original: T): Partial<T> {
-    const diff: Partial<T> = {};
-    (Object.keys(current) as (keyof T)[]).forEach((key) => {
-      if (current[key] !== original[key]) {
-        diff[key] = current[key];
-      }
-    });
-    return diff;
-  }
-
-  const getDiff = (): Partial<GeneralSetupType> => {
-    if (!initialStatus) return {};
-    return diffObject(status, initialStatus);
-  };
-
-  /* Auto-save */
+  // ── Auto-save ─────────────────────────────────────────────────
   useEffect(() => {
     if (!isDirty) return;
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     debounceRef.current = setTimeout(async () => {
-      const diff = getDiff();
+      if (!initialStatus) return;
+      const diff = deepDiff(status, initialStatus);
       if (!Object.keys(diff).length) return;
 
       setSaving(true);
       setSaveError(null);
-
       try {
         await setupApi.save(diff);
         await refreshSetup();
-        setInitialStatus({ ...status });   // advance the last-saved baseline
+        setInitialStatus({ ...status });
         setJustSaved(true);
-
         if (savedTimeoutRef.current) clearTimeout(savedTimeoutRef.current);
-        savedTimeoutRef.current = setTimeout(() => {
-          setJustSaved(false);
-        }, 1 * 1000);
-
+        savedTimeoutRef.current = setTimeout(() => setJustSaved(false), 1000);
       } catch (error) {
-        const msg = getErrorMessage(error);
-        setSaveError(msg);
+        setSaveError(getErrorMessage(error));
       } finally {
         setSaving(false);
       }
-    }, (1 / 3) * 1000);
+    }, 333);
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [status]);
 
   const handleReset = () => {
@@ -149,10 +147,179 @@ function GeneralSetup() {
     toast.info(t('Settings have been reset'));
   };
 
-  /* Sidebar content desktop */
+  // ── Section renderers ─────────────────────────────────────────
+  const sectionRenderers: Record<GeneralSetupSections, () => JSX.Element> = {
+
+    app: () => (
+      <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <FormControl fullWidth>
+            <InputLabel>{t('Currency')}</InputLabel>
+            <Select
+              value={status.app.currency}
+              label={t('Currency')}
+              onChange={(e) => handleChange('app', 'currency', e.target.value)}
+            >
+              {currencies.map((c) => (
+                <MenuItem key={c} value={c}>{c}</MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            label={t('Session timeout (minutes)')}
+            type="number"
+            fullWidth
+            value={status.app.timeout}
+            onChange={(e) => handleChange('app', 'timeout', Number(e.target.value))}
+          />
+        </Grid>
+      </Grid>
+    ),
+
+    preferences: () => (
+      <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={status.preferences.enableNotifications}
+                onChange={(e) => handleChange('preferences', 'enableNotifications', e.target.checked)}
+              />
+            }
+            label={t('Enable notifications')}
+          />
+        </Grid>
+        {/* Dependent fields: disabled when notifications are off */}
+        <Grid item xs={12}>
+          <TextField
+            label={t('Launch date')}
+            type="date"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            disabled={!status.preferences.enableNotifications}
+            value={status.preferences.launchDate ?? ''}
+            onChange={(e) => handleChange('preferences', 'launchDate', e.target.value || null)}
+          />
+        </Grid>
+        <Grid item xs={12}>
+          <TextField
+            label={t('Launch time')}
+            type="time"
+            fullWidth
+            InputLabelProps={{ shrink: true }}
+            disabled={!status.preferences.enableNotifications}
+            value={status.preferences.time ?? ''}
+            onChange={(e) => handleChange('preferences', 'time', e.target.value || null)}
+          />
+        </Grid>
+      </Grid>
+    ),
+
+    security: () => (
+      <Grid container spacing={2}>
+        <Grid item xs={12}>
+          <TextField
+            label={t('API Key')}
+            type={showApiKey ? 'text' : 'password'}
+            fullWidth
+            value={status.security.apiKey}
+            onChange={(e) => handleChange('security', 'apiKey', e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton onClick={() => setShowApiKey((v) => !v)} edge="end">
+                    {showApiKey ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Grid>
+      </Grid>
+    ),
+
+    payments: () => {
+      const { enabled, gateway } = status.payments;
+      return (
+        <Grid container spacing={2}>
+          {/* Master switch */}
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={enabled}
+                  onChange={(e) => handleChange('payments', 'enabled', e.target.checked)}
+                />
+              }
+              label={t('Enable payments')}
+            />
+          </Grid>
+
+          {/* Gateway picker — disabled when payments are off */}
+          <Grid item xs={12}>
+            <FormControl fullWidth disabled={!enabled}>
+              <InputLabel>{t('Payment gateway')}</InputLabel>
+              <Select
+                value={gateway ?? ''}
+                label={t('Payment gateway')}
+                onChange={(e) =>
+                  handleChange('payments', 'gateway', (e.target.value as PaymentGateway) || null)
+                }
+              >
+                {PAYMENT_GATEWAYS.map(({ value, label }) => (
+                  <MenuItem key={value} value={value}>{label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          {/* Gateway-specific fields */}
+          {enabled && gateway === 'stripe' && (
+            <>
+              <Grid item xs={12}>
+                <TextField
+                  label={t('Stripe public key')}
+                  fullWidth
+                  value={status.payments.stripePublicKey}
+                  onChange={(e) => handleChange('payments', 'stripePublicKey', e.target.value)}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label={t('Stripe secret key')}
+                  type="password"
+                  fullWidth
+                  value={status.payments.stripeSecretKey}
+                  onChange={(e) => handleChange('payments', 'stripeSecretKey', e.target.value)}
+                />
+              </Grid>
+            </>
+          )}
+          {enabled && gateway === 'revolut' && (
+            <Grid item xs={12}>
+              <TextField
+                label={t('Revolut API key')}
+                type="password"
+                fullWidth
+                value={status.payments.revolutApiKey}
+                onChange={(e) => handleChange('payments', 'revolutApiKey', e.target.value)}
+              />
+            </Grid>
+          )}
+        </Grid>
+      );
+    },
+  };
+
+  // ── Single entry point ─────────────────────────────────────────
+  const renderSection = (s: GeneralSetupSections) => sectionRenderers[s]();
+
+  // ── Sidebar ───────────────────────────────────────────────────
   const SidebarContent = (
     <List sx={{ width: 220 }}>
-      {(['app', 'preferences', 'security'] as const).map((s) => (
+      {SECTIONS.map((s) => (
         <ListItemButton
           key={s}
           selected={section === s}
@@ -162,145 +329,66 @@ function GeneralSetup() {
             '&.Mui-selected': {
               backgroundColor: theme.palette.primary.main,
               color: theme.palette.primary.contrastText,
-              '&:hover': {
-                backgroundColor: theme.palette.primary.dark,
-              },
+              '&:hover': { backgroundColor: theme.palette.primary.dark },
             },
           }}
         >
           <ListItemText
             primary={t(s)}
-            primaryTypographyProps={{
-              fontWeight: section === s ? 600 : 400
-            }}
+            primaryTypographyProps={{ fontWeight: section === s ? 600 : 400 }}
           />
         </ListItemButton>
       ))}
     </List>
   );
 
-  const renderAppSection = () => (
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <FormControl fullWidth>
-          <InputLabel>{t('Currency')}</InputLabel>
-          <Select
-            value={status.currency}
-            label={t('Currency')}
-            onChange={(e) => handleChange('currency', e.target.value)}
-          >
-            {currencies.map((c) => (
-              <MenuItem key={c} value={c}>{c}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Grid>
-
-      <Grid item xs={12}>
-        <TextField
-          label={t('Timeout (todo...)')}
-          type="number"
-          fullWidth
-          value={status.timeout}
-          onChange={(e) => handleChange('timeout', Number(e.target.value))}
-        />
-      </Grid>
-    </Grid>
-  );
-
-  const renderPreferencesSection = () => (
-    <Grid container spacing={2}>
-      <Grid item xs={12}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={status.enableNotifications}
-              onChange={(e) => handleChange('enableNotifications', e.target.checked)}
-            />
-          }
-          label={t('Enable notifications')}
-        />
-      </Grid>
-    </Grid>
-  );
-
   return (
     <Container maxWidth="md" sx={{ py: 2 }}>
       <PageHeader title={t('Settings')} />
-
       <Paper sx={{ p: 2, borderRadius: 1, backgroundColor: 'background.paper' }}>
-
-        <Box sx={{
-          display: "flex",
-          mt: 2,
-          flexDirection: isMobile ? 'column' : 'row',
-        }}>
+        <Box sx={{ display: 'flex', mt: 2, flexDirection: isMobile ? 'column' : 'row' }}>
 
           {!isMobile && SidebarContent}
 
           <Box sx={{ flex: 1, p: 2 }}>
-
-            {/* MOBILE ACCORDION */}
-            {isMobile && (['app', 'preferences', 'security'] as const).map((s) => (
-              <Accordion
-                key={s}
-                expanded={section === s}
-                onChange={() => setSection(s)}
-                disableGutters
-                elevation={0}
-                square={false}
-                sx={{
-                  mb: 1,
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  '&:before': { display: 'none' },
-                }}
-              >
-                <AccordionSummary
-                  expandIcon={
-                    <ExpandMoreIcon
-                      sx={{ color: section === s ? theme.palette.primary.contrastText : undefined }}
-                    />
-                  }
-                  sx={{
-                    mb: 1,
-                    backgroundColor: section === s ? theme.palette.primary.main : undefined,
-                    color: section === s ? theme.palette.primary.contrastText : undefined,
-                    borderRadius: 1,
-                    '&.Mui-expanded': {
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                    },
-                  }}
-                >
-                  <Typography fontWeight={600}>{t(s)}</Typography>
-                </AccordionSummary>
-
-                <AccordionDetails
-                  sx={{
-                    borderBottomLeftRadius: 2,
-                    borderBottomRightRadius: 2,
-                    backgroundColor: theme.palette.background.paper,
-                  }}
-                >
-                  {s === 'app' && renderAppSection()}
-                  {s === 'preferences' && renderPreferencesSection()}
-                </AccordionDetails>
-              </Accordion>
-            ))}
-
-            {/* DESKTOP CONTENT */}
-            {!isMobile && section === 'app' && renderAppSection()}
-            {!isMobile && section === 'preferences' && renderPreferencesSection()}
-
+            {isMobile
+              ? SECTIONS.map((s) => (
+                  <Accordion
+                    key={s}
+                    expanded={section === s}
+                    onChange={() => setSection(s)}
+                    disableGutters elevation={0} square={false}
+                    sx={{ mb: 1, borderRadius: 1, overflow: 'hidden', '&:before': { display: 'none' } }}
+                  >
+                    <AccordionSummary
+                      expandIcon={
+                        <ExpandMoreIcon
+                          sx={{ color: section === s ? theme.palette.primary.contrastText : undefined }}
+                        />
+                      }
+                      sx={{
+                        mb: 1,
+                        backgroundColor: section === s ? theme.palette.primary.main : undefined,
+                        color: section === s ? theme.palette.primary.contrastText : undefined,
+                        borderRadius: 1,
+                        '&.Mui-expanded': { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+                      }}
+                    >
+                      <Typography fontWeight={600}>{t(s)}</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails sx={{ backgroundColor: theme.palette.background.paper }}>
+                      {renderSection(s)}
+                    </AccordionDetails>
+                  </Accordion>
+                ))
+              : renderSection(section)
+            }
           </Box>
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
         <Box display="flex" alignItems="flex-start" justifyContent="space-between">
-
-          {/* STATUS LEFT */}
           <Box display="flex" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
             {saveError ? (
               <>
@@ -319,16 +407,9 @@ function GeneralSetup() {
               <CheckCircleIcon sx={{ opacity: 0 }} />
             )}
           </Box>
-
-          {/* RESET RIGHT */}
-          <Button
-            variant="outlined"
-            disabled={!isModifiedSinceEntry}
-            onClick={handleReset}
-          >
+          <Button variant="outlined" disabled={!isModifiedSinceEntry} onClick={handleReset}>
             {t('Reset')}
           </Button>
-
         </Box>
       </Paper>
     </Container>

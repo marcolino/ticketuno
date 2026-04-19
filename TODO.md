@@ -53,7 +53,7 @@ common:
  2 - OK - add a check to avoid deleting currently logged user
  3 - OK - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API..." - NO
  2 - OK - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
- 2 -    - complete tickets buy process, optionally redirecting to stripe for payment
+ 2 -    - complete tickets buy process, optionally (if setup.payments.enabled) redirecting to stripe for payment
  3 -    - make a script to backup database, and schedule it, daily
  3 -    - make a method to clean up unreferenced images from /data/images, and schedule it, weekly
  3 -    - make a check job to release expired reservations (releaseExpiredReservations), and schedule it, weekly
@@ -123,36 +123,36 @@ common:
  3 - OK - rename Event/Layout/Theater List to Events/Theaters/Layouts List (no...)
  3 - OK - add all users profile handling
  3 - OK - remove .env, .env.example
+ 2 -    - add a consents popup button or link in Profile component
+ 2 -    - ask AI to implement BookingsList, like UsersList
  3 -    - implement tests
 
 bugs:
- 1 - OK - Creating an event, cast roles are not saved
+ 1 - OK - creating an event, cast roles are not saved
  2 - OK - in ImageUploadEditPopup: if an image is present, allow user to edit current image OR upload a new image
  2 - OK - in EventEdit, Description and all inputs show label over the value... (solved ditching useForm)
  2 - OK - base ticket price, on mobile: cannot use backspace
  2 - OK - correctly implement useBlocker from react-router-dom
- 2 - OK - Add ticketuno-staging to google developer console oauth
+ 2 - OK - add ticketuno-staging to google developer console oauth
  3 - OK - add ENVIRONMENT.md to project and implement it
  3 - OK - change: Nessuna rappresentazione disponibile al momento => Nessuno spettacolo...
  3 - OK - the Privacy and Terms in Footer should be translated
  3 - OK - strings commedia, ... should be in i18n static (no...)
  3 -    - staging character is not shown in footer... (DONE, TO BE TESTED)
  3 - OK - "Scansiona il codice QR del biglietto" => "Scansiona il codice QR dei biglietti"
- 3 - OK - In not production/staging modes, increase server timeout (until we a re on a free plan)
+ 3 - OK - in not production/staging modes, increase server timeout (until we a re on a free plan)
  3 - OK - "Scansiona il codice QR del biglietto": "Ferma" is not useful, rename as "Stop scanning",
           and link to current closing cross callback, and remove closing cross.
  3 - OK - Convalid reservations: no need for base page, just make a popup.
 Events 'canceled' when Edited show all empty fields... See database.ts...
- 3 - OK - Terms and privacy text in Footer on mobile are not vertically aligned
+ 3 - OK - Terms and Privacy text in Footer on mobile are not vertically aligned
  3 - OK - Terms and Privacy are not translated on mobile
- 3 - OK - "Impostazioni sono state reimpostate" => "Le imp..."
- 3 - OK - Add cross icon to close AuthDialog
- 3 - OK - Add tooltips to theme selection buttons
- 3 - OK - Force translations to be completed before deploying
- 3 - OK - In ImageEditor make the original image and edited image container scrollable
+ 3 - OK - change "Impostazioni sono state reimpostate" to "Le imp..."
+ 3 - OK - add cross icon to close AuthDialog
+ 3 - OK - add tooltips to theme selection buttons
+ 3 - OK - force translations to be completed before deploying
+ 3 - OK - in ImageEditor make the original image and edited image container scrollable
  3 - OK - (i) versione: copy from farmatime version dialog, and add mode (development, staging, production)
- 2 -    - Ask AI to implement BookingsList, like UsersList
- 3 -    - Setup: Payments / enabled [], gateway: ["Stripe", ...] and look at config if we should move some key to setup...
- 3 -    - In EventList, if !setup.payments.enabled, say no price
- 3 -    - In EventEdit, remove empty currency from currencies menu; !setup.payments.enabled, disable currency and price
-
+ 3 - OK - setup: Payments / enabled [], gateway: ["Stripe", ...] and look at config if we should move some key to setup...
+ 3 - OK - in EventList, if !setup.payments.enabled, say no price
+ 3 - OK - in EventEdit, remove empty currency from currencies menu; !setup.payments.enabled, disable currency and price

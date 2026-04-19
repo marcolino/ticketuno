@@ -618,8 +618,8 @@ async function translateNamespace(ns, provider) {
     if (nested) {
       // Merge the new flat translations with existing flat, then unflatten
       const mergedFlat = { ...localeExistFlat[locale], ...flatTranslations };
-      const unflat     = unflattenObject(mergedFlat);
-      merged           = deepMerge(localeExisting[locale], unflat);
+      const unflat = unflattenObject(mergedFlat);
+      merged = deepMerge(localeExisting[locale], unflat);
     } else {
       merged = { ...localeExisting[locale], ...flatTranslations };
     }
@@ -647,8 +647,8 @@ async function main() {
   }
   if (!provider.apiKey) {
     const keyName = AI_PROVIDER === 'gemini' ? 'GEMINI_API_KEY'
-                  : AI_PROVIDER === 'groq'   ? 'GROQ_API_KEY'
-                  :                            'OPENROUTER_API_KEY';
+                  : AI_PROVIDER === 'groq' ? 'GROQ_API_KEY'
+                  : 'OPENROUTER_API_KEY';
     console.error(`❌  ${keyName} is not set. Add it to backend/.env`);
     process.exit(1);
   }

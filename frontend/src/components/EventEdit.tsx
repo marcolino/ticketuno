@@ -34,6 +34,7 @@
   import { toast } from '@/contexts/ToastContext';
   import { getErrorMessage } from '@/shared/utils/misc';
   import { useDialog } from '@/contexts/DialogContext';
+  import { useSetup } from '@/contexts/SetupContext';
   import useUnsavedChanges from '@/hooks/useUnsavedChanges';
   import TagSelector from './TagSelector';
   import ImageUploadSection from './ImageUploadSection';
@@ -62,6 +63,7 @@
     const { t } = useTranslation();
     const { id } = useParams<{ id: string }>();
     //const { isOperator } = useAuth();
+    const setup = useSetup();
 
     const isEditMode = id && id !== 'new';
     const isAtLeastMd = useMediaQuery(theme.breakpoints.up('md'));
@@ -540,64 +542,68 @@
             </Grid>
 
             {/* Pricing */}
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
-                {t('Pricing')}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={2}>
-              <FormControl fullWidth>
-                <InputLabel>{t('Currency')}</InputLabel>
-                <Select
-                  value={event.currency || ''}
-                  label={t('Currency')}
-                  onChange={(e) => handleFieldChange('currency')(e.target.value)}
-                >
-                  <MenuItem value="">{t('none')}</MenuItem>
-                  {Object.entries(config.app.currencies).map(([key, currency]) => (
-                    <MenuItem key={key} value={key}>
-                      {currency.symbol} ({currency.name})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={8} md={6}>
-              <TextField
-                fullWidth
-                label={t('Base Ticket Price')}
-                type="text"
-                // value={(event.baseTicketPrice ?? 0).toFixed(2)}
-                value={rawPrice}
-                // onChange={(e) => {
-                //   const num = parseFloat(e.target.value) || 0;
-                //   handleFieldChange('baseTicketPrice')(num);
-                // }}
-                onChange={(e) => {
-                  const input = e.target.value;
-                  // Allow only digits and one dot
-                  if (/^\d*\.?\d*$/.test(input)) {
-                    setRawPrice(input);
-                  }
-                }}
-                onBlur={() => {
-                  const num = parseFloat(rawPrice);
-                  const finalNum = isNaN(num) ? 0 : num;
-                  handleFieldChange('baseTicketPrice')(finalNum);
-                  setRawPrice(finalNum.toFixed(2));
-                }}
-                required
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ mt: -0.2 }}>
-                      {config.app.currencies[event.currency || '']?.symbol}
-                    </InputAdornment>
-                  ),
-                }}
-                // inputProps={{ min: 0, step: 1 }}
-                disabled={!event.currency}
-              />
-            </Grid>
+            {setup.payments.enabled && (
+              <>
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                    {t('Pricing')}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} md={2}>
+                  <FormControl fullWidth>
+                    <InputLabel>{t('Currency')}</InputLabel>
+                    <Select
+                      value={event.currency || ''}
+                      label={t('Currency')}
+                      onChange={(e) => handleFieldChange('currency')(e.target.value)}
+                    >
+                      {/* <MenuItem value="">{t('none')}</MenuItem> */}
+                      {Object.entries(config.app.currencies).map(([key, currency]) => (
+                        <MenuItem key={key} value={key}>
+                          {currency.symbol} ({currency.name})
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={8} md={6}>
+                  <TextField
+                    fullWidth
+                    label={t('Base Ticket Price')}
+                    type="text"
+                    // value={(event.baseTicketPrice ?? 0).toFixed(2)}
+                    value={rawPrice}
+                    // onChange={(e) => {
+                    //   const num = parseFloat(e.target.value) || 0;
+                    //   handleFieldChange('baseTicketPrice')(num);
+                    // }}
+                    onChange={(e) => {
+                      const input = e.target.value;
+                      // Allow only digits and one dot
+                      if (/^\d*\.?\d*$/.test(input)) {
+                        setRawPrice(input);
+                      }
+                    }}
+                    onBlur={() => {
+                      const num = parseFloat(rawPrice);
+                      const finalNum = isNaN(num) ? 0 : num;
+                      handleFieldChange('baseTicketPrice')(finalNum);
+                      setRawPrice(finalNum.toFixed(2));
+                    }}
+                    required
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start" sx={{ mt: -0.2 }}>
+                          {config.app.currencies[event.currency || '']?.symbol}
+                        </InputAdornment>
+                      ),
+                    }}
+                    // inputProps={{ min: 0, step: 1 }}
+                    //disabled={!event.currency}
+                  />
+                </Grid>
+              </>
+            )}
 
             {/* Additional Information */}
             <Grid item xs={12}>

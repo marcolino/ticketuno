@@ -260,6 +260,18 @@ class Database {
     `, 'CREATE setup');
 
     await execQuery(this.db, `
+      CREATE TABLE IF NOT EXISTS push_subscriptions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        endpoint TEXT NOT NULL UNIQUE,
+        p256dh TEXT NOT NULL,
+        auth TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        last_used_at TEXT
+      );
+    `, 'CREATE push_subscriptions');
+
+    await execQuery(this.db, `
       CREATE INDEX IF NOT EXISTS idx_layouts_active
       ON layouts(theater_id)
       WHERE deleted_at IS NULL
@@ -1279,7 +1291,7 @@ class Database {
     const sql = `
       SELECT * FROM events
       WHERE ${where}
-      ORDER BY canceled ASC, opening_date DESC, typical_start_time ASC, title DESC
+      ORDER BY canceled ASC, opening_date DESC, typical_start_time ASC, title DESC, description DESC
     `;
     const rows = await allQuery(this.db, sql, [], 'get all events');
     return rows.map(row => {
@@ -2124,7 +2136,112 @@ class Database {
     }
   }
 
-}
+  // ---------------------------------------------------------------------------
+  // Push subscription methods
+  // ---------------------------------------------------------------------------
+
+  async upsertPushSubscription(
+    userId: string,
+    endpoint: string,
+    p256dh: string,
+    auth: string
+  ): Promise<void> {
+    await runQuery(
+      this.db,
+      `INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(endpoint) DO UPDATE SET
+        p256dh = excluded.p256dh,
+        auth = excluded.auth,
+        last_used_at = datetime('now')`,
+      [userId, endpoint, p256dh, auth],
+      'upsert push subscription'
+    );
+  }
+
+  async deletePushSubscription(endpoint: string): Promise<void> {
+    await runQuery(
+      this.db,
+      `DELETE FROM push_subscriptions WHERE endpoint = ?`,
+      [endpoint],
+      'delete push subscription'
+    );
+  }
+
+  async getPushSubscriptionsByUserId(userId: string): Promise<Array<{ endpoint: string; p256dh: string; auth: string }>> {
+    return allQuery(
+      this.db,
+      `SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?`,
+      [userId],
+      'get push subscriptions by user'
+    ) as Promise<Array<{ endpoint: string; p256dh: string; auth: string }>>;
+  }
+
+  async touchPushSubscription(endpoint: string): Promise<void> {
+    await runQuery(
+      this.db,
+      `UPDATE push_subscriptions SET last_used_at = datetime('now') WHERE endpoint = ?`,
+      [endpoint],
+      'touch push subscription'
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Reminder job query
+  // ---------------------------------------------------------------------------
+
+  async getBookingsForReminder(fromIso: string, toIso: string): Promise<Array<{
+    booking_id: string;
+    user_id: string;
+    booking_ref: string;
+    event_title: string;
+    performance_date: string;
+    start_time: string;
+  }>> {
+    // performances.performance_date + start_time are stored as separate TEXT columns
+    // We reconstruct an ISO datetime for range comparison
+    return allQuery(
+      this.db,
+      `SELECT
+        b.id               AS booking_id,
+        b.user_id,
+        b.booking_ref,
+        e.title            AS event_title,
+        p.performance_date,
+        p.start_time
+      FROM bookings b
+      JOIN performances p ON p.id = b.performance_id
+      JOIN events       e ON e.id = p.event_id
+      WHERE b.status               = 'confirmed'
+        AND b.reminder_24h_sent    = 0
+        AND p.deleted_at           IS NULL
+        AND p.canceled_at          IS NULL
+        AND e.deleted_at           IS NULL
+        AND e.canceled             = 0
+        AND (p.performance_date || 'T' || p.start_time) BETWEEN ? AND ?`,
+      [fromIso, toIso],
+      'get bookings for reminder'
+    ) as Promise<Array<{
+      booking_id: string;
+      user_id: string;
+      booking_ref: string;
+      event_title: string;
+      performance_date: string;
+      start_time: string;
+    }>>;
+  }
+
+  async markReminderSent(bookingId: string): Promise<void> {
+    await runQuery(
+      this.db,
+      `UPDATE bookings SET reminder_24h_sent = 1 WHERE id = ?`,
+      [bookingId],
+      'mark reminder sent'
+    );
+  }
+
+} // end of Database class
+
 
 // ---------------------------------------------------------------------------
 // Query helpers

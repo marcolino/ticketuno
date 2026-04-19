@@ -26,6 +26,7 @@ import { EventStats } from '@/shared/types/event';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useSetup } from '@/contexts/SetupContext';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { handleGuardResult } from '@/utils/guardHandler';
 import Alert from './Alert';
@@ -41,7 +42,9 @@ const EventList: React.FC = () => {
   const [events, setEvents] = useState<EventStats[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [navigateTo, setNavigateTo] = useState<string | null>(null);
-
+  const setup = useSetup();
+  //console.log("SETUP:", setup);
+  
   useEffect(() => {
     //if (isOperator) {
     loadEvents();
@@ -54,7 +57,7 @@ const EventList: React.FC = () => {
     try {
       const options = isOperator ? { pastToo: true, canceledToo: true } : {};
       const response = await eventApi.getAllEvents(options);
-      //console.log('EVENTS:', response.data);
+      console.log('EVENTS:', response.data);
       if (Array.isArray(response.data)) {
         setEvents(response.data);
       } else {
@@ -245,44 +248,6 @@ const EventList: React.FC = () => {
                     )}
                   </Box>
                 </CardMedia>
-                {/* <CardMedia
-                  component="div"
-                  sx={{
-                    pt: '56.25%',
-                    bgcolor: 'primary.main',
-                    position: 'relative',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {posterImageUrl &&
-                      <Avatar
-                        src={posterImageUrl}
-                        variant="square"
-                        //onClick={() => previewUrl && setPreviewOpen(true)}
-                        sx={{
-                          // width: textFieldHeight,
-                          // height: textFieldHeight,
-                          // bgcolor: 'transparent',
-                        }}
-                      >
-                      </Avatar>
-                    }
-                    {!posterImageUrl &&
-                      <TheaterIcon sx={{ fontSize: 80, color: 'white', opacity: 0.5 }} />
-                    }
-                  </Box>
-                </CardMedia> */}
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
                     <Chip
@@ -291,9 +256,14 @@ const EventList: React.FC = () => {
                       size="small"
                     />
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 0.5 }}>
                     <Typography variant="h5" component="div">
                       {event.title}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+                    <Typography variant="h6" component="div" sx={{ lineHeight: 1.1 }}>
+                      {event.description}
                     </Typography>
                   </Box>
 
@@ -319,12 +289,14 @@ const EventList: React.FC = () => {
                       </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                      <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
-                      <Typography variant="body2" color="text.secondary">
-                        {t('From')} {config.app.currencies[event.currency]?.symbol} {event.baseTicketPrice}
-                      </Typography>
-                    </Box>
+                    {setup.payments.enabled && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                        <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                        <Typography variant="body2" color="text.secondary">
+                          {t('From')} {config.app.currencies[event.currency]?.symbol} {event.baseTicketPrice}
+                        </Typography>
+                      </Box>
+                    )}
 
                     {(event.availablePerformances > 0) && (
                       <Typography variant="body2" color="success.main">

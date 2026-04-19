@@ -135,10 +135,10 @@ class EmailService {
       if (!user) { // we send to a recipient who is not a registered user, do not offer to unsubscribe...
         console.log(`First recipient email (${userEmail}) does not belong to a registered user, not using unsubscribe token...`); // to be tested ...
       } else {
+        // TODO: why do we do: createToken for specific 'communication.marketingEmails', and not just createToken for 'consent' ?
         if (isMarketing) {
           const token = await database.createToken(user.id, 'communication.marketingEmails');
-          //const unsubscribeToken = await generateConsentsToken(user.id, "marketing-unsubscribe");
-          unsubscribeUrl = `${config.app.baseUrlFrontend}/unsubscribe/${token}/communication.marketingEmails`;
+          unsubscribeUrl = `${config.app.baseUrlFrontend}/unsubscribe/${token}`;
         }
         const token = await database.createToken(user.id, 'consent');
         preferencesUrl = `${config.app.baseUrlFrontend}/consent/${token}`;

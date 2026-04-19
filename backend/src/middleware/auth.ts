@@ -18,7 +18,7 @@ export const requireAuthentication = (req: AuthRequest, res: Response, next: Nex
     }
     // decoded can be string | JwtPayload
     if (!decoded || typeof decoded === 'string') {
-      return res.status(403).json({ error: 'Invalid token' });
+      return res.status(403).json({ error: req.t('Invalid token') });
     }
     // req.userId = decoded.userId;
     // req.userRole = decoded.role;

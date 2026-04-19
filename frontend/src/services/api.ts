@@ -63,7 +63,6 @@ async function invalidateCachesForUrl(url: string): Promise<void> {
 const baseURL = `/${config.app.api.prefix}/${config.app.api.version}`;
 const timeout = config.app.api.timeoutSeconds * 1000;
 const headers = config.app.api.headers;
-console.log('baseURL:', baseURL);
 const api: AxiosInstance = axios.create({
   baseURL,
   timeout,
@@ -467,16 +466,20 @@ export const imageApi = {
 
 export const guardsApi = {
   performance:
-    (id: string) => api.get<GuardResult>(`/guards/performance/${id}`).then(r => r.data),
+    (id: string) =>
+      api.get<GuardResult>(`/guards/performance/${id}`).then(r => r.data),
   
   event:
-    (id: string) => api.get<GuardResult>(`/guards/event/${id}`).then(r => r.data),
+    (id: string) =>
+      api.get<GuardResult>(`/guards/event/${id}`).then(r => r.data),
   
   theater:
-    (id: string) => api.get<GuardResult>(`/guards/theater/${id}`).then(r => r.data),
+    (id: string) =>
+      api.get<GuardResult>(`/guards/theater/${id}`).then(r => r.data),
   
   layout:
-    (id: string) => api.get<GuardResult>(`/guards/layout/${id}`).then(r => r.data),
+    (id: string) =>
+      api.get<GuardResult>(`/guards/layout/${id}`).then(r => r.data),
   };
 
 export const setupApi = {
@@ -485,4 +488,21 @@ export const setupApi = {
 
   save: (payload: Partial<GeneralSetupType>) =>
     api.post<GeneralSetupType>('/setup', payload),
+};
+
+export const pushApi = {
+  getVapidPublicKey: async (): Promise<{ vapidPublicKey: string }> => {
+    const response = await api.get('/push/vapid-public-key');
+    return response.data;
+  },
+
+  subscribe: async (subscription: object): Promise<void> => {
+    const response = await api.post('/push/subscribe', subscription);
+    return response.data;
+  },
+
+  unsubscribe: async (endpoint: string): Promise<void> => {
+    const response = await api.delete('/push/subscribe', { data: { endpoint } });
+    return response.data;
+  },
 };

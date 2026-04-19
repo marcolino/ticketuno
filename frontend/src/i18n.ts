@@ -12,7 +12,7 @@ i18n
     fallbackLng: 'en',
     //lng: localStorage.getItem('i18nextLng') || 'en',
     load: 'languageOnly', // 'it-IT' becomes 'it'
-    debug: import.meta.env.MODE === 'development',
+    debug: false, // import.meta.env.MODE === 'development',
 
     // Behavior for empty/missing:
     returnEmptyString: false, // '' → use key as fallback
@@ -41,7 +41,7 @@ i18n
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage']
-    }
+    },
   });
 
 // Sync language with backend

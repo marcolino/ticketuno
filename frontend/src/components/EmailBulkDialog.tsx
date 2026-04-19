@@ -5,10 +5,6 @@
  *     <EmailBulkDialog recipients={selectedUsers} onDone={() => {}} />,
  *     { title: 'Send bulk email', maxWidth: 'md' }
  *   );
- *
- * or
- * 
- * use the hook `useEmailBulkDialog`
  */
 
 import React, { useRef, useState, useCallback } from 'react';
@@ -33,11 +29,12 @@ import {
   Send as SendIcon,
 } from '@mui/icons-material';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDialog } from '@/contexts/DialogContext';
+//import { useDialog } from '@/contexts/DialogContext';
+//import useEmailBulkDialog from '@/hooks/useEmailBulkDialog';
 import { emailApi } from '@/services/api';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { getEmailBulkVariables } from '@/shared/utils/emailBulkVariables';
-import { t } from 'i18next';
+//import { t } from 'i18next';
 import config from '@/shared/config';
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -320,80 +317,3 @@ export default function EmailBulkDialog({
     </Box>
   );
 }
-
-
-// ── Convenience hook ──────────────────────────────────────────────────────────
- 
-export function useEmailBulkDialog() {
-  const showDialog = useDialog();
- 
-  return useCallback(
-    (recipients: EmailBulkRecipient[]) => {
-      showDialog({
-        title: t('Send email to {{count}} users', { count: recipients.length }),
-        content: (close) => (
-          <EmailBulkDialog recipients={recipients} onClose={close} />
-        ),
-        showCloseIcon: true,
-        paperSx: { maxWidth: 720 },
-      });
-    },
-    [showDialog],
-  );
-}
- 
-
-// ── Convenience hook ──────────────────────────────────────────────────────────
-/**
- * Returns an `openEmailBulkDialog(recipients)` function.
- *
- * Example:
- *   const openEmailBulk = useEmailBulkDialog();
- *   <Button onClick={() => openEmailBulk(selectedUsers)}>Email selected</Button>
- */
-// export function useEmailBulkDialog() {
-//   const showDialog = useDialog();
-
-//   return useCallback(
-//     (recipients: EmailBulkRecipient[]) => {
-//       /*
-//       showDialog({
-//         title: t('Send email to {{count}} users', { count: recipients.length }),
-//         maxWidth: 'md',
-//         fullWidth: true,
-//         ({ onClose }) => (
-//           <EmailBulkDialog
-//             recipients={recipients}
-//             onClose={onClose}
-//             onDone={onClose}
-//           />
-//         ),
-//       });
-//       */
-//       showDialog({
-//         title: t('Send email to {{count}} users', { count: recipients.length }),
-//         content: <EmailBulkDialog
-//           recipients={recipients}
-//           onClose={onClose}
-//           onDone={onClose}
-//         />,
-//         cancelText: t('Cancel'),
-//         confirmText: t('Delete'),
-//         onConfirm: async () => {
-//           const response = await eventApi.deleteEvent(id);
-//           const { success, wasBlocked } = await handleGuardResult(response.data, 'deleted', 'event', showDialog, toast, t);
-//           if (wasBlocked) {
-//             setNavigateTo('/bookings');
-//             return;
-//           }
-//           if (!success) return;
-//           // success path continues here
-//           toast.success(t('Event deleted successfully'));
-//           await loadEvents();
-//         },
-        
-//       });
-//     },
-//     [showDialog],
-//   );
-// }

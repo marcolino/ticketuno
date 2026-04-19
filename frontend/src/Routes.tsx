@@ -49,7 +49,7 @@ const router = createBrowserRouter(
             { path: 'booking/validate', element: <PR requireOperator={true}><BookingValidate /></PR> },
             { path: 'users', element: <PR requireOperator={true}><UsersList /></PR> },
             { path: 'user/edit/:id?', element: <UserEdit /> },
-            { path: 'unsubscribe/:token/:type?', element: <Unsubscribe /> },
+            { path: 'unsubscribe/:token', element: <Unsubscribe /> },
             { path: 'consent/:token/:type?', element: <ConsentEntry /> },
             { path: 'generalSetup', element: <PR requireOperator={true}><GeneralSetup /></PR> },
             { path: 'maintenance', element: <Maintenance /> },

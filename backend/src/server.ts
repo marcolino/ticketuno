@@ -14,6 +14,8 @@ import imageRoutes from './routes/images';
 import ticketRoutes from './routes/tickets';
 import emailRoutes from './routes/emails';
 import setupRoutes from './routes/setup';
+import pushRoutes from './routes/push';
+import internalRoutes from './routes/internal';
 import { database } from './db/database'; // import database AFTER config
 import { loadSetup } from './services/setupService';
 import config from './config';
@@ -93,6 +95,8 @@ app.use(`${prefix}/images`, imageRoutes);
 app.use(`${prefix}/tickets`, ticketRoutes);
 app.use(`${prefix}/emails`, emailRoutes);
 app.use(`${prefix}/setup`, setupRoutes);
+app.use(`${prefix}/push`, pushRoutes);
+app.use(`${prefix}/internal`, internalRoutes);
 
 // Serve uploaded images
 app.use('/uploads', express.static(config.uploads.path));

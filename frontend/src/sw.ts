@@ -85,6 +85,49 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// ── Push requests: wake up when the backend sends a push ───────────────────
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  const { title, body, url, icon } = event.data.json();
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: icon ?? '/icons/icon-192x192.png',
+      badge: '/icons/badge-72x72.png',
+      // Store the deep-link URL so the click handler can open it
+      data: { url },
+      // On Android: vibrate + group notifications by app
+      vibrate: [200, 100, 200],
+      tag: 'ticketuno-reminder',
+      renotify: true,
+    } as NotificationOptions & { vibrate: number[] })
+  );
+});
+
+// ── NotificationClick requests: user taps the notification ───────────────────
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  const targetUrl = event.notification.data?.url ?? '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // If the app is already open in a tab, focus it and navigate
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          client.navigate(targetUrl);
+          return;
+        }
+      }
+      // Otherwise open a new window
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+    })
+  );
+});
+
 // ── Runtime caching (GET only from here down) ─────────────────────────────────
 
 // // 1. NEVER cache: specific performance detail, seat map, booking

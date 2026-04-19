@@ -18,6 +18,7 @@ import {
   Cancel,
   Save,
   AccountBox,
+  LockOpen,
 } from '@mui/icons-material';
 
 import useNavigate from '@/hooks/useNavigate';
@@ -26,6 +27,7 @@ import Title from '@/components/Title';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
+import { useConsent } from '@/contexts/ConsentContext';
 import { userApi } from '@/services/api';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { UserProfile } from '@/shared/types/user';
@@ -57,6 +59,8 @@ const UserEdit: React.FC = () => {
   const [role, setRole] = useState<Role>('user');
 
   const isSelf = !userId || userId === currentUser?.id;
+
+  const { openConsentDialog } = useConsent();
 
   const canEditRoles =
     !!currentUser &&
@@ -152,6 +156,10 @@ const UserEdit: React.FC = () => {
     })();
   }, [userId, currentUser, isSelf]);
 
+  const handleShowConsents = async () => {
+    openConsentDialog();
+  };
+
   // -----------------------------
   // CANCEL
   // -----------------------------
@@ -222,7 +230,7 @@ const UserEdit: React.FC = () => {
       <Paper
         elevation={3}
         sx={{
-          p: 4,
+          p: isXs ? 2 : 4,
           mx: { xs: 0, sm: 10 },
         }}
       >
@@ -233,7 +241,7 @@ const UserEdit: React.FC = () => {
         <Box sx={{ mt: 3 }}>
           <TextField
             fullWidth
-            label="First Name"
+            label={t('First Name')}
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             sx={{ mb: 2 }}
@@ -241,7 +249,7 @@ const UserEdit: React.FC = () => {
 
           <TextField
             fullWidth
-            label="Last Name"
+            label={t('Last Name')}
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             sx={{ mb: 2 }}
@@ -249,7 +257,7 @@ const UserEdit: React.FC = () => {
 
           <TextField
             fullWidth
-            label="Email"
+            label={t('Email')}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -282,6 +290,17 @@ const UserEdit: React.FC = () => {
             </FormControl>
           )}
 
+          <Button
+            fullWidth
+            variant="contained"
+            startIcon={<LockOpen />}
+            onClick={handleShowConsents}
+            size={isXs ? 'small' : 'medium'}
+            sx={{ mb: 2, ...(isXs ? { px: 1 } : {})}}
+          >
+            {t('Show Consents')}
+          </Button>
+
           <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
             <Button
               fullWidth
@@ -303,7 +322,7 @@ const UserEdit: React.FC = () => {
               size={isXs ? 'small' : 'medium'}
               sx={isXs ? { px: 1 } : {}}
             >
-              {loading ? t('Saving...') : t('Save Changes')}
+              {loading ? t('Saving...') : (isXs ? t('Save') : t('Save Changes'))}
             </Button>
           </Box>
         </Box>

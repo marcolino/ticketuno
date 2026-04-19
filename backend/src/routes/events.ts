@@ -44,6 +44,7 @@ router.get('/', async (req, res) => {
         return {
           id: event.id,
           title: event.title,
+          description: event.description || '',
           theaterName: theater?.name || req.t('Unknown'),
           genres: event.genres,
           openingDate: event.openingDate,

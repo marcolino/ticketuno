@@ -58,6 +58,7 @@ export interface EventPerformance {
 export interface EventStats {
   id: string;
   title: string;
+  description: string;
   theaterName: string;
   genres?: string[];
   openingDate?: string;
