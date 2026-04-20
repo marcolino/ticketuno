@@ -25,11 +25,10 @@ node_modules/
 
 # Environment & secrets
 **/.env*
-!.env.example        # we want to keep an example
+!.env.example
 
-# Generated assets (important!)
-**/frontend/public
-**/public/pwa-*      # depending on your setup
+# Generated assets
+#**/frontend/public
 
 # Deployment scripts
 deploy.sh
