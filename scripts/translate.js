@@ -158,6 +158,24 @@ const SEMANTIC_HINTS = {
 
 // ─── Flat ↔ Nested utilities ──────────────────────────────────────────────────
 
+function normalisePlurals(targetObj, locale) {
+  const suffixOther = '_other';
+  const suffixMany = '_many';
+  //if (!['it', 'fr'].includes(locale)) return targetObj;
+
+  const result = { ...targetObj };
+  for (const key of Object.keys(result)) {
+    if (key.endsWith(suffixMany)) {
+      const base = key.slice(0, strlen(suffixMany)); // remove suffixMany
+      const otherKey = base + suffixOther;
+      if ((!result[key] || result[key] === '') && result[otherKey]) {
+        result[key] = result[otherKey];
+      }
+    }
+  }
+  return result;
+}
+
 /**
  * Recursively flatten a nested object into dot-path keys.
  * Arrays become numeric segments: sections.intro.paragraphs.0, …
@@ -624,8 +642,11 @@ async function translateNamespace(ns, provider) {
       merged = { ...localeExisting[locale], ...flatTranslations };
     }
 
+    // Apply plural normalisation (fill empty rows with _many suffix with _other suffix value)
+    //const mergedToWrite = normalisePlurals(merged, locale);
+
     backupFile(localeFiles[locale]);
-    writeJSON(localeFiles[locale], merged, /* flat sort */ !nested);
+    writeJSON(localeFiles[locale], merged/*ToWrite*/, /* flat sort */ !nested);
     console.log(`      ✅  ${langName} (${locale}): +${Object.keys(flatTranslations).length} string(s) → ${localeFiles[locale]}`);
   }
 

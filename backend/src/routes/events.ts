@@ -313,8 +313,6 @@ router.post('/:eventId/performances', requireAuthentication, requireOperator, as
     const { performanceDate, startTime, endTime } = req.body;
     const eventId = req.params.eventId;
 
-    req.t('AAAAA');
-    
     // Check the event exists
     const event = await database.getEventById(req.params.eventId);
     if (!event) {
