@@ -163,3 +163,4 @@ Events 'canceled' when Edited show all empty fields... See database.ts...
  3 - OK - add gitleaks to deploy
  3 - OK - disable .github/workflows fly-deploy
  2 -    - email to Italian user in English!
+

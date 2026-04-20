@@ -250,7 +250,7 @@ fly secrets set \
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 
-echo "🏗️  Building and deploying to ${APP_NAME} with VITE_MODE: "
+echo "🏗️  Building and deploying to ${APP_NAME}"
 CACHE_FLAGS=""
 if [ "$CACHE" = "" ] || [ "$CACHE" = "false" ]; then
   CACHE_FLAGS="--no-cache --buildkit"

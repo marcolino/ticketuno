@@ -96,9 +96,25 @@ class EmailService {
     const userEmail = recipients[0]; // We decide the first recipient email identifyes the user
     
     let finalLang = lang;
+    // if (!finalLang) {
+    //   finalLang = config.app.defaultLanguage;
+    // }
+
+    console.log("LLL1", {
+      requestedLang: lang,
+      finalLang,
+      userEmail
+    });
     if (!finalLang) {
-      finalLang = config.app.defaultLanguage;
+      const user = await database.getUserByEmail(userEmail);
+      finalLang = user?.language || config.app.defaultLanguage;
     }
+    console.log("LLL2", {
+      requestedLang: lang,
+      finalLang,
+      userEmail
+    });
+    
     let finalHtml = html;
     let finalText = text;
 
