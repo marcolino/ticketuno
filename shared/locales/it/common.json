@@ -386,7 +386,7 @@
   "Login error: {{error}}!": "Errore di accesso: {{error}}!",
   "Login failed: {{err}}": "Accesso fallito: {{err}}",
   "Login Required": "É richiesto l'accesso",
-  "Login successful!": "Accesso riuscito!",
+  "Login successful": "Accesso riuscito",
   "Logo": "Logo",
   "Logout": "Esci",
   "Looking for a QR code…": "Ricerca di un codice QR…",

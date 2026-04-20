@@ -90,7 +90,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
         setTab('verify');
         toast.warning(response?.error || t('Please verify your email first'));
       } else {
-        toast.success(t('Login successful!'));
+        toast.success(t('Login successful'));
         onClose();
         resetForms();
 
@@ -147,7 +147,7 @@ const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "lo
       }
       setVerifyEmailAddress(response.email);
       setTab('verify');
-      toast.success('Registration successful! Please check your email for verification code.');
+      toast.success('Please check your email for verification code to complete registration');
     } catch (error) {
       toast.error(t('Registration failed ({{err}})', { err: getErrorMessage(error) }));
     } finally {

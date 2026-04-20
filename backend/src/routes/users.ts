@@ -81,7 +81,7 @@ router.post('/register', async (req, res) => {
     //const token = generateToken(user.id, user.role);
 
     res.status(201).json({ 
-      message: req.t('Registration successful. Please check your email for verification code.'),
+      message: req.t('Please check your email for verification code to complete registration'),
       email: user.email,
       ...(process.env.NODE_ENV === 'development' && { verificationCode }),
     });
@@ -468,7 +468,7 @@ router.get('/auth/google/callback', async (req, res) => {
           setTimeout(() => {
             window.close();
             // Fallback if close() is blocked
-            document.body.innerHTML = '<p>Login successful! You can close this window.</p>';
+            document.body.innerHTML = '<p>Login successful. You can close this window.</p>';
           }, 100);
         </script>
         <body></body>

@@ -380,7 +380,7 @@
   "Login error: {{error}}!": "Login error: {{error}}!",
   "Login failed: {{err}}": "Login failed: {{err}}",
   "Login Required": "Login Required",
-  "Login successful!": "Login successful!",
+  "Login successful": "Login successful",
   "Logo": "Logo",
   "Logout": "Logout",
   "Looking for a QR code…": "Looking for a QR code…",

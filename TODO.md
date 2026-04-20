@@ -157,10 +157,9 @@ Events 'canceled' when Edited show all empty fields... See database.ts...
  3 - OK - setup: Payments / enabled [], gateway: ["Stripe", ...] and look at config if we should move some key to setup...
  3 - OK - in EventList, if !setup.payments.enabled, say no price
  3 - OK - in EventEdit, remove empty currency from currencies menu; !setup.payments.enabled, disable currency and price
-
-Registration successful check your email ... !
-Email to Italian user in English!
-Accesso riuscito! => Accesso riuscito
-Add .gitguardian.toml
-Add gitleaks to deploy
-Remove .github deploy
+ 3 - OK - registration successful check your email ... !
+ 3 - OK - change Accesso riuscito! to Accesso riuscito
+ 3 - OK - add .gitguardian.toml
+ 3 - OK - add gitleaks to deploy
+ 3 - OK - disable .github/workflows fly-deploy
+ 2 -    - email to Italian user in English!

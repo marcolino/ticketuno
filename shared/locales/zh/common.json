@@ -380,7 +380,7 @@
   "Login error: {{error}}!": "登录错误: {{error}}!",
   "Login failed: {{err}}": "登录失败：{{err}}",
   "Login Required": "需要登录",
-  "Login successful!": "登录成功！",
+  "Login successful": "登录成功",
   "Logo": "标志",
   "Logout": "退出",
   "Looking for a QR code…": "查找QR码…",
