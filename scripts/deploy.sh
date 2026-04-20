@@ -106,8 +106,22 @@ fi
 
 if ! npm run i18n:status &> /dev/null; then
   echo "❌ Some translations are missing. Complete translations before deploying."
+  npm run i18n:status
   exit 6
 fi
+
+npm run check-git-leaks > "$error_log" 2>&1
+exit_code=$?
+if [ $exit_code -ne 0 ]; then
+  echo "❌ Some secrets could be leaking from git! View leaks? (y/N): "
+  read -r answer
+  if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
+    less "$error_log"
+  fi
+  rm -f "$error_log"
+  exit 6
+fi
+
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 

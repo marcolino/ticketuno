@@ -1,2 +1,42 @@
-.env
-.env.*
+# Git & version control
+.git/
+.gitignore
+.gitattributes
+
+# Dependencies
+node_modules/
+**/node_modules/
+**/package-lock.json   # optional, but can be excluded if you re-run npm install in Docker
+
+# Build outputs & caches
+**/dist/
+**/build/
+**/.next/
+**/out/
+**/.cache/
+**/coverage/
+**/.nyc_output/
+
+# Logs & temp files
+*.log
+*.tmp
+*.swp
+.DS_Store
+
+# Environment & secrets
+**/.env*
+!.env.example        # we want to keep an example
+
+# Generated assets (important!)
+**/frontend/public
+**/public/pwa-*      # depending on your setup
+
+# Deployment scripts
+deploy.sh
+fly*.toml
+README.md
+
+# IDE folders
+.idea/
+.vscode/
+*.sublime-*
