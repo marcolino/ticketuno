@@ -11,10 +11,23 @@ jobs:
   trigger:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug secret existence
+        run: |
+          if [ -n "${{ secrets.CRON_SECRET }}" ]; then
+            echo "Secret is set (length is ${#SECRET})"
+          else
+            echo "Secret is empty"
+          fi
+        env:
+          SECRET: ${{ secrets.CRON_SECRET }}
       - name: Trigger reminder endpoint
         run: |
           curl -f -X POST https://ticketuno.fly.dev/api/v1/internal/send-reminders \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --max-time 30
+            --max-time 30 \
+            --silent
+        env:
+          SECRET: ${{ secrets.CRON_SECRET }}
+          
 # TODO curl "https://ticketuno-staging.fly.dev/..." too...

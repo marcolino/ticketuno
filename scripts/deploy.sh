@@ -243,10 +243,14 @@ if [ "$STAGING" = false ]; then
   fi
 fi
 
+# set secrets on fly.io
 fly secrets set \
   GIT_COMMIT="$(git rev-parse --short HEAD)" \
   GIT_COMMIT_DATE="$(git log -1 --format='%ci' | cut -c1-19)" \
   --app "${APP_NAME}"
+
+# set secrets on github.comn
+gh secret set CRON_SECRET --body "`grep CRON_SECRET ./backend/.env | cut -d= -f2`"
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 
