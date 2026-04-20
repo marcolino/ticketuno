@@ -107,9 +107,10 @@ class EmailService {
     });
     if (!finalLang) {
       const user = await database.getUserByEmail(userEmail);
+      console.log("LLL2", user?.language);
       finalLang = user?.language || config.app.defaultLanguage;
     }
-    console.log("LLL2", {
+    console.log("LLL3", {
       requestedLang: lang,
       finalLang,
       userEmail
@@ -137,7 +138,7 @@ class EmailService {
     
       const contentCompiled = Handlebars.compile(contentFile)({
         ...variables,
-        t: i18next.getFixedT(finalLang)
+        t: i18n.getFixedT(finalLang)
       });
 
       // Load layout
@@ -167,7 +168,7 @@ class EmailService {
         unsubscribeUrl,
         preferencesUrl,
         isMarketing,
-        t: i18next.getFixedT(finalLang)
+        t: i18n.getFixedT(finalLang)
       });
 
       const { html: compiledHtml, errors } = mjml2html(fullMjml, {
