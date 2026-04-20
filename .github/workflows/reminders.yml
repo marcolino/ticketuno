@@ -2,8 +2,10 @@ name: Send booking reminders
 
 on:
   schedule:
-    - cron: '0 * * * *' # Top of every hour
-  workflow_dispatch: # Also allows manual trigger from GitHub UI
+    # Top of every hour
+    - cron: '0 * * * *'
+  # Also allows manual trigger from GitHub UI
+  workflow_dispatch:
 
 jobs:
   trigger:
