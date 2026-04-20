@@ -1,192 +1,292 @@
 import { Resend } from 'resend';
 import type { CreateEmailOptions, CreateEmailResponse } from 'resend';
-import i18next from 'i18next';
 import mjml2html from 'mjml';
 import fs from 'fs/promises';
 import path from 'path';
 import Handlebars from 'handlebars';
+
 import { database } from '../db/database';
-import { SendEmailOptions, /*AttachmentWithContentType, Attachment*/ } from '../shared/types/email';
+import { SendEmailOptions } from '../shared/types/email';
 import { i18n } from '../i18n';
 import config from '../config';
 import { getErrorMessage } from '../shared/utils/misc';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
+
+type Translator = (key: string, options?: Record<string, unknown>) => string;
+
+type HelperOptions = {
+  data?: {
+    root?: {
+      translator?: Translator;
+    };
+  };
+  hash?: Record<string, unknown>;
+};
+
 let handlebarsHelpersRegistered = false;
 
-// type SendEmailOptions = {
-//   to: string | string[];
-//   subject: string;
-//   template?: string;
-//   variables?: Record<string, unknown>;
-//   text?: string;
-//   html?: string;
-//   isMarketing?: boolean;
-// };
+i18n.on('failedLoading', (lng, ns, msg) => {
+  console.error(`i18n failed loading ${lng}/${ns}:`, msg);
+})
 
 class EmailService {
   private templatePath = path.join(__dirname, '../templates/emails');
   private partialsRegistered = false;
 
   constructor() {
-    registerHandlebarsHelpers();
+    this.registerHandlebarsHelpers();
+  }
+
+  // =====================================================
+  // HELPERS
+  // =====================================================
+
+  private registerHandlebarsHelpers() {
+    if (handlebarsHelpersRegistered) return;
+
+    Handlebars.registerHelper(
+      't',
+      function (key: string, options: HelperOptions): string {
+        try {
+          const translator = options.data?.root?.translator;
+
+          if (typeof translator !== 'function') {
+            console.warn('[EMAIL][HB] translator missing for key:', key);
+            return key;
+          }
+
+          const result = translator(key, options.hash ?? {});
+
+          console.log('[EMAIL][HB]', key, '=>', result);
+
+          return result;
+        } catch (err: unknown) {
+          console.error('[EMAIL][HB] error:', err);
+          return key;
+        }
+      }
+    );
+
+    handlebarsHelpersRegistered = true;
   }
 
   private async registerPartials() {
     if (this.partialsRegistered) return;
 
     const partialsDir = path.join(this.templatePath, 'partials');
-    const files = await fs.readdir(partialsDir);
 
-    for (const file of files) {
-      const content = await fs.readFile(
-        path.join(partialsDir, file),
-        'utf-8'
-      );
+    try {
+      const files = await fs.readdir(partialsDir);
 
-      Handlebars.registerPartial(
-        file.replace('.mjml', ''),
-        content
-      );
+      for (const file of files) {
+        const content = await fs.readFile(
+          path.join(partialsDir, file),
+          'utf-8'
+        );
+
+        Handlebars.registerPartial(
+          file.replace('.mjml', ''),
+          content
+        );
+      }
+
+      console.log('[EMAIL] Partials loaded:', files);
+      this.partialsRegistered = true;
+    } catch (err) {
+      console.warn('[EMAIL] No partials loaded:', err);
     }
-
-    this.partialsRegistered = true;
   }
 
-  // Public: send email
-  async send(options: SendEmailOptions & { lang?: string }): Promise<CreateEmailResponse> {
-    const payload = await this.prepare(options); // Prepare the email payload
+  // =====================================================
+  // SEND
+  // =====================================================
 
-    // Call the real email send service
+  async send(
+    options: SendEmailOptions & { lang?: string }
+  ): Promise<CreateEmailResponse> {
     try {
+      const payload = await this.prepare(options);
+
+      console.log('[EMAIL] Sending email...');
+      console.log(payload);
+
       const response = await resend.emails.send(payload);
+
       if (response.error) {
-        throw new Error(response.error.message || i18n.t('Email send error'));
+        throw new Error(response.error.message);
       }
-      if (!response.data) {
-        throw new Error(i18n.t('Email send failed'));
-      }
-      console.log('Email sent:', response.data.id);
+
+      console.log('[EMAIL] Sent OK:', response.data?.id);
+
       return response;
-    } catch (err: unknown) {
-      console.error(i18n.t('Email send failed: {{err}}', { err: getErrorMessage(err) }));
+    } catch (err) {
+      console.error(
+        '[EMAIL] Send failed:',
+        getErrorMessage(err)
+      );
       throw err;
     }
   }
 
-  async prepare(options: SendEmailOptions & { lang?: string }) {
+  // =====================================================
+  // PREPARE
+  // =====================================================
+
+  async prepare(
+    options: SendEmailOptions & { lang?: string }
+  ): Promise<CreateEmailOptions> {
     const {
       to,
       subject,
       template,
       variables = {},
-      lang = null,
-      text = i18n.t('Please view this email in HTML format'),
+      lang,
+      text,
       html,
       isMarketing = false,
       attachments,
     } = options;
 
     if (!config.email.from) {
-      throw new Error(i18n.t('Email FROM is not defined in environment'));
+      throw new Error('config.email.from missing');
     }
-    
+
     const recipients = Array.isArray(to) ? to : [to];
+    const userEmail = recipients[0];
 
-    const userEmail = recipients[0]; // We decide the first recipient email identifyes the user
-    
+    // -------------------------------------------------
+    // Resolve language
+    // -------------------------------------------------
+
     let finalLang = lang;
-    // if (!finalLang) {
-    //   finalLang = config.app.defaultLanguage;
-    // }
 
-    console.log("LLL1", {
-      requestedLang: lang,
-      finalLang,
-      userEmail
-    });
     if (!finalLang) {
       const user = await database.getUserByEmail(userEmail);
-      console.log("LLL2", user?.language);
-      finalLang = user?.language || config.app.defaultLanguage;
+      finalLang =
+        user?.language ||
+        config.app.defaultLanguage ||
+        'en';
     }
-    console.log("LLL3", {
-      requestedLang: lang,
-      finalLang,
-      userEmail
+
+    finalLang = finalLang.toLowerCase().split('-')[0];
+
+    // -------------------------------------------------
+    // Translator
+    // -------------------------------------------------
+
+    const translator = i18n.getFixedT(finalLang, 'common');
+
+    console.log('[EMAIL] Translation test:', {
+      Dear: translator('Dear'),
+      BestRegards: translator('Best regards'),
+      Team: translator('The team of'),
     });
-    
-    let finalHtml = html;
-    let finalText = text;
 
-    if (!finalHtml && !finalText && !template) {
-      throw new Error(i18n.t('Either html or text content or a template must be provided'));
-    }
+    let finalHtml = html || '';
+    const finalText =
+      text ||
+      translator('Please view this email in HTML format');
 
-    // Using MJML template
+    // -------------------------------------------------
+    // TEMPLATE MODE
+    // -------------------------------------------------
+
     if (template) {
       await this.registerPartials();
 
-      // Load content template
+      const templateFile = path.join(
+        this.templatePath,
+        'body',
+        `${template}.mjml`
+      );
+
+      console.log('[EMAIL] Loading template:', templateFile);
+
       const contentFile = await fs.readFile(
-        path.join(this.templatePath, 'body', `${template}.mjml`), 'utf-8'
+        templateFile,
+        'utf-8'
       );
 
-      variables.seatNumbers = variables.seatNumbers && variables.seatNumbers.toString().replace(',', ',\n');
-      variables.appName = config.app.name;
-      variables.logoUrl = `${config.app.baseUrlProduction}/images/logo.png`; // in emails, use production url even when developing
-    
-      const contentCompiled = Handlebars.compile(contentFile)({
+      const templateVariables = {
         ...variables,
-        t: i18n.getFixedT(finalLang)
-      });
+        appName: config.app.name,
+        logoUrl: `${config.app.baseUrlProduction}/images/logo.png`,
+        translator,
+      };
 
-      // Load layout
-      const layoutFile = await fs.readFile(
-        path.join(this.templatePath, 'layout.mjml'), 'utf-8'
+      const contentCompiled = Handlebars.compile(contentFile)(
+        templateVariables
       );
+
+      // -------------------------------------------------
+      // USER LINKS
+      // -------------------------------------------------
 
       let unsubscribeUrl: string | null = null;
       let preferencesUrl: string | null = null;
+
       const user = await database.getUserByEmail(userEmail);
-      if (!user) { // we send to a recipient who is not a registered user, do not offer to unsubscribe...
-        console.log(`First recipient email (${userEmail}) does not belong to a registered user, not using unsubscribe token...`); // to be tested ...
-      } else {
-        // TODO: why do we do: createToken for specific 'communication.marketingEmails', and not just createToken for 'consent' ?
+
+      if (user) {
         if (isMarketing) {
-          const token = await database.createToken(user.id, 'communication.marketingEmails');
-          unsubscribeUrl = `${config.app.baseUrlFrontend}/unsubscribe/${token}`;
+          const token = await database.createToken(
+            user.id,
+            'communication.marketingEmails'
+          );
+
+          unsubscribeUrl =
+            `${config.app.baseUrlFrontend}/unsubscribe/${token}`;
         }
-        const token = await database.createToken(user.id, 'consent');
-        preferencesUrl = `${config.app.baseUrlFrontend}/consent/${token}`;
+
+        const token = await database.createToken(
+          user.id,
+          'consent'
+        );
+
+        preferencesUrl =
+          `${config.app.baseUrlFrontend}/consent/${token}`;
       }
-      
+
+      // -------------------------------------------------
+      // LAYOUT
+      // -------------------------------------------------
+
+      const layoutFile = await fs.readFile(
+        path.join(this.templatePath, 'layout.mjml'),
+        'utf-8'
+      );
+
       const fullMjml = Handlebars.compile(layoutFile)({
-        ...variables,
+        ...templateVariables,
+        translator,
         body: contentCompiled,
-        copyrightYear: new Date().getFullYear(),
         unsubscribeUrl,
         preferencesUrl,
         isMarketing,
-        t: i18n.getFixedT(finalLang)
+        copyrightYear: new Date().getFullYear(),
       });
 
-      const { html: compiledHtml, errors } = mjml2html(fullMjml, {
-        validationLevel: "soft", // This prevents runtime crashes from minor MJML issues
+      // -------------------------------------------------
+      // MJML COMPILE
+      // -------------------------------------------------
+
+      const result = mjml2html(fullMjml, {
+        validationLevel: 'soft',
       });
 
-      if (errors?.length) {
-        console.error(errors);
-        throw new Error('MJML compilation failed');
+      if (result.errors?.length) {
+        console.error('[EMAIL] MJML errors:', result.errors);
       }
 
-      finalHtml = compiledHtml;
+      finalHtml = result.html;
 
-      // Basic text fallback (optional improvement)
-      finalText = finalText || i18n.t('Please view this email in HTML format');
+      console.log('[EMAIL] HTML generated length:', finalHtml.length);
     }
 
-    // Only use defined fields
+    // -------------------------------------------------
+    // FINAL PAYLOAD
+    // -------------------------------------------------
     const payload: CreateEmailOptions = finalHtml ?
       {
         from: config.email.from,
@@ -204,20 +304,9 @@ class EmailService {
         ...(attachments?.length ? { attachments } : {}),
       }
     ;
-    
+
     return payload;
   }
-}
-
-function registerHandlebarsHelpers() {
-  if (handlebarsHelpersRegistered) return;
-
-  Handlebars.registerHelper('t', function (key, options) {
-    const t = options.data.root.t;
-    return t(key, options.hash);
-  });
-
-  handlebarsHelpersRegistered = true;
 }
 
 export default new EmailService();

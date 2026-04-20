@@ -18,7 +18,7 @@ i18n
       loadPath: (lng: string, ns: string) => {
         const staticNs = ['terms', 'privacy'];
         const base = staticNs.includes(ns) ? 'locales-static' : 'locales';
-        return path.join(__dirname, '..', '..', 'shared', base, lng, ns, '.json');
+        return path.join(__dirname, '..', '..', 'shared', base, lng, `${ns}.json`);
       },
       retries: 0, // Stop retrying on failure
     },

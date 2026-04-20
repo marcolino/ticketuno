@@ -21,7 +21,7 @@ common:
  3 - OK - implement pushNotifications
  1 - OK - resolve all TypeScript warnings in code
  2 - OK - resolve all TODO's in code
- 1 -    - i18n:extract:  ..._many: "" !
+ 1 - OK   - i18n:extract:  ..._many: ""
  2 -    - remove all comments in code
 
  backend:
@@ -135,11 +135,12 @@ bugs:
  2 - OK - base ticket price, on mobile: cannot use backspace
  2 - OK - correctly implement useBlocker from react-router-dom
  2 - OK - add ticketuno-staging to google developer console oauth
+ 2 - OK - email to Italian user in English
  3 - OK - add ENVIRONMENT.md to project and implement it
  3 - OK - change: Nessuna rappresentazione disponibile al momento => Nessuno spettacolo...
  3 - OK - the Privacy and Terms in Footer should be translated
  3 - OK - strings commedia, ... should be in i18n static (no...)
- 3 -    - staging character is not shown in footer... (DONE, TO BE TESTED)
+ 3 - OK - staging character is not shown in footer... (DONE, TO BE TESTED)
  3 - OK - "Scansiona il codice QR del biglietto" => "Scansiona il codice QR dei biglietti"
  3 - OK - in not production/staging modes, increase server timeout (until we a re on a free plan)
  3 - OK - "Scansiona il codice QR del biglietto": "Ferma" is not useful, rename as "Stop scanning",
@@ -162,5 +163,4 @@ Events 'canceled' when Edited show all empty fields... See database.ts...
  3 - OK - add .gitguardian.toml
  3 - OK - add gitleaks to deploy
  3 - OK - disable .github/workflows fly-deploy
- 2 -    - email to Italian user in English!
 

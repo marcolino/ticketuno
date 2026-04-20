@@ -26,7 +26,7 @@ export const BookingsList: React.FC = () => {
 
   // Memoize loadBookings to avoid infinite effect loops
   const loadBookings = useCallback((userParam) => {
-    console.log(userParam); // TODO: implement actual loading
+    console.log('userParam:', userParam); // TODO: implement actual loading
   }, []);
 
   useEffect(() => {

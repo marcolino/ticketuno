@@ -10,8 +10,8 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
   // const to = new Date(now.getTime() + 25 * 60 * 60 * 1000); // 25h from now - TODO: to config
 
   // TODO: DEBUG ONLY!!!
-  const from = new Date(now.getTime() + 1 * 60 * 60 * 1000); // 1h from now - TODO: to config
-  const to = new Date(now.getTime() + 8760 * 60 * 60 * 1000); // 8760 from now - TODO: to config
+  const from = new Date(now.getTime() + 1 * 60 * 60 * 1000); // 1h from now
+  const to = new Date(now.getTime() + 8760 * 60 * 60 * 1000); // 8760h from now
 
   // Performances store date + time as separate TEXT columns, e.g. "2025-06-10" + "20:30"
   // We query by reconstructed ISO string: "2025-06-10T20:30"
@@ -34,7 +34,7 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
     }
 
     const formattedDate = new Date(`${booking.performance_date}T${booking.start_time}`)
-      .toLocaleDateString(config.app.defaultCountry /* 'en-GB'*/, {
+      .toLocaleDateString(config.app.defaultCountry, {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
@@ -45,7 +45,7 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
     const { sent: pushSent } = await sendPushToUser(booking.user_id, {
       title: '🎭' + ' ' + booking.event_title + ' ' + i18n.t('is tomorrow'),
       body: booking.booking_ref + '—' + formattedDate,
-      url: `/bookings/${booking.booking_ref}`,
+      url: `/bookings/${booking.booking_ref}`, // TODO
       icon: '/icons/icon-192x192.png',
     });
 
