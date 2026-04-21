@@ -13,6 +13,9 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
   const from = new Date(now.getTime() + 1 * 60 * 60 * 1000); // 1h from now
   const to = new Date(now.getTime() + 8760 * 60 * 60 * 1000); // 8760h from now
 
+  console.log("FROM:", from);
+  console.log("TO:", to);
+
   // Performances store date + time as separate TEXT columns, e.g. "2025-06-10" + "20:30"
   // We query by reconstructed ISO string: "2025-06-10T20:30"
   const bookings = await database.getBookingsForReminder(
@@ -20,11 +23,15 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
     to.toISOString().slice(0, 16)
   );
 
+  console.log("BOOKINGS:", bookings);
+
   let sent = 0;
   let skipped = 0;
 
   for (const booking of bookings) {
+    console.log("BOOKING:", booking);
     const subs = await database.getPushSubscriptionsByUserId(booking.user_id);
+    console.log("SUBS:", subs);
 
     if (subs.length === 0) {
       // User never opted in — mark so we don't re-check every hour
@@ -42,12 +49,14 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
         minute: '2-digit',
       });
 
-    const { sent: pushSent } = await sendPushToUser(booking.user_id, {
+    console.log("FORMATTED DATE:", formattedDate);
+    const { sent: pushSent } = await sendPushToUser(subs, booking.user_id, {
       title: '🎭' + ' ' + booking.event_title + ' ' + i18n.t('is tomorrow'),
       body: booking.booking_ref + '—' + formattedDate,
       url: `/bookings/${booking.booking_ref}`, // TODO
       icon: '/icons/icon-192x192.png',
     });
+    console.log("PUSH SENT:", pushSent);
 
     await database.markReminderSent(booking.booking_id);
 

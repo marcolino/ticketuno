@@ -107,17 +107,14 @@ class EmailService {
   ): Promise<CreateEmailResponse> {
     try {
       const payload = await this.prepare(options);
-
-      console.log('[EMAIL] Sending email...');
-      console.log(payload);
-
+      //console.log('[EMAIL] Sending email:', payload);
       const response = await resend.emails.send(payload);
 
       if (response.error) {
         throw new Error(response.error.message);
       }
 
-      console.log('[EMAIL] Sent OK:', response.data?.id);
+      console.log('[EMAIL] Sent successfully:', response.data?.id);
 
       return response;
     } catch (err) {

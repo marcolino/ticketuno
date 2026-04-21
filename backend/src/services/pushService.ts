@@ -23,12 +23,13 @@ function ensureInitialized() {
 }
 
 export async function sendPushToUser(
+  subs: { endpoint: string; p256dh: string; auth: string }[],
   userId: string,
   payload: PushPayload,
 ): Promise<{ sent: number; cleaned: number }> {
   ensureInitialized();
 
-  const subs = await database.getPushSubscriptionsByUserId(userId);
+  // const subs = await database.getPushSubscriptionsByUserId(userId);
   if (subs.length === 0) {
     return {
       sent: 0,
@@ -42,12 +43,14 @@ export async function sendPushToUser(
   await Promise.allSettled(
     subs.map(async (sub) => {
       try {
+        console.log("SENDING PUSH NOTIFICATION:", )
         await webpush.sendNotification(
           { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
           JSON.stringify(payload)
         );
         await database.touchPushSubscription(sub.endpoint);
         sent++;
+        console.log("SENT:", sent)
       } catch (error) {
         // 410 Gone / 404 = browser unsubscribed or endpoint expired
         if (error instanceof WebPushError && (error?.statusCode === 410 || error?.statusCode === 404)) {
