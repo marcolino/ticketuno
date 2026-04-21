@@ -118,7 +118,7 @@ router.patch('/:id/scan', requireAuthentication, requireOperator, async (req: Au
       return res.status(400).json({ error: req.t('Booking already scanned') });
     }
 
-    const marked = await database.markBookingUsed(booking.bookingRef, `operator:${req.userId}`);
+    const marked = await database.markBookingUsed(booking.bookingRef, req.userId);
     if (!marked) {
       // Race condition: someone else scanned between our check and the update
       return res.status(409).json({ error: req.t('Booking was already scanned') });

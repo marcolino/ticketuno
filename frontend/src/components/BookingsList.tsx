@@ -22,7 +22,6 @@ import {
   Close,
 } from '@mui/icons-material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
-
 import Alert from './Alert';
 import PageHeader from './PageHeader';
 import useNavigate from '@/hooks/useNavigate';
@@ -68,6 +67,10 @@ function formatDateTime(iso: string): string {
 // ---------------------------------------------------------------------------
 // Filter panel
 // ---------------------------------------------------------------------------
+
+interface BookingsListProps {
+  mode?: 'all' | 'my';
+}
 
 interface FilterValues {
   status: string;
@@ -136,7 +139,7 @@ const FilterPanel = memo(({ show, filters, onFilterChange }: FilterPanelProps) =
 // Main component
 // ---------------------------------------------------------------------------
 
-const BookingsList: React.FC = () => {
+const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { loading } = useAuth();
@@ -144,7 +147,7 @@ const BookingsList: React.FC = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [bookings, setBookings] = useState<BookingEnriched[] | null>(null);
-  const [error, setError]       = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterValues>({
@@ -164,7 +167,9 @@ const BookingsList: React.FC = () => {
 
   const loadBookings = async () => {
     try {
-      const response = await bookingApi.getAll();
+      const response = (mode === 'my')
+        ? await bookingApi.getMy()
+        : await bookingApi.getAll();
       setBookings(response.data);
     } catch (err) {
       setBookings(null);
@@ -310,7 +315,7 @@ const BookingsList: React.FC = () => {
         </IconButton>
       ),
     },
-  ];
+  ].filter(col => mode === 'my' ? !['userName', 'userEmail'].includes(col.field) : true);
 
   // -------------------------------------------------------------------------
   // Render

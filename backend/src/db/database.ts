@@ -1987,31 +1987,31 @@ class Database {
       try { seatIds = JSON.parse(row.seat_ids as string); } catch { seatIds = []; }
     }
     return {
-      id:              row.id              as string,
-      bookingRef:      row.booking_ref     as string,
-      userId:          row.user_id         as string,
-      userFirstName:   row.user_first_name as string,
-      userLastName:    row.user_last_name  as string,
-      userEmail:       row.user_email      as string,
-      userPhone:       (row.user_phone     as string) ?? '',
-      performanceId:   row.performance_id  as string,
+      id: row.id as string,
+      bookingRef: row.booking_ref as string,
+      userId: row.user_id as string,
+      userFirstName: row.user_first_name as string,
+      userLastName: row.user_last_name as string,
+      userEmail: row.user_email as string,
+      userPhone: (row.user_phone as string) ?? '',
+      performanceId: row.performance_id as string,
       performanceDate: row.performance_date as string,
-      startTime:       row.start_time      as string,
-      endTime:         (row.end_time       as string) ?? null,
-      eventId:         row.event_id        as string,
-      eventTitle:      row.event_title     as string,
-      currency:        (row.currency       as string) ?? '',
-      theaterId:       row.theater_id      as string,
-      theaterName:     row.theater_name    as string,
-      status:          row.status          as BookingStatus,
-      totalPrice:      row.total_price     as number,
-      seatCount:       row.seat_count      as number,
+      startTime: row.start_time as string,
+      endTime: (row.end_time as string) ?? null,
+      eventId: row.event_id as string,
+      eventTitle: row.event_title as string,
+      currency: (row.currency as string) ?? '',
+      theaterId: row.theater_id as string,
+      theaterName: row.theater_name as string,
+      status: row.status as BookingStatus,
+      totalPrice: row.total_price as number,
+      seatCount: row.seat_count as number,
       seatIds,
-      bookedAt:        row.booked_at       as string,
-      scannedAt:       (row.scanned_at     as string) ?? null,
-      scannedBy:       (row.scanned_by     as string) ?? null,
-      canceledAt:      (row.canceled_at    as string) ?? null,
-      updatedAt:       (row.updated_at     as string) ?? null,
+      bookedAt: row.booked_at as string,
+      scannedAt: (row.scanned_at as string) ?? null,
+      scannedBy: (row.scanned_by as string) ?? null,
+      canceledAt: (row.canceled_at as string) ?? null,
+      updatedAt: (row.updated_at as string) ?? null,
     };
   }
  
@@ -2024,19 +2024,19 @@ class Database {
       b.id,
       b.booking_ref,
       b.user_id,
-      u.first_name  AS user_first_name,
-      u.last_name   AS user_last_name,
-      u.email       AS user_email,
-      u.phone       AS user_phone,
+      u.first_name AS user_first_name,
+      u.last_name AS user_last_name,
+      u.email AS user_email,
+      u.phone AS user_phone,
       b.performance_id,
       p.performance_date,
       p.start_time,
       p.end_time,
-      e.id          AS event_id,
-      e.title       AS event_title,
+      e.id AS event_id,
+      e.title AS event_title,
       e.currency,
-      t.id          AS theater_id,
-      t.name        AS theater_name,
+      t.id AS theater_id,
+      t.name AS theater_name,
       b.status,
       b.total_price,
       b.seat_count,
@@ -2047,10 +2047,10 @@ class Database {
       b.canceled_at,
       b.updated_at
     FROM bookings b
-    JOIN users        u ON u.id  = b.user_id
+    JOIN users u ON u.id  = b.user_id
     JOIN performances p ON p.id  = b.performance_id
-    JOIN events       e ON e.id  = p.event_id
-    JOIN theaters     t ON t.id  = e.theater_id
+    JOIN events e ON e.id  = p.event_id
+    JOIN theaters t ON t.id  = e.theater_id
     WHERE p.deleted_at IS NULL
       AND e.deleted_at IS NULL
   `;
@@ -2060,7 +2060,7 @@ class Database {
   // ---------------------------------------------------------------------------
   async getAllBookingsEnriched(options: GetAllBookingsOptions = {}): Promise<BookingEnriched[]> {
     const clauses: string[] = [];
-    const params:  SqlParam[] = [];
+    const params: SqlParam[] = [];
   
     if (options.status && options.status !== 'all') {
       clauses.push(`b.status = ?`);
@@ -2116,9 +2116,9 @@ class Database {
     const seatRow = await getQuery<Record<string, unknown>>(
       this.db, `
         SELECT seat_id, section_name, row_id, seat_number, price, booking_ref
-        FROM   seats
-        WHERE  booking_id = ?
-        LIMIT  1
+        FROM seats
+        WHERE booking_id = ?
+        LIMIT 1
       `,
       [bookingId],
       'get booking detail seat'
@@ -2126,12 +2126,12 @@ class Database {
   
     const seat: SeatDetail | null = seatRow
       ? {
-          seatId:      seatRow.seat_id      as string,
-          bookingRef:  seatRow.booking_ref  as string,
+          seatId: seatRow.seat_id as string,
+          bookingRef: seatRow.booking_ref as string,
           sectionName: seatRow.section_name as string,
-          rowId:       seatRow.row_id       as string,
-          seatNumber:  seatRow.seat_number  as number,
-          price:       seatRow.price        as number,
+          rowId: seatRow.row_id as string,
+          seatNumber: seatRow.seat_number as number,
+          price: seatRow.price as number,
         }
       : null;
   

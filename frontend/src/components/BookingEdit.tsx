@@ -16,7 +16,7 @@ import {
 import {
   ArrowBack,
   Cancel,
-  CheckCircleOutline,
+  //CheckCircleOutline,
   ConfirmationNumber,
   QrCodeScanner,
 } from '@mui/icons-material';
@@ -65,10 +65,15 @@ interface InfoRowProps {
 }
 const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
   <Box sx={{ display: 'flex', gap: 2, py: 0.75, alignItems: 'flex-start' }}>
-    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 140, flexShrink: 0 }}>
+    <Typography variant="body2" color="text.secondary" sx={{ minWidth: { xs: 90, sm: 200 }, flexShrink: 0 }}>
       {label}
     </Typography>
-    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+    <Typography variant="body2" sx={{
+      fontWeight: 500,
+      overflowWrap: 'break-word',
+      wordBreak: 'break-word',
+      maxWidth: '100%',
+    }}>
       {value ?? '—'}
     </Typography>
   </Box>
@@ -222,7 +227,7 @@ const BookingEdit: React.FC = () => {
   // -------------------------------------------------------------------------
 
   return (
-    <Container maxWidth="sm" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="sm" sx={{ mt: 4, mb: 4, px: { xs: 0, sm: 2 } }}>
       <Paper elevation={3} sx={{ p: isXs ? 2 : 4 }}>
 
         {/* ── Header ── */}
@@ -240,10 +245,10 @@ const BookingEdit: React.FC = () => {
         {/* Ticket ref — prominent pill */}
         <Box sx={{
           mb: 3, px: 2, py: 1.5, borderRadius: 1,
-          bgcolor: 'action.hover', display: 'inline-flex', alignItems: 'center', gap: 1.5,
+          bgcolor: 'action.hover', display: 'inline-flex', alignItems: 'center', gap: 2,
         }}>
           <Typography variant="body2" color="text.secondary">{t('Ticket ref')}</Typography>
-          <Typography variant="h6" sx={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: 2 }}>
+          <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 500, letterSpacing: 2 }}>
             {booking.bookingRef}
           </Typography>
         </Box>
@@ -252,8 +257,8 @@ const BookingEdit: React.FC = () => {
         {isScanned && (
           <Alert severity="success" sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CheckCircleOutline fontSize="small" />
-              {t('Scanned {{time}} by {{by}}', {
+              {/* <CheckCircleOutline fontSize="small" /> */}
+              {t('Scanned on {{time}} by {{by}}', {
                 time: fmtDateTime(booking.scannedAt),
                 by: booking.scannedBy ?? t('unknown'),
               })}
@@ -321,6 +326,7 @@ const BookingEdit: React.FC = () => {
               startIcon={<ArrowBack />}
               onClick={() => navigate(-1)}
               disabled={saving}
+              sx={{ ml: 'auto' }}
             >
               {t('Back')}
             </Button>
@@ -333,6 +339,7 @@ const BookingEdit: React.FC = () => {
                 startIcon={<QrCodeScanner />}
                 onClick={handleMarkScanned}
                 disabled={saving}
+                sx={{ ml: 'auto' }}
               >
                 {t('Mark as scanned')}
               </Button>
