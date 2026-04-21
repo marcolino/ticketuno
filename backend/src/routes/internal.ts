@@ -8,14 +8,19 @@ const router = Router();
 
 router.post('/send-reminders', requireCronAuth, async (_req: Request, res: Response) => {
 
-  // Respond immediately — Fly.io confirmed alive, job runs async
-  res.json({ ok: true });
+  // Respond immediately Fly.io confirmed alive, job runs async
+  // TODO: uncomment below!
+  // if (process.env.NODE_ENV === 'production') { // in production runReminderJob coild be sloooow ...
+  //   res.json({ ok: true });
+  // }
 
   try {
     const result = await runReminderJob();
     console.log('[internal] Reminder job completed', result);
+    res.json({ ok: true, result });
   } catch (err) {
     console.error('[internal] Reminder job failed:', err);
+    res.json({ ok: false, err });
   }
 });
 
