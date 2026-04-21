@@ -162,8 +162,7 @@ class EmailService {
       const user = await database.getUserByEmail(userEmail);
       finalLang =
         user?.language ||
-        config.app.defaultLanguage ||
-        'en';
+        config.app.defaultLanguage
     }
 
     finalLang = finalLang.toLowerCase().split('-')[0];

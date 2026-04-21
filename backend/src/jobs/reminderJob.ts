@@ -27,11 +27,24 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
 
   let sent = 0;
   let skipped = 0;
+  let language = null;
+  let user_id = null;
+  let t = null;
 
   for (const booking of bookings) {
     console.log("BOOKING:", booking);
     const subs = await database.getPushSubscriptionsByUserId(booking.user_id);
     console.log("SUBS:", subs);
+
+    // get user's language, if not done yet, or if user is changed
+    if (!user_id || user_id !== booking.user_id) {
+      user_id = booking.user_id;
+      const user = await database.getUserByEmail(user_id);
+      language = user?.language || config.app.defaultLanguage
+      language = language.toLowerCase().split('-')[0];
+      console.log("USER'S LANGUAGE:", language);
+      t = i18n.getFixedT(language, 'common');
+    }
 
     if (subs.length === 0) {
       // User never opted in — mark so we don't re-check every hour
@@ -51,7 +64,7 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
 
     console.log("FORMATTED DATE:", formattedDate);
     const { sent: pushSent } = await sendPushToUser(subs, booking.user_id, {
-      title: '🎭' + ' ' + booking.event_title + ' ' + i18n.t('is tomorrow'),
+      title: '🎭' + ' ' + booking.event_title + ' ' + t('is tomorrow'),
       body: booking.booking_ref + '—' + formattedDate,
       url: `/bookings/${booking.booking_ref}`, // TODO
       icon: '/icons/icon-192x192.png',
