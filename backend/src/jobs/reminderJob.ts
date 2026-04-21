@@ -27,9 +27,9 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
 
   let sent = 0;
   let skipped = 0;
-  let language = null;
+  let language = config.app.defaultLanguage;
   let user_id = null;
-  let t = null;
+  let t = i18n.getFixedT(language, 'common');
 
   for (const booking of bookings) {
     console.log("BOOKING:", booking);
@@ -63,9 +63,11 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
       });
 
     console.log("FORMATTED DATE:", formattedDate);
+
+    // TODO: group by user !!!
     const { sent: pushSent } = await sendPushToUser(subs, booking.user_id, {
       title: '🎭' + ' ' + booking.event_title + ' ' + t('is tomorrow'),
-      body: booking.booking_ref + '—' + formattedDate,
+      body: t('Booking references:') + ': ' + booking.booking_ref + '—' + formattedDate,
       url: `/bookings/${booking.booking_ref}`, // TODO
       icon: '/icons/icon-192x192.png',
     });
