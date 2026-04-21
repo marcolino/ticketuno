@@ -7,6 +7,7 @@ import { i18n, middleware as i18nextMiddleware } from './i18n';
 import globalRoutes from './routes/global';
 import userRoutes from './routes/users';
 import guardRoutes from './routes/guards';
+import bookingRoutes from './routes/bookings';
 import theaterRoutes from './routes/theaters';
 import eventRoutes from './routes/events';
 import layoutRoutes from './routes/layouts';
@@ -88,6 +89,7 @@ app.use('/api/*', (req, res, next) => {
 app.use(`${prefix}/`, globalRoutes);
 app.use(`${prefix}/users`, userRoutes);
 app.use(`${prefix}/guards`, guardRoutes);
+app.use(`${prefix}/bookings`, bookingRoutes);
 app.use(`${prefix}/theaters`, theaterRoutes);
 app.use(`${prefix}/layouts`, layoutRoutes);
 app.use(`${prefix}/events`, eventRoutes);

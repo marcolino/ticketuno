@@ -21,7 +21,7 @@ common:
  3 - OK - implement pushNotifications
  1 - OK - resolve all TypeScript warnings in code
  2 - OK - resolve all TODO's in code
- 1 - OK   - i18n:extract:  ..._many: ""
+ 1 - OK - i18n:extract:  ..._many: ""
  2 -    - remove all comments in code
 
  backend:
@@ -60,6 +60,8 @@ common:
  3 -    - make a check job to release expired reservations (releaseExpiredReservations), and schedule it, weekly
  3 -    - before using analytics and marketing cookies, always check:
             const { canUseAnalytics, canUseMarketingCookies } = useConsent();
+ 3 -    - ask AI to refactor db/database.ts, splitting in different files (but avoid one file per table...)
+ 3 -    - reduce `requireAuthentication, requireOperator` to `requireOperator` (it's reduntand, probably...)
  3 -    - implement a real logging system
  3 -    - implement tests
 
@@ -69,7 +71,7 @@ common:
  1 - OK - check in production that navigate(-1) from custom useNavigate hook (EventEdit, cancel), coming from an external domain, sends to our domain home page, and does not exit to external domain
  1 - OK - always use custom useNavigate hook
  1 - OK - always use @ for ../...
- 1 - OK - solve issue of poster not reachable in prod
+ 1 - OK - solve issue of poster not reachable in prods
  1 - OK - 404 image should be responsive on mobile
  1 - OK - event list: poster image should not increase event container squared size
  1 - OK - less vertical space among menu items
@@ -125,7 +127,7 @@ common:
  3 - OK - add all users profile handling
  3 - OK - remove .env, .env.example
  2 - OK - add a consents popup button or link in Profile component
- 2 -    - ask AI to implement BookingsList, like UsersList
+ 2 -    - ask AI to implement BookingsList, like UsersList, and BookingEdit, like UserEdit
  3 -    - implement tests
 
 bugs:

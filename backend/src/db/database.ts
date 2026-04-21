@@ -10,7 +10,7 @@ import { Layout, LayoutJSON } from '../shared/types/layout';
 import { Event, EventPerformance } from '../shared/types/event';
 import { GeneratedSeat } from '../shared/types/seat';
 import { FullConsent } from '../shared/types/consent';
-import { Booking, BookingStatus, BookingQueryOptions } from '../shared/types/booking';
+import { Booking, BookingStatus, BookingQueryOptions, BookingEnriched, BookingDetail, SeatDetail } from '../shared/types/bookings';
 import { GeneralSetupType } from '../shared/types/generalSetup';
 import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardResult } from '../shared/types/guard';
 import { EventQueryOptions, PerformanceQueryOptions } from '../shared/types/query';
@@ -21,6 +21,11 @@ import config from '../config';
 // Query option types
 // ---------------------------------------------------------------------------
 
+interface GetAllBookingsOptions {
+  status?: string; // 'confirmed' | 'canceled' | 'refunded' | 'all' | undefined
+  performanceDate?: string; // 'YYYY-MM-DD'
+  eventId?: string;
+}
 
 // ---------------------------------------------------------------------------
 
@@ -1968,6 +1973,171 @@ class Database {
     return this.mapRowsToBookings(rows);
   }
 
+  // ---------------------------------------------------------------------------
+  // Shared enriched-booking mapper
+  // ---------------------------------------------------------------------------
+  
+  /**
+   * Maps a flat JOIN row into BookingEnriched.
+   * Used by getAllBookingsEnriched, getBookingsByUserIdEnriched, getBookingDetailById.
+   */
+  private mapRowToBookingEnriched(row: Record<string, unknown>): BookingEnriched {
+    let seatIds: string[] = [];
+    if (row.seat_ids && typeof row.seat_ids === 'string') {
+      try { seatIds = JSON.parse(row.seat_ids as string); } catch { seatIds = []; }
+    }
+    return {
+      id:              row.id              as string,
+      bookingRef:      row.booking_ref     as string,
+      userId:          row.user_id         as string,
+      userFirstName:   row.user_first_name as string,
+      userLastName:    row.user_last_name  as string,
+      userEmail:       row.user_email      as string,
+      userPhone:       (row.user_phone     as string) ?? '',
+      performanceId:   row.performance_id  as string,
+      performanceDate: row.performance_date as string,
+      startTime:       row.start_time      as string,
+      endTime:         (row.end_time       as string) ?? null,
+      eventId:         row.event_id        as string,
+      eventTitle:      row.event_title     as string,
+      currency:        (row.currency       as string) ?? '',
+      theaterId:       row.theater_id      as string,
+      theaterName:     row.theater_name    as string,
+      status:          row.status          as BookingStatus,
+      totalPrice:      row.total_price     as number,
+      seatCount:       row.seat_count      as number,
+      seatIds,
+      bookedAt:        row.booked_at       as string,
+      scannedAt:       (row.scanned_at     as string) ?? null,
+      scannedBy:       (row.scanned_by     as string) ?? null,
+      canceledAt:      (row.canceled_at    as string) ?? null,
+      updatedAt:       (row.updated_at     as string) ?? null,
+    };
+  }
+ 
+  // ---------------------------------------------------------------------------
+  // Base SQL for enriched booking queries (all columns, all JOINs).
+  // Callers append WHERE / ORDER BY as needed.
+  // ---------------------------------------------------------------------------
+  private enrichedBookingSelectSQL = `
+    SELECT
+      b.id,
+      b.booking_ref,
+      b.user_id,
+      u.first_name  AS user_first_name,
+      u.last_name   AS user_last_name,
+      u.email       AS user_email,
+      u.phone       AS user_phone,
+      b.performance_id,
+      p.performance_date,
+      p.start_time,
+      p.end_time,
+      e.id          AS event_id,
+      e.title       AS event_title,
+      e.currency,
+      t.id          AS theater_id,
+      t.name        AS theater_name,
+      b.status,
+      b.total_price,
+      b.seat_count,
+      b.seat_ids,
+      b.booked_at,
+      b.scanned_at,
+      b.scanned_by,
+      b.canceled_at,
+      b.updated_at
+    FROM bookings b
+    JOIN users        u ON u.id  = b.user_id
+    JOIN performances p ON p.id  = b.performance_id
+    JOIN events       e ON e.id  = p.event_id
+    JOIN theaters     t ON t.id  = e.theater_id
+    WHERE p.deleted_at IS NULL
+      AND e.deleted_at IS NULL
+  `;
+ 
+  // ---------------------------------------------------------------------------
+  // getAllBookingsEnriched
+  // ---------------------------------------------------------------------------
+  async getAllBookingsEnriched(options: GetAllBookingsOptions = {}): Promise<BookingEnriched[]> {
+    const clauses: string[] = [];
+    const params:  SqlParam[] = [];
+  
+    if (options.status && options.status !== 'all') {
+      clauses.push(`b.status = ?`);
+      params.push(options.status);
+    }
+    if (options.performanceDate) {
+      clauses.push(`p.performance_date = ?`);
+      params.push(options.performanceDate);
+    }
+    if (options.eventId) {
+      clauses.push(`e.id = ?`);
+      params.push(options.eventId);
+    }
+  
+    const extraWhere = clauses.length ? `AND ${clauses.join(' AND ')}` : '';
+    const sql = `${this.enrichedBookingSelectSQL} ${extraWhere} ORDER BY b.booked_at DESC`;
+  
+    const rows = await allQuery<Record<string, unknown>>(this.db, sql, params, 'get all bookings enriched');
+    return rows.map(r => this.mapRowToBookingEnriched(r));
+  }
+  
+  // ---------------------------------------------------------------------------
+  // getBookingsByUserIdEnriched
+  // ---------------------------------------------------------------------------
+  
+  async getBookingsByUserIdEnriched(userId: string): Promise<BookingEnriched[]> {
+    const sql = `${this.enrichedBookingSelectSQL} AND b.user_id = ? ORDER BY b.booked_at DESC`;
+    const rows = await allQuery<Record<string, unknown>>(
+      this.db, sql, [userId], 'get bookings by user enriched'
+    );
+    return rows.map(r => this.mapRowToBookingEnriched(r));
+  }
+  
+  // ---------------------------------------------------------------------------
+  // getBookingDetailById
+  // ---------------------------------------------------------------------------
+  
+  /**
+   * Returns a single enriched booking plus the physical seat data for that ticket.
+   * Because one booking = one seat (see bookSeats()), seatDetail will always be
+   * a single object (or null if the seat row has been deleted).
+   */
+  async getBookingDetailById(bookingId: string): Promise<BookingDetail | null> {
+    const sql = `${this.enrichedBookingSelectSQL} AND b.id = ? LIMIT 1`;
+    const row = await getQuery<Record<string, unknown>>(
+      this.db, sql, [bookingId], 'get booking detail by id'
+    );
+    if (!row) return null;
+  
+    const enriched = this.mapRowToBookingEnriched(row);
+  
+    // Fetch the physical seat row linked to this booking
+    const seatRow = await getQuery<Record<string, unknown>>(
+      this.db, `
+        SELECT seat_id, section_name, row_id, seat_number, price, booking_ref
+        FROM   seats
+        WHERE  booking_id = ?
+        LIMIT  1
+      `,
+      [bookingId],
+      'get booking detail seat'
+    );
+  
+    const seat: SeatDetail | null = seatRow
+      ? {
+          seatId:      seatRow.seat_id      as string,
+          bookingRef:  seatRow.booking_ref  as string,
+          sectionName: seatRow.section_name as string,
+          rowId:       seatRow.row_id       as string,
+          seatNumber:  seatRow.seat_number  as number,
+          price:       seatRow.price        as number,
+        }
+      : null;
+  
+    return { ...enriched, seat };
+  }
+
   /**
    * Atomically marks a booking as used.
    * Returns true if it was just now marked; false if already scanned, canceled, or not found.
@@ -2201,24 +2371,25 @@ class Database {
     // performances.performance_date + start_time are stored as separate TEXT columns
     // We reconstruct an ISO datetime for range comparison
     return allQuery(
-      this.db,
-      `SELECT
-        b.id               AS booking_id,
+      this.db, `
+      SELECT
+        b.id AS booking_id,
         b.user_id,
         b.booking_ref,
-        e.title            AS event_title,
+        e.title AS event_title,
         p.performance_date,
         p.start_time
       FROM bookings b
       JOIN performances p ON p.id = b.performance_id
-      JOIN events       e ON e.id = p.event_id
-      WHERE b.status               = 'confirmed'
-        AND b.reminder_24h_sent    = 0
-        AND p.deleted_at           IS NULL
-        AND p.canceled_at          IS NULL
-        AND e.deleted_at           IS NULL
-        AND e.canceled             = 0
-        AND (p.performance_date || 'T' || p.start_time) BETWEEN ? AND ?`,
+      JOIN events e ON e.id = p.event_id
+      WHERE b.status = 'confirmed'
+        AND b.reminder_24h_sent = 0
+        AND p.deleted_at IS NULL
+        AND p.canceled_at IS NULL
+        AND e.deleted_at IS NULL
+        AND e.canceled = 0
+        AND (p.performance_date || 'T' || p.start_time) BETWEEN ? AND ?
+      `,
       [fromIso, toIso],
       'get bookings for reminder'
     ) as Promise<Array<{

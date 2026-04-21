@@ -11,6 +11,7 @@ import TheaterEdit from './components/TheaterEdit';
 import LayoutEdit from './components/LayoutEdit';
 import LayoutList from './components/LayoutList';
 import BookingsList from './components/BookingsList';
+import BookingEdit from './components/BookingEdit';
 import BookingValidate from './components/BookingValidate';
 import UsersList from './components/UsersList';
 import UserEdit from './components/UserEdit';
@@ -46,6 +47,7 @@ const router = createBrowserRouter(
             { path: 'layouts', element: <PR requireOperator={true}><LayoutList /></PR> },
             // This route does not require operator role because users can handle their own bookings too
             { path: 'bookings', element: <PR><BookingsList /></PR> },
+            { path: 'bookings/edit/:id', element: <PR requireOperator={true}><BookingEdit /></PR> },
             { path: 'booking/validate', element: <PR requireOperator={true}><BookingValidate /></PR> },
             { path: 'users', element: <PR requireOperator={true}><UsersList /></PR> },
             { path: 'user/edit/:id?', element: <UserEdit /> },

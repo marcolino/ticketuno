@@ -16,6 +16,7 @@ import type { FullConsent } from '@/shared/types/consent';
 import { PerformanceSeatsResponse } from '@/shared/types/performance';
 import { Layout } from '@/shared/types/layout';
 import { GeneralSetupType } from '@/shared/types/generalSetup';
+import { BookingEnriched, BookingDetail } from '@/shared/types/booking';
 import { GuardResult, GuardedDeleteResult, GuardedDeleteResultBulk, GuardedUpdateResult } from '@/shared/types/guard';
 import { i18n } from '@/i18n';
 import config from '@/shared/config';
@@ -32,6 +33,7 @@ const CACHE_INVALIDATION_MAP: Array<{
   pattern: RegExp;
   caches: string[];
 }> = [
+  { pattern: /\/api\/v\d+\/bookings/, caches: ['api-bookings'] },
   { pattern: /\/api\/v\d+\/layouts/, caches: ['api-layouts'] },
   { pattern: /\/api\/v\d+\/theaters/, caches: ['api-theaters'] },
   { pattern: /\/api\/v\d+\/events/, caches: ['api-events'] },
@@ -447,6 +449,48 @@ export const eventApi = {
 export const ticketApi = {
   validateTicket: (code: string) =>
     api.post(`/tickets/${code}/validate`),
+};
+
+export const bookingApi = {
+  /**
+   * Operator: all bookings, enriched with user / event / performance / theater.
+   * Optional filters are forwarded as query params.
+   */
+  getAll: (params?: {
+    status?: string;
+    performanceDate?: string;
+    eventId?: string;
+  }) =>
+    api.get<BookingEnriched[]>('/bookings', { params }),
+ 
+  /**
+   * Authenticated: current user's own bookings (enriched).
+   */
+  getMy: () =>
+    api.get<BookingEnriched[]>('/bookings/my'),
+ 
+  /**
+   * Authenticated: single booking detail (own booking or operator).
+   * Returns enriched data + the physical seat row for that ticket.
+   */
+  getById: (id: string) =>
+    api.get<BookingDetail>(`/bookings/${id}`),
+ 
+  /**
+   * Authenticated: cancel a booking (release the seat).
+   * Regular users may cancel their own confirmed bookings.
+   * Operators may cancel any confirmed booking.
+   */
+  cancel: (id: string) =>
+    api.patch<{ message: string }>(`/bookings/${id}/cancel`),
+ 
+  /**
+   * Operator: manually mark a booking as scanned.
+   * Use when the QR scanner cannot be used.
+   */
+  markScanned: (id: string) =>
+    api.patch<{ message: string }>(`/bookings/${id}/scan`),
+ 
 };
 
 export const imageApi = {
