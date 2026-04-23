@@ -8,7 +8,6 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
 
   // const from = new Date(now.getTime() + 23 * 60 * 60 * 1000); // 23h from now - TODO: to config
   // const to = new Date(now.getTime() + 25 * 60 * 60 * 1000); // 25h from now - TODO: to config
-
   // TODO: DEBUG ONLY!!!
   const from = new Date(now.getTime() + 1 * 60 * 60 * 1000); // 1h from now
   const to = new Date(now.getTime() + 8760 * 60 * 60 * 1000); // 8760h from now
@@ -61,6 +60,9 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
       });
 
     console.log("FORMATTED DATE:", formattedDate);
+
+    // Generate a short-lived token so an unauthenticated click still works
+    const viewToken = await database.createToken(booking.user_id, 'booking.view');
 
     // TODO: group by user !!!
     const { sent: pushSent } = await sendPushToUser(subs, booking.user_id, {
