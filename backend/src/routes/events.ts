@@ -675,6 +675,7 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
 
         await sendBookingConfirmationEmail(
           email,
+          user.language || config.app.defaultLanguage,
           userName,
           eventName,
           bookingRefs,

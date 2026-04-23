@@ -278,6 +278,9 @@ export const userApi = {
   login: (credentials: LoginCredentials) => // Login
     api.post<LoginResponse>('/users/login', credentials),
   
+  loginWithToken: (pushToken: string) =>
+    api.get<{ jwt: string }>(`/users/token-login?token=${pushToken}`),
+
   register: (data: RegisterData) => // Registration with 2FA
     api.post<RegisterResponse>('/users/register', data),
   

@@ -42,6 +42,7 @@ const backendDefaults = {
     passepartout: process.env.PASSEPARTOUT,
     oauth: {},
     tokenExpirationDays: 2,
+    tokenShortExpirationDays: 1,
   },
   email: {
     from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // TODO: use a private email address, when available

@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
-//import jwt from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
@@ -77,7 +77,7 @@ router.post('/register', async (req, res) => {
     };
 
     await database.createUser(user);
-    await sendVerificationEmail(email, verificationCode);
+    await sendVerificationEmail(email, language, verificationCode);
     //const token = generateToken(user.id, user.role);
 
     res.status(201).json({ 
@@ -160,7 +160,7 @@ router.post('/verify-email', async (req, res) => {
 
     const userName = profile.firstName;
     const ctaUrl = config.app.baseUrlFrontend;
-    await sendWelcomeEmail(email, userName, ctaUrl);
+    await sendWelcomeEmail(email, user.language || config.app.defaultLanguage, userName, ctaUrl);
 
     res.json({ 
       message: req.t('Email verified successfully'),
@@ -198,7 +198,7 @@ router.post('/resend-verification', async (req, res) => {
       verificationCodeExpiry
     });
 
-    await sendVerificationEmail(email, verificationCode);
+    await sendVerificationEmail(email, user.language || config.app.defaultLanguage, verificationCode);
 
     res.json({
       message: req.t('A verification code sent to the specified email'),
@@ -291,6 +291,41 @@ router.post('/login', async (req: AuthRequest, res) => {
   }
 });
 
+// Validates a one-time 'booking.view' push token and issues a short-lived JWT.
+// Public endpoint — must be registered BEFORE the auth middleware.
+router.get('/token-login', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.query as { token?: string };
+
+    if (!token) {
+      return res.status(400).json({ error: 'Missing token' });
+    }
+
+    // getUserByToken already filters by expiry (expires_at > CURRENT_TIMESTAMP)
+    const user = await database.getUserByToken(token, 'booking.view');
+
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
+
+    // Consume immediately — one-time use only
+    await database.deleteToken(token);
+
+    // Sign with the same secret and payload shape as your /login route
+    const payload = { userId: user.id, role: user.role };
+    const jwt_token = jwt.sign(
+      payload,
+      process.env.JWT_SECRET!,
+      { expiresIn: config.auth.tokenShortExpirationDays }
+    );
+
+    return res.json({ jwt: jwt_token });
+  } catch (error) {
+    console.error('[token-login]', error);
+    return res.status(500).json({ err: getErrorMessage(error) });
+  }
+});
+
 // Forgot Password - Step 1: Request reset code
 router.post('/forgot-password', async (req, res) => {
   try {
@@ -317,7 +352,7 @@ router.post('/forgot-password', async (req, res) => {
       resetPasswordCodeExpiry
     });
 
-    await sendPasswordResetEmail(email, resetPasswordCode);
+    await sendPasswordResetEmail(email, user.language || config.app.defaultLanguage, resetPasswordCode);
 
     res.json({
       message: req.t('A reset code has been be sent to the requested email, if it exists'),
@@ -450,7 +485,7 @@ router.get('/auth/google/callback', async (req, res) => {
 
         const userName = newUser.firstName;
         const ctaUrl = config.app.baseUrlFrontend;
-        await sendWelcomeEmail(email, userName, ctaUrl);
+        await sendWelcomeEmail(email, user?.language || config.app.defaultLanguage, userName, ctaUrl);
       }
     }
 

@@ -581,6 +581,17 @@ class Database {
     return token;
   }
 
+  async deleteToken(token: string): Promise<void> {
+    await runQuery(
+      this.db, `
+        DELETE FROM tokens
+        WHERE token = ?
+      `,
+      [token],
+      'delete token'
+    );
+  }
+
   async getUserByToken(token: string, type?: string): Promise<User | null> {
     let sql = `
       SELECT user_id

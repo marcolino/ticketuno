@@ -23,8 +23,6 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
     to.toISOString().slice(0, 16)
   );
 
-  console.log("BOOKINGS:", bookings);
-
   let sent = 0;
   let skipped = 0;
   let language = config.app.defaultLanguage;
@@ -39,7 +37,7 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
     // get user's language, if not done yet, or if user is changed
     if (!user_id || user_id !== booking.user_id) {
       user_id = booking.user_id;
-      const user = await database.getUserByEmail(user_id);
+      const user = await database.getUserById(user_id);
       language = user?.language || config.app.defaultLanguage
       language = language.toLowerCase().split('-')[0];
       console.log("USER'S LANGUAGE:", language);
@@ -67,8 +65,10 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
     // TODO: group by user !!!
     const { sent: pushSent } = await sendPushToUser(subs, booking.user_id, {
       title: '🎭' + ' ' + booking.event_title + ' ' + t('is tomorrow'),
-      body: t('Booking references:') + ': ' + booking.booking_ref + '—' + formattedDate,
-      url: `/bookings/${booking.booking_ref}`, // TODO
+      //body: t('Booking references:') + ': ' + booking.booking_ref + '—' + formattedDate,
+      body: t('Remember the eventBooking references:') + ': ' + booking.booking_ref + '—' + formattedDate,
+      //url: `/bookings/${booking.booking_ref}`, // TODO
+      url: `${config.app.baseUrlFrontend}/my-tickets?token=${viewToken}`,
       icon: '/icons/icon-192x192.png',
     });
     console.log("PUSH SENT:", pushSent);

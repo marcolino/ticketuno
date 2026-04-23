@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo } from 'react';
+import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Container,
@@ -15,18 +15,14 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {
-  Visibility,
-  FilterList,
-  Search,
-  Close,
-} from '@mui/icons-material';
+import { Visibility, FilterList, Search, Close } from '@mui/icons-material';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
+
 import Alert from './Alert';
 import PageHeader from './PageHeader';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
-import { bookingApi } from '@/services/api';
+import { bookingApi, userApi } from '@/services/api';
 import { getErrorMessage } from '@/shared/utils/misc';
 import { BookingEnriched, BookingStatus } from '@/shared/types/bookings';
 
@@ -34,7 +30,7 @@ import { BookingEnriched, BookingStatus } from '@/shared/types/bookings';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function useDebounce<T>(value: T, delay: number) {
+function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
     const id = setTimeout(() => setDebounced(value), delay);
@@ -45,8 +41,8 @@ function useDebounce<T>(value: T, delay: number) {
 
 const STATUS_COLORS: Record<BookingStatus, 'success' | 'error' | 'warning' | 'default'> = {
   confirmed: 'success',
-  canceled: 'error',
-  refunded: 'warning',
+  canceled:  'error',
+  refunded:  'warning',
 };
 
 function formatDate(iso: string): string {
@@ -65,48 +61,65 @@ function formatDateTime(iso: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Filter panel
+// Types
 // ---------------------------------------------------------------------------
 
-interface BookingsListProps {
+export interface BookingsListProps {
   mode?: 'all' | 'my';
 }
 
 interface FilterValues {
-  status: string;
+  status:     string;
   eventTitle: string;
-  userEmail: string;
-  dateFrom: string;
-  dateTo: string;
+  userEmail:  string;
+  dateFrom:   string;
+  dateTo:     string;
 }
 
+const DEFAULT_FILTERS: FilterValues = {
+  status:     'confirmed',
+  eventTitle: '',
+  userEmail:  '',
+  dateFrom:   '',
+  dateTo:     '',
+};
+
+// ---------------------------------------------------------------------------
+// Filter panel
+// ---------------------------------------------------------------------------
+
 interface FilterPanelProps {
-  show: boolean;
-  filters: FilterValues;
+  show:           boolean;
+  filters:        FilterValues;
   onFilterChange: (f: FilterValues) => void;
 }
 
 const FilterPanel = memo(({ show, filters, onFilterChange }: FilterPanelProps) => {
   const { t } = useTranslation();
-  const theme = useTheme();
+  const theme  = useTheme();
+
   const set = (field: keyof FilterValues, value: string) =>
     onFilterChange({ ...filters, [field]: value });
 
   return (
     <Box
       sx={{
-        display: show ? 'grid' : 'none',
+        display:             show ? 'grid' : 'none',
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fit, minmax(200px, 1fr))' },
-        gap: 2,
-        mb: 2,
-        p: 2,
-        border: `1px solid ${theme.palette.divider}`,
-        borderRadius: 1,
+        gap:                 2,
+        mb:                  2,
+        p:                   2,
+        border:              `1px solid ${theme.palette.divider}`,
+        borderRadius:        1,
       }}
     >
       <FormControl size="small" fullWidth>
         <InputLabel>{t('Status')}</InputLabel>
-        <Select value={filters.status} label={t('Status')} onChange={(e) => set('status', e.target.value)}>
+        <Select
+          value={filters.status}
+          label={t('Status')}
+          onChange={(e) => set('status', e.target.value)}
+        >
           <MenuItem value=""><i>{t('All')}</i></MenuItem>
           <MenuItem value="confirmed">{t('Confirmed')}</MenuItem>
           <MenuItem value="canceled">{t('Canceled')}</MenuItem>
@@ -115,20 +128,24 @@ const FilterPanel = memo(({ show, filters, onFilterChange }: FilterPanelProps) =
       </FormControl>
 
       <TextField size="small" fullWidth label={t('Event')}
-        value={filters.eventTitle} onChange={(e) => set('eventTitle', e.target.value)}
+        value={filters.eventTitle}
+        onChange={(e) => set('eventTitle', e.target.value)}
       />
 
       <TextField size="small" fullWidth label={t('User email')}
-        value={filters.userEmail} onChange={(e) => set('userEmail', e.target.value)}
+        value={filters.userEmail}
+        onChange={(e) => set('userEmail', e.target.value)}
       />
 
       <TextField size="small" fullWidth label={t('Performance from')} type="date"
-        value={filters.dateFrom} onChange={(e) => set('dateFrom', e.target.value)}
+        value={filters.dateFrom}
+        onChange={(e) => set('dateFrom', e.target.value)}
         InputLabelProps={{ shrink: true }}
       />
 
       <TextField size="small" fullWidth label={t('Performance to')} type="date"
-        value={filters.dateTo} onChange={(e) => set('dateTo', e.target.value)}
+        value={filters.dateTo}
+        onChange={(e) => set('dateTo', e.target.value)}
         InputLabelProps={{ shrink: true }}
       />
     </Box>
@@ -137,35 +154,90 @@ const FilterPanel = memo(({ show, filters, onFilterChange }: FilterPanelProps) =
 
 // ---------------------------------------------------------------------------
 // Main component
+//
+// Auth priority (resolved once on mount, before any data is loaded):
+//
+//   1. isAuthenticated === true  →  already have a session (normal navigation).
+//      `authReady` starts as `true`; data loads immediately.
+//
+//   2. isAuthenticated === false + ?token= present  →  arriving from a push
+//      notification link. Exchange the one-time token for a JWT by calling
+//      login({ token }), which is the existing AuthContext token-login branch.
+//      Data loads once the exchange resolves.
+//
+//   3. isAuthenticated === false + no ?token=  →  unauthenticated with no way
+//      in. Show an error; the parent route guard normally prevents this state.
+//
+// Note: AuthProvider renders `{!loading && children}`, so `loading` is always
+// false by the time this component mounts — no guard is needed here.
 // ---------------------------------------------------------------------------
 
 const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const { loading } = useAuth();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t }      = useTranslation();
+  const navigate   = useNavigate();
+  const theme      = useTheme();
+  const isMobile   = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [bookings, setBookings] = useState<BookingEnriched[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, login } = useAuth();
 
-  const [showFilters, setShowFilters] = useState(false);
-  const [filters, setFilters] = useState<FilterValues>({
-    status: 'confirmed',
-    eventTitle: '',
-    userEmail: '',
-    dateFrom: '',
-    dateTo: '',
-  });
+  // ---------------------------------------------------------------------------
+  // Auth / token-exchange state
+  //
+  // `authReady` starts true when already authenticated so data loads at once.
+  // ---------------------------------------------------------------------------
 
-  const [quickFilterText, setQuickFilterText] = useState('');
-  const debouncedSearch = useDebounce(quickFilterText, 300);
+  const [authReady, setAuthReady] = useState(isAuthenticated);
+  const [authError, setAuthError] = useState<string | null>(null);
 
-  // -------------------------------------------------------------------------
-  // Load
-  // -------------------------------------------------------------------------
+  useEffect(() => {
+    // Case 1 — already authenticated via normal session. Nothing to do.
+    if (isAuthenticated) return;
 
-  const loadBookings = async () => {
+    // Case 2 — one-time push-notification token in the URL.
+    const pushToken = new URLSearchParams(window.location.search).get('token');
+
+    if (!pushToken) {
+      // Case 3 — no session and no token.
+      setAuthError(t('Session expired. Please log in again.'));
+      return;
+    }
+
+    // Exchange the push token for a short-lived JWT.
+    // The `/auth/token-login` endpoint is public (no Authorization header
+    // required); `api` sends no auth header when none is set, so this works.
+    userApi
+      .loginWithToken(pushToken)
+      .then(({ data }) => login({ token: data.jwt }))
+    // api
+    //   .get<{ jwt: string }>(`/auth/token-login?token=${pushToken}`)
+    //   .then(({ data }) =>
+    //     // login({ token }) is the existing AuthContext branch that calls
+    //     // setAuthToken + loadProfile, returning the full User object.
+    //     login({ token: data.jwt })
+    //   )
+    //   .then(() => {
+    //     // Strip ?token= from history so back/refresh don't replay the token.
+    //     window.history.replaceState({}, '', window.location.pathname);
+    //     setAuthReady(true);
+    //   })
+      .catch((err: unknown) => {
+        setAuthError(t('The link has expired or is invalid. Please log in.'));
+        console.error('[BookingsList] push token exchange failed:', getErrorMessage(err));
+      })
+    ;
+
+    // Run once on mount only — isAuthenticated is intentionally excluded from
+    // deps to avoid re-running after login() updates AuthContext state.
+  }, []);
+
+  // ---------------------------------------------------------------------------
+  // Data loading
+  // ---------------------------------------------------------------------------
+
+  const [bookings,  setBookings]  = useState<BookingEnriched[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadBookings = useCallback(async () => {
     try {
       const response = (mode === 'my')
         ? await bookingApi.getMy()
@@ -173,31 +245,33 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
       setBookings(response.data);
     } catch (err) {
       setBookings(null);
-      setError(getErrorMessage(err));
+      setLoadError(getErrorMessage(err));
     }
-  };
+  }, [mode]);
 
   useEffect(() => {
-    if (!bookings) loadBookings();
-  }, [bookings]);
+    if (authReady && !authError && !bookings) {
+      loadBookings();
+    }
+  }, [authReady, authError, bookings, loadBookings]);
 
-  // -------------------------------------------------------------------------
-  // Client-side filtering
-  // (The backend also accepts status/eventId/performanceDate as query params
-  //  for server-side pre-filtering on large datasets; here we do all filtering
-  //  client-side to avoid round-trips on each keystroke, consistent with
-  //  UsersList.)
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Filters
+  // ---------------------------------------------------------------------------
+
+  const [showFilters,     setShowFilters]     = useState(false);
+  const [filters,         setFilters]         = useState<FilterValues>(DEFAULT_FILTERS);
+  const [quickFilterText, setQuickFilterText] = useState('');
+  const debouncedSearch = useDebounce(quickFilterText, 300);
 
   const filteredRows = useMemo(() => {
     if (!bookings) return [];
     return bookings.filter((b) => {
-      if (filters.status     && b.status !== filters.status) return false;
+      if (filters.status     && b.status !== filters.status)                                            return false;
       if (filters.eventTitle && !b.eventTitle.toLowerCase().includes(filters.eventTitle.toLowerCase())) return false;
       if (filters.userEmail  && !b.userEmail.toLowerCase().includes(filters.userEmail.toLowerCase()))   return false;
-      if (filters.dateFrom   && b.performanceDate < filters.dateFrom) return false;
-      if (filters.dateTo     && b.performanceDate > filters.dateTo)   return false;
-
+      if (filters.dateFrom   && b.performanceDate < filters.dateFrom)                                   return false;
+      if (filters.dateTo     && b.performanceDate > filters.dateTo)                                     return false;
       if (debouncedSearch) {
         const q = debouncedSearch.toLowerCase();
         return (
@@ -213,187 +287,203 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
 
   const hasActiveFilters =
     filters.status !== 'confirmed' ||
-    filters.eventTitle || filters.userEmail ||
-    filters.dateFrom   || filters.dateTo    ||
-    quickFilterText;
+    !!filters.eventTitle || !!filters.userEmail ||
+    !!filters.dateFrom   || !!filters.dateTo    ||
+    !!quickFilterText;
 
-  // -------------------------------------------------------------------------
+  const clearFilters = useCallback(() => {
+    setFilters(DEFAULT_FILTERS);
+    setQuickFilterText('');
+  }, []);
+
+  // ---------------------------------------------------------------------------
   // Columns
-  // Note: each row = one booking = one seat/ticket (see bookSeats() in
-  // database.ts — seat_count is always 1, one booking_ref per seat).
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
-  const columns: GridColDef[] = [
-    {
-      field: 'bookingRef',
-      headerName: t('Ticket ref'),
-      width: 130,
-      renderCell: (p) => (
-        <Box component="span" sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.5 }}>
-          {p.value}
-        </Box>
-      ),
-    },
-    {
-      field: 'userName',
-      headerName: t('User'),
-      width: isMobile ? 160 : undefined,
-      flex: isMobile ? undefined : 1.4,
-      valueGetter: (_v, row) => `${row.userFirstName} ${row.userLastName}`,
-    },
-    {
-      field: 'userEmail',
-      headerName: t('Email'),
-      width: isMobile ? 200 : undefined,
-      flex: isMobile ? undefined : 1.6,
-    },
-    {
-      field: 'eventTitle',
-      headerName: t('Event'),
-      width: isMobile ? 200 : undefined,
-      flex: isMobile ? undefined : 1.6,
-    },
-    {
-      field: 'performanceDate',
-      headerName: t('Date'),
-      width: 120,
-      valueFormatter: (v: string) => formatDate(v),
-    },
-    {
-      field: 'startTime',
-      headerName: t('Time'),
-      width: 65,
-    },
-    {
-      field: 'totalPrice',
-      headerName: t('Price'),
-      width: 80,
-      align: 'right',
-      headerAlign: 'right',
-      valueFormatter: (v: number) =>
-        v != null ? v.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '',
-    },
-    {
-      field: 'status',
-      headerName: t('Status'),
-      width: 115,
-      renderCell: (p) => (
-        <Chip
-          label={t(p.value as string)}
-          color={STATUS_COLORS[p.value as BookingStatus] ?? 'default'}
-          size="small"
-        />
-      ),
-    },
-    {
-      field: 'scannedAt',
-      headerName: t('Scanned'),
-      width: 85,
-      align: 'center',
-      headerAlign: 'center',
-      renderCell: (p) =>
-        p.value ? <Chip label={t('Yes')} color="info" size="small" /> : null,
-    },
-    {
-      field: 'bookedAt',
-      headerName: t('Booked'),
-      width: 155,
-      valueFormatter: (v: string) => formatDateTime(v),
-    },
-    {
-      field: 'actions',
-      headerName: '',
-      width: 56,
-      sortable: false,
-      renderCell: (p) => (
-        <IconButton
-          size="small"
-          onClick={() => navigate(`/bookings/edit/${p.row.id}`)}
-          title={t('View ticket')}
-        >
-          <Visibility />
-        </IconButton>
-      ),
-    },
-  ].filter(col => mode === 'my' ? !['userName', 'userEmail'].includes(col.field) : true);
+  const columns = useMemo((): GridColDef[] => (
+    [
+      {
+        field:      'bookingRef',
+        headerName: t('Ticket ref'),
+        width:      130,
+        renderCell: (p) => (
+          <Box component="span" sx={{
+            fontFamily: 'monospace', fontWeight: 700,
+            fontSize: '0.8rem', letterSpacing: 0.5,
+          }}>
+            {p.value}
+          </Box>
+        ),
+      },
+      {
+        field:       'userName',
+        headerName:  t('User'),
+        width:       isMobile ? 160 : undefined,
+        flex:        isMobile ? undefined : 1.4,
+        valueGetter: (_v: unknown, row: BookingEnriched) =>
+          `${row.userFirstName} ${row.userLastName}`,
+      },
+      {
+        field:      'userEmail',
+        headerName: t('Email'),
+        width:      isMobile ? 200 : undefined,
+        flex:       isMobile ? undefined : 1.6,
+      },
+      {
+        field:      'eventTitle',
+        headerName: t('Event'),
+        width:      isMobile ? 200 : undefined,
+        flex:       isMobile ? undefined : 1.6,
+      },
+      {
+        field:          'performanceDate',
+        headerName:     t('Date'),
+        width:          120,
+        valueFormatter: (v: string) => formatDate(v),
+      },
+      {
+        field:      'startTime',
+        headerName: t('Time'),
+        width:      65,
+      },
+      {
+        field:          'totalPrice',
+        headerName:     t('Price'),
+        width:          80,
+        align:          'right',
+        headerAlign:    'right',
+        valueFormatter: (v: number) =>
+          v != null ? v.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '',
+      },
+      {
+        field:      'status',
+        headerName: t('Status'),
+        width:      115,
+        renderCell: (p) => (
+          <Chip
+            label={t(p.value as string)}
+            color={STATUS_COLORS[p.value as BookingStatus] ?? 'default'}
+            size="small"
+          />
+        ),
+      },
+      {
+        field:       'scannedAt',
+        headerName:  t('Scanned'),
+        width:       85,
+        align:       'center',
+        headerAlign: 'center',
+        renderCell:  (p) =>
+          p.value ? <Chip label={t('Yes')} color="info" size="small" /> : null,
+      },
+      {
+        field:          'bookedAt',
+        headerName:     t('Booked'),
+        width:          155,
+        valueFormatter: (v: string) => formatDateTime(v),
+      },
+      {
+        field:      'actions',
+        headerName: '',
+        width:      56,
+        sortable:   false,
+        renderCell: (p) => (
+          <IconButton
+            size="small"
+            onClick={() => navigate(`/bookings/edit/${p.row.id}`)}
+            title={t('View ticket')}
+          >
+            <Visibility />
+          </IconButton>
+        ),
+      },
+    ] satisfies GridColDef[]
+  ).filter((col) =>
+    mode === 'my' ? !['userName', 'userEmail'].includes(col.field) : true,
+  ), [t, isMobile, navigate, mode]);
 
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   // Render
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <PageHeader title={t('Bookings')} showAdd={false} />
 
-      {error && <Alert severity="error">{error}</Alert>}
+      {/* Auth error (expired push link, or no session at all) */}
+      {authError && <Alert severity="error">{authError}</Alert>}
 
-      {!loading && !error && bookings?.length === 0 && (
+      {/* Data-load error */}
+      {loadError && <Alert severity="error">{loadError}</Alert>}
+
+      {/* Empty state — only shown once data has loaded successfully */}
+      {!authError && !loadError && bookings?.length === 0 && (
         <Alert severity="info">{t('No bookings found')}</Alert>
       )}
 
-      <Stack spacing={2}>
+      {/* Grid — rendered only after auth is settled and with no auth error */}
+      {authReady && !authError && (
+        <Stack spacing={2}>
 
-        {/* Control bar */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+          {/* Control bar */}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
+            <TextField
+              size="small"
+              placeholder={t('Search by ref, event, user…')}
+              value={quickFilterText}
+              onChange={(e) => setQuickFilterText(e.target.value)}
+              sx={{ flex: 1, minWidth: 160 }}
+              InputProps={{
+                startAdornment: <Search sx={{ mr: 1 }} />,
+                endAdornment: quickFilterText ? (
+                  <IconButton size="small" onClick={() => setQuickFilterText('')}>
+                    <Close fontSize="small" />
+                  </IconButton>
+                ) : null,
+              }}
+            />
 
-          <TextField
-            size="small"
-            placeholder={t('Search by ref, event, user…')}
-            value={quickFilterText}
-            onChange={(e) => setQuickFilterText(e.target.value)}
-            sx={{ flex: 1, minWidth: 160 }}
-            InputProps={{
-              startAdornment: <Search sx={{ mr: 1 }} />,
-              endAdornment: quickFilterText ? (
-                <IconButton size="small" onClick={() => setQuickFilterText('')}>
-                  <Close fontSize="small" />
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+              <Button
+                variant={showFilters ? 'contained' : 'outlined'}
+                startIcon={<FilterList />}
+                onClick={() => setShowFilters((s) => !s)}
+              >
+                {t('Filter')}
+              </Button>
+
+              {hasActiveFilters && (
+                <IconButton onClick={clearFilters} title={t('Clear filters')}>
+                  <Close />
                 </IconButton>
-              ) : null,
-            }}
+              )}
+            </Stack>
+          </Box>
+
+          <FilterPanel
+            show={showFilters}
+            filters={filters}
+            onFilterChange={setFilters}
           />
 
-          <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
-            <Button
-              variant={showFilters ? 'contained' : 'outlined'}
-              startIcon={<FilterList />}
-              onClick={() => setShowFilters((s) => !s)}
-            >
-              {t('Filter')}
-            </Button>
-
-            {hasActiveFilters && (
-              <IconButton
-                onClick={() => {
-                  setFilters({ status: 'confirmed', eventTitle: '', userEmail: '', dateFrom: '', dateTo: '' });
-                  setQuickFilterText('');
+          <Box sx={{ width: '100%', overflowX: 'auto' }}>
+            <Box sx={{ minWidth: 900 }}>
+              <DataGrid
+                rows={filteredRows}
+                columns={columns}
+                autoHeight
+                disableRowSelectionOnClick
+                initialState={{
+                  pagination: { paginationModel: { pageSize: 25 } },
+                  sorting:    { sortModel: [{ field: 'bookedAt', sort: 'desc' }] },
                 }}
-                title={t('Clear filters')}
-              >
-                <Close />
-              </IconButton>
-            )}
-          </Stack>
-        </Box>
-
-        <FilterPanel show={showFilters} filters={filters} onFilterChange={setFilters} />
-
-        <Box sx={{ width: '100%', overflowX: 'auto' }}>
-          <Box sx={{ minWidth: 900 }}>
-            <DataGrid
-              rows={filteredRows}
-              columns={columns}
-              autoHeight
-              disableRowSelectionOnClick
-              initialState={{
-                pagination: { paginationModel: { pageSize: 25 } },
-                sorting: { sortModel: [{ field: 'bookedAt', sort: 'desc' }] },
-              }}
-              pageSizeOptions={[10, 25, 50, 100]}
-            />
+                pageSizeOptions={[10, 25, 50, 100]}
+              />
+            </Box>
           </Box>
-        </Box>
 
-      </Stack>
+        </Stack>
+      )}
     </Container>
   );
 };

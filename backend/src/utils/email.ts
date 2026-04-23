@@ -18,7 +18,7 @@ export function generateConsentToken(userId: string, type: string = "consent") {
     const token = database.createToken(userId, type);
     return token;
   } catch (error: unknown) {
-    throw new Error(i18n.t('Cannot generate consent token: {{err}}', getErrorMessage(error)));
+    throw new Error(getErrorMessage(error));
   }
 }
 
@@ -34,9 +34,10 @@ export const isVerificationCodeValid = (expiry: string): boolean => {
   return new Date(expiry) > new Date();
 };
 
-export const sendVerificationEmail = async (email: string, code: string): Promise<void> => {
+export const sendVerificationEmail = async (email: string, lang: string, code: string): Promise<void> => {
   const to = email;
-  const subject = i18n.t('Verify your {{appName}} email', { appName: config.app.name });
+  const t = i18n.getFixedT(lang.toLowerCase().split('-')[0], 'common');
+  const subject = t('Verify your {{appName}} email', { appName: config.app.name });
   const template = "verificationEmail";
   const variables = {
     appName: config.app.name,
@@ -54,9 +55,10 @@ export const sendVerificationEmail = async (email: string, code: string): Promis
   });
 }
 
-export const sendWelcomeEmail = async (email: string, userName: string, ctaUrl: string): Promise<void> => {
+export const sendWelcomeEmail = async (email: string, lang: string, userName: string, ctaUrl: string): Promise<void> => {
   const to = email;
-  const subject = i18n.t('Welcome to {{appName}}!', { appName: config.app.name });
+  const t = i18n.getFixedT(lang.toLowerCase().split('-')[0], 'common');
+  const subject = t('Welcome to {{appName}}!', { appName: config.app.name });
   const template = "welcomeEmail";
   const variables = {
     userName,
@@ -74,9 +76,10 @@ export const sendWelcomeEmail = async (email: string, userName: string, ctaUrl: 
   });
 }
 
-export const sendPasswordResetEmail = async (email: string, code: string): Promise<void> => {
+export const sendPasswordResetEmail = async (email: string, lang: string, code: string): Promise<void> => {
   const to = email;
-  const subject = i18n.t('Verify your {{appName}} password reset', { appName: config.app.name });
+  const t = i18n.getFixedT(lang.toLowerCase().split('-')[0], 'common');
+  const subject = t('Verify your {{appName}} password reset', { appName: config.app.name });
   const template = "passwordResetEmail";
   const variables = {
     appName: config.app.name,
@@ -96,6 +99,7 @@ export const sendPasswordResetEmail = async (email: string, code: string): Promi
 
 export const sendBookingConfirmationEmail = async (
   email: string,
+  lang: string,
   userName: string,
   eventName: string,
   bookingRefs: string,
@@ -112,7 +116,8 @@ export const sendBookingConfirmationEmail = async (
   attachedTickets: Attachment[],
 ): Promise<void> => {
   const to = email;
-  const subject = i18n.t('Your Booking Confirmation for {{eventName}}!', { eventName });
+  const t = i18n.getFixedT(lang.toLowerCase().split('-')[0], 'common');
+  const subject = t('Your Booking Confirmation for {{eventName}}!', { eventName });
   const template = "bookingConfirmationEmail";
   const variables = {
     //appName: config.app.name,
@@ -143,29 +148,3 @@ export const sendBookingConfirmationEmail = async (
     attachments: attachedTickets,
   });
 }
-
-/*
-// Mock email sender - replace with real service (SendGrid, AWS SES, etc.)
-export const sendEmail = async (to: string, subject: string, body: string): Promise<void> => {
-  console.log('===============================================');
-  console.log(`📧 EMAIL SENT TO: ${to}`);
-  console.log(`📌 SUBJECT: ${subject}`);
-  console.log(`📄 BODY:\n${body}`);
-  console.log('===============================================');
-};
-
-export const sendVerificationEmailOLD = async (email: string, code: string): Promise<void> => {
-  const subject = i18n.t('Verify your {{appname}} account', config.app.name);
-  const body = i18n.t(`
-Welcome to {{appName}}!
-
-Your verification code is: {{code}}
-
-This code will expire in {{expirationMinutes}} minutes.
-
-If you didn't request this, please ignore this email.
-`, {appName: config.app.name, code, expirationMinutes: config.auth.verificationCode.expirationMinutes});
-  
-  //await sendEmail(email, subject, body);
-};
-*/
