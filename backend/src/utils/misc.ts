@@ -99,6 +99,7 @@ export const formatTimeDifference = (
  * @param dateInput - Date input
  * @param locale - Locale to which format the date string
  * @param timeZone - Date input
+ * @param t - Translation function
  * @returns Humanized date
  */
 export const humanizedDate = (
@@ -142,15 +143,15 @@ export const humanizedDate = (
 
   const humanizedTime = time.replace(/:00$/, '');
   if (targetDay === today) {
-    return t('today') + ', ' + t('at hours') + humanizedTime;
+    return t('today') + ', ' + t('at time') + ' ' + humanizedTime;
   }
 
   if (targetDay === yesterday) {
-    return t('yesterday') + ', ' + t('at hours') + humanizedTime;
+    return t('yesterday') + ', ' + t('at time') + ' ' + humanizedTime;
   }
 
   if (targetDay === tomorrow) {
-    return t('tomorrow') + ', ' + t('at hours') + humanizedTime;
+    return t('tomorrow') + ', ' + t('at time') + ' ' + humanizedTime;
   }
 
   return t('on') + ' ' + date.toLocaleString(locale, {

@@ -117,17 +117,20 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
       config.app.defaultTimezone,
       t,
     );
+    console.log('[reminderJob] humanDate:', humanDate);
 
     // ── Short-lived view token so an unauthenticated tap still works ─────────
     const viewToken = await database.createToken(user_id, 'booking.view');
 
     // ── ONE push notification per group ──────────────────────────────────────
-    const { sent: pushSent } = await sendPushToUser(subs, user_id, {
-      title: `🎭 ${first.event_title} — ${t('is tomorrow')}`,
-      body: t('Remember the event on {{date}}', { date: humanDate }),
+    const payload = {
+      title: `🎭 ${t('The event')} ${first.event_title} — ${t('is')} ${humanDate}`,
+      body: t('Remember to go to the event at theater {{theaterName}}', { theaterName: theater.name }),
       url: `${config.app.baseUrlFrontend}/bookings/my?token=${viewToken}`,
       icon: '/icons/icon-192x192.png',
-    });
+    };
+    console.log('[reminderJob] push payload:', JSON.stringify(payload, null, 2)); // TODO: REMOVE-ME
+    const { sent: pushSent } = await sendPushToUser(subs, user_id, payload);
 
     // ── ONE reminder email per group ─────────────────────────────────────────
     if (user) {
