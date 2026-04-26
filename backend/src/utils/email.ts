@@ -148,3 +148,56 @@ export const sendBookingConfirmationEmail = async (
     attachments: attachedTickets,
   });
 }
+
+export const sendBookingRememberEmail = async (
+  email: string,
+  lang: string,
+  userName: string,
+  eventName: string,
+  bookingRefs: string,
+  dateOfPerformance: string,
+  timeOfPerformance: string,
+  theaterName: string,
+  theaterAddress: string,
+  seatNumbers: string,
+  ticketCount: number,
+  totalPaidAmount: string,
+  contactPhone: string,
+  contactEmail: string,
+  //linkToTermsAndConditions: string,
+  bookingIsPaid: boolean,
+  useQrcode: boolean,
+): Promise<void> => {
+  const to = email;
+  const t = i18n.getFixedT(lang.toLowerCase().split('-')[0], 'common');
+  const subject = t('Remember the event {{eventName}}!', { eventName });
+  const template = "bookingRememberEmail";
+  const variables = {
+    //appName: config.app.name,
+    userName,
+    eventName,
+    bookingRefs,
+    dateOfPerformance,
+    timeOfPerformance,
+    theaterName,
+    theaterAddress,
+    seatNumbers,
+    ticketCount,
+    totalPaidAmount,
+    contactPhone,
+    contactEmail,
+    //linkToTermsAndConditions,
+    bookingIsPaid,
+    useQrcode,
+  };
+
+  const isMarketing = false;
+
+  await emailService.send({
+    to,
+    subject,
+    template,
+    variables,
+    isMarketing,
+  });
+}

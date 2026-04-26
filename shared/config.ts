@@ -9,7 +9,7 @@ const baseUrlBackendStaging = `https://${codename}-staging.fly.dev`;
 const baseUrlFrontendProduction = `https://${codename}.fly.dev`;
 const baseUrlBackendProduction = `https://${codename}.fly.dev`;
 
-const config: AppConfig = {
+const config: any = {
   app: {
     holder: {
       name: "Marco Solari",

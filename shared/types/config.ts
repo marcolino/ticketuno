@@ -92,4 +92,14 @@ export interface AppConfig {
   slack: {
     webhookUrl: string;
   },
+  uploads: {
+    path: string;
+    allowedMimeTypes: [string];
+    allowedMimeNames: ['JPEG', 'PNG', 'WEBP', 'GIF'];
+    allowedTypes: ['poster', 'website', 'profile', 'banner', 'thumbnail'],
+    sizeLimit: {
+      value: number;
+      description: string;
+    },
+  },
 }

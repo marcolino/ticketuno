@@ -49,7 +49,7 @@ const router = createBrowserRouter(
             { path: 'bookings', element: <PR><BookingsList mode="all" /></PR> },
             { path: 'bookings/my', element: <PR><BookingsList mode="my" /></PR> },
             { path: 'bookings/:id?', element: <PR><BookingsList /></PR> },
-            { path: 'bookings/edit/:id', element: <PR requireOperator={true}><BookingEdit /></PR> },
+            { path: 'bookings/edit/:id', element: <PR><BookingEdit /></PR> },
             { path: 'booking/validate', element: <PR requireOperator={true}><BookingValidate /></PR> },
             { path: 'users', element: <PR requireOperator={true}><UsersList /></PR> },
             { path: 'user/edit/:id?', element: <UserEdit /> },

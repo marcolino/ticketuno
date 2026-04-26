@@ -69,19 +69,19 @@ export interface BookingsListProps {
 }
 
 interface FilterValues {
-  status:     string;
+  status: string;
   eventTitle: string;
-  userEmail:  string;
-  dateFrom:   string;
-  dateTo:     string;
+  userEmail: string;
+  dateFrom: string;
+  dateTo: string;
 }
 
 const DEFAULT_FILTERS: FilterValues = {
-  status:     'confirmed',
+  status: 'confirmed',
   eventTitle: '',
-  userEmail:  '',
-  dateFrom:   '',
-  dateTo:     '',
+  userEmail: '',
+  dateFrom: '',
+  dateTo: '',
 };
 
 // ---------------------------------------------------------------------------
@@ -89,14 +89,14 @@ const DEFAULT_FILTERS: FilterValues = {
 // ---------------------------------------------------------------------------
 
 interface FilterPanelProps {
-  show:           boolean;
-  filters:        FilterValues;
+  show: boolean;
+  filters: FilterValues;
   onFilterChange: (f: FilterValues) => void;
 }
 
 const FilterPanel = memo(({ show, filters, onFilterChange }: FilterPanelProps) => {
   const { t } = useTranslation();
-  const theme  = useTheme();
+  const theme = useTheme();
 
   const set = (field: keyof FilterValues, value: string) =>
     onFilterChange({ ...filters, [field]: value });
@@ -104,13 +104,13 @@ const FilterPanel = memo(({ show, filters, onFilterChange }: FilterPanelProps) =
   return (
     <Box
       sx={{
-        display:             show ? 'grid' : 'none',
+        display: show ? 'grid' : 'none',
         gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fit, minmax(200px, 1fr))' },
-        gap:                 2,
-        mb:                  2,
-        p:                   2,
-        border:              `1px solid ${theme.palette.divider}`,
-        borderRadius:        1,
+        gap: 2,
+        mb: 2,
+        p: 2,
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: 1,
       }}
     >
       <FormControl size="small" fullWidth>
@@ -173,11 +173,10 @@ const FilterPanel = memo(({ show, filters, onFilterChange }: FilterPanelProps) =
 // ---------------------------------------------------------------------------
 
 const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
-  const { t }      = useTranslation();
-  const navigate   = useNavigate();
-  const theme      = useTheme();
-  const isMobile   = useMediaQuery(theme.breakpoints.down('sm'));
-
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { isAuthenticated, login } = useAuth();
 
   // ---------------------------------------------------------------------------
@@ -186,7 +185,7 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
   // `authReady` starts true when already authenticated so data loads at once.
   // ---------------------------------------------------------------------------
 
-  const [authReady, setAuthReady] = useState(isAuthenticated);
+  const [authReady/*, setAuthReady*/] = useState(isAuthenticated);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -475,7 +474,7 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
                 disableRowSelectionOnClick
                 initialState={{
                   pagination: { paginationModel: { pageSize: 25 } },
-                  sorting:    { sortModel: [{ field: 'bookedAt', sort: 'desc' }] },
+                  sorting: { sortModel: [{ field: 'bookedAt', sort: 'desc' }] },
                 }}
                 pageSizeOptions={[10, 25, 50, 100]}
               />

@@ -50,7 +50,7 @@ router.get('/:id', requireAuthentication, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: req.t('Booking not found') });
     }
 
-    const isOwner    = booking.userId === req.userId;
+    const isOwner = booking.userId === req.userId;
     const isOperator = req.userRole === 'operator' || req.userRole === 'admin';
 
     if (!isOwner && !isOperator) {
@@ -76,7 +76,7 @@ router.patch('/:id/cancel', requireAuthentication, async (req: AuthRequest, res)
       return res.status(404).json({ error: req.t('Booking not found') });
     }
 
-    const isOwner    = booking.userId === req.userId;
+    const isOwner = booking.userId === req.userId;
     const isOperator = req.userRole === 'operator' || req.userRole === 'admin';
 
     if (!isOwner && !isOperator) {

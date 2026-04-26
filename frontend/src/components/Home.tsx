@@ -151,14 +151,19 @@ const Home: React.FC = () => {
     navigate('/layouts');
   };
 
+  const handleEvents = () => {
+    handleClose();
+    navigate('/events');
+  };
+
   const handleBookings = () => {
     handleClose();
     navigate('/bookings');
   };
 
-  const handleEvents = () => {
+  const handleMyBookings = () => {
     handleClose();
-    navigate('/events');
+    navigate('/bookings/my');
   };
 
   const handleUsers = () => {
@@ -355,7 +360,14 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                 </MenuItem>
               )}
 
-              <MenuItem onClick={() => { handleClose(); handleBookings(); }}>
+              <MenuItem onClick={() => {
+                handleClose();
+                if (isOperator || isAdmin) {
+                  handleBookings();
+                } else {
+                  handleMyBookings();
+                }
+              }}>
                 <ListItemIcon>
                   <ConfirmationNumberIcon fontSize="small" />
                 </ListItemIcon>

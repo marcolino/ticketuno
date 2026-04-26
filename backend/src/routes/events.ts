@@ -650,6 +650,7 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
       try {
         // Send email to user with attached tickets
         const email = user.email;
+        const language = user.language || config.app.defaultLanguage;
         const userName = `${user.firstName} ${user.lastName}`;
         const eventName = showInfo.titleLine1;
         //const bookingRef = booking.bookingRef;
@@ -675,7 +676,7 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
 
         await sendBookingConfirmationEmail(
           email,
-          user.language || config.app.defaultLanguage,
+          language,
           userName,
           eventName,
           bookingRefs,

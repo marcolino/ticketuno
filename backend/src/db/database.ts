@@ -2375,8 +2375,11 @@ class Database {
     booking_id: string;
     user_id: string;
     booking_ref: string;
+    performance_id: string;
+    seat_ids: string;
     event_title: string;
     performance_date: string;
+    event_id: string;
     start_time: string;
   }>> {
     // performances.performance_date + start_time are stored as separate TEXT columns
@@ -2387,8 +2390,11 @@ class Database {
         b.id AS booking_id,
         b.user_id,
         b.booking_ref,
+        b.performance_id,
+        b.seat_ids,
         e.title AS event_title,
         p.performance_date,
+        p.event_id,
         p.start_time
       FROM bookings b
       JOIN performances p ON p.id = b.performance_id
@@ -2407,8 +2413,11 @@ class Database {
       booking_id: string;
       user_id: string;
       booking_ref: string;
+      performance_id: string;
+      seat_ids: string;
       event_title: string;
       performance_date: string;
+      event_id: string;
       start_time: string;
     }>>;
   }

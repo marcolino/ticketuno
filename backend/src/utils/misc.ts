@@ -140,16 +140,17 @@ export const humanizedDate = (
     minute: '2-digit',
   });
 
+  const humanizedTime = time.replace(/:00$/, '');
   if (targetDay === today) {
-    return t('today') + ', ' + time;
+    return t('today') + ', ' + t('at hours') + humanizedTime;
   }
 
   if (targetDay === yesterday) {
-    return t('yesterday') + ', ' + time;
+    return t('yesterday') + ', ' + t('at hours') + humanizedTime;
   }
 
   if (targetDay === tomorrow) {
-    return t('tomorrow') + ', ' + time;
+    return t('tomorrow') + ', ' + t('at hours') + humanizedTime;
   }
 
   return t('on') + ' ' + date.toLocaleString(locale, {

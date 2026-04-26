@@ -156,7 +156,7 @@ class EmailService {
     // Resolve language
     // -------------------------------------------------
 
-    let finalLang = lang;
+    let finalLang = lang || '';
 
     if (!finalLang) {
       const user = await database.getUserByEmail(userEmail);
@@ -173,11 +173,11 @@ class EmailService {
 
     const translator = i18n.getFixedT(finalLang, 'common');
 
-    console.log('[EMAIL] Translation test:', {
-      Dear: translator('Dear'),
-      BestRegards: translator('Best regards'),
-      Team: translator('The team of'),
-    });
+    // console.log('[EMAIL] Translation test:', {
+    //   Dear: translator('Dear'),
+    //   BestRegards: translator('Best regards'),
+    //   Team: translator('The team of'),
+    // });
 
     let finalHtml = html || '';
     const finalText =

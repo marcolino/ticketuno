@@ -105,9 +105,9 @@ const BookingEdit: React.FC = () => {
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [booking, setBooking] = useState<BookingDetail | null>(null);
-  const [error, setError]     = useState<string | null>(null);
-  const [saving, setSaving]   = useState(false);
-
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  
   // -------------------------------------------------------------------------
   // Load
   // -------------------------------------------------------------------------

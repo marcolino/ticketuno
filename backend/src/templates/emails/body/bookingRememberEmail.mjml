@@ -1,0 +1,89 @@
+<mj-text font-size="21px" font-weight="600">
+  {{t "Dear"}} {{userName}}
+</mj-text>
+<mj-text padding-top="18px">
+  {{t "Remember your booking for" }} {{eventName}}
+  <br />
+  {{t "The booked performance is on"}} {{dateOfPerformance}} {{timeOfPerformance}}.
+  <br />
+  {{t "The theater is"}} {{theaterName}}, {{theaterAddress}}.
+</mj-text>
+
+<!-- Booking Reference -->
+<mj-text css-class="booking-reference" font-size="18px" padding-top="12px">
+  🔑 {{t "Your booking reference number are on the tickets in the booking confirmation email"}}<br /><br />
+</mj-text>
+<mj-divider border-color="#d4a373" border-width="2px" />
+
+<!-- Performance Details -->
+<mj-text font-size="18px" font-weight="bold" color="#2c3e50">
+  ⚙️ <b>{{t "Performance Details"}}:</b>
+</mj-text>
+
+<!-- Class is now on mj-table (renders as <table>), not on each <tr> -->
+<mj-table css-class="booking-details-table">
+  <tr>
+    <td style="font-weight:bold; color:#555; white-space:nowrap; padding-right:16px; padding-bottom:7px; padding-top:7px; border-bottom:1px solid #e0e0e0; vertical-align:top; width:1%;">{{t "Event"}}:</td>
+    <td style="padding-bottom:7px; padding-top:7px; border-bottom:1px solid #e0e0e0; vertical-align:top;">{{eventName}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight:bold; color:#555; white-space:nowrap; padding-right:16px; padding-bottom:7px; padding-top:7px; border-bottom:1px solid #e0e0e0; vertical-align:top; width:1%;">{{t "Date"}}:</td>
+    <td style="padding-bottom:7px; padding-top:7px; border-bottom:1px solid #e0e0e0; vertical-align:top;">{{dateOfPerformance}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight:bold; color:#555; white-space:nowrap; padding-right:16px; padding-bottom:7px; padding-top:7px; border-bottom:1px solid #e0e0e0; vertical-align:top; width:1%;">{{t "Time"}}:</td>
+    <td style="padding-bottom:7px; padding-top:7px; border-bottom:1px solid #e0e0e0; vertical-align:top;">{{timeOfPerformance}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight:bold; color:#555; white-space:nowrap; padding-right:16px; padding-bottom:7px; padding-top:7px; border-bottom:1px solid #e0e0e0; vertical-align:top; width:1%;">{{t "Theater"}}:</td>
+    <td style="padding-bottom:7px; padding-top:7px; border-bottom:1px solid #e0e0e0; vertical-align:top;">{{theaterName}}, {{theaterAddress}}</td>
+  </tr>
+  <tr>
+    <td style="font-weight:bold; color:#555; white-space:nowrap; padding-right:16px; padding-bottom:7px; padding-top:7px; vertical-align:top; width:1%;">{{t "Seats"}}:</td>
+    <td style="padding-bottom:7px; padding-top:7px; vertical-align:top;">{{seatNumbers}}</td>
+  </tr>
+</mj-table>
+
+<mj-spacer height="20px" />
+
+{{#if bookingIsPaid}}
+  <mj-text css-class="booking-total">
+    💳 {{t "Total Paid"}}: {{totalPaidAmount}}
+  </mj-text>
+  <mj-divider border-color="#d4a373" border-width="2px" />
+{{/if}}
+
+<mj-text font-size="18px" font-weight="bold" color="#2c3e50">
+  ℹ️ {{t "Important Information"}}
+</mj-text>
+<mj-text>
+    {{t "For accessibility requirements, please directly contact the theater"}}.
+    <ul>
+    {{#if contactPhone}}
+      &emsp;<li>{{t "Theater phone contact"}}: {{contactPhone}}</li>
+    {{/if}}
+    {{#if contactEmail}}
+      &emsp;<li>{{t "Theater email contact"}}: {{contactEmail}}</li>
+    {{/if}}
+    </ul>
+</mj-text>
+<mj-divider border-color="#d4a373" border-width="2px" />
+
+<mj-text font-size="18px" font-weight="bold" color="#2c3e50">
+  🔄 {{t "Cancelation Policy"}}
+</mj-text>
+<mj-text>
+  {{t "Please note that tickets are non-refundable unless the event is canceled or rescheduled."}}
+  {{t "If you can no longer attend, please see our"}}
+  <a href="{{linkToTermsAndConditions}}" style="color:#d4a373; text-decoration:underline;">{{t "Terms & Conditions"}}</a>
+  {{t "for options regarding ticket transfers or credit."}}
+</mj-text>
+<mj-divider border-color="#d4a373" border-width="2px" />
+
+<mj-text>
+  {{t "We look forward to welcome you to the theater!"}}
+</mj-text>
+<mj-text font-size="18px" font-weight="bold">
+  {{t "Best regards"}}! <br />
+  {{t "The team of"}} {{appName}}
+</mj-text>
