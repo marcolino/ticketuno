@@ -270,16 +270,28 @@
       }
     };
 
-    const handleBulkAction = (action: string) => {
+    const handleBulkAction = async(action: string) => {
       setBulkMenuAnchor(null);
       const selectedIds = Array.from(selectedRows.ids);
       
       switch (action) {
-        case 'cancel':
-          alert(`Bulk cancel ${selectedIds.length} performances - TODO: implement this method`);
+        case 'cancel': // NOTE: implement this method!
+          await showDialog({
+            title: t('Bulk cancel {{count}} performances', { count: selectedIds.length }),
+            content: t('Sorry, this action is not yet implemented...'),
+            confirmText: t('Ok'),
+            shrinkToContent: true,
+            mode: 'warning',
+          });
           break;
         case 'delete':
-          alert(`Bulk delete ${selectedIds.length} performances - TODO: implement this method`);
+          await showDialog({
+            title: t('Bulk delete {{count}} performances', { count: selectedIds.length }),
+            content: t('Sorry, this action is not yet implemented...'),
+            confirmText: t('Ok'),
+            shrinkToContent: true,
+            mode: 'warning',
+          });
           break;
       }
     };

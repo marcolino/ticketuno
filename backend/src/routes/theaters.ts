@@ -16,20 +16,6 @@ router.get('/', requireAuthentication, requireOperator, async (req, res) => {
       res.json([]);
     } else {
       const stats: TheaterStats[] = theaters.map(theater => {
-        // let totalSeats = 0;
-        // let freeSeats = 0;
-
-        // theater.sections.forEach(section => {
-        //   section.rows.forEach(row => {
-        //     totalSeats += row.seats;
-        //     if (row.seatStatuses) {
-        //       freeSeats += row.seatStatuses.filter(s => s.status === 'available').length;
-        //     } else {
-        //       freeSeats += row.seats;
-        //     }
-        //   });
-        // });
-
         return {
           id: theater.id,
           name: theater.name,
@@ -39,8 +25,6 @@ router.get('/', requireAuthentication, requireOperator, async (req, res) => {
           websiteUrl: theater.websiteUrl,
           status: theater.status,
           currentLayoutId: theater.currentLayoutId,
-          // totalSeats,
-          // freeSeats
         };
       });
       res.json(stats);
@@ -81,8 +65,6 @@ router.post('/', requireAuthentication, requireOperator, async (req, res) => {
       websiteUrl,
       status,
       currentLayoutId,
-      // createdAt: new Date().toISOString(),
-      // updatedAt: new Date().toISOString()
     };
 
     const id = await database.createTheater(theater);
@@ -112,27 +94,6 @@ router.put('/:id', requireAuthentication, requireOperator, async (req: AuthReque
     }
     const response = await database.updateTheater(req.params.id, req.body);
     res.json(response);
-
-    // const response = await database.updateTheater(req.params.id, req.body);
-    // if (!response.updated && response.reason) {
-    //   let reason;
-    //   switch (response.reason) {
-    //     case 'THEATER_HAS_ACTIVE_BOOKINGS':
-    //       reason = req.t('theater has events with performances with active bookings');
-    //       break;
-    //     case 'THEATER_NOT_FOUND':
-    //       reason = req.t('theater was not found');
-    //       break;
-    //     default:
-    //       reason = req.t('unforeseen reason: {{reason}}', { reason: response.reason });
-    //       break;
-    //   }
-    //   return res.status(400).json({
-    //     message: req.t('Theater could not be updated: {{reason}}', { reason }),
-    //     blockedBy: response.blockedBy ?? [],
-    //   });
-    // }
-    // res.status(201).json(response);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update theater: {{err}}', { err: getErrorMessage(error) }) });
   }
@@ -145,35 +106,6 @@ router.delete('/:id', requireAuthentication, requireOperator, async (req: Reques
   } catch (error) {
     res.status(500).json({ error: getErrorMessage(error) });
   }
-  // try {
-  //   const response = await database.deleteTheater(req.params.id);
-  //   if (response.deleted) {
-  //     return res.json({ message: 'Theater deleted successfully' });
-  //   }
-  //   let reason, statusCode;
-  //   switch (response.reason) {
-  //     case 'THEATER_HAS_ACTIVE_BOOKINGS':
-  //       reason = req.t('theater has events with performances with active bookings');
-  //       statusCode = 409;
-  //       break;
-  //     case 'THEATER_NOT_FOUND':
-  //       reason = req.t('theater was not found');
-  //       statusCode = 404;
-  //       break;
-  //     default:
-  //       reason = req.t('unforeseen reason: {{reason}}', { reason: response.reason });
-  //       statusCode = 400;
-  //       break;
-  //   }
-  //   return res.status(statusCode).json({
-  //     deleted: response.deleted,
-  //     reason,
-  //     message: req.t('Theater could not be deleted: {{reason}}', { reason }),
-  //     blockedBy: response.blockedBy ?? [],
-  //   });
-  // } catch (error: unknown) {
-  //   res.status(500).json({ error: req.t('Failed to delete theater: {{err}}', { err: getErrorMessage(error) }) });
-  // }
 });
 
 // Protected, Operator: Update theater
@@ -196,7 +128,6 @@ router.put('/:id', requireAuthentication, requireOperator, async (req, res) => {
       address: address !== undefined ? address : theater.address,
       websiteUrl: websiteUrl !== undefined ? websiteUrl : theater.websiteUrl,
       status: status !== undefined ? status : theater.status,
-      // sections: sections || theater.sections,
       updatedAt: new Date().toISOString()
     };
 

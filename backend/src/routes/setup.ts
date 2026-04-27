@@ -4,7 +4,6 @@ import { getErrorMessage } from '../shared/utils/misc';
 import { requireAuthentication } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { loadSetup, refreshSetup, getSetup } from '../services/setupService';
-//import config from '../config';
 
 const router = Router();
 
@@ -15,9 +14,7 @@ router.get('/', async (req, res) => {
     res.json(setup);
   } catch (error) {
     res.status(500).json({
-      error: req.t('Failed to load setup: {{err}}', {
-        err: req.t(getErrorMessage(error))
-      })
+      error: req.t('Failed to load setup: {{err}}', { err: req.t(getErrorMessage(error)) })
     });
   }
 });

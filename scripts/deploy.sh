@@ -122,6 +122,8 @@ if [ $exit_code -ne 0 ]; then
   exit 6
 fi
 
+# Archive temporary files
+npm run archive
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 

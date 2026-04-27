@@ -12,11 +12,10 @@ import config from '../config';
 export async function runReminderJob(): Promise<{ sent: number; skipped: number }> {
   const now = new Date();
 
-  // const from = new Date(now.getTime() + 23 * 60 * 60 * 1000); // 23h from now
-  // const to = new Date(now.getTime() + 25 * 60 * 60 * 1000); // 25h from now
-  // TODO !!!!!!!!!!!!!!!!!!!!
-  const from = new Date(now.getTime() + 1 * 60 * 60 * 1000); // 1h from now
-  const to = new Date(now.getTime() + 9999 * 60 * 60 * 1000); // 1Y from now
+  const from = new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3h from now
+  const to = new Date(now.getTime() + 36 * 60 * 60 * 1000); // 36h from now
+  // const from = new Date(now.getTime() + 1 * 60 * 60 * 1000); // 1h from now (DEBUG ONLY)
+  // const to = new Date(now.getTime() + 9999 * 60 * 60 * 1000); // 1Y from now (DEBUG ONLY)
 
   const bookings = await database.getBookingsForReminder(
     from.toISOString().slice(0, 16), // "YYYY-MM-DDTHH:MM"
@@ -24,7 +23,7 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
   );
 
   // ── Group by (user_id, performance_id) ────────────────────────────────────
-  // Each group = one push + one email, listing all seats for that user+show.
+  // Each group = one push + one email, listing all seats for that user+show
   type BookingRow = (typeof bookings)[number];
   const groups = new Map<string, BookingRow[]>();
 
@@ -124,12 +123,11 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
 
     // ── ONE push notification per group ──────────────────────────────────────
     const payload = {
-      title: `🎭 ${t('The event')} ${first.event_title} — ${t('is')} ${humanDate}`,
+      title: `🎭 ${t('The event')} ${first.event_title} ${t('is')} ${humanDate}`,
       body: t('Remember to go to the event at theater {{theaterName}}', { theaterName: theater.name }),
       url: `${config.app.baseUrlFrontend}/bookings/my?token=${viewToken}`,
       icon: '/icons/icon-192x192.png',
     };
-    console.log('[reminderJob] push payload:', JSON.stringify(payload, null, 2)); // TODO: REMOVE-ME
     const { sent: pushSent } = await sendPushToUser(subs, user_id, payload);
 
     // ── ONE reminder email per group ─────────────────────────────────────────
@@ -139,9 +137,9 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
         titleLine1: event.title ?? '',
         titleLine2: event.playwright  ? t('By {{playwright}}', { playwright: event.playwright }) : '',
         subtitle: event.producer   ? t('Produced by {{producer}}', { producer: event.producer }) : '',
-        poster: event.posterImage
-          ? path.join(config.uploads.path, event.posterImage)
-          : path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName),
+        // poster: event.posterImage
+        //   ? path.join(config.uploads.path, event.posterImage)
+        //   : path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName),
         date: formatFullDate(performance.performanceDate, user.language),
         dayOfWeek: formatWeekday(performance.performanceDate,  user.language),
         time: performance.startTime,

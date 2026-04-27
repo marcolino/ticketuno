@@ -20,8 +20,6 @@ export const requireAuthentication = (req: AuthRequest, res: Response, next: Nex
     if (!decoded || typeof decoded === 'string') {
       return res.status(403).json({ error: req.t('Invalid token') });
     }
-    // req.userId = decoded.userId;
-    // req.userRole = decoded.role;
     req.userId = (decoded as JwtPayload & { userId: string; role: string }).userId;
     req.userRole = (decoded as JwtPayload & { userId: string; role: string }).role;
     next();

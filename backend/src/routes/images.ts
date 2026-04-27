@@ -27,24 +27,6 @@ const storage = multer.diskStorage({
     cb(null, `${uniqueId}${ext}`);
   }
 });
-/*
-const storage: StorageEngine = multer.diskStorage({
-  destination: async (_req, _file, cb) => {
-    try {
-      await fs.mkdir(config.images.path, { recursive: true });
-      cb(null, config.images.path);
-    } catch (error) {
-      cb(error as Error, '');
-    }
-  },
-  filename: (req, file, cb) => {
-    const uniqueId = crypto.randomBytes(16).toString('hex');
-    const ext = path.extname(file.originalname).toLowerCase();
-    const imageType = req.body.imageType || 'image';
-    cb(null, `${imageType}-${uniqueId}${ext}`);
-  }
-});
-*/
 
 const upload = multer({
   storage,
@@ -74,7 +56,6 @@ router.post('/upload', requireAuthentication, upload.single('image'), async (req
       return res.status(400).json({ error: req.t('Invalid or missing imageType') });
     }
     // rename with imageType prefix
-    //const ext = path.extname(req.file.filename);
     const newFilename = `${imageType}-${req.file.filename}`;
     const newPath = path.join(config.uploads.path, newFilename);
     await fs.rename(req.file.path, newPath);
@@ -83,23 +64,6 @@ router.post('/upload', requireAuthentication, upload.single('image'), async (req
     res.status(500).json({ error: req.t('Failed to upload image: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
-/*
-router.post('/upload', requireAuthentication, upload.single('image'), async (req: AuthRequest, res: Response) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: req.t('No file uploaded') });
-    }
-    const imageType = req.body.imageType;
-    if (!imageType || !config.images.allowedTypes.includes(imageType)) {
-      await fs.unlink(req.file.path).catch(() => {});
-      return res.status(400).json({ error: req.t('Invalid or missing imageType') });
-    }
-    res.status(201).json({ filename: req.file.filename });
-  } catch (error) {
-    res.status(500).json({ error: req.t('Failed to upload image: {{err}}', { err: getErrorMessage(error) }) });
-  }
-});
-*/
 
 // DELETE /api/images/:filename — clean up file from disk
 router.delete('/:filename', requireAuthentication, async (req: AuthRequest, res: Response) => {

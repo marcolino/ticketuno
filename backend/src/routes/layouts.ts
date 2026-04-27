@@ -78,18 +78,9 @@ router.delete('/:id', requireAuthentication, requireOperator, async (req: AuthRe
   } catch (error) {
     res.status(500).json({ error: getErrorMessage(error) });
   }
-  // try {
-  //   const deleted = await database.deleteLayout(req.params.id);
-  //   if (!deleted) {
-  //     res.status(400).json({ message: req.t('Layout could not be deleted') });
-  //   } else {
-  //     res.json({ message: req.t('Layout deleted successfully') });
-  //   }
-  // } catch (error: unknown) {
-  //   res.status(500).json({ error: req.t('Failed to delete layout: {{err}}', { err: getErrorMessage(error) }) });
-  // }
 });
 
+// Protected: get layout guard (operator only)
 router.get('/:id/guard', requireAuthentication, requireOperator, async (req, res) => {
   try {
     const guard = await database.guardLayout(req.params.id);

@@ -12,3 +12,5 @@ find $srcFolders -type f -iname $pattern -print0 | while IFS= read -r -d '' file
   mv "$file" "$target"
   echo "archived $file"
 done
+
+exit 0

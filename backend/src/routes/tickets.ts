@@ -71,7 +71,7 @@ router.post('/:payload/validate',
     } satisfies TicketValidationResult);
   }
 
-  // Check if ticket was already used...
+  // Check if ticket was already used
   if (booking.scannedAt) {
     return res.json({
       status: 'already_used',
@@ -89,7 +89,6 @@ router.post('/:payload/validate',
   }
 
   // Mark as used (atomic update guards against race conditions) ────────
-
   const updated = await database.markBookingUsed(ref, byDevice);
   if (!updated) {
     // Another validator just beat us to it (race condition)

@@ -20,7 +20,7 @@ const backendDefaults = {
   },
   assets: {
     path: './assets',
-    defaultEventPosterImageName: 'defaultEventPoster.png',
+    //defaultEventPosterImageName: 'defaultEventPoster.png',
   },
   uploads: {
     path: '../data/uploads',
@@ -45,7 +45,7 @@ const backendDefaults = {
     tokenShortExpirationDays: 1,
   },
   email: {
-    from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // TODO: use a private email address, when available
+    from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // NOTE: use a private email address, when available
     linkToTermsAndConditions: 'https://ticketuno.fly.dev/terms-and-conditions',
   },
 };

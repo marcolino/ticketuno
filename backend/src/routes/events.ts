@@ -1,6 +1,4 @@
-import { Router, /*Request,*/ Response } from 'express';
-import path from 'path';
-//import { v4 as uuidv4 } from 'uuid';
+import { Router, Response } from 'express';
 import { database } from '../db/database';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
@@ -14,7 +12,6 @@ import { generateSeats, applyDisplayNumbers } from '../shared/utils/layoutToSeat
 import { PerformanceSeatsResponse, SeatData} from '../shared/types/performance';
 import { getErrorMessage } from '../shared/utils/misc';
 import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '../shared/utils/misc';
-//import { getSetup } from '../services/setupService';
 import config from '../config';
 
 
@@ -131,7 +128,7 @@ router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest
     }
 
     const event: Event = {
-      id: '', //uuidv4(),
+      id: '',
       title,
       description,
       genres,
@@ -196,8 +193,6 @@ router.put('/:id', requireAuthentication, requireOperator, async (req, res) => {
     }
     const response = await database.updateEvent(req.params.id, req.body);
     res.json(response);
-    // const updatedEvent = await database.getEventById(req.params.id);
-    // res.json(updatedEvent);
   } catch (error: unknown) {
     res.status(500).json({ error: req.t('Failed to update event: {{err}}', {err: getErrorMessage(error)}) });
   }
@@ -212,34 +207,6 @@ router.delete('/:id', requireAuthentication, requireOperator, async (req, res) =
     res.status(500).json({ error: getErrorMessage(error) });
   }
 });
-// // Protected: Delete event (operator only)
-// router.delete('/:id', requireAuthentication, requireOperator, async (req, res) => {
-//   try {
-//     const event = await database.getEventById(req.params.id);
-//     if (!event) {
-//       return res.status(404).json({ error: req.t('Event not found') });
-//     }
-
-//     // Check if any performances have bookings
-//     const performances = await database.getPerformancesByEventId(req.params.id);
-//     if (performances) {
-//       for (const performance of performances) {
-//         const hasBookings = await database.performanceHasBookings(performance.id!);
-//         if (hasBookings) {
-//           return res.status(400).json({ 
-//             error: req.t('Cannot delete event with booked performances'),
-//             details: req.t('Performance for this event on date {{date}} has bookings', { date: performance.performanceDate }),
-//           });
-//         }
-//       }
-//     }
-
-//     await database.deleteEvent(req.params.id);
-//     res.json({ message: 'Event deleted successfully' });
-//   } catch (error: unknown) {
-//     res.status(500).json({ error: req.t('Failed to delete event: {{err}}', {err: getErrorMessage(error)}) });
-//   }
-// });
 
 router.get('/:id/guard', requireAuthentication, requireOperator, async (req, res) => {
   try {
@@ -338,24 +305,14 @@ router.post('/:eventId/performances', requireAuthentication, requireOperator, as
     // Generate seats from layout
     const layoutJSON = JSON.parse(layout.json);
     const generatedSeats = generateSeats(layoutJSON);
-    //const seats = generateSeats(layoutJSON);
     
     // Create performance (no seat counts stored)
     const performance: EventPerformance = {
-      id: '', //uuidv4(),
+      id: '',
       eventId,
       performanceDate,
       startTime,
       endTime,
-      //status: 'scheduled',
-      //canceled: 0,
-      // availableSeats: undefined,
-      // bookedSeats: undefined,
-      // seatData: JSON.stringify(seats), // Optional: could store layout snapshot
-      //status: 'scheduled',
-      //canceled: 0,
-      // createdAt: new Date().toISOString(),
-      // updatedAt: new Date().toISOString(),
     };
 
     const performanceId = await database.createPerformance(performance);
@@ -364,7 +321,6 @@ router.post('/:eventId/performances', requireAuthentication, requireOperator, as
     await database.bulkCreateSeats(
       performanceId,
       generatedSeats,
-      //layoutJSON.seatConditions,
     );
 
     // Get calculated seat counts for this performance
@@ -560,7 +516,6 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
       const layoutRecord = await database.getLayoutById(theater.currentLayoutId);
       if (layoutRecord) {
         const layoutJSON = JSON.parse(layoutRecord.json);
-        //const conditions = layoutJSON.seatConditions || {};
         const withDisplay = applyDisplayNumbers(generateSeats(layoutJSON)/*, conditions*/);
         withDisplay.forEach(s => {
           const dn = s.displayNumber ?? s.seatNumber;
@@ -592,10 +547,10 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
           titleLine1: event.title ?? '',
           titleLine2: event.playwright ? req.t('By {{playwright}}', { playwright: event.playwright }) : '',
           subtitle: event.producer ? req.t('Produced by {{producer}}', { producer: event.producer }) : '',
-          poster: event.posterImage ?
-            path.join(config.uploads.path, event.posterImage) :
-            path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName)
-          ,
+          // poster: event.posterImage ?
+          //   path.join(config.uploads.path, event.posterImage) :
+          //   path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName)
+          // ,
           date: formatFullDate(performance.performanceDate, user.language),
           dayOfWeek: formatWeekday(performance.performanceDate, user.language),
           time: performance.startTime,
@@ -653,7 +608,6 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
         const language = user.language || config.app.defaultLanguage;
         const userName = `${user.firstName} ${user.lastName}`;
         const eventName = showInfo.titleLine1;
-        //const bookingRef = booking.bookingRef;
         const dateOfPerformance = showInfo.date;
         const timeOfPerformance = showInfo.time;
         const theaterName = showInfo.theater;
@@ -664,7 +618,6 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
           ;
         const contactPhone = showInfo.contactPhone;
         const contactEmail = showInfo.contactEmail;
-        //const linkToTermsAndConditions = config.email.linkToTermsAndConditions;
 
         const attachedTickets = pdfs.map((buf: Buffer, i: number) => ({
           filename: `ticket-${booking.seats[i].bookingRef}.pdf`, // Unique name per seat

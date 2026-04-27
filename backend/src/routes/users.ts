@@ -4,11 +4,9 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
-//import { i18n } from '../i18n';
 import { requireAuthentication, generateToken, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
-//import { GuardedDeleteResult, GuardedDeleteResultBulk } from '../shared/types/guard';
 import { FullConsent } from '../shared/types/consent';
 import { 
   generateVerificationCode, 
@@ -28,7 +26,6 @@ const router = express.Router();
 const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  //`${process.env.BACKEND_URL}/api/v1/users/auth/google/callback`,
   `${config.app.baseUrlBackend}/${config.app.api.prefix}/${config.app.api.version}/users/auth/google/callback`,
 );
 
@@ -85,19 +82,6 @@ router.post('/register', async (req, res) => {
       email: user.email,
       ...(process.env.NODE_ENV === 'development' && { verificationCode }),
     });
-    
-    // const profile: UserProfile = {
-    //   id: user.id,
-    //   email: user.email,
-    //   firstName: user.firstName,
-    //   lastName: user.lastName,
-    //   phone: user.phone,
-    //   role: user.role,
-    //   createdAt: user.createdAt,
-    //   updatedAt: user.updatedAt
-    // };
-
-    // res.status(201).json({ token, user: profile });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to register user: {{err}}', { err: getErrorMessage(error) }) });
   }
@@ -214,22 +198,7 @@ router.post('/login', async (req: AuthRequest, res) => {
   try {
     const { email, password } = req.body;
     let token = req.body.token;
-    //let user;
-
-    /**
-     * I do not remember what this code block was used for... :-/
-     *
-    if (token) { // Google token login
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-      if (typeof decoded !== 'object' || !decoded.userId) {
-        return res.status(401).json({ error: 'Invalid token format' });
-      }
-      user = await database.getUserById(decoded.userId);
-      if (!user || !user.password) {
-        return res.status(401).json({ error: req.t('Invalid credentials') });
-      }
-    } else { // Standard login credentials
-    */
+   
     if (!email) {
       return res.status(400).json({ error: req.t('Email is required') });
     }
@@ -268,9 +237,6 @@ router.post('/login', async (req: AuthRequest, res) => {
     }
 
     token = generateToken(user.id, user.role);
-    /**
-    }
-    */
     
     const profile: UserProfile = {
       id: user.id,
@@ -535,7 +501,7 @@ router.get('/', async (req, res) => {
     if (!users) {
       return res.json([]);
     }
-    const stats/*: UserStats[]*/ = await Promise.all(
+    const stats = await Promise.all(
       users.map(async (user) => {
         return {
           id: user.id,
@@ -565,10 +531,6 @@ router.get('/profile/:userId?', requireAuthentication, async (req: AuthRequest, 
   try {
     const targetId = req.params.userId ?? req.userId!;
     const isSelf = targetId === req.userId;
-
-    // if (!isSelf && !userCanManageAccount(req.userRole ?? '', /* need target role */)) {
-    //   // We don't know target role yet, so fetch first then check
-    // }
 
     // We don't know target role yet, so fetch first then check
     const user = await database.getUserById(targetId);

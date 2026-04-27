@@ -57,11 +57,10 @@ common:
  2 -    - complete tickets buy process, optionally (if setup.payments.enabled) redirecting to stripe for payment
  3 -    - make a script to backup database, and schedule it, daily
  3 -    - make a method to clean up unreferenced images from /data/images, and schedule it, weekly
- 3 -    - make a check job to release expired reservations (releaseExpiredReservations), and schedule it, weekly
+ 3 -    - make a method to release expired reservations (releaseExpiredReservations), and schedule it, weekly
  3 -    - before using analytics and marketing cookies, always check:
             const { canUseAnalytics, canUseMarketingCookies } = useConsent();
  3 -    - ask AI to refactor db/database.ts, splitting in different files (but avoid one file per table...)
- 3 -    - reduce `requireAuthentication, requireOperator` to `requireOperator` (it's reduntand, probably...)
  3 -    - implement a real logging system
  3 -    - implement tests
 
@@ -127,7 +126,7 @@ common:
  3 - OK - add all users profile handling
  3 - OK - remove .env, .env.example
  2 - OK - add a consents popup button or link in Profile component
- 2 -    - ask AI to implement BookingsList, like UsersList, and BookingEdit, like UserEdit
+ 2 - OK   - ask AI to implement BookingsList, like UsersList, and BookingEdit, like UserEdit
  3 -    - implement tests
 
 bugs:

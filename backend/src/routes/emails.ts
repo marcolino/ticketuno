@@ -41,7 +41,6 @@ router.post('/send', requireAuthentication, async (req: AuthRequest, res) => {
 //
 // Body shape:
 //   { recipients?: BulkEmailRecipient[], userIds?: string[], subject: string, body: string }
-
 router.post('/bulk', requireAuthentication, requireOperator, async (req: AuthRequest, res: Response) => {
   try {
     const { recipients, userIds, subject, body } = req.body as {
