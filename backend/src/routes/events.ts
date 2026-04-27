@@ -1,4 +1,5 @@
 import { Router, Response } from 'express';
+import path from 'path';
 import { database } from '../db/database';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
 import { AuthRequest } from '../shared/types/auth';
@@ -547,10 +548,10 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
           titleLine1: event.title ?? '',
           titleLine2: event.playwright ? req.t('By {{playwright}}', { playwright: event.playwright }) : '',
           subtitle: event.producer ? req.t('Produced by {{producer}}', { producer: event.producer }) : '',
-          // poster: event.posterImage ?
-          //   path.join(config.uploads.path, event.posterImage) :
-          //   path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName)
-          // ,
+          poster: event.posterImage ?
+            path.join(config.uploads.path, event.posterImage) :
+            path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName)
+          ,
           date: formatFullDate(performance.performanceDate, user.language),
           dayOfWeek: formatWeekday(performance.performanceDate, user.language),
           time: performance.startTime,

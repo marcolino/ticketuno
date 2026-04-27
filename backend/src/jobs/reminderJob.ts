@@ -137,9 +137,9 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
         titleLine1: event.title ?? '',
         titleLine2: event.playwright  ? t('By {{playwright}}', { playwright: event.playwright }) : '',
         subtitle: event.producer   ? t('Produced by {{producer}}', { producer: event.producer }) : '',
-        // poster: event.posterImage
-        //   ? path.join(config.uploads.path, event.posterImage)
-        //   : path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName),
+        poster: event.posterImage
+          ? path.join(config.uploads.path, event.posterImage)
+          : path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName),
         date: formatFullDate(performance.performanceDate, user.language),
         dayOfWeek: formatWeekday(performance.performanceDate,  user.language),
         time: performance.startTime,

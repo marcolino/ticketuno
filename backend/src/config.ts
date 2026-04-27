@@ -20,7 +20,7 @@ const backendDefaults = {
   },
   assets: {
     path: './assets',
-    //defaultEventPosterImageName: 'defaultEventPoster.png',
+    defaultEventPosterImageName: 'defaultEventPoster.png',
   },
   uploads: {
     path: '../data/uploads',
