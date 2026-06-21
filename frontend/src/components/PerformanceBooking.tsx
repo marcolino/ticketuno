@@ -16,25 +16,26 @@ import {
   //ArrowBack as ArrowBackIcon,
   Cancel as CancelIcon,
   Close as CloseIcon,
-  ArrowBack as ArrowBackIcon,
+  //ArrowBack as ArrowBackIcon,
 } from '@mui/icons-material';
 import Alert from './Alert';
+import ExpandableText from './ExpandableText';
 import { eventApi, layoutApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
-import { EventWithDetails, EventPerformance } from '@/shared/types/event';
-import { LayoutJSON } from '@/shared/types/layout';
-import { generateSeats } from '@/shared/utils/layoutToSeats';
-import { SeatWithStatus } from '@/shared/types/layout';
-import { SeatStatus, SpecialCondition } from '@/shared/types/seat';
-import { SeatData, PerformanceSeatsResponse } from '@/shared/types/performance';
+import { EventWithDetails, EventPerformance } from '@ticketuno/shared/types/event';
+import { LayoutJSON } from '@ticketuno/shared/types/layout';
+import { generateSeats } from '@ticketuno/shared/utils/layoutToSeats';
+import { SeatWithStatus } from '@ticketuno/shared/types/layout';
+import { SeatStatus, SpecialCondition } from '@ticketuno/shared/types/seat';
+import { SeatData, PerformanceSeatsResponse } from '@ticketuno/shared/types/performance';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
 import { localizedDate } from '@/utils/misc';
-import config from '@/shared/config';
-import { getErrorMessage } from '@/shared/utils/misc';
+import { sharedConfig as config } from '@ticketuno/shared';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 
 const PerformanceBooking: React.FC = () => {
   const { t } = useTranslation();
@@ -285,16 +286,21 @@ const PerformanceBooking: React.FC = () => {
               </Typography>
               {event && (
                 <Box>
-                  <Typography variant="body1" color="text.secondary">
+                  <Typography variant="body1" color="text.secondary" component="div">
                     {t('Theater')} {event.theater?.name}
                     {event.theater?.description ? ' - ' : ''} {event.theater?.description}
                   </Typography>
-                  <Typography variant="body1" color="text.secondary">
-                    {t('Event')} {event.title}
-                    {event.description ? ' - ' : ''} {event.description}
+                  <Typography variant="body1" color="text.secondary" component="div">
+                    {t('Event')}: {event.title}
+                  </Typography>
+                  <Typography variant="body1" color="text.secondary" component="div">
+                    {event.description && (
+                        <ExpandableText text={t('Description') + ':' + ' ' + event.description} variant="body1" maxLength={120} lessText={t('show less')} />
+                      )
+                    }
                   </Typography>
                   {performance && (
-                    <Typography variant="body1" color="text.secondary">
+                    <Typography variant="body1" color="text.secondary" component="div">
                       {t('Performance on')} {new Date(performance.performanceDate).toLocaleDateString()}
                       {performance.startTime && ' ' + t('since') + ' ' + performance.startTime}
                       {' '}

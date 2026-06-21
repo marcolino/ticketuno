@@ -6,10 +6,10 @@ import path from 'path';
 import Handlebars from 'handlebars';
 
 import { database } from '../db/database';
-import { SendEmailOptions } from '../shared/types/email';
+import { SendEmailOptions } from '@ticketuno/shared';
 import { i18n } from '../i18n';
 import config from '../config';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 
 const resend = new Resend(process.env.RESEND_API_KEY!);
 

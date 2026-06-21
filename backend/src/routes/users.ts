@@ -5,9 +5,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
 import { requireAuthentication, generateToken, requireOperator } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
-import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '../shared/types/user';
-import { FullConsent } from '../shared/types/consent';
+import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '@ticketuno/shared';
+import { FullConsent } from '@ticketuno/shared';
 import { 
   generateVerificationCode, 
   isVerificationCodeValid, 
@@ -15,9 +14,9 @@ import {
   sendWelcomeEmail,
   sendPasswordResetEmail,
 } from '../utils/email';
-import { userCanManageAccount, userCanSetRole, userCanManageConsent } from '../shared/utils/roles';
-import { getErrorMessage } from '../shared/utils/misc';
-import { type Role } from '../shared/utils/roles';
+import { userCanManageAccount, userCanSetRole, userCanManageConsent } from '@ticketuno/shared';
+import { getErrorMessage } from '@ticketuno/shared';
+import { type Role } from '@ticketuno/shared';
 import config from '../config';
 
 const router = express.Router();
@@ -68,6 +67,7 @@ router.post('/register', async (req, res) => {
       verificationCode,
       verificationCodeExpiry,
       consent: null,
+      stripeAccountId: null,
       language: language ?? config.app.defaultLanguage,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -194,7 +194,7 @@ router.post('/resend-verification', async (req, res) => {
 });
 
 // Login
-router.post('/login', async (req: AuthRequest, res) => {
+router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
     let token = req.body.token;
@@ -527,7 +527,7 @@ router.get('/', async (req, res) => {
 
 // GET /profile     → own profile
 // GET /profile/:id → another user's profile (if permitted)
-router.get('/profile/:userId?', requireAuthentication, async (req: AuthRequest, res) => {
+router.get('/profile/:userId?', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const targetId = req.params.userId ?? req.userId!;
     const isSelf = targetId === req.userId;
@@ -539,7 +539,7 @@ router.get('/profile/:userId?', requireAuthentication, async (req: AuthRequest, 
     }
 
     // Non-self access: actor must be able to manage this account
-    if (!isSelf && !userCanManageAccount(req.userRole as Role ?? '', user.role as Role)) {
+    if (!isSelf && !userCanManageAccount(req.userRole as Role, user.role as Role)) {
       return res.status(403).json({ error: req.t('Insufficient permissions') });
     }
 
@@ -564,7 +564,7 @@ router.get('/profile/:userId?', requireAuthentication, async (req: AuthRequest, 
 
 // PUT /profile → own profile
 // PUT /profile/:id → another user's profile (if permitted)
-router.put('/profile/:userId?', requireAuthentication, async (req: AuthRequest, res) => {
+router.put('/profile/:userId?', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const actorId = req.userId!;
     const actorRole = req.userRole ?? '';
@@ -630,7 +630,7 @@ router.delete('/:userId', requireAuthentication, requireOperator, async (req, re
 });
 
 // Protected: bulk delete endpoint: handles both single and multiple ids (operator only)
-router.delete('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.delete('/', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -662,7 +662,7 @@ router.delete('/', requireAuthentication, requireOperator, async (req: AuthReque
 
 // PUT /consent → own consent
 // PUT /consent/:id → another user's consent (if permitted)
-router.put('/consent/:userId?', requireAuthentication, async (req: AuthRequest, res) => {
+router.put('/consent/:userId?', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const actorId = req.userId!;
     const targetId = req.params.userId ?? actorId;

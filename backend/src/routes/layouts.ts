@@ -1,15 +1,14 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { database } from '../db/database';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
-import { Layout } from '../shared/types/layout';
+import { Layout } from '@ticketuno/shared';
 import { i18n } from '../i18n';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 
 const router = Router();
 
 // Protected: create layout (operator only)
-router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.post('/', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const layout = req.body;
     const id = await database.createLayout(layout);
@@ -21,7 +20,7 @@ router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest
 
 
 // Public: get all layouts
-router.get('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.get('/', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const layouts = await database.getAllLayouts();
     res.json(layouts);
@@ -57,7 +56,7 @@ router.get('/:theaterId', async (req, res) => {
 });
 
 // Protected: update layout by id (operator only)
-router.put('/:id', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.put('/:id', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const updates: Partial<Layout> = {
       name: req.body.name,
@@ -72,7 +71,7 @@ router.put('/:id', requireAuthentication, requireOperator, async (req: AuthReque
 });
 
 // Protected: delete layout by id (operator only)
-router.delete('/:id', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.delete('/:id', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     res.json(await database.deleteLayout(req.params.id));
   } catch (error) {

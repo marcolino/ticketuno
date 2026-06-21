@@ -22,13 +22,13 @@ import useNavigate from '@/hooks/useNavigate';
 import PageHeader from './PageHeader';
 import Alert from './Alert';
 import { layoutApi } from '@/services/api';
-import { Layout } from '@/shared/types/layout';
+import { Layout } from '@ticketuno/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { handleGuardResult } from '@/utils/guardHandler';
-import { ActiveBookingInfo } from '@/shared/types/guard';
-import { getErrorMessage } from '@/shared/utils/misc';
+import { ActiveBookingInfo } from '@ticketuno/shared/types/guard';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 //import { i18n } from '@/i18n';
 
 const LayoutList: React.FC = () => {

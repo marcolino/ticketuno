@@ -29,15 +29,15 @@ import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { useConsent } from '@/contexts/ConsentContext';
 import { userApi } from '@/services/api';
-import { getErrorMessage } from '@/shared/utils/misc';
-import { UserProfile } from '@/shared/types/user';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { UserProfile } from '@ticketuno/shared/types/user';
 import {
   userCanManageAccount,
   userCanSetRole,
   assignableRoles,
   Role,
-} from '@/shared/utils/roles';
-import config from '@/shared/config';
+} from '@ticketuno/shared/utils/roles';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 import equal from 'fast-deep-equal';
 import useUnsavedChanges from '@/hooks/useUnsavedChanges';

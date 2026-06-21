@@ -52,9 +52,9 @@ loadDotEnv();
 //            false → flat JSON where key === English string (existing behaviour)
 //
 const NAMESPACES = [
-  { name: 'common', nested: false, root: 'shared/locales' },
-  { name: 'privacy', nested: true, root: 'shared/locales-static' },
-  { name: 'terms', nested: true, root: 'shared/locales-static' },
+  { name: 'common', nested: false, root: 'packages/shared/assets/locales' },
+  { name: 'privacy', nested: true, root: 'packages/shared/assets/locales-static' },
+  { name: 'terms', nested: true, root: 'packages/shared/assets/locales-static' },
 ];
 
 /** Root directory that contains the per-locale sub-folders */

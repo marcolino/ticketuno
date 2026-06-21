@@ -14,7 +14,7 @@ import {
   ThemeMode,
   ThemePreference,
   ThemeContextValue,
-} from '@/shared/types/theme';
+} from '@ticketuno/shared/types/theme';
 import config from '@/config';
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);

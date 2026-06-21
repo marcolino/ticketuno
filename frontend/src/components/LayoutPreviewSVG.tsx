@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 //import { useMediaQuery, useTheme } from '@mui/material';
-//import { LayoutJSON } from '@/shared/types/layout';
-//import type { SeatStatus, SpecialCondition } from '@/shared/utils/layoutToSeats';
-import type { /*SeatWithStatus,*/ LayoutPreviewSVGProps } from '@/shared/types/layout';
+//import { LayoutJSON } from '@ticketuno/shared/types/layout';
+//import type { SeatStatus, SpecialCondition } from '@ticketuno/shared/utils/layoutToSeats';
+import type { /*SeatWithStatus,*/ LayoutPreviewSVGProps } from '@ticketuno/shared/types/layout';
 import LayoutSeat from './LayoutSeat';
 
 // export interface SeatWithStatus {

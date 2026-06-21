@@ -3,7 +3,7 @@
 import { Router, Request, Response } from 'express';
 import { runReminderJob } from '../jobs/reminderJob';
 import { requireCronAuth } from '../middleware/authCron';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 
 const router = Router();
 

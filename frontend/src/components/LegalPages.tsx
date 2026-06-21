@@ -6,7 +6,7 @@ import {
   Link,
   Typography,
 } from '@mui/material';
-import config from '../../../shared/config';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 // ---------------------------------------------------------------------------
 // Types

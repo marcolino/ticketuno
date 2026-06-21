@@ -1,5 +1,6 @@
-import { getErrorMessage } from '../shared/utils/misc';
-import config from '../shared/config';
+import { getErrorMessage } from '@ticketuno/shared';
+//import { sharedConfig as config } from '@ticketuno/shared';
+import config from '../config';
 
 export const audit = async (message: string) => {
   notifySlack(message);

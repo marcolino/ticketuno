@@ -25,10 +25,10 @@ import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
-import { getErrorMessage } from '@/shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 import GoogleIconColored from '@/components/icons/GoogleIconColored';
-import { AuthDialogProps, TabValue } from '@/shared/types/auth';
-import config from '@/shared/config';
+import { AuthDialogProps, TabValue } from '@ticketuno/shared/types/auth';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 const AuthDialog: React.FC<AuthDialogProps> = ({ open, onClose, initialTab = "login" }) => {
   const { login, register, verifyEmail, resendVerification, forgotPassword, resetPassword/*, googleLogin*/ } = useAuth();

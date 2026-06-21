@@ -26,13 +26,13 @@ import OpenStreetMapAutocomplete from './OpenStreetMapAutocomplete';
 import TagSelector from './TagSelector';
 import ActiveBookingsWarning from './ActiveBookingsWarning';
 import { theaterApi, layoutApi } from '@/services/api';
-import { Layout } from '@/shared/types/layout';
+import { Layout } from '@ticketuno/shared/types/layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useDialog } from '@/contexts/DialogContext';
 import useUnsavedChanges from '@/hooks/useUnsavedChanges';
-import { getErrorMessage } from '@/shared/utils/misc';
-import config from '@/shared/config';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 const TheaterEdit: React.FC = () => {
   const navigate = useNavigate();

@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "typeRoots": [
+      "../frontend/node_modules/@types",
+      "../backend/node_modules/@types",
+      "../frontend/node_modules",
+      "../backend/node_modules"
+    ]
+  },
+  "include": ["./**/*"]
+}

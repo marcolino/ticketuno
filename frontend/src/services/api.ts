@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, /*AxiosResponse, */InternalAxiosRequestConfig } from 'axios';
+import { PartialDeep } from 'type-fest';
 import { 
   User, 
   LoginCredentials,
@@ -9,17 +10,17 @@ import {
   ForgotPasswordData,
   ForgotPasswordResponse,
   ResetPasswordData
-} from '@/shared/types/user';
-import { Theater } from '@/shared/types/theater';
-import type { Event, EventStats, EventPerformance, EventWithDetails, EventOptions } from '@/shared/types/event';
-import type { FullConsent } from '@/shared/types/consent';
-import { PerformanceSeatsResponse } from '@/shared/types/performance';
-import { Layout } from '@/shared/types/layout';
-import { GeneralSetupType } from '@/shared/types/generalSetup';
-import { BookingEnriched, BookingDetail } from '@/shared/types/booking';
-import { GuardResult, GuardedDeleteResult, GuardedDeleteResultBulk, GuardedUpdateResult } from '@/shared/types/guard';
+} from '@ticketuno/shared/types/user';
+import { Theater } from '@ticketuno/shared/types/theater';
+import type { Event, EventStats, EventPerformance, EventWithDetails, EventOptions } from '@ticketuno/shared/types/event';
+import type { FullConsent } from '@ticketuno/shared/types/consent';
+import { PerformanceSeatsResponse } from '@ticketuno/shared/types/performance';
+import { Layout } from '@ticketuno/shared/types/layout';
+import { GeneralSetupType } from '@ticketuno/shared/types/generalSetup';
+import { BookingEnriched, BookingDetail } from '@ticketuno/shared/types/bookings';
+import { GuardResult, GuardedDeleteResult, GuardedDeleteResultBulk, GuardedUpdateResult } from '@ticketuno/shared/types/guard';
 import { i18n } from '@/i18n';
-import config from '@/shared/config';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 let redirectingToMaintenance = false;
 
@@ -533,7 +534,7 @@ export const setupApi = {
   load: () =>
     api.get<GeneralSetupType>('/setup'),
 
-  save: (payload: Partial<GeneralSetupType>) =>
+  save: (payload: PartialDeep<GeneralSetupType>) =>
     api.post<GeneralSetupType>('/setup', payload),
 };
 

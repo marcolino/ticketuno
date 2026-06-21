@@ -22,7 +22,7 @@ import {
   ForgotPasswordResponse,
   ResetPasswordData,
   ResetPasswordResponse,
-} from '@/shared/types/user';
+} from '@ticketuno/shared/types/user';
 import { i18n } from '@/i18n';
 
 interface AuthContextType {

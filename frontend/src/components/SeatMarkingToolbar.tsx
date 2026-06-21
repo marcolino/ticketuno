@@ -10,7 +10,7 @@ import {
 import EditIcon from '@mui/icons-material/Edit';
 import CloseIcon from '@mui/icons-material/Close';
 import { CONDITION_COLORS } from './LayoutSeat';
-import { SpecialCondition } from '@/shared/types/seat';
+import { SpecialCondition } from '@ticketuno/shared/types/seat';
 import SeatMiniSVG from './SeatMiniSVG';
 
 // ── Condition entries in display order ────────────────────────────────────────

@@ -1,7 +1,7 @@
-import sharedConfig from '@/shared/config';
-import type { AppConfig } from '@/shared/types/config';
+import { sharedConfig } from '@ticketuno/shared';
+import type { SharedConfig } from '@ticketuno/shared';
 
-const config: Pick<AppConfig, 'app'> = {
+const config: Pick<SharedConfig, 'app'> = {
   app: sharedConfig.app,
 };
 

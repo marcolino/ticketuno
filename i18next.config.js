@@ -20,7 +20,8 @@ module.exports = defineConfig({
       '!' + path.join(projectRoot, 'backend/src/**/*.d.ts'),
       '!' + path.join(projectRoot, 'backend/node_modules/**'),
     ],
-    output: path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json'),
+    //output: path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json'),
+    output: path.join(projectRoot, 'packages/shared/assets/locales/{{language}}/{{namespace}}.json'),
     defaultNS: 'common',
     keySeparator: false,
     nsSeparator: false,
@@ -30,7 +31,8 @@ module.exports = defineConfig({
     //lngs: ['en', 'it', 'fr', 'zh'],
   },
   types: {
-    input: [path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json')],
+    //input: [path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json')],
+    input: [path.join(projectRoot, 'packages/shared/assets/locales/{{language}}/{{namespace}}.json')],
     output: path.join(projectRoot, 'shared/types/i18next.d.ts')
   },
   debug: false,

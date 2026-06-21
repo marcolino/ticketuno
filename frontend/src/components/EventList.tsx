@@ -22,15 +22,16 @@ import {
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import { eventApi } from '@/services/api';
-import { EventStats } from '@/shared/types/event';
+import { EventStats } from '@ticketuno/shared/types/event';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSetup } from '@/contexts/SetupContext';
-import { getErrorMessage } from '@/shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 import { handleGuardResult } from '@/utils/guardHandler';
 import Alert from './Alert';
 import PageHeader from './PageHeader';
+import ExpandableText from './ExpandableText';
 import config from '@/config';
 
 const EventList: React.FC = () => {
@@ -57,7 +58,7 @@ const EventList: React.FC = () => {
     try {
       const options = isOperator ? { pastToo: true, canceledToo: true } : {};
       const response = await eventApi.getAllEvents(options);
-      console.log('EVENTS:', response.data);
+      //console.log('EVENTS:', response.data);
       if (Array.isArray(response.data)) {
         setEvents(response.data);
       } else {
@@ -261,9 +262,9 @@ const EventList: React.FC = () => {
                       {event.title}
                     </Typography>
                   </Box>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
-                    <Typography variant="h6" component="div" sx={{ lineHeight: 1.1 }}>
-                      {event.description}
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+                    <Typography variant="body2" component="div" sx={{ lineHeight: 1.1 }}>
+                      <ExpandableText text={event.description} maxLength={120} lessText={t('show less')} />
                     </Typography>
                   </Box>
 

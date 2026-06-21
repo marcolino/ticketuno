@@ -10,7 +10,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-
           'vendor-mui-core': [
             '@mui/material',
             '@mui/system',
@@ -19,12 +18,10 @@ export default defineConfig({
             '@emotion/react',
             '@emotion/styled',
           ],
-
           'vendor-mui-x': [
             '@mui/x-data-grid',
             '@mui/x-date-pickers',
           ],
-
           'vendor-i18n': [
             'i18next',
             'react-i18next',
@@ -32,7 +29,7 @@ export default defineConfig({
             'i18next-http-backend',
           ],
           'vendor-dates': ['date-fns', 'dayjs'],
-          'vendor-qr':    ['jsqr'],
+          'vendor-qr': ['jsqr'],
         },
       },
     },
@@ -45,7 +42,6 @@ export default defineConfig({
         /\/contexts\/LoadingContext\.tsx$/,
       ],
     }),
-
     VitePWA({
       registerType: 'prompt', // SW is registered manually via usePwa() hook - no auto-injection
       injectRegister: null,
@@ -63,18 +59,16 @@ export default defineConfig({
       },
     }),
   ],
-
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
+      '@ticketuno/shared': path.resolve(__dirname, '../packages/shared/src'),
     },
     preserveSymlinks: true, // shared/ is a symlink
   },
-
   optimizeDeps: {
     include: ['@emotion/react', '@emotion/styled'],
   },
-
   server: {
     port: 3000,
     open: false,
@@ -89,4 +83,4 @@ export default defineConfig({
       },
     },
   },
-})
+});

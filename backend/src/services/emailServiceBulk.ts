@@ -1,5 +1,5 @@
 import emailService from './emailService';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 import config from '../config';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

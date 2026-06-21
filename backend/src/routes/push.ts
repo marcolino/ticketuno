@@ -1,7 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { database } from '../db/database';
 import { requireAuthentication } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
 
 const router = Router();
   
@@ -11,7 +10,7 @@ router.get('/vapid-public-key', (req: Request, res: Response) => {
   res.json({ vapidPublicKey: key });
 });
 
-router.post('/subscribe', requireAuthentication, async (req: AuthRequest, res: Response) => {
+router.post('/subscribe', requireAuthentication, async (req: Request, res: Response) => {
   const { endpoint, keys } = req.body as {
     endpoint: string;
     keys: { p256dh: string; auth: string };

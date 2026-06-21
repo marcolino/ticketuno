@@ -1,27 +1,14 @@
 {
+  "extends": "../tsconfig.base.json",
+
   "compilerOptions": {
-    "target": "ESNext",
-    "lib": ["DOM", "DOM.Iterable", "ES2020"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
     "jsx": "react-jsx",
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "esModuleInterop": true, 
-    "allowSyntheticDefaultImports": true,
-    "noImplicitAny": false,
-    "types": ["vite/client"],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"]
-    }
+     "module": "ESNext",
+    "moduleResolution": "bundler"
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "*/**/*-UNUSED.*", "*/**/*-V*.*"]
+
+  "include": [
+    "src",
+    "../packages/shared/src"
+  ]
 }

@@ -32,11 +32,11 @@ import { useDialog } from '@/contexts/DialogContext';
 import useUnsavedChanges from '@/hooks/useUnsavedChanges';
 import SeatMarkingToolbar, { MarkingCondition } from './SeatMarkingToolbar';
 import { layoutApi, theaterApi } from '@/services/api';
-import { LayoutJSON, SectionJSON, RowJSON } from '@/shared/types/layout';
-import { SpecialCondition } from '@/shared/types/seat';
-import { generateSeats,  } from '@/shared/utils/layoutToSeats';
+import { LayoutJSON, SectionJSON, RowJSON } from '@ticketuno/shared/types/layout';
+import { SpecialCondition } from '@ticketuno/shared/types/seat';
+import { generateSeats,  } from '@ticketuno/shared/utils/layoutToSeats';
 import { toast } from '@/contexts/ToastContext';
-import { getErrorMessage } from '@/shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 
 // Define location state interface
 interface LocationState {

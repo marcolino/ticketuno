@@ -1,4 +1,4 @@
-import sharedConfig from './shared/config';
+import { sharedConfig } from '@ticketuno/shared';
 import dotenv from 'dotenv';
 import path from 'path';
 
@@ -44,9 +44,28 @@ const backendDefaults = {
     tokenExpirationDays: 2,
     tokenShortExpirationDays: 1,
   },
+  server: {
+    delayMilliseconds: 0,
+  },
   email: {
     from: 'TicketUno <no-reply@ticketuno.farmatime.it>', // NOTE: use a private email address, when available
     linkToTermsAndConditions: 'https://ticketuno.fly.dev/terms-and-conditions',
+  },
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY || '',
+    publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    platformFeePercent: Number(process.env.STRIPE_PLATFORM_FEE_PERCENT) || 5, // 5%
+    platformFeeFixed: Number(process.env.STRIPE_PLATFORM_FEE_FIXED) || 50, // €0.50 in cents
+    currency: 'eur', // TODO: rename defaultCurrency, and use defaultCurrency in shared config
+    connect: {
+      clientId: process.env.STRIPE_CONNECT_CLIENT_ID || '',
+      redirectUri: `${process.env.BACKEND_URL}/api/v1/stripe/connect/oauth/callback`,
+    },
+  },
+  multiTenant: {
+    enabled: process.env.MULTI_TENANT_ENABLED === 'true',
+    tenantsPath: process.env.TENANTS_PATH || './tenants',
   },
 };
 

@@ -29,10 +29,10 @@
   import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
   import useNavigate from '@/hooks/useNavigate';
   import { eventApi, theaterApi, imageApi } from '@/services/api';
-  import { Event} from '@/shared/types/event';
-  import { TheaterStats } from '@/shared/types/theater';
+  import { Event} from '@ticketuno/shared/types/event';
+  import { TheaterStats } from '@ticketuno/shared/types/theater';
   import { toast } from '@/contexts/ToastContext';
-  import { getErrorMessage } from '@/shared/utils/misc';
+  import { getErrorMessage } from '@ticketuno/shared/utils/misc';
   import { useDialog } from '@/contexts/DialogContext';
   import { useSetup } from '@/contexts/SetupContext';
   import useUnsavedChanges from '@/hooks/useUnsavedChanges';
@@ -40,7 +40,7 @@
   import ImageUploadSection from './ImageUploadSection';
   import ImageUploadEditPopup from './ImageUploadEditPopup';
   import { CastEditor, type CastEntry } from './CastEditor';
-  import config from '@/config';
+  import { sharedConfig as config } from '@ticketuno/shared';
 
   // Helper to convert Event from API to form state (Dayjs for dates/times)
   const eventFromApi = (apiEvent: Event): Partial<Event> & {
@@ -372,8 +372,17 @@
                 fullWidth
                 label={t('Duration (minutes)')}
                 type="number"
-                value={event.durationMinutes || 0}
-                onChange={(e) => handleFieldChange('durationMinutes')(parseInt(e.target.value) || 0)}
+                value={String(event.durationMinutes ?? 0)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleFieldChange('durationMinutes')(
+                    val === '' ? 0 : Number(val)
+                  );
+                }}
+                onBlur={(e) => {
+                  const normalized = Number(e.target.value || 0);
+                  handleFieldChange('durationMinutes')(normalized);
+                }}
                 inputProps={{ min: 0 }}
               />
             </Grid>
@@ -382,8 +391,17 @@
                 fullWidth
                 label={t('Intermissions')}
                 type="number"
-                value={event.intermissionCount || 0}
-                onChange={(e) => handleFieldChange('intermissionCount')(parseInt(e.target.value) || 0)}
+                value={String(event.intermissionCount ?? 0)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleFieldChange('intermissionCount')(
+                    val === '' ? 0 : Number(val)
+                  );
+                }}
+                onBlur={(e) => {
+                  const normalized = Number(e.target.value || 0);
+                  handleFieldChange('intermissionCount')(normalized);
+                }}
                 inputProps={{ min: 0 }}
               />
             </Grid>
@@ -616,8 +634,17 @@
                 fullWidth
                 label={t('Minimum Age')}
                 type="number"
-                value={event.minimumAge ?? 0}
-                onChange={(e) => handleFieldChange('minimumAge')(parseInt(e.target.value) || 0)}
+                value={String(event.minimumAge ?? 0)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  handleFieldChange('minimumAge')(
+                    val === '' ? 0 : Number(val)
+                  );
+                }}
+                onBlur={(e) => {
+                  const normalized = Number(e.target.value || 0);
+                  handleFieldChange('minimumAge')(normalized);
+                }}
                 inputProps={{ min: 0 }}
               />
             </Grid>

@@ -27,8 +27,8 @@ import Alert from './Alert';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { bookingApi } from '@/services/api';
-import { getErrorMessage } from '@/shared/utils/misc';
-import { BookingDetail, BookingStatus } from '@/shared/types/bookings';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { BookingDetail, BookingStatus } from '@ticketuno/shared/types/bookings';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,6 +38,7 @@ const STATUS_COLORS: Record<BookingStatus, 'success' | 'error' | 'warning' | 'de
   confirmed: 'success',
   canceled: 'error',
   refunded: 'warning',
+  pending_payment: 'warning',
 };
 
 function fmtDate(iso: string | null | undefined): string {

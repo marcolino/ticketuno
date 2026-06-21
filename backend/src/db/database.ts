@@ -4,17 +4,18 @@ import path from 'path';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { Migrator } from './migrator';
-import { User, NewUser } from '../shared/types/user';
-import { Theater, TheaterStatus, EventStatus, SeatStatus, Seat, TheaterConflictDetails } from '../shared/types/theater';
-import { Layout, LayoutJSON } from '../shared/types/layout';
-import { Event, EventPerformance } from '../shared/types/event';
-import { GeneratedSeat } from '../shared/types/seat';
-import { FullConsent } from '../shared/types/consent';
-import { Booking, BookingStatus, BookingQueryOptions, BookingEnriched, BookingDetail, SeatDetail } from '../shared/types/bookings';
-import { GeneralSetupType } from '../shared/types/generalSetup';
-import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardResult } from '../shared/types/guard';
-import { EventQueryOptions, PerformanceQueryOptions } from '../shared/types/query';
-import { ROLES, type Role } from '../shared/utils/roles';
+import { User, NewUser } from '@ticketuno/shared';
+import { Theater, TheaterStatus, EventStatus, SeatStatus, Seat, TheaterConflictDetails } from '@ticketuno/shared';
+import { Layout, LayoutJSON } from '@ticketuno/shared';
+import { Event, EventPerformance } from '@ticketuno/shared';
+import { GeneratedSeat } from '@ticketuno/shared';
+import { FullConsent } from '@ticketuno/shared';
+import { Booking, BookingStatus, BookingQueryOptions, BookingEnriched, BookingDetail, SeatDetail } from '@ticketuno/shared';
+import { GeneralSetupType } from '@ticketuno/shared';
+import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardResult } from '@ticketuno/shared';
+import { EventQueryOptions, PerformanceQueryOptions } from '@ticketuno/shared';
+import { ROLES, type Role } from '@ticketuno/shared';
+import { notify } from '../services/notificationService';
 import config from '../config';
 
 // ---------------------------------------------------------------------------
@@ -206,10 +207,13 @@ class Database {
         booking_ref TEXT NOT NULL,
         user_id TEXT NOT NULL,
         performance_id TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'confirmed', -- confirmed | canceled | refunded
+        status TEXT NOT NULL DEFAULT 'confirmed', -- pending_payment | confirmed | canceled | refunded
         total_price REAL NOT NULL DEFAULT 0,
         seat_count INTEGER NOT NULL DEFAULT 0,
         seat_ids TEXT NOT NULL DEFAULT '[]', -- JSON array, denormalised for quick ticket lookup
+        payment_method TEXT DEFAULT 'stripe',
+        payment_status TEXT DEFAULT 'pending',
+        payment_intent_id TEXT,
         booked_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         scanned_at DATETIME,
         scanned_by TEXT,
@@ -388,6 +392,9 @@ class Database {
       googleId: row.google_id as string,
       language: row.language as string,
       consent,
+      stripeAccountId: row.stripe_account_id as string,
+      stripeOnboardingCompleted: row.stripe_onboarding_completed as boolean,
+      stripeAccountStatus: row.stripe_account_status as string,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
     };
@@ -1233,6 +1240,7 @@ class Database {
       cancelationReason: row.cancelation_reason as string | undefined,
       maxCapacity: row.max_capacity as number,
       contentWarnings: row.content_warnings as string,
+      acceptsCash: row.acceptsCash as boolean,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
       deletedAt: row.deleted_at as string,
@@ -1669,6 +1677,13 @@ class Database {
     return this.mapRowsToSeats(rows);
   }
 
+  /**
+   * Release expired reservations.
+   * 
+   * @returns a boolean value that indicates if any reservations were expired, and released
+   * 
+   * @deprecated, use releaseExpiredPendingBookings
+   */
   async releaseExpiredReservations(): Promise<boolean> {
     const result = await runQuery(
       this.db, `
@@ -1804,6 +1819,7 @@ class Database {
       totalPrice: row.total_price as number,
       seatCount: row.seat_count as number,
       seatIds,
+      paymentIntentId: row.payment_intent_id as string,
       bookedAt: row.booked_at as string,
       scannedAt: row.scanned_at as Date | null,
       scannedBy: row.scanned_by as string | null,
@@ -1824,6 +1840,8 @@ class Database {
    * - Stamps each seat with booking_id, booking_ref, booked_by_user_id, status = 'booked'.
    *
    * Returns booked seats with their refs on success, or the unavailable seat IDs on failure.
+   * 
+   * @deprecated Use bookSeatsWithPaymentMethod() instead.
    */
   async bookSeats(
     performanceId: string,
@@ -1856,25 +1874,6 @@ class Database {
         await runQuery(this.db, 'ROLLBACK', [], 'bookSeats rollback unavailable');
         return { success: false, bookedCount: 0, seats: [], unavailableSeats: unavailable };
       }
-
-      // // One booking record + one unique booking_ref per seat
-      // const perSeat = seatIds.map(seatId => ({
-      //   seatId,
-      //   bookingRef: generateBookingRef(),
-      //   bookingId: this.uuid(),
-      // }));
-
-      // for (const { bookingId, bookingRef, seatId } of perSeat) {
-      //   await runQuery(
-      //     this.db, `
-      //       INSERT INTO bookings
-      //       (id, booking_ref, user_id, performance_id, status, total_price, seat_count, seat_ids)
-      //       VALUES (?, ?, ?, ?, 'confirmed', ?, 1, ?)
-      //     `,
-      //     [bookingId, bookingRef, userId, performanceId, totalPrice / seatIds.length, JSON.stringify([seatId])],
-      //     'bookSeats insert booking'
-      //   );
-      // }
 
       const perSeat: Array<{ seatId: string; bookingRef: string; bookingId: string }> = [];
 
@@ -1936,6 +1935,240 @@ class Database {
       await runQuery(this.db, 'ROLLBACK', [], 'bookSeats rollback on error');
       throw err;
     }
+  }
+
+  /**
+   * Atomic booking transaction, with payment method.
+   *
+   * - Verifies all requested seats are 'available'.
+   * - Creates one booking record per seat (each with a unique booking_ref).
+   * - Stamps each seat with booking_id, booking_ref, booked_by_user_id, status = 'booked'.
+   *
+   * Returns booked seats with their refs on success, or the unavailable seat IDs on failure.
+   */
+  async bookSeatsWithPaymentMethod(
+    performanceId: string,
+    seatIds: string[],
+    userId: string,
+    totalPrice: number = 0,
+    paymentMethod: 'stripe' | 'cash' = 'stripe'
+  ): Promise<{
+    success: boolean;
+    bookedCount: number;
+    seats: Array<{ seatId: string; bookingRef: string }>;
+    unavailableSeats?: string[];
+  }> {
+    await runQuery(this.db, 'BEGIN TRANSACTION', [], 'bookSeatsWithPaymentMethod begin');
+    try {
+      // Check all seats are available
+      const placeholders = seatIds.map(() => '?').join(', ');
+      const rows = await allQuery<{ seat_id: string; status: string }>(
+        this.db, `
+          SELECT seat_id, status
+          FROM seats
+          WHERE performance_id = ?
+          AND seat_id IN (${placeholders})
+        `,
+        [performanceId, ...seatIds], 'bookSeatsWithPaymentMethod check availability'
+      );
+
+      const seatStatuses = new Map(rows.map(r => [r.seat_id, r.status]));
+      const unavailable = seatIds.filter(id => seatStatuses.get(id) !== 'available');
+      
+      if (unavailable.length > 0) {
+        await runQuery(this.db, 'ROLLBACK', [], 'bookSeatsWithPaymentMethod rollback unavailable');
+        return { success: false, bookedCount: 0, seats: [], unavailableSeats: unavailable };
+      }
+
+      // Determine initial status based on payment method
+      const initialStatus: BookingStatus = paymentMethod === 'cash' ? 'confirmed' : 'pending_payment';
+      
+      const perSeat: Array<{ seatId: string; bookingRef: string; bookingId: string }> = [];
+
+      for (const seatId of seatIds) {
+        const pricePerSeat = totalPrice / seatIds.length;
+        const maxRetries = 3;
+        let booked = false;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          const bookingId = this.uuid();
+          const bookingRef = generateBookingRef();
+          try {
+            await runQuery(
+              this.db,
+              `INSERT INTO bookings
+              (id, booking_ref, user_id, performance_id, status, total_price, seat_count, seat_ids, payment_method, payment_status)
+              VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`,
+              [
+                bookingId, bookingRef, userId, performanceId, 
+                initialStatus, 
+                pricePerSeat, 
+                JSON.stringify([seatId]),
+                paymentMethod,
+                paymentMethod === 'cash' ? 'paid' : 'pending'
+              ],
+              'bookSeatsWithPaymentMethod insert booking'
+            );
+            perSeat.push({ seatId, bookingRef, bookingId });
+            booked = true;
+            break;
+          } catch (err) {
+            const isUniqueViolation = err instanceof Error &&
+              err.message.includes('UNIQUE constraint failed: bookings.booking_ref');
+            if (isUniqueViolation && attempt < maxRetries - 1) continue;
+            throw err;
+          }
+        }
+
+        if (!booked) {
+          throw new Error(`Failed to generate unique booking_ref after ${maxRetries} retries`);
+        }
+      }
+
+      // Update seat status
+      for (const { seatId, bookingRef, bookingId } of perSeat) {
+        const seatStatus = paymentMethod === 'cash' ? 'booked' : 'reserved';
+        const reservedUntil = paymentMethod === 'stripe' 
+          ? new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes reservation
+          : null;
+        
+        await runQuery(
+          this.db, `
+            UPDATE seats
+            SET status = ?, booking_id = ?, booking_ref = ?,
+                booked_by_user_id = ?, booked_at = CURRENT_TIMESTAMP, 
+                reserved_until = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE performance_id = ?
+            AND seat_id = ?
+          `,
+          [seatStatus, bookingId, bookingRef, userId, reservedUntil, performanceId, seatId],
+          'bookSeatsWithPaymentMethod update seat'
+        );
+      }
+
+      await runQuery(this.db, 'COMMIT', [], 'bookSeatsWithPaymentMethod commit');
+      return {
+        success: true,
+        bookedCount: perSeat.length,
+        seats: perSeat.map(({ seatId, bookingRef }) => ({ seatId, bookingRef })),
+        unavailableSeats: [],
+      };
+    } catch (err) {
+      await runQuery(this.db, 'ROLLBACK', [], 'bookSeatsWithPaymentMethod rollback on error');
+      throw err;
+    }
+  }
+
+  // Add this method to confirm booking after Stripe payment
+  async confirmBookingAfterPayment(bookingId: string): Promise<boolean> {
+    await runQuery(this.db, 'BEGIN TRANSACTION', [], 'confirmBookingAfterPayment begin');
+    try {
+      // Get the booking
+      const booking = await getQuery<{ status: string; performance_id: string }>(
+        this.db,
+        `SELECT status, performance_id FROM bookings WHERE id = ?`,
+        [bookingId],
+        'confirmBookingAfterPayment get booking'
+      );
+
+      if (!booking) {
+        await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingAfterPayment booking not found');
+        return false;
+      }
+
+      if (booking.status !== 'pending_payment') {
+        await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingAfterPayment wrong status');
+        return false;
+      }
+
+      // Update booking status
+      await runQuery(
+        this.db,
+        `UPDATE bookings 
+         SET status = 'confirmed', payment_status = 'paid', updated_at = CURRENT_TIMESTAMP 
+         WHERE id = ?`,
+        [bookingId],
+        'confirmBookingAfterPayment update status'
+      );
+
+      // Update seat status from 'reserved' to 'booked'
+      await runQuery(
+        this.db,
+        `UPDATE seats 
+         SET status = 'booked', reserved_until = NULL, updated_at = CURRENT_TIMESTAMP 
+         WHERE booking_id = ? AND status = 'reserved'`,
+        [bookingId],
+        'confirmBookingAfterPayment update seats'
+      );
+
+      await runQuery(this.db, 'COMMIT', [], 'confirmBookingAfterPayment commit');
+      return true;
+    } catch (err) {
+      await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingAfterPayment rollback');
+      throw err;
+    }
+  }
+
+  // Add this method to release expired pending bookings (run via cron job)
+  async releaseExpiredPendingBookings(): Promise<number> {
+    await runQuery(this.db, 'BEGIN TRANSACTION', [], 'releaseExpiredPendingBookings begin');
+    try {
+      // Release seats that have been reserved for more than 30 minutes
+      const updateSeatsResult = await runQuery(
+        this.db, `
+          UPDATE seats
+          SET status = 'available', booking_id = NULL, booking_ref = NULL,
+              booked_by_user_id = NULL, booked_at = NULL, reserved_until = NULL,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE status = 'reserved'
+          AND reserved_until < CURRENT_TIMESTAMP
+        `,
+        [], 'releaseExpiredPendingBookings update seats'
+      );
+
+      // Cancel the associated pending bookings
+      const updateBookingsResult = await runQuery(
+        this.db, `
+          UPDATE bookings
+          SET status = 'canceled', canceled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+          WHERE status = 'pending_payment'
+          AND id IN (
+            SELECT booking_id FROM seats 
+            WHERE status = 'available' 
+            AND reserved_until IS NULL
+            AND booking_id IS NOT NULL
+          )
+        `,
+        [], 'releaseExpiredPendingBookings cancel bookings'
+      );
+
+      await runQuery(this.db, 'COMMIT', [], 'releaseExpiredPendingBookings commit');
+
+      if (updateBookingsResult.changes > 0) {
+        await notify(`🥀 ${updateBookingsResult.changes} pending payment booking reservations are expired, and then canceled`);
+      }
+      
+      return updateSeatsResult.changes;
+    } catch (err) {
+      await runQuery(this.db, 'ROLLBACK', [], 'releaseExpiredPendingBookings rollback');
+      throw err;
+    }
+  }
+
+  // Get booking by payment intent ID
+  async getBookingByPaymentIntentId(paymentIntentId: string): Promise<Booking | null> {
+    // First, find the booking through the payments table
+    // Or store payment_intent_id in the bookings table
+    const row = await getQuery(
+      this.db, `
+        SELECT b.*
+        FROM bookings b
+        WHERE b.payment_intent_id = ?
+        LIMIT 1
+      `,
+      [paymentIntentId], 'get booking by payment intent id'
+    );
+    return row ? this.mapRowToBooking(row) : null;
   }
 
   async getBookingById(bookingId: string): Promise<Booking | null> {
@@ -2491,7 +2724,7 @@ const allQuery = <T extends Record<string, unknown> = Record<string, unknown>>(
 
 function toSqlParam(value: unknown): string | number | null {
   if (typeof value === 'boolean') return value ? 1 : 0;
-  if (value === null || typeof value === 'number' || typeof value === 'string') return value;
+  if (value === null || typeof value === 'number' || typeof value === 'string') return value as string | number;
   return JSON.stringify(value);
 }
 

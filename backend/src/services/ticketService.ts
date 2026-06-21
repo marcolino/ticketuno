@@ -29,7 +29,7 @@ import PDFDocument from 'pdfkit';
 import QRCode from 'qrcode';
 import { sign } from './hmacService';
 import { i18n } from '../i18n';
-import { ShowInfo, SeatInfo, BookingRequest } from '../shared/types/ticket';
+import { ShowInfo, SeatInfo, BookingRequest } from '@ticketuno/shared';
 import config from '../config';
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
@@ -390,7 +390,7 @@ async function drawTicket(
   //   │   QR code        │
   //   │ SCAN TO VERIFY   │
   //   │ booking ref      │
-  //   │ ─────────────── │
+  //   │ ──────────────── │
   //   │   poster image   │  ← fit [innerW × remaining height], aspect preserved,
   //   │   (centered,     │    centered, no background (stubBg shows through)
   //   │    no bg)        │
@@ -400,7 +400,7 @@ async function drawTicket(
   // useQrcode=false:
   //   ┌──────────────────┐
   //   │   poster image   │  ← fit, centered, no background
-  //   │ ─────────────── │
+  //   │ ──────────────── │
   //   │  Booking Ref     │
   //   │  Gate (if any)   │
   //   └──────────────────┘

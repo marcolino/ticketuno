@@ -1,8 +1,7 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { database } from '../db/database';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 import { requireAuthentication } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
 import { loadSetup, refreshSetup, getSetup } from '../services/setupService';
 
 const router = Router();
@@ -20,7 +19,7 @@ router.get('/', async (req, res) => {
 });
 
 // Private: Update setup
-router.post('/', requireAuthentication, async (req: AuthRequest, res) => {
+router.post('/', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const setup = req.body;
     await database.saveSetup(setup);

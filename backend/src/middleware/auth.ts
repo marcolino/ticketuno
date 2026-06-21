@@ -1,10 +1,10 @@
-import { /*Request,*/ Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt, { SignOptions, JwtPayload } from 'jsonwebtoken';
-import { AuthRequest } from '../shared/types/auth';
+//import { AuthRequest } from '@ticketuno/shared';
 import config from '../config';
 
 
-export const requireAuthentication = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireAuthentication = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -26,14 +26,14 @@ export const requireAuthentication = (req: AuthRequest, res: Response, next: Nex
   });
 };
 
-export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   if (req.userRole !== 'admin') {
     return res.status(403).json({ error: req.t('Admin role required') });
   }
   next();
 };
 
-export const requireOperator = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const requireOperator = (req: Request, res: Response, next: NextFunction) => {
   if (req.userRole !== 'admin' && req.userRole !== 'operator') {
     return res.status(403).json({ error: req.t('Operator role required') });
   }

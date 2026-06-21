@@ -1,5 +1,5 @@
 import fs from 'fs';
-import express, { Request, Response } from 'express';
+import express, { Request, Response, RequestHandler } from 'express';
 import cors from 'cors';
 import path from 'path';
 import multer from 'multer';
@@ -16,15 +16,16 @@ import ticketRoutes from './routes/tickets';
 import emailRoutes from './routes/emails';
 import setupRoutes from './routes/setup';
 import pushRoutes from './routes/push';
+import paymentsStripeRoutes from './routes/paymentsStripe';
 import internalRoutes from './routes/internal';
 import { database } from './db/database'; // import database AFTER config
 import { loadSetup } from './services/setupService';
 import config from './config';
 
 const prefix = `/${config.app.api.prefix}/${config.app.api.version}`;
-
-const localesDir = path.join(__dirname, '../..', 'shared', 'locales');
-const localesStaticDir = path.join(__dirname, '../..', 'shared', 'locales-static');
+const rootDir = path.join(__dirname, '../..');
+const localesDir = path.join(rootDir, 'packages', 'shared', 'assets', 'locales');
+const localesStaticDir = path.join(rootDir, 'packages', 'shared', 'assets', 'locales-static');
 
 const app = express();
 
@@ -32,7 +33,7 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize i18n middleware
-app.use(i18nextMiddleware.handle(i18n));
+app.use(i18nextMiddleware.handle(i18n) as unknown as RequestHandler);
 
 // Add middleware to add language to response locals - Must be before routes
 app.use((req: Request, res: Response, next) => {
@@ -69,7 +70,7 @@ app.get(`${prefix}/locales/:lng/:ns.json`, (req: Request, res: Response) => {
 });
 
 if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
+  app.use((_req, _res, next) => {
     const delayMs = Number(config.server.delayMilliseconds) || 0;
     if (delayMs) {
       console.log(`Delaying request by ${delayMs}ms...`);
@@ -79,7 +80,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 // Maintenance mode - MUST be before API 404 handler and before other routes
-app.use('/api/*', (req, res, next) => {
+app.use('/api/*', (_req, res, next) => {
   if (process.env.MAINTENANCE_MODE === '1') {
     return res.status(503).json({ error: 'maintenance mode' });
   }
@@ -98,6 +99,7 @@ app.use(`${prefix}/tickets`, ticketRoutes);
 app.use(`${prefix}/emails`, emailRoutes);
 app.use(`${prefix}/setup`, setupRoutes);
 app.use(`${prefix}/push`, pushRoutes);
+app.use(`${prefix}/paymentsStripe`, paymentsStripeRoutes);
 app.use(`${prefix}/internal`, internalRoutes);
 
 // Serve uploaded images
@@ -142,8 +144,7 @@ app.use('/api/*', (req, res) => {
 
 /* Serve static public files (MUST be after API routes, error and 404 handlers, order matters) */
 if (process.env.NODE_ENV !== 'development') {
-  const publicDir = path.join(__dirname, '../public');
-
+  const publicDir = path.join(rootDir, 'public');
   // Cache hashed assets for a long time
   app.use(express.static(publicDir, {
     maxAge: '1y',
@@ -152,12 +153,12 @@ if (process.env.NODE_ENV !== 'development') {
   }));
 
   // Never cache index.html
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.sendFile(path.join(publicDir, 'index.html'));
   });
 } else { // 404 non-API in development mode
-  app.get('*', (req, res) => {
+  app.get('*', (_req, res) => {
     res.status(404).json({ error: `Use frontend at ${config.host.dev.name}:${config.host.dev.port}` });
   });
 }

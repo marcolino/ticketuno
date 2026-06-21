@@ -1,9 +1,8 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
-import { User } from '../shared/types/user';
+import { User } from '@ticketuno/shared';
 import emailService from '../services/emailService';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 import { sendBulkEmail, BulkEmailPayload, BulkEmailRecipient } from '../services/emailServiceBulk';
 import { i18n } from '../i18n';
 import { database } from '../db/database';
@@ -12,7 +11,7 @@ import config from '../config';
 const router = Router();
 
 // Public: Send an email (text / html / mjml / mjml template)
-router.post('/send', requireAuthentication, async (req: AuthRequest, res) => {
+router.post('/send', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const { to, subject, template, variables, isMarketing } = req.body;
 
@@ -41,7 +40,7 @@ router.post('/send', requireAuthentication, async (req: AuthRequest, res) => {
 //
 // Body shape:
 //   { recipients?: BulkEmailRecipient[], userIds?: string[], subject: string, body: string }
-router.post('/bulk', requireAuthentication, requireOperator, async (req: AuthRequest, res: Response) => {
+router.post('/bulk', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const { recipients, userIds, subject, body } = req.body as {
       recipients?: BulkEmailRecipient[];

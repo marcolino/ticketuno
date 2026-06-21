@@ -4,8 +4,8 @@ import { requireAuthentication, requireOperator} from '../middleware/auth';
 import { verify } from '../services/hmacService';
 import { authHandler } from '../utils/routeHelper';
 import { humanizedDate } from '../utils/misc';
-import { TicketValidationResult } from '../shared/types/ticket';
-import config from '../shared/config';
+import { TicketValidationResult } from '@ticketuno/shared';
+import config from '../config';
 const router = express.Router();
 
 // Protected: Validate a ticket (from QrCode)

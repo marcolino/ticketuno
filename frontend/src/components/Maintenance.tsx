@@ -7,7 +7,7 @@ import {
 import useNavigate from '@/hooks/useNavigate';
 import { globalApi } from '@/services/api';
 import { useTheme } from '@mui/material/styles';
-import config from '@/shared/config';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 const Maintenance = () => {
   const { t } = useTranslation();

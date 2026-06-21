@@ -6,7 +6,7 @@ import OriginalPhoneInput, {
 } from 'react-phone-input-2';
 // Make sure to import the CSS once in your app root:
 //import 'react-phone-input-2/lib/material.css';
-import config from '@/shared/config';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 export type PhoneInputProps = OriginalPhoneInputProps & {
   error?: boolean;

@@ -38,11 +38,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { userApi } from '@/services/api';
-import { getErrorMessage } from '@/shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 import { handleGuardResult } from '@/utils/guardHandler';
-import { UserProfile } from '@/shared/types/user';
-import { GuardedDeleteResult } from '@/shared/types/guard';
-import { Role, assignableRoles, userCanManageAccount } from '@/shared/utils/roles';
+import { UserProfile } from '@ticketuno/shared/types/user';
+import { GuardedDeleteResult } from '@ticketuno/shared/types/guard';
+import { Role, assignableRoles, userCanManageAccount } from '@ticketuno/shared/utils/roles';
 
 type UserRow = UserProfile & { name: string };
 

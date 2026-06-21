@@ -23,8 +23,8 @@ import PageHeader from './PageHeader';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { bookingApi, userApi } from '@/services/api';
-import { getErrorMessage } from '@/shared/utils/misc';
-import { BookingEnriched, BookingStatus } from '@/shared/types/bookings';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { BookingEnriched, BookingStatus } from '@ticketuno/shared/types/bookings';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -42,7 +42,8 @@ function useDebounce<T>(value: T, delay: number): T {
 const STATUS_COLORS: Record<BookingStatus, 'success' | 'error' | 'warning' | 'default'> = {
   confirmed: 'success',
   canceled:  'error',
-  refunded:  'warning',
+  refunded: 'warning',
+  pending_payment: 'warning',
 };
 
 function formatDate(iso: string): string {

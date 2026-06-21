@@ -1,8 +1,8 @@
-import express from 'express';
+import express, { Request, Response }  from 'express';
 import { database } from '../db/database';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
-import { getErrorMessage } from '../shared/utils/misc';
+//import { AuthRequest } from '@ticketuno/shared';
+import { getErrorMessage } from '@ticketuno/shared';
 
 const router = express.Router();
 
@@ -14,7 +14,7 @@ const router = express.Router();
 //   ?performanceDate=YYYY-MM-DD
 //   ?eventId=…
 // ---------------------------------------------------------------------------
-router.get('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.get('/', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const { status, performanceDate, eventId } = req.query as Record<string, string>;
     const bookings = await database.getAllBookingsEnriched({ status, performanceDate, eventId });
@@ -29,7 +29,7 @@ router.get('/', requireAuthentication, requireOperator, async (req: AuthRequest,
 // Authenticated: return the current user's own bookings (enriched).
 // Placed before /:id so Express doesn't treat "my" as an id.
 // ---------------------------------------------------------------------------
-router.get('/my', requireAuthentication, async (req: AuthRequest, res) => {
+router.get('/my', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const bookings = await database.getBookingsByUserIdEnriched(req.userId!);
     res.json(bookings);
@@ -43,7 +43,7 @@ router.get('/my', requireAuthentication, async (req: AuthRequest, res) => {
 // Authenticated: return a single enriched booking.
 // A regular user may only fetch their own booking; operators may fetch any.
 // ---------------------------------------------------------------------------
-router.get('/:id', requireAuthentication, async (req: AuthRequest, res) => {
+router.get('/:id', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const booking = await database.getBookingDetailById(req.params.id);
     if (!booking) {
@@ -69,7 +69,7 @@ router.get('/:id', requireAuthentication, async (req: AuthRequest, res) => {
 // A regular user may only cancel their own confirmed booking;
 // operators may cancel any confirmed booking.
 // ---------------------------------------------------------------------------
-router.patch('/:id/cancel', requireAuthentication, async (req: AuthRequest, res) => {
+router.patch('/:id/cancel', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const booking = await database.getBookingById(req.params.id);
     if (!booking) {
@@ -103,7 +103,7 @@ router.patch('/:id/cancel', requireAuthentication, async (req: AuthRequest, res)
 // Operator-only: manually mark a booking as scanned.
 // Use when the QR scanner cannot be used (damaged ticket, device failure).
 // ---------------------------------------------------------------------------
-router.patch('/:id/scan', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.patch('/:id/scan', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const booking = await database.getBookingById(req.params.id);
     if (!booking) {
@@ -127,6 +127,56 @@ router.patch('/:id/scan', requireAuthentication, requireOperator, async (req: Au
     res.json({ message: req.t('Booking marked as scanned') });
   } catch (error) {
     res.status(500).json({ error: req.t('Failed to scan booking: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
+
+// POST /bookings/create - create a booking with a payment method
+router.post('/create', requireAuthentication, async (req: Request, res: Response) => {
+  try {
+    const { performanceId, seatIds, totalPrice, paymentMethod = 'stripe' } = req.body;
+    
+    // Verifica che l'evento accetti cash se richiesto
+    if (paymentMethod === 'cash') {
+      const performance = await database.getPerformanceById(performanceId);
+      const event = await database.getEventById(performance!.eventId);
+      if (!event?.acceptsCash) {
+        return res.status(400).json({ error: req.t('Cash payment not accepted for this event') });
+      }
+    }
+    
+    // const result = await database.bookSeats(
+    //   performanceId,
+    //   seatIds,
+    //   req.userId!,
+    //   totalPrice
+    // );
+    const result = await database.bookSeatsWithPaymentMethod(
+      performanceId,
+      seatIds,
+      req.userId!,
+      totalPrice,
+      paymentMethod,
+    );
+    
+    if (!result.success) {
+      return res.status(409).json({ 
+        error: req.t('Some seats are no longer available'),
+        unavailableSeats: result.unavailableSeats 
+      });
+    }
+    
+    // Per cash, il booking è già confirmed
+    // Per stripe, il booking è in stato 'pending_payment'
+    const paymentStatus = paymentMethod === 'cash' ? 'paid' : 'pending';
+    
+    res.json({
+      success: true,
+      bookingRefs: result.seats.map(s => s.bookingRef),
+      paymentMethod,
+      paymentStatus,
+    });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to create booking: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 

@@ -53,13 +53,13 @@ import Footer from './Footer';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '../contexts/DialogContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
-import { ThemePreference } from '@/shared/types/theme';
-import { UserProfile } from '@/shared/types/user';
+import { ThemePreference } from '@ticketuno/shared/types/theme';
+import { UserProfile } from '@ticketuno/shared/types/user';
 import AuthDialog from './AuthDialog';
 import { userApi } from '@/services/api';
 import config from '../config';
 
-console.log('CONFIG is:', config);
+//console.log('CONFIG is:', config);
 
 // interface HomeProps {
 //   children: React.ReactNode;

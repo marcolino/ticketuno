@@ -1,12 +1,11 @@
-import express, { Router, Response } from 'express';
+import express, { Router, Request, Response } from 'express';
 import multer/*, { StorageEngine }*/ from 'multer';
 import { i18n } from '../i18n';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import { requireAuthentication } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 import config from '../config';
 
 const router: Router = express.Router();
@@ -45,7 +44,7 @@ const upload = multer({
 });
 
 // POST /api/images/upload — returns the filename to store on the entity
-router.post('/upload', requireAuthentication, upload.single('image'), async (req: AuthRequest, res: Response) => {
+router.post('/upload', requireAuthentication, upload.single('image'), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: req.t('No file uploaded') });
@@ -66,7 +65,7 @@ router.post('/upload', requireAuthentication, upload.single('image'), async (req
 });
 
 // DELETE /api/images/:filename — clean up file from disk
-router.delete('/:filename', requireAuthentication, async (req: AuthRequest, res: Response) => {
+router.delete('/:filename', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const { filename } = req.params;
     if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {

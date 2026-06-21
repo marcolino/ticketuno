@@ -1,9 +1,9 @@
 import jwt from "jsonwebtoken";
 import { i18n } from '../i18n';
 import emailService from '../services/emailService';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 import { database } from '../db/database';
-import { Attachment } from '../shared/types/email';
+import { Attachment } from '@ticketuno/shared';
 import config from '../config';
 
 export function verifyMarketingUnsubscribeToken(token: string) {

@@ -63,7 +63,11 @@ common:
  3 -    - ask AI to refactor db/database.ts, splitting in different files (but avoid one file per table...)
  3 -    - implement a real logging system
  3 -    - implement tests
-
+ 2 -    - allow "cancel ticket" only for operators in my bookings details
+ 2 -    - a canceled ticked should be listed (as canceled) in bookings list, currently it is filtered out
+ 1 -    - change `import config from '@ticketuno/shared';` to `import config from '../config';` in backend
+ 3 -    - handle audit database table
+ 
  frontend:
  1 - OK - Design.tsx => Home.tsx
  1 - OK - avoid flickering with ChatGPT

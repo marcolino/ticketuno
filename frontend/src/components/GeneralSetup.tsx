@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
+import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Box, Container, Paper, Grid, TextField, MenuItem,
@@ -19,11 +20,11 @@ import { useToast } from '@/contexts/ToastContext';
 import { useSetupRefresh, defaultSetup, deepMerge } from '@/contexts/SetupContext';
 import { setupApi } from '@/services/api';
 import PageHeader from './PageHeader';
-import { getErrorMessage } from '@/shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 import {
   GeneralSetupType, GeneralSetupSections,
   PaymentGateway, DeepPartial,
-} from '@/shared/types/generalSetup';
+} from '@ticketuno/shared/types/generalSetup';
 import config from '@/config';
 
 // ── Constants ───────────────────────────────────────────────────

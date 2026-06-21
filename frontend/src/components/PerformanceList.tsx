@@ -58,13 +58,13 @@
   //import { useToast } from '@/contexts/ToastContext';
   //import { useLoading } from '@/contexts/LoadingContext';
   import { eventApi } from '@/services/api';
-  import { getErrorMessage } from '@/shared/utils/misc';
-  import { EventWithDetails, EventPerformance } from '@/shared/types/event';
+  import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+  import { EventWithDetails, EventPerformance } from '@ticketuno/shared/types/event';
   import useNavigate from '@/hooks/useNavigate';
   import { useAuth } from '@/contexts/AuthContext';
   import { useDialog } from '@/contexts/DialogContext';
   import { useToast } from '@/contexts/ToastContext';
-  import config from '@/shared/config';
+  import { sharedConfig as config } from '@ticketuno/shared';
 
   // Form interface for performance with Dayjs
   interface EventPerformanceForm {

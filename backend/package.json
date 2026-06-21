@@ -4,7 +4,8 @@
   "description": "Theater ticket reservation system, backend",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "NODE_ENV=development PORT=3001 ts-node-dev --respawn --watch src/templates src/server.ts",
+    "_dev": "NODE_ENV=development PORT=3001 ts-node-dev --respawn --watch src/templates src/server.ts",
+    "dev": "NODE_ENV=development PORT=3001 tsx watch src/server.ts",
     "start": "NODE_ENV=development PORT=3001 node dist/server.js",
     "lint": "eslint src",
     "test": "echo 'vitest run (TO DO ...)'",
@@ -16,14 +17,15 @@
     "unused": "ts-prune"
   },
   "dependencies": {
-    "axios": "^1.14.0",
+    "@ticketuno/shared": "*",
+    "axios": "^1.18.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
     "google-auth-library": "^10.5.0",
     "handlebars": "^4.7.8",
-    "i18next": "^25.7.4",
+    "i18next": "^25.10.10",
     "i18next-fs-backend": "^2.6.1",
     "i18next-http-middleware": "^3.9.2",
     "jimp": "^1.6.0",
@@ -36,6 +38,7 @@
     "qrcode": "^1.5.4",
     "resend": "^6.9.2",
     "sqlite3": "^5.1.7",
+    "stripe": "^22.2.1",
     "ts-prune": "^0.10.3",
     "uuid": "^8.3.2",
     "web-push": "^3.6.7"
@@ -58,7 +61,10 @@
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^4.6.0",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsconfig-paths": "^4.2.0",
+    "tsx": "^4.22.4",
     "typescript": "^5.3.3"
   }
 }

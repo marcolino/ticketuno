@@ -1,5 +1,5 @@
 import { RequestHandler } from 'express';
-import { AuthRequest } from '../shared/types/auth';
+import { AuthRequest } from '@ticketuno/shared';
 import { Response } from 'express';
 
 export const authHandler = (

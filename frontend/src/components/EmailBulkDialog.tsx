@@ -32,10 +32,10 @@ import { useAuth } from '@/contexts/AuthContext';
 //import { useDialog } from '@/contexts/DialogContext';
 //import useEmailBulkDialog from '@/hooks/useEmailBulkDialog';
 import { emailApi } from '@/services/api';
-import { getErrorMessage } from '@/shared/utils/misc';
-import { getEmailBulkVariables } from '@/shared/utils/emailBulkVariables';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { getEmailBulkVariables } from '@ticketuno/shared/utils/emailBulkVariables';
 //import { t } from 'i18next';
-import config from '@/shared/config';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 // ── Types ───────────────────────────────────────────────────────────────────
 

@@ -1,18 +1,17 @@
-import { Router, Response } from 'express';
+import { Router, Request, Response } from 'express';
 import path from 'path';
 import { database } from '../db/database';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
 import { generateTickets } from '../services/ticketService';
 import { notify } from '../services/notificationService';
 import { sendBookingConfirmationEmail } from '../utils/email';
-import { Event, EventPerformance, EventStats } from '../shared/types/event';
-import { EventQueryOptions } from '../shared/types/query';
-import { ShowInfo } from '../shared/types/ticket';
-import { generateSeats, applyDisplayNumbers } from '../shared/utils/layoutToSeats';
-import { PerformanceSeatsResponse, SeatData} from '../shared/types/performance';
-import { getErrorMessage } from '../shared/utils/misc';
-import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '../shared/utils/misc';
+import { Event, EventPerformance, EventStats } from '@ticketuno/shared';
+import { EventQueryOptions } from '@ticketuno/shared';
+import { ShowInfo } from '@ticketuno/shared';
+import { generateSeats, applyDisplayNumbers } from '@ticketuno/shared';
+import { PerformanceSeatsResponse, SeatData} from '@ticketuno/shared';
+import { getErrorMessage } from '@ticketuno/shared';
+import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '@ticketuno/shared';
 import config from '../config';
 
 
@@ -97,7 +96,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Protected: Create new event (admin only)
-router.post('/', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.post('/', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const {
       title, description, genres, durationMinutes, intermissionCount, rating, language,
@@ -276,7 +275,7 @@ router.get('/:eventId/performances/:performanceId', async (req, res) => {
 });
 
 // Protected: Create performance for an event (admin only)
-router.post('/:eventId/performances', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.post('/:eventId/performances', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
     const { performanceDate, startTime, endTime } = req.body;
     const eventId = req.params.eventId;
@@ -452,7 +451,7 @@ router.get('/:eventId/performances/:performanceId/seats/:sectionName', async (re
 });
 
 // Protected: Book seats for a performance
-router.post('/:eventId/performances/:performanceId/book', requireAuthentication, async (req: AuthRequest, res: Response) => {
+router.post('/:eventId/performances/:performanceId/book', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const { seatIds } = req.body;
     const { eventId, performanceId } = req.params;

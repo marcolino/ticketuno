@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { jwtDecode } from "jwt-decode";
 import { useDialog } from '@/contexts/DialogContext';
-import config from '@/shared/config';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 interface JwtPayload {
   exp: number;
@@ -44,10 +44,10 @@ export default function useSessionManager({ token, logout }: Props) {
 
     showDialog({
       title: t('Session expired'),
-      content: boot
-        ? t('Your session expired while you were away. Please login again.')
-        : t('Your session has expired. Please login again.'),
-      confirmText: 'Login',
+      content: boot ?
+        t('Your session expired while you were away. Please login again.') :
+        t('Your session has expired. Please login again.'),
+      confirmText: 'Ok',
       onConfirm: logout,
     });
   };

@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { setupApi } from '@/services/api';
-import { GeneralSetupType } from '@/shared/types/generalSetup';
-import config from '@/shared/config';
+import { GeneralSetupType } from '@ticketuno/shared/types/generalSetup';
+import { sharedConfig as config } from '@ticketuno/shared';
 
 export const defaultSetup: GeneralSetupType = {
   app: {

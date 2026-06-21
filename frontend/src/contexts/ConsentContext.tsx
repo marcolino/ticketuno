@@ -17,7 +17,7 @@
   import { userApi } from '@/services/api';
   import useNavigate from '@/hooks/useNavigate';
   import { useAuth } from './AuthContext';
-  import { FullConsent } from '@/shared/types/consent';
+  import { FullConsent } from '@ticketuno/shared/types/consent';
   import { usePushNotifications, subscribeResultToBool } from '@/hooks/usePushNotifications';
   import config from '@/config';
 

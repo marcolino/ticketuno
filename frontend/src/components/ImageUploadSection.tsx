@@ -9,7 +9,7 @@ import {
   CloudUpload as CloudUploadIcon,
   PhotoCamera as PhotoCameraIcon,
 } from '@mui/icons-material';
-import { ImageUploadSectionProps } from '@/shared/types/image';
+import { ImageUploadSectionProps } from '@ticketuno/shared/types/image';
 
 const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({
   label,

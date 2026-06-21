@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { ShowDialog } from '@/contexts/DialogContext';
-import { GuardHandlerResult, GuardedResult, /*GuardedEditResult, */SuccessKey, Action } from '@/shared/types/guard';
+import { GuardHandlerResult, GuardedResult, /*GuardedEditResult, */SuccessKey, Action } from '@ticketuno/shared/types/guard';
 import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
 
 const reasonMessages: Record<string, string> = {

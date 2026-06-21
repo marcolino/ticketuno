@@ -1,10 +1,9 @@
-import express, { Request } from 'express';
+import express, { Request, Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { database } from '../db/database';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
-import { AuthRequest } from '../shared/types/auth';
-import { Theater, TheaterStats/*, Section*/ } from '../shared/types/theater';
-import { getErrorMessage } from '../shared/utils/misc';
+import { Theater, TheaterStats/*, Section*/ } from '@ticketuno/shared';
+import { getErrorMessage } from '@ticketuno/shared';
 
 const router = express.Router();
 
@@ -75,7 +74,7 @@ router.post('/', requireAuthentication, requireOperator, async (req, res) => {
 });
 
 // Protected: update theater by id (operator only)
-router.put('/:id', requireAuthentication, requireOperator, async (req: AuthRequest, res) => {
+router.put('/:id', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
   try {
 
     // Check if title is set and not null

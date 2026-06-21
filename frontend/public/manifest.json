@@ -2,7 +2,7 @@
   "name": "TicketUno",
   "short_name": "TicketUno",
   "description": "Theater ticket reservation system",
-  "version": "1.0.104",
+  "version": "1.0.105",
   "lang": "it",
   "start_url": "/",
   "scope": "/",

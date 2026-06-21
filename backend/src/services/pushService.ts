@@ -1,6 +1,6 @@
 import webpush, { WebPushError } from 'web-push';
 import { database } from '../db/database';
-import { getErrorMessage } from '../shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared';
 import { i18n } from '../i18n';
 
 export interface PushPayload {

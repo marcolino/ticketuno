@@ -35,5 +35,6 @@ export default function useUnsavedChanges(
   return {
     blocker,
     skipNextBlockRef, // optional escape hatch
+    allowNextNavigation: () => !isDirty || blocker.state === 'unblocked',
   };
 }

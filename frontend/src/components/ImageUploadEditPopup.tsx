@@ -20,9 +20,9 @@ import { useTranslation } from 'react-i18next';
 import ReactCrop, { type Crop, type PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
 import imageCompression from 'browser-image-compression';
-import { getErrorMessage } from '@/shared/utils/misc';
+import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 import { imageApi } from '@/services/api';
-import { ImageType } from '@/shared/types/image';
+import { ImageType } from '@ticketuno/shared/types/image';
 
 // ─── Helper: apply filters, rotation, flip to an image element ─────────────
 const applyFiltersAndTransformations = async (

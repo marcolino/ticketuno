@@ -1,5 +1,5 @@
 import { database } from '../db/database';
-import { GeneralSetupType } from '../shared/types/generalSetup';
+import { GeneralSetupType } from '@ticketuno/shared';
 
 let cachedSetup: GeneralSetupType | null = null;
 

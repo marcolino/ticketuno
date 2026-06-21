@@ -16,7 +16,7 @@ const GIT_COMMIT = getFromGit('git rev-parse --short HEAD') ?? process.env.GIT_C
 const GIT_COMMIT_DATE = getFromGit("git log -1 --format='%ci'")?.slice(0, 19) ?? process.env.GIT_COMMIT_DATE ?? 'unknown';
 
 // Public: get backend version
-router.get('/version', async (req, res) => {
+router.get('/version', async (_req, res) => {
   res.json({
     version: pkg.version,
     lastCommit: GIT_COMMIT,
@@ -25,7 +25,7 @@ router.get('/version', async (req, res) => {
 });
 
 // Public: get health status
-router.get('/health', async (req, res) => {
+router.get('/health', async (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),

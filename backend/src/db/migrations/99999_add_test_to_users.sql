@@ -1,1 +1,0 @@
-ALTER TABLE users ADD COLUMN test_to_debug_migrations TEXT;

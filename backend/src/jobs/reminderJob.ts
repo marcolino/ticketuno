@@ -3,9 +3,9 @@ import { database } from '../db/database';
 import { sendPushToUser } from '../services/pushService';
 import { sendBookingRememberEmail } from '../utils/email';
 import { humanizedDate } from '../utils/misc';
-import { applyDisplayNumbers, generateSeats } from '../shared/utils/layoutToSeats';
-import type { ShowInfo } from '../shared/types/ticket';
-import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '../shared/utils/misc';
+import { applyDisplayNumbers, generateSeats } from '@ticketuno/shared';
+import type { ShowInfo } from '@ticketuno/shared';
+import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '@ticketuno/shared';
 import { i18n } from '../i18n';
 import config from '../config';
 
