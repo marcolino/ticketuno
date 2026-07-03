@@ -36,6 +36,7 @@
     "bump:major": "npm version major",
     "bump:minor": "npm version minor",
     "bump:patch": "npm version patch",
+    "pwa:generate": "./scripts/generate-pwa-assets.js",
     "i18n:extract": "./scripts/extract-mjml-keys.js && i18next-cli extract --config i18next.config.js",
     "i18n:extract:watch": "i18next-cli extract --watch --config i18next.config.js",
     "i18n:sync": "i18next-cli sync --config i18next.config.js",
