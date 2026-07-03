@@ -1,77 +1,84 @@
-  # Multi-stage build for optimal size
-  FROM node:18-alpine AS frontend-builder
+# Multi-stage build for optimal size
+FROM node:18-alpine AS frontend-builder
 
-  WORKDIR /app/frontend
-  COPY frontend/package*.json ./
-  RUN npm ci
-  COPY frontend/ ./
-  COPY shared/ ../shared/
-  ARG VITE_MODE=production
-  RUN npm run build -- --mode ${VITE_MODE}
+WORKDIR /app
+# Copy package.json files for all workspaces
+COPY package*.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY frontend/package*.json ./frontend/
 
-  FROM node:18-alpine AS backend-builder
-  WORKDIR /app/backend
+# Copy source code
+COPY packages/shared/ ./packages/shared/
+COPY frontend/ ./frontend/
 
-  # Copy and install dependencies (caches well)
-  COPY backend/package*.json ./
-  RUN npm ci
+# Build shared package first
+WORKDIR /app/packages/shared
+RUN npm ci && npm run build
 
-  # Copy backend source code
-  COPY backend/ ./
+# Build frontend
+WORKDIR /app/frontend
+RUN npm ci
+# Link to the built shared package
+RUN npm link ../packages/shared || npm install ../packages/shared
+ARG VITE_MODE=production
+RUN npm run build -- --mode ${VITE_MODE}
 
-  ## Add a timestamp file to bust cache
-  #RUN date > /tmp/buildtime
+# --- Backend Builder ---
+FROM node:18-alpine AS backend-builder
 
-  # Copy shared files
-  COPY shared/ ../shared/
-  RUN ln -sf ../../shared src/shared
+WORKDIR /app
+COPY package*.json ./
+COPY packages/shared/package*.json ./packages/shared/
+COPY backend/package*.json ./backend/
 
-  # Run the build
-  RUN npm run build
+COPY packages/shared/ ./packages/shared/
+COPY backend/ ./backend/
 
-  # Create symlink for shared types inside src directory
-  RUN ln -sf ../../shared src/shared
+# Build shared package
+WORKDIR /app/packages/shared
+RUN npm ci && npm run build
 
-  # Final production image
-  FROM node:18-alpine
+# Build backend
+WORKDIR /app/backend
+RUN npm ci
+RUN npm link ../packages/shared || npm install ../packages/shared
+RUN npm run build
 
-  WORKDIR /app
+# --- Final production image ---
+FROM node:18-alpine
 
-  # Install production dependencies only
-  COPY backend/package*.json ./
-  RUN npm ci --only=production && \
-      npm cache clean --force
+WORKDIR /app
 
-  # Copy built backend - with symlink approach, output is at /app/backend/dist/
-  COPY --from=backend-builder /app/backend/dist ./dist
+# Install production dependencies for backend only
+COPY backend/package*.json ./
+RUN npm ci --only=production && npm cache clean --force
 
-  # Copy built frontend to bae served by backend
-  COPY --from=frontend-builder /app/frontend/dist ./public
+# Copy built backend
+COPY --from=backend-builder /app/backend/dist ./dist
 
-  # Copy the shared files from the builder stage
-  COPY --from=backend-builder /app/shared/ /shared/
+# Copy built frontend
+COPY --from=frontend-builder /app/frontend/dist ./public
 
-  # Copy templates from backend source
-  COPY --from=backend-builder /app/backend/src/templates /app/dist/templates
+# Copy shared package (for runtime if needed)
+COPY --from=backend-builder /app/packages/shared ./packages/shared
 
-  # Create data directory for SQLite
-  RUN mkdir -p /data && chown -R node:node /data
+# Copy templates from backend source
+COPY --from=backend-builder /app/backend/src/templates ./dist/templates
 
-  # Add sqlite3
-  RUN apk add --no-cache sqlite
+# Create data directory for SQLite
+RUN mkdir -p /data && chown -R node:node /data
 
-  # Use non-root user
-  USER node
+# Add sqlite3
+RUN apk add --no-cache sqlite
 
-  # Expose default port
-  EXPOSE 8080
+# Use non-root user
+USER node
 
-  # Health check
-  HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:8080/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+# Expose default port
+EXPOSE 8080
 
-  # DEBUG ONLY ############################################################################################
-  #RUN echo "=== FINAL STAGE DEBUG ===" && find / -name "shared" -type d 2>/dev/null | head -20
-  #########################################################################################################
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:8080/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-  CMD ["node", "dist/server.js"]
+CMD ["node", "dist/server.js"]
