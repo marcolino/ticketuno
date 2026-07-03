@@ -8,18 +8,10 @@
     "strict": true,
     "skipLibCheck": true,
 
-    //"baseUrl": ".",
-
     "paths": {
-      "@/*": [
-        "./frontend/src/*"
-      ],
-      "@ticketuno/shared": [
-        "./packages/shared/src/index.ts"
-      ],
-      "@ticketuno/shared/*": [
-        "./packages/shared/src/*"
-      ]
+      "@/*": ["./frontend/src/*"],
+      "@ticketuno/shared": ["./packages/shared/src/index.ts"],
+      "@ticketuno/shared/*": ["./packages/shared/src/*"]
     }
   }
 }

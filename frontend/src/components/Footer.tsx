@@ -13,6 +13,7 @@ import {
 import { useDialog } from '../contexts/DialogContext';
 import OnlineStatus from '@/components/OnlineStatus';
 import { globalApi } from '@/services/api';
+import { getEnvMode } from '@/utils/misc';
 import config from '../config';
 import pkg from '../../package.json';
 
@@ -107,11 +108,13 @@ function Footer({ children }: FooterProps) {
                       >
                         <div>{t("This app is produced by")} {config.app.holder.name}</div>
                         <div>{t("You can reach us at email")} &lt;{config.app.holder.email}&gt;</div>
-                        <div>{t("App mode")} {t("is")} {
-                          import.meta.env.MODE === 'development' ? t('development') :
-                            import.meta.env.MODE === 'staging' ? t('staging') :
-                              t('production')
-                        }</div>
+                        <div>
+                          {t("App mode")} {t("is")} {
+                            getEnvMode() === 'development' ? t('development') :
+                            getEnvMode() === 'staging' ? t('staging') :
+                            t('production')
+                          }
+                        </div>
                         <div>{t('Frontend')}:&nbsp;<strong>v{pkg.version}</strong></div>
                         <div>{t('Backend')}:&nbsp;<strong>v{backendVersion}</strong></div>
                         <div>
@@ -136,9 +139,9 @@ function Footer({ children }: FooterProps) {
 
               <Box component="span" sx={{ ml: 1, fontSize: '0.9em' }}>
                 {
-                  import.meta.env.MODE === 'development' ? '🛠️' :
-                    import.meta.env.MODE === 'staging' ? '🚀' :
-                      ''
+                  getEnvMode() === 'development' ? '🛠️' :
+                  getEnvMode() === 'staging' ? '🚀' :
+                  ''
                 }
               </Box>
             </Typography>          

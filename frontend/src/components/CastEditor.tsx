@@ -1,23 +1,33 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMediaQuery, useTheme } from '@mui/material';
+import { useMediaQuery, useTheme, SxProps, Theme } from '@mui/material';
 import {
   Box,
   InputBase,
   Typography,
 } from '@mui/material';
 
-/**
- * NameInput - a plain bordered text input built on MUI's unstyled InputBase.
- */
-function NameInput({ value, onChange, onKeyDown, placeholder, error, inputRef }: {
+// ══════════════════════════════════════════════════════════════════════════════
+//  TYPES
+// ══════════════════════════════════════════════════════════════════════════════
+
+export type CastEntry = { role: string; name: string };
+export type RoleOption = { key: string; value: string };
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  NAME INPUT
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface NameInputProps {
   value: string;
   onChange: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
   placeholder?: string;
   error?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
-}) {
+}
+
+function NameInput({ value, onChange, onKeyDown, placeholder, error, inputRef }: NameInputProps) {
   const { shape } = useTheme();
   return (
     <InputBase
@@ -45,11 +55,25 @@ function NameInput({ value, onChange, onKeyDown, placeholder, error, inputRef }:
   );
 }
 
-/**
- * ActionButton — a native <button> styled via Box sx.
- * variant: "primary" | "ghost"
- */
-function ActionButton({ onClick, children, variant = "primary", disabled = false, sx = {} }) {
+// ══════════════════════════════════════════════════════════════════════════════
+//  ACTION BUTTON
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface ActionButtonProps {
+  onClick?: () => void;
+  children: React.ReactNode;
+  variant?: "primary" | "secondary" | "text";
+  disabled?: boolean;
+  sx?: SxProps<Theme>;
+}
+
+function ActionButton({ 
+  onClick, 
+  children, 
+  variant = "primary", 
+  disabled = false, 
+  sx = {} 
+}: ActionButtonProps) {
   const { shape } = useTheme();
   const isPrimary = variant === "primary";
   return (
@@ -86,11 +110,15 @@ function ActionButton({ onClick, children, variant = "primary", disabled = false
   );
 }
 
-/**
- * RoleTag — a small tinted badge displaying the role name.
- * Uses primary color with alpha so it adapts to any theme.
- */
-function RoleTag({ label }) {
+// ══════════════════════════════════════════════════════════════════════════════
+//  ROLE TAG
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface RoleTagProps {
+  label: string;
+}
+
+function RoleTag({ label }: RoleTagProps) {
   const { palette } = useTheme();
   const primary = palette.primary.main;
   return (
@@ -107,9 +135,9 @@ function RoleTag({ label }) {
         letterSpacing: "0.04em",
         whiteSpace: "nowrap",
         flexShrink: 0,
-        bgcolor: `${primary}1A`,           // primary @ ~10%
+        bgcolor: `${primary}1A`,
         color: "primary.main",
-        border: `1px solid ${primary}33`,  // primary @ ~20%
+        border: `1px solid ${primary}33`,
       }}
     >
       {label}
@@ -117,7 +145,10 @@ function RoleTag({ label }) {
   );
 }
 
-/** XIcon — inline so there's no icon-library dependency */
+// ══════════════════════════════════════════════════════════════════════════════
+//  ICONS
+// ══════════════════════════════════════════════════════════════════════════════
+
 const XIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
@@ -134,7 +165,6 @@ const PlusIcon = () => (
   </svg>
 );
 
-/** PencilIcon — inline, used for the inline-edit trigger */
 const PencilIcon = () => (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -152,11 +182,16 @@ const FloppyIcon = () => (
   </svg>
 );
 
-/**
- * RemoveButton — a small circular icon-button.
- * Uses error color on hover via inline calculation (no Chip, no IconButton).
- */
-function RemoveButton({ onClick, label }) {
+// ══════════════════════════════════════════════════════════════════════════════
+//  REMOVE / EDIT / SAVE BUTTONS
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface RemoveButtonProps {
+  onClick: () => void;
+  label: string;
+}
+
+function RemoveButton({ onClick, label }: RemoveButtonProps) {
   const { palette } = useTheme();
   const errorColor = palette.error?.main ?? "#EF4444";
   return (
@@ -176,7 +211,7 @@ function RemoveButton({ onClick, label }) {
         transition: "color 150ms, background 150ms",
         "&:hover": {
           color: errorColor,
-          bgcolor: `${errorColor}14`,     // error @ ~8%
+          bgcolor: `${errorColor}14`,
         },
       }}
     >
@@ -185,11 +220,12 @@ function RemoveButton({ onClick, label }) {
   );
 }
 
-/**
- * EditButton — a small circular icon-button for triggering inline name edit.
- * Uses primary color on hover, mirroring RemoveButton's style.
- */
-function EditButton({ onClick, label }) {
+interface EditButtonProps {
+  onClick: () => void;
+  label: string;
+}
+
+function EditButton({ onClick, label }: EditButtonProps) {
   const { palette } = useTheme();
   const primaryColor = palette.primary.main;
   return (
@@ -209,7 +245,7 @@ function EditButton({ onClick, label }) {
         transition: "color 150ms, background 150ms",
         "&:hover": {
           color: primaryColor,
-          bgcolor: `${primaryColor}14`,   // primary @ ~8%
+          bgcolor: `${primaryColor}14`,
         },
       }}
     >
@@ -218,7 +254,12 @@ function EditButton({ onClick, label }) {
   );
 }
 
-function SaveButton({ onClick, label }) {
+interface SaveButtonProps {
+  onClick: () => void;
+  label: string;
+}
+
+function SaveButton({ onClick, label }: SaveButtonProps) {
   const { palette } = useTheme();
   const color = palette.success?.main ?? palette.primary.main;
   return (
@@ -247,22 +288,27 @@ function SaveButton({ onClick, label }) {
   );
 }
 
-/**
- * CastRow — one cast entry: role badge + name + remove button.
- * Entirely custom — no MUI ListItem, no MUI Chip.
- *
- * When `onRename` is provided, the actor name is editable inline:
- * click the pencil icon to enter edit mode, confirm with Enter or blur,
- * cancel with Escape. The role is not editable from this row.
- */
-function CastRow({ role, name, onRemove, onRename }: {
+// ══════════════════════════════════════════════════════════════════════════════
+//  CAST ROW
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface CastRowProps {
   role: string;
   name: string;
   onRemove: () => void;
   onRename?: (newName: string) => void;
-}) {
+}
+
+function CastRow({ role, name, onRemove, onRename }: CastRowProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(name);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [editing]);
 
   const startEdit = () => {
     setDraft(name);
@@ -274,7 +320,6 @@ function CastRow({ role, name, onRemove, onRename }: {
     if (trimmed && trimmed !== name) {
       onRename?.(trimmed);
     } else {
-      // restore draft to committed name if empty or unchanged
       setDraft(name);
     }
     setEditing(false);
@@ -313,20 +358,23 @@ function CastRow({ role, name, onRemove, onRename }: {
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={handleKeyDown}
-          inputRef={(el) => el?.focus()}
-          // No onBlur — the Save button is the explicit commit action
+          inputRef={inputRef}
         />
       ) : (
-        <Typography sx={{ flex: 1, fontSize: "0.9rem", fontWeight: 500,
-          color: "text.primary", overflow: "hidden",
-          textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        <Typography sx={{ 
+          flex: 1, 
+          fontSize: "0.9rem", 
+          fontWeight: 500,
+          color: "text.primary", 
+          overflow: "hidden",
+          textOverflow: "ellipsis", 
+          whiteSpace: "nowrap" 
+        }}>
           {name}
         </Typography>
       )}
 
-      {/* Asve button — only shown when onRename is provided and already editing */}
-      {onRename && editing  && <SaveButton onClick={confirmEdit} label={`Save ${draft}`} />}
-      {/* Edit button — only shown when onRename is provided and not already editing */}
+      {onRename && editing && <SaveButton onClick={confirmEdit} label={`Save ${draft}`} />}
       {onRename && !editing && <EditButton onClick={startEdit} label={`Edit ${name}`} />}
 
       <RemoveButton onClick={onRemove} label={`Remove ${name}`} />
@@ -337,198 +385,54 @@ function CastRow({ role, name, onRemove, onRename }: {
 // ══════════════════════════════════════════════════════════════════════════════
 //  PRESET ROLES
 // ══════════════════════════════════════════════════════════════════════════════
-const DEFAULT_ROLES = [
+
+const DEFAULT_ROLES: RoleOption[] = [
+  { key: 'director', value: 'Director' },
+  { key: 'lead', value: 'Lead Actor' },
+  { key: 'supporting', value: 'Supporting Actor' },
+  { key: 'understudy', value: 'Understudy' },
+  { key: 'crew', value: 'Stage Crew' },
 ];
-  // { key: t('protagonista'), value: ''}
-  // { key: 'director',   value: 'Director' },
-  // { key: 'lead',       value: 'Lead Actor' },
-  // { key: 'supporting', value: 'Supporting Actor' },
-  // { key: 'understudy', value: 'Understudy' },
-  // { key: 'crew',       value: 'Stage Crew' },
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  CAST EDITOR
+//  SELECT WITH ADD STUB
 // ══════════════════════════════════════════════════════════════════════════════
-/**
- * CastEditor
- *
- * Composes SelectWithAdd (role picker) + NameInput + ActionButton
- * into a list manager for theater cast entries.
- *
- * Props:
- *   value       {{ role: string, name: string }[]}   Controlled cast array
- *   onChange    {(cast) => void}                     Called on every change
- *   roleOptions {{ key, value }[]}                   Preset roles for the picker
- *   label       {string}                             Section label
- */
 
-export type CastEntry = { role: string; name: string };
-
-export function CastEditor({
-  value: controlledCast,
-  onChange,
-  roleOptions = DEFAULT_ROLES,
-  label = '', // 'Cast',
-}) {
-  const [internalCast, setInternalCast] = useState([]);
-  const [role, setRole]   = useState('');
-  const [name, setName]   = useState('');
-  const [error, setError] = useState('');
-
-  const cast = controlledCast ?? internalCast;
-
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  console.log("ISMOBILE:", isMobile);
-
-  const { t } = useTranslation();
-  
-  const commit = (next) => {
-    setInternalCast(next);
-    onChange?.(next);
-  };
-
-  const handleAdd = () => {
-    if (!role) { setError('Select a role first.'); return; }
-    if (!name.trim()) { setError('Enter the actor\'s name.'); return; }
-    commit([...cast, { role, name: name.trim() }]);
-    setName('');
-    // Keep the role — it's common to add multiple actors in the same role
-    setError('');
-  };
-
-  const handleRemove = (i) => commit(cast.filter((_, idx) => idx !== i));
-
-  const handleRename = (i, newName) =>
-    commit(cast.map((entry, idx) => (idx === i ? { ...entry, name: newName } : entry)));
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') handleAdd();
-  };
-
-  return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
-
-      {/* Section label */}
-      {label && (
-        <Typography sx={{
-          fontSize: "0.72rem",
-          fontWeight: 700,
-          letterSpacing: "0.07em",
-          textTransform: "uppercase",
-          color: "text.disabled",
-        }}>
-          {label}
-        </Typography>
-      )}
-
-      {/* Cast list */}
-      {cast.length > 0 && (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.625 }}>
-          {cast.map((entry, i) => (
-            <CastRow
-              key={i}
-              role={entry.role}
-              name={entry.name}
-              onRemove={() => handleRemove(i)}
-              onRename={(newName) => handleRename(i, newName)}
-            />
-          ))}
-        </Box>
-      )}
-
-      {cast.length === 0 && (
-        <Box sx={{
-          px: 2, py: 1.5,
-          borderRadius: 1.5,
-          border: "1px dashed",
-          borderColor: "divider",
-          textAlign: "center",
-        }}>
-          <Typography sx={{ fontSize: "0.82rem", color: "text.disabled", fontStyle: "italic" }}>
-            {t('no cast members yet')}
-          </Typography>
-        </Box>
-      )}
-
-      {/* Add form: role + name + button */}
-      {/* <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}> */}
-      <Box
-        sx={{
-          display: "flex",
-          gap: 1,
-          alignItems: "center",
-          //flexDirection: isMobile ? "column" : "row",
-        }}
-      >
-        {/*
-          SelectWithAdd handles the role field.
-          It knows nothing about cast — it's just a value picker.
-          New roles typed here (key === value) are silently accepted.
-        */}
-        <SelectWithAddStub
-          options={roleOptions}
-          value={role}
-          onChange={(key) => { setRole(key); setError(''); }}
-          placeholder={t('Role') + '…'}
-          error={!!error && !role}
-        />
-
-        <NameInput
-          value={name}
-          onChange={(e) => { setName(e.target.value); setError(''); }}
-          onKeyDown={handleKeyDown}
-          placeholder={t('Actor name') + '…'}
-          error={!!error && !name.trim()}
-        />
-
-        <ActionButton
-          onClick={handleAdd}
-          disabled={false}
-          //sx={isMobile ? { width: "100%" } : undefined}
-        >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <PlusIcon /> {!isMobile && t('Add')}
-          </Box>
-        </ActionButton>
-      </Box>
-
-      {/* Inline error */}
-      {error && (
-        <Typography sx={{ fontSize: "0.75rem", color: "error.main", lineHeight: 1 }}>
-          {error}
-        </Typography>
-      )}
-
-    </Box>
-  );
-}
-
-
-type Option = { key: string; value: string };
-
-/**
- * SelectWithAddStub - Minimal inline re-implementation of SelectWithAdd.
- */
-function SelectWithAddStub({ options: init = [], value, onChange, placeholder, error }:  {
-  options?: Option[];
+interface SelectWithAddStubProps {
+  options?: RoleOption[];
   value: string;
   onChange?: (key: string) => void;
   placeholder?: string;
   error?: boolean;
-}) {
+}
+
+function SelectWithAddStub({ 
+  options: initialOptions = [], 
+  value, 
+  onChange, 
+  placeholder, 
+  error 
+}: SelectWithAddStubProps) {
   const theme = useTheme();
   const { t } = useTranslation();
-  const [options, setOptions] = useState(init);
+  const [options, setOptions] = useState<RoleOption[]>(initialOptions);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [addErr, setAddErr] = useState('');
   const primary = theme.palette.primary.main;
-  const radius  = theme.shape.borderRadius ?? 8;
+  const radius = theme.shape.borderRadius ?? 8;
+
+  // Sync options when initialOptions changes
+  useEffect(() => {
+    setOptions(initialOptions);
+  }, [initialOptions]);
 
   const selected = options.find((o) => o.key === value);
 
-  const pick = (key) => { onChange?.(key); setOpen(false); };
+  const pick = (key: string) => { 
+    onChange?.(key); 
+    setOpen(false); 
+  };
 
   const addNew = () => {
     const trimmed = draft.trim();
@@ -541,20 +445,24 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
       return;
     }
     const opt = { key: trimmed, value: trimmed };
-    setOptions((p) => [...p, opt]);
+    setOptions((prev) => [...prev, opt]);
     onChange?.(trimmed);
-    setDraft(''); setAddErr(''); setOpen(false);
+    setDraft(''); 
+    setAddErr(''); 
+    setOpen(false);
   };
 
   return (
-    // <Box sx={{ position: "relative", flexShrink: 0, width: 148 }}>
     <Box sx={{ position: "relative", flex: 1, minWidth: 0 }}>
       {/* Trigger */}
       <Box
         onClick={() => setOpen((o) => !o)}
         sx={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          px: 1.5, py: 0.75,
+          display: "flex", 
+          alignItems: "center", 
+          justifyContent: "space-between",
+          px: 1.5, 
+          py: 0.75,
           border: "1.5px solid",
           borderColor: error ? "error.main" : open ? "primary.main" : "divider",
           borderRadius: `${radius}px`,
@@ -569,13 +477,21 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
         <Typography sx={{
           fontSize: "0.88rem",
           color: selected ? "text.primary" : "text.disabled",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          overflow: "hidden", 
+          textOverflow: "ellipsis", 
+          whiteSpace: "nowrap",
           flex: 1,
         }}>
           {selected?.value ?? placeholder ?? t('Select') + '…'}
         </Typography>
-        <Box sx={{ ml: 0.5, color: "text.disabled", display: "flex", flexShrink: 0,
-          transform: open ? "rotate(180deg)" : "none", transition: "transform 150ms" }}>
+        <Box sx={{ 
+          ml: 0.5, 
+          color: "text.disabled", 
+          display: "flex", 
+          flexShrink: 0,
+          transform: open ? "rotate(180deg)" : "none", 
+          transition: "transform 150ms" 
+        }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="6 9 12 15 18 9" />
@@ -587,14 +503,18 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
       {open && (
         <Box
           sx={{
-            position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0,
+            position: "absolute", 
+            top: "calc(100% + 4px)", 
+            left: 0, 
+            right: 0,
             zIndex: 1400,
             bgcolor: "background.paper",
-            border: "1px solid", borderColor: "divider",
+            border: "1px solid", 
+            borderColor: "divider",
             borderRadius: `${radius}px`,
             boxShadow: "0 8px 30px rgba(0,0,0,0.10)",
             overflow: "hidden",
-            minWidth: 200, // to leave space for placeholders ("New role...", ...)
+            minWidth: 200,
           }}
         >
           {/* Options */}
@@ -604,9 +524,15 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
                 key={o.key}
                 onClick={() => pick(o.key)}
                 sx={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  px: 1.5, py: 0.75, mx: 0.5, borderRadius: 1,
-                  cursor: "pointer", fontSize: "0.88rem",
+                  display: "flex", 
+                  alignItems: "center", 
+                  justifyContent: "space-between",
+                  px: 1.5, 
+                  py: 0.75, 
+                  mx: 0.5, 
+                  borderRadius: 1,
+                  cursor: "pointer", 
+                  fontSize: "0.88rem",
                   fontWeight: o.key === value ? 600 : 400,
                   color: o.key === value ? "primary.main" : "text.primary",
                   bgcolor: o.key === value ? `${primary}12` : "transparent",
@@ -627,8 +553,14 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
 
           {/* Add new */}
           <Box sx={{ borderTop: "1px solid", borderColor: "divider", p: 1 }}>
-            <Typography sx={{ fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.07em",
-              textTransform: "uppercase", color: "text.disabled", mb: 0.5 }}>
+            <Typography sx={{ 
+              fontSize: "0.65rem", 
+              fontWeight: 700, 
+              letterSpacing: "0.07em",
+              textTransform: "uppercase", 
+              color: "text.disabled", 
+              mb: 0.5 
+            }}>
               {t('Add new role')}
             </Typography>
             <Box sx={{ display: "flex", gap: 0.75 }}>
@@ -640,9 +572,14 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
                 onMouseDown={(e) => e.stopPropagation()}
                 placeholder={t('Role') + '…'}
                 sx={{
-                  flex: 1, px: 1, py: 0.5, fontSize: "0.83rem",
-                  border: "1px solid", borderColor: addErr ? "error.main" : "divider",
-                  borderRadius: `${radius - 2}px`, bgcolor: "action.hover",
+                  flex: 1, 
+                  px: 1, 
+                  py: 0.5, 
+                  fontSize: "0.83rem",
+                  border: "1px solid", 
+                  borderColor: addErr ? "error.main" : "divider",
+                  borderRadius: `${radius - 2}px`, 
+                  bgcolor: "action.hover",
                   "& input": { p: 0 },
                   "&.Mui-focused": { borderColor: "primary.main" },
                 }}
@@ -665,6 +602,165 @@ function SelectWithAddStub({ options: init = [], value, onChange, placeholder, e
           sx={{ position: "fixed", inset: 0, zIndex: 1399 }}
         />
       )}
+    </Box>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+//  CAST EDITOR
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface CastEditorProps {
+  value: CastEntry[];
+  onChange: (cast: CastEntry[]) => void;
+  roleOptions?: RoleOption[];
+  label?: string;
+}
+
+export function CastEditor({
+  value: controlledCast,
+  onChange,
+  roleOptions = DEFAULT_ROLES,
+  label = 'Cast',
+}: CastEditorProps) {
+  const [internalCast, setInternalCast] = useState<CastEntry[]>(controlledCast);
+  const [role, setRole] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { t } = useTranslation();
+
+  // Sync internal state when controlled value changes
+  useEffect(() => {
+    setInternalCast(controlledCast);
+  }, [controlledCast]);
+
+  const commit = (next: CastEntry[]) => {
+    setInternalCast(next);
+    onChange(next);
+  };
+
+  const handleAdd = () => {
+    if (!role) { 
+      setError(t('Select a role first.')); 
+      return; 
+    }
+    if (!name.trim()) { 
+      setError(t("Enter the actor's name.")); 
+      return; 
+    }
+    commit([...internalCast, { role, name: name.trim() }]);
+    setName('');
+    setError('');
+  };
+
+  const handleRemove = (index: number) => {
+    commit(internalCast.filter((_, idx) => idx !== index));
+  };
+
+  const handleRename = (index: number, newName: string) => {
+    commit(internalCast.map((entry, idx) => 
+      idx === index ? { ...entry, name: newName } : entry
+    ));
+  };
+
+  const handleKeyDown: React.KeyboardEventHandler<HTMLInputElement> = (e) => {
+    if (e.key === 'Enter') handleAdd();
+  };
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+
+      {/* Section label */}
+      {label && (
+        <Typography sx={{
+          fontSize: "0.72rem",
+          fontWeight: 700,
+          letterSpacing: "0.07em",
+          textTransform: "uppercase",
+          color: "text.disabled",
+        }}>
+          {label}
+        </Typography>
+      )}
+
+      {/* Cast list */}
+      {internalCast.length > 0 && (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.625 }}>
+          {internalCast.map((entry, i) => (
+            <CastRow
+              key={`${entry.role}-${i}`}
+              role={entry.role}
+              name={entry.name}
+              onRemove={() => handleRemove(i)}
+              onRename={(newName) => handleRename(i, newName)}
+            />
+          ))}
+        </Box>
+      )}
+
+      {internalCast.length === 0 && (
+        <Box sx={{
+          px: 2, 
+          py: 1.5,
+          borderRadius: 1.5,
+          border: "1px dashed",
+          borderColor: "divider",
+          textAlign: "center",
+        }}>
+          <Typography sx={{ 
+            fontSize: "0.82rem", 
+            color: "text.disabled", 
+            fontStyle: "italic" 
+          }}>
+            {t('No cast members yet')}
+          </Typography>
+        </Box>
+      )}
+
+      {/* Add form */}
+      <Box
+        sx={{
+          display: "flex",
+          gap: 1,
+          alignItems: "center",
+        }}
+      >
+        <SelectWithAddStub
+          options={roleOptions}
+          value={role}
+          onChange={(key) => { setRole(key); setError(''); }}
+          placeholder={t('Role') + '…'}
+          error={!!error && !role}
+        />
+
+        <NameInput
+          value={name}
+          onChange={(e) => { setName(e.target.value); setError(''); }}
+          onKeyDown={handleKeyDown}
+          placeholder={t('Actor name') + '…'}
+          error={!!error && !name.trim()}
+        />
+
+        <ActionButton
+          onClick={handleAdd}
+          disabled={false}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+            <PlusIcon /> {!isMobile && t('Add')}
+          </Box>
+        </ActionButton>
+      </Box>
+
+      {/* Inline error */}
+      {error && (
+        <Typography sx={{ fontSize: "0.75rem", color: "error.main", lineHeight: 1 }}>
+          {error}
+        </Typography>
+      )}
+
     </Box>
   );
 }

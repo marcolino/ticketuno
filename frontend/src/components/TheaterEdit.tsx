@@ -32,7 +32,21 @@ import { useToast } from '@/contexts/ToastContext';
 import { useDialog } from '@/contexts/DialogContext';
 import useUnsavedChanges from '@/hooks/useUnsavedChanges';
 import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { TheaterStatus } from '@ticketuno/shared';
 import { sharedConfig as config } from '@ticketuno/shared';
+
+interface TheaterData {
+  name: string;
+  description?: string;
+  stageType?: string;
+  address?: string;
+  contactPhone: string;
+  contactEmail: string;
+  websiteUrl?: string;
+  status: TheaterStatus;
+  currentLayoutId: string;
+  selectedLayoutId?: string;
+}
 
 const TheaterEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -70,7 +84,7 @@ const TheaterEdit: React.FC = () => {
   const [originalLayoutId, setOriginalLayoutId] = useState<string>('');
 
   // Theater fields
-  const [theaterData, setTheaterData] = useState(() => {
+  const [theaterData, setTheaterData] = useState<TheaterData>(() => {
     // Check if we have state passed from caller
     if (location.state?.theaterData) {
       return location.state.theaterData;
@@ -163,17 +177,25 @@ const TheaterEdit: React.FC = () => {
         }
         setTheaterData((prev) => ({
           ...prev,
-          currentLayoutId: state.theaterData?.selectedLayoutId
+          currentLayoutId: state.theaterData?.selectedLayoutId || ''
         }));
       })();
     }
   }, [location.state]);
   
-  const handleInputChange = (e) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTheaterData({
       ...theaterData,
       [e.target.name]: e.target.value
     });
+    setIsDirty(true);
+  };
+
+  const handleAddressChange = (event: { target: { name?: string; value: string } }) => {
+    setTheaterData((prev: TheaterData) => ({
+      ...prev,
+      [event.target.name || 'address']: event.target.value
+    }));
     setIsDirty(true);
   };
   
@@ -193,7 +215,7 @@ const TheaterEdit: React.FC = () => {
       return;
     }
 
-    setTheaterData((prev) => ({ 
+    setTheaterData((prev: TheaterData) => ({ 
       ...prev, 
       currentLayoutId: layoutId
     }));
@@ -210,7 +232,7 @@ const TheaterEdit: React.FC = () => {
   };
   
   const handleSave = async () => {
-    if (!theaterData.name.trim()) {
+    if (!theaterData.name?.trim()) {
       toast.warning(t('Name is required'));
       return;
     }
@@ -218,21 +240,30 @@ const TheaterEdit: React.FC = () => {
       toast.warning(t('A layout is required'));
       return;
     }
+    
     try {
       setSaving(true);
-      //setError('');
 
       let savedId: string;
       if (isEditMode) {
-        const payload = { ...theaterData };
-        if (payload.currentLayoutId === originalLayoutId) {
-          delete payload.currentLayoutId; // Unchanged, skip guard
-        }
+        // Create payload without the layout ID if it hasn't changed
+        const basePayload = { ...theaterData };
+
+        // const payload = basePayload.currentLayoutId === originalLayoutId
+        //   ? (({ currentLayoutId, ...rest }) => rest)(basePayload)
+        //   : basePayload;
+        // If layout hasn't changed, remove it from the payload
+        const payload = basePayload.currentLayoutId === originalLayoutId
+          ? Object.fromEntries(
+              Object.entries(basePayload).filter(([key]) => key !== 'currentLayoutId')
+            )
+          : basePayload
+        ;
         const response = await theaterApi.updateTheater(id, payload);
         const result = response.data;
+        
         // Check if the update was blocked by active bookings
         if (result.blockedBy?.length) {
-          // Show the guard dialog (same as handleGuardResult)
           const confirmed = await showDialog({
             title: t('Active bookings exist'),
             content: createElement(ActiveBookingsWarning, {
@@ -251,6 +282,7 @@ const TheaterEdit: React.FC = () => {
           }
           return;
         }
+        
         if (result.updated === true) {
           savedId = id!;
           setIsDirty(false);
@@ -258,7 +290,7 @@ const TheaterEdit: React.FC = () => {
           navigate(-1);
           return;
         }
-        // Fallback error
+        
         toast.error(t('Failed to update theater'));
         return;
       } else {
@@ -344,9 +376,9 @@ const TheaterEdit: React.FC = () => {
               label={t('Stage Type')}
               storageKey='eventStageCustom'
               presetOptions={STAGE_PRESETS}
-              value={theaterData.stageType}
+              value={theaterData.stageType || ''}
               //onChange={handleInputChange}
-              onChange={(value) => {
+              onChange={(value: string) => {
                 setTheaterData({ ...theaterData, stageType: value });
                 setIsDirty(true);
               }}
@@ -371,8 +403,8 @@ const TheaterEdit: React.FC = () => {
           <Grid item xs={12} md={8}>
             <OpenStreetMapAutocomplete
               name="address"
-              value={theaterData.address}
-              onChange={handleInputChange}
+              value={theaterData.address ?? ''}
+              onChange={handleAddressChange}
               placeholder={t('Indirizzo stradale')}
             />
           </Grid>
@@ -392,7 +424,7 @@ const TheaterEdit: React.FC = () => {
                 label={t('Contact phone number')}
                 value={theaterData.contactPhone}
                 onChange={(value) => {
-                  setTheaterData(prev => ({ ...prev, contactPhone: value }));
+                  setTheaterData((prev: TheaterData) => ({ ...prev, contactPhone: value }));
                   setIsDirty(true);
                 }}
                 onBlur={() => contactPhoneValidate(theaterData.contactPhone)}

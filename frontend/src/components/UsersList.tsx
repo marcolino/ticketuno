@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import {
   Edit,
+  AccountBox,
   Delete,
   FilterList,
   Email,
@@ -152,7 +153,7 @@ const UsersList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const showDialog = useDialog();
-  const { user: currentUser, loading } = useAuth();
+  const { user: currentUser, loading, isAdmin, impersonate } = useAuth();
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -251,14 +252,23 @@ const UsersList: React.FC = () => {
     filters.name || filters.email || filters.phone || filters.role || quickFilterText;
 
   // Actions
-  const handleEditUser = (params) => {
-    const targetUser = params.row;
+  const handleEditUser = (targetUser: UserRow) => {
     if (!currentUser || !userCanManageAccount(currentUser.role, targetUser.role)) {
       toast.warning(t('Sorry, your user\'s role cannot edit this user, with role {{role}}', {role: targetUser.role}));
       return;
     }
-    navigate(`/user/edit/${params.row.id}`);
+    navigate(`/user/edit/${targetUser.id}`);
   }
+
+  const handleImpersonate = async (user: UserRow) => {
+    try {
+      await impersonate(user.id);
+      toast.success(t('Now impersonating {{name}}', { name: `${user.firstName} ${user.lastName}` }));
+      navigate('/');
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
 
   const handleDeleteUser = (user: UserRow) => {
     showDialog({
@@ -421,13 +431,22 @@ const UsersList: React.FC = () => {
     {
       field: 'actions',
       headerName: t('Actions'),
-      width: 120,
+      width: 160,
       sortable: false,
       renderCell: (params) => (
         <>
-          <IconButton onClick={() => handleEditUser(params)}>
+          <IconButton onClick={() => handleEditUser(params.row)}>
             <Edit />
           </IconButton>
+          {isAdmin && (
+            <IconButton
+              title={t('Impersonate this user')}
+              onClick={() => handleImpersonate(params.row)}
+              disabled={params.row.id === currentUser?.id}
+            >
+              <AccountBox />
+            </IconButton>
+          )}
           <IconButton color="error" onClick={() => handleDeleteUser(params.row)}>
             <Delete />
           </IconButton>

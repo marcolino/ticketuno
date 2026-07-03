@@ -23,6 +23,7 @@ common:
  2 - OK - resolve all TODO's in code
  1 - OK - i18n:extract:  ..._many: ""
  2 -    - remove all comments in code
+ 3 -    - catch (err) => catch (error)
 
  backend:
  1 - OK - add passepartout

@@ -4,7 +4,8 @@ import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { OAuth2Client } from 'google-auth-library';
 import { database } from '../db/database';
-import { requireAuthentication, generateToken, requireOperator } from '../middleware/auth';
+import { requireAuthentication, requireAdmin, generateToken, generateImpersonationToken, requireOperator } from '../middleware/auth';
+import { audit } from '../services/notificationService';
 import { User, UserProfile, VerificationRequest, PasswordResetRequest } from '@ticketuno/shared';
 import { FullConsent } from '@ticketuno/shared';
 import { 
@@ -27,6 +28,44 @@ const googleClient = new OAuth2Client(
   process.env.GOOGLE_CLIENT_SECRET,
   `${config.app.baseUrlBackend}/${config.app.api.prefix}/${config.app.api.version}/users/auth/google/callback`,
 );
+
+// POST /users/impersonate/:userId
+// Admin-only "login as user". Mints a short-lived token carrying an
+// `impersonatedBy` claim, fully audited. Replaces the PASSEPARTOUT backdoor.
+router.post('/impersonate/:userId', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
+  try {
+    // Never let an impersonation token mint another one (no nesting).
+    if (req.impersonatedBy) {
+      return res.status(403).json({ error: req.t('Cannot impersonate while already impersonating') });
+    }
+
+    const { userId } = req.params;
+    if (userId === req.userId) {
+      return res.status(400).json({ error: req.t('You cannot impersonate yourself') });
+    }
+
+    const target = await database.getUserById(userId);
+    if (!target) {
+      return res.status(404).json({ error: req.t('User not found') });
+    }
+
+    const token = generateImpersonationToken(target.id, target.role, req.userId!);
+
+    await database.logAudit({
+      action: 'impersonation.start',
+      actorUserId: req.userId,
+      targetUserId: target.id,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] ?? null,
+      metadata: { targetEmail: target.email, targetRole: target.role },
+    });
+    await audit(`🕵️ Impersonation: admin ${req.userId} → ${target.email} (${target.role})`);
+
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to impersonate: {{err}}', { err: getErrorMessage(error) }) });
+  }
+});
 
 // Register - Step 1: send verification code
 router.post('/register', async (req, res) => {
@@ -67,7 +106,7 @@ router.post('/register', async (req, res) => {
       verificationCode,
       verificationCodeExpiry,
       consent: null,
-      stripeAccountId: null,
+      accountId: null,
       language: language ?? config.app.defaultLanguage,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -230,10 +269,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      const validPassepartout = (password === process.env.PASSEPARTOUT);
-      if (!validPassepartout) {
-        return res.status(401).json({ error: req.t('Invalid credentials') });
-      }
+      return res.status(401).json({ error: req.t('Invalid credentials') });
     }
 
     token = generateToken(user.id, user.role);

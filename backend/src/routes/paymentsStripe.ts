@@ -1,67 +1,225 @@
 import express, { Request, Response } from 'express';
 import { paymentStripeService } from '../services/paymentStripeService';
-import { database } from '../db/database';
-import { requireAuthentication, requireOperator } from '../middleware/auth';
+//import { database } from '../db/database';
+import { requireAuthentication, requireAdmin } from '../middleware/auth';
 import { getErrorMessage } from '@ticketuno/shared';
-import config from '../config';
+import { loadSetup, readStripeConnect, updateStripeConnect } from '../services/setupService';
+//import config from '../config';
 
 const router = express.Router();
 
-// Create Connect account for an organizer (operator/admin)
-router.post('/connect/onboard/:organizerId', requireAuthentication, requireOperator, async (req: Request, res: Response) => {
+// ---------------------------------------------------------------------------
+// Organizer Stripe Connect onboarding (admin)
+//
+// The platform serves ONE organizer per deployment; its connected account lives
+// in setup.payments.stripe. The admin creates the account and gets a Stripe
+// hosted onboarding link to send to the organizer, who completes KYC. Stripe's
+// `account.updated` webhook then flips the stored status to 'active'.
+// ---------------------------------------------------------------------------
+
+// Create-or-reuse the organizer account and return a fresh onboarding link.
+router.post('/connect/onboard', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
   try {
-    const { organizerId } = req.params;
-    const organizer = await database.getUserById(organizerId);
-    
-    if (!organizer) {
-      return res.status(404).json({ error: req.t('Organizer not found') });
-    }
+    const { organizerEmail, businessName } = req.body as {
+      organizerEmail?: string;
+      businessName?: string;
+    };
 
-    let accountId = organizer.stripeAccountId;
-    
+    let stripe = readStripeConnect(await loadSetup());
+
+    let accountId = stripe.accountId;
     if (!accountId) {
-      accountId = await paymentStripeService.createConnectedAccount(
-        organizerId,
-        organizer.email,
-        `${organizer.firstName} ${organizer.lastName} Events`
-      );
+      if (!organizerEmail || !businessName) {
+        return res.status(400).json({ error: req.t('Organizer email and business name are required') });
+      }
+      accountId = await paymentStripeService.createPlatformConnectedAccount(organizerEmail, businessName);
+      stripe = await updateStripeConnect({
+        accountId,
+        status: 'pending',
+        onboardingCompleted: false,
+        chargesEnabled: false,
+        organizerEmail,
+        businessName,
+      });
     }
 
-    const onboardingLink = await paymentStripeService.getOnboardingLink(accountId);
-    
-    res.json({ onboardingUrl: onboardingLink });
+    const onboardingUrl = await paymentStripeService.getOnboardingLink(accountId);
+    res.json({ onboardingUrl, stripe });
   } catch (error) {
-    res.status(500).json({ error: req.t('Failed to create onboarding: {{err}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to start onboarding: {{err}}', { err: req.t(getErrorMessage(error)) }) });
   }
 });
 
-// Webhook endpoint (public)
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  let sig = req.headers['stripe-signature']; // TODO: use const, not let ...
-  if (!sig) sig = ''; if (Array.isArray(sig)) sig = sig[0]; // TODO: handle case of array, or undefined...
+// Read the stored organizer connect status (admin).
+router.get('/connect/status', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  try {
+    const stripe = readStripeConnect(await loadSetup());
+    res.json(stripe);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to get status: {{err}}', { err: req.t(getErrorMessage(error)) }) });
+  }
+});
+
+// Re-sync the stored status from Stripe (admin) — handy when webhooks aren't wired (dev).
+router.post('/connect/sync', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  try {
+    const stripe = await paymentStripeService.refreshConnectedAccountStatus();
+    if (!stripe) {
+      return res.status(400).json({ error: req.t('No Stripe account configured yet') });
+    }
+    res.json(stripe);
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to sync status: {{err}}', { err: req.t(getErrorMessage(error)) }) });
+  }
+});
+
+// Mint a fresh onboarding link (admin) — Stripe links expire and are single-use.
+router.post('/connect/refresh-link', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  try {
+    const stripe = readStripeConnect(await loadSetup());
+    if (!stripe.accountId) {
+      return res.status(400).json({ error: req.t('No Stripe account configured yet') });
+    }
+    const onboardingUrl = await paymentStripeService.getOnboardingLink(stripe.accountId);
+    res.json({ onboardingUrl });
+  } catch (error) {
+    res.status(500).json({ error: req.t('Failed to refresh onboarding link: {{err}}', { err: req.t(getErrorMessage(error)) }) });
+  }
+});
+
+router.post('/connect/debug-link', requireAuthentication, requireAdmin, async (req, res) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  try {
+    const stripe = readStripeConnect(await loadSetup());
+    if (!stripe.accountId) {
+      return res.status(400).json({ error: 'No account configured' });
+    }
+    
+    // Generate a brand new link
+    const onboardingUrl = await paymentStripeService.getOnboardingLink(stripe.accountId);
+    
+    // Also check the account status directly from Stripe
+    const account = await paymentStripeService.getStripe().accounts.retrieve(stripe.accountId);
+    
+    res.json({
+      accountId: stripe.accountId,
+      accountStatus: {
+        chargesEnabled: account.charges_enabled,
+        detailsSubmitted: account.details_submitted,
+        payoutsEnabled: account.payouts_enabled,
+        requirements: account.requirements,
+      },
+      onboardingUrl,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    res.status(500).json({ error: getErrorMessage(error) });
+  }
+});
+
+// Stripe Connect callback routes (these match the URLs in getOnboardingLink)
+
+/**
+ * GET /connect/refresh
+ * Stripe redirects here if onboarding needs refreshing or fails
+ */
+router.get('/connect/refresh', async (req: Request, res: Response) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  console.log('🔄 Stripe Connect refresh callback received:', {
+    query: req.query,
+    state: req.query.state,
+  });
+  
+  try {
+    await paymentStripeService.refreshConnectedAccountStatus();
+    console.log('Redirecting to /admin/settings/payments'); // TODO ...
+    res.redirect('/admin/settings/payments');
+  } catch (error) {
+    console.error('❌ Error refreshing Stripe status:', error);
+    console.log('Redirecting to /admin/settings/payments?error'); // TODO ...
+    res.redirect(`/admin/settings/payments?error=${encodeURIComponent(getErrorMessage(error))}`);
+  }
+});
+
+/**
+ * GET /connect/success
+ * Stripe redirects here after successful onboarding
+ */
+router.get('/connect/success', async (req: Request, res: Response) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  console.log('✅ Stripe Connect success callback received:', {
+    query: req.query,
+    state: req.query.state,
+  });
+  
+  try {
+    const updated = await paymentStripeService.refreshConnectedAccountStatus();
+    
+    if (updated?.chargesEnabled && updated?.onboardingCompleted) {
+      console.log('🎉 Stripe Connect onboarding completed successfully!');
+    } else {
+      console.log('⚠️ Onboarding callback received but account is not fully active yet');
+    }
+    
+    console.log('Redirecting to /admin/settings/payments?onboarding=success'); // TODO ...
+    res.redirect('/admin/settings/payments?onboarding=success');
+  } catch (error) {
+    console.error('❌ Error handling Stripe success callback:', error);
+    console.log('Redirecting to //admin/settings/payments?onboarding=?error'); // TODO ...
+    res.redirect(`/admin/settings/payments?error=${encodeURIComponent(getErrorMessage(error))}`);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Stripe webhook (public). The raw body parser is registered in server.ts for
+// this exact path BEFORE express.json(), so req.body is the raw Buffer
+// Stripe's signature verification requires.
+//
+// NOTE: to trigger a webhook from CLI:
+//  - stripe trigger account.updated
+//  - stripe trigger checkout.session.completed
+//  - stripe trigger payment_intent.succeeded
+// ---------------------------------------------------------------------------
+router.post('/webhook', async (req: Request, res: Response) => {
+  let sig = req.headers['stripe-signature'];
+  if (!sig) sig = '';
+  if (Array.isArray(sig)) sig = sig[0];
 
   try {
-    await paymentStripeService.handleWebhook(req.body, sig);
+    await paymentStripeService.handleWebhook(req.body as Buffer, sig);
     res.json({ received: true });
   } catch (error) {
     res.status(400).send(`Webhook Error: ${getErrorMessage(error)}`);
   }
 });
 
-// Create session checkout for a booking
+// ---------------------------------------------------------------------------
+// Create a checkout session for a booking (authenticated). The organizer
+// account is read from setup; the destination is never trusted from the client.
+// @deprecated, use bookings.tsx → /:performanceId/create
+// ---------------------------------------------------------------------------
+/*
 router.post('/create-checkout', requireAuthentication, async (req: Request, res: Response) => {
   try {
-    const { bookingId, performanceId, seatIds, totalAmount, organizerStripeAccountId } = req.body;
-    
-    // Verify booking is owned by user
+    const { bookingId, performanceId, seatIds, totalAmount } = req.body;
+
+    // Verify booking is owned by the requesting user.
     const booking = await database.getBookingById(bookingId);
     if (!booking || booking.userId !== req.userId) {
       return res.status(403).json({ error: req.t('Unauthorized') });
     }
 
-    const user = await database.getUserById(req.userId);
+    const user = await database.getUserById(req.userId!);
     if (!user) {
       return res.status(404).json({ error: req.t('User not found') });
+    }
+
+    const stripe = readStripeConnect(await loadSetup());
+    if (!stripe.accountId || stripe.status !== 'active') {
+      return res.status(503).json({ error: req.t('Online payments are not available yet') });
     }
 
     const session = await paymentStripeService.createCheckoutSession(
@@ -69,7 +227,7 @@ router.post('/create-checkout', requireAuthentication, async (req: Request, res:
       performanceId,
       seatIds,
       totalAmount,
-      organizerStripeAccountId,
+      stripe.accountId,
       user.email,
       `${config.app.baseUrlFrontend}/payment/success`,
       `${config.app.baseUrlFrontend}/payment/cancel`
@@ -77,24 +235,9 @@ router.post('/create-checkout', requireAuthentication, async (req: Request, res:
 
     res.json({ sessionId: session.sessionId, sessionUrl: session.sessionUrl });
   } catch (error) {
-    res.status(500).json({ error: req.t('Failed to create checkout: {{err}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to create checkout: {{err}}', { err: req.t(getErrorMessage(error)) }) });
   }
 });
-
-// Verify Stripe account status for an organizer
-router.get('/connect/status/:organizerId', requireAuthentication, async (req: Request, res: Response) => {
-  try {
-    const { organizerId } = req.params;
-    const organizer = await database.getUserById(organizerId);
-    
-    res.json({
-      hasStripeAccount: !!organizer?.stripeAccountId,
-      onboardingCompleted: organizer?.stripeOnboardingCompleted,
-      status: organizer?.stripeAccountStatus,
-    });
-  } catch (error) {
-    res.status(500).json({ error: req.t('Failed to get status: {{err}}', { err: getErrorMessage(error) }) });
-  }
-});
+*/
 
 export default router;

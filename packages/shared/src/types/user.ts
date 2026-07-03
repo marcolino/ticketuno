@@ -18,7 +18,7 @@ export interface User {
   googleId?: string;
   language?: string;
   consent: FullConsent | null;
-  stripeAccountId?: string | null;
+  accountId?: string | null;
   stripeOnboardingCompleted?: boolean;
   stripeAccountStatus?: string | null,
   createdAt: string;

@@ -1,14 +1,27 @@
 import {
   APP_NAME,
   CODENAME,
+  HOLDER,
+  API,
   CURRENCIES,
   DEFAULT_CURRENCY,
   LANGUAGES,
   DEFAULT_LANGUAGE,
+  DEFAULT_COUNTRY,
+  DEFAULT_TIMEZONE,
+  DEFAULT_PHONE_PREFIX,
+  NGROK_URL
 } from './constants';
 
-const baseUrlFrontendDevelopment = 'http://localhost:3000';
-const baseUrlBackendDevelopment = 'http://localhost:3001';
+// ── Environment detection ──────────────────────────────────────────────
+const nodeEnv = process.env.NODE_ENV || 'development';
+export const isDev = nodeEnv === 'development';
+export const isProd = nodeEnv === 'production';
+export const isStaging = nodeEnv === 'staging';
+
+// ── URLs ──────────────────────────────────────────────────────────────────
+const baseUrlFrontendDevelopment = NGROK_URL || 'http://localhost:3000';
+const baseUrlBackendDevelopment = NGROK_URL || 'http://localhost:3001';
 
 const baseUrlFrontendStaging = `https://${CODENAME}-staging.fly.dev`;
 const baseUrlBackendStaging = `https://${CODENAME}-staging.fly.dev`;
@@ -16,45 +29,40 @@ const baseUrlBackendStaging = `https://${CODENAME}-staging.fly.dev`;
 const baseUrlFrontendProduction = `https://${CODENAME}.fly.dev`;
 const baseUrlBackendProduction = `https://${CODENAME}.fly.dev`;
 
-const isProd = process.env.NODE_ENV === 'production';
-const isStaging = process.env.NODE_ENV === 'staging';
-
 const resolve = (dev: string, staging: string, prod: string) =>
   isProd ? prod : isStaging ? staging : dev;
 
-/* ---------------------------- currencies (ok) ---------------------------- */
+// ── Currencies ──────────────────────────────────────────────────────────
+// export const currencies = {
+//   EUR: { symbol: '€', name: 'Euro' },
+//   USD: { symbol: '$', name: 'US Dollar' },
+//   GBP: { symbol: '£', name: 'British Pound' },
+//   JPY: { symbol: '¥', name: 'Japanese Yen' },
+// } as const;
 
-export const currencies = {
-  EUR: { symbol: '€', name: 'Euro' },
-  USD: { symbol: '$', name: 'US Dollar' },
-  GBP: { symbol: '£', name: 'British Pound' },
-  JPY: { symbol: '¥', name: 'Japanese Yen' },
-} as const;
+export type CurrencyCode = keyof typeof CURRENCIES;
 
-export type CurrencyCode = keyof typeof currencies;
+// export const languages = {
+//   en: { name: 'English', flag: '🇬🇧' },
+//   it: { name: 'Italiano', flag: '🇮🇹' },
+//   fr: { name: 'Français', flag: '🇫🇷' },
+//   zh: { name: 'Chinese', flag: '🇨🇳' },
+// } as const;
 
-export const languages = {
-  en: { name: 'English', flag: '🇬🇧' },
-  it: { name: 'Italiano', flag: '🇮🇹' },
-  fr: { name: 'Français', flag: '🇫🇷' },
-  zh: { name: 'Chinese', flag: '🇨🇳' },
-} as const;
-
-/* ----------------------------- shared config ------------------------------ */
-
+// ── Shared Config ──────────────────────────────────────────────────────
 export const sharedConfig = {
   app: {
     holder: {
-      name: 'Marco Solari',
-      email: 'marcosolari@gmail.com',
+      name: HOLDER.name,
+      email: HOLDER.email,
     },
 
     api: {
-      prefix: 'api',
-      version: 'v1',
-      timeoutSeconds: process.env.NODE_ENV === 'development' ? 5 : 15,
+      prefix: API.prefix,
+      version: API.version,
+      timeoutSeconds: isDev ? API.timeoutSeconds.development : API.timeoutSeconds.production,
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': API.headers['Content-Type'],
       },
     },
 
@@ -93,16 +101,13 @@ export const sharedConfig = {
     baseUrlBackendDevelopment,
     baseUrlFrontendDevelopment,
 
-    languages,
-
-    defaultLanguage: 'it',
-    defaultCountry: 'it',
-    defaultTimezone: 'Europe/Rome',
-    defaultPhonePrefix: '+39',
-
-    currencies,
-
-    defaultCurrency: 'EUR' as CurrencyCode,
+    languages: LANGUAGES,
+    defaultLanguage: DEFAULT_LANGUAGE,
+    defaultCountry: DEFAULT_COUNTRY,
+    defaultTimezone: DEFAULT_TIMEZONE,
+    defaultPhonePrefix: DEFAULT_PHONE_PREFIX,
+    currencies: CURRENCIES,
+    defaultCurrency: DEFAULT_CURRENCY as CurrencyCode,
 
     theme: {
       defaultType: 'native',
@@ -132,9 +137,10 @@ export const sharedConfig = {
       purchases: {
         gateways: {
           free: {},
+          cash: {},
           stripe: {},
         },
-        gateway: 'free',
+        gateway: 'stripe',
       },
     },
 
@@ -148,4 +154,6 @@ export const sharedConfig = {
   },
 } as const;
 
-export type SharedConfig = typeof sharedConfig
+console.log('baseUrlFrontend:', sharedConfig.app.baseUrlFrontend);
+
+export type SharedConfig = typeof sharedConfig;

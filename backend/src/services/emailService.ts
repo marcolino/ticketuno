@@ -267,7 +267,7 @@ class EmailService {
       // MJML COMPILE
       // -------------------------------------------------
 
-      const result = mjml2html(fullMjml, {
+      const result = await mjml2html(fullMjml, {
         validationLevel: 'soft',
       });
 

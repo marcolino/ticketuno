@@ -39,12 +39,14 @@ const App: React.FC = () => {
   // Map i18next language codes to dayjs locale codes if needed
   const adapterLocale = (lang: string) => {
     // Handle language codes like 'en-US' -> 'en'
-    return lang.split('-')[0];
+    const language = lang ? lang.split('-')[0] : 'it';
+    return language.split('-')[0];
   };
 
   // Map language to MUI locale
   const muiLocale = useMemo(() => {
-    const lang = i18n.language.split('-')[0];
+    //const lang = i18n.language.split('-')[0];
+    const lang = i18n.language ? i18n.language.split('-')[0] : 'it'; // TODO: default language... And, why undefined, in Firefox anonymous???
     switch (lang) {
       // Add all supported languages here
       case 'it':

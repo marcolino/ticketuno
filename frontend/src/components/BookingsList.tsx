@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, memo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -22,6 +23,7 @@ import Alert from './Alert';
 import PageHeader from './PageHeader';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDialog } from '@/contexts/DialogContext';
 import { bookingApi, userApi } from '@/services/api';
 import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 import { BookingEnriched, BookingStatus } from '@ticketuno/shared/types/bookings';
@@ -78,7 +80,7 @@ interface FilterValues {
 }
 
 const DEFAULT_FILTERS: FilterValues = {
-  status: 'confirmed',
+  status: '', // 'confirmed',
   eventTitle: '',
   userEmail: '',
   dateFrom: '',
@@ -155,22 +157,6 @@ const FilterPanel = memo(({ show, filters, onFilterChange }: FilterPanelProps) =
 
 // ---------------------------------------------------------------------------
 // Main component
-//
-// Auth priority (resolved once on mount, before any data is loaded):
-//
-//   1. isAuthenticated === true  →  already have a session (normal navigation).
-//      `authReady` starts as `true`; data loads immediately.
-//
-//   2. isAuthenticated === false + ?token= present  →  arriving from a push
-//      notification link. Exchange the one-time token for a JWT by calling
-//      login({ token }), which is the existing AuthContext token-login branch.
-//      Data loads once the exchange resolves.
-//
-//   3. isAuthenticated === false + no ?token=  →  unauthenticated with no way
-//      in. Show an error; the parent route guard normally prevents this state.
-//
-// Note: AuthProvider renders `{!loading && children}`, so `loading` is always
-// false by the time this component mounts — no guard is needed here.
 // ---------------------------------------------------------------------------
 
 const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
@@ -179,62 +165,96 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { isAuthenticated, login } = useAuth();
+  const showDialog = useDialog();
+  const [searchParams] = useSearchParams();
 
   // ---------------------------------------------------------------------------
   // Auth / token-exchange state
-  //
-  // `authReady` starts true when already authenticated so data loads at once.
   // ---------------------------------------------------------------------------
 
   const [authReady/*, setAuthReady*/] = useState(isAuthenticated);
   const [authError, setAuthError] = useState<string | null>(null);
 
+  // ---------------------------------------------------------------------------
+  // Payment dialog state
+  // ---------------------------------------------------------------------------
+
+  const [paymentDialogShown, setPaymentDialogShown] = useState(false);
+
+  // Check for payment parameters
+  const paymentStatus = searchParams.get('payment');
+  const sessionId = searchParams.get('session_id');
+
+  // Show payment dialog if needed
   useEffect(() => {
-    // Case 1 — already authenticated via normal session. Nothing to do.
+    if (paymentDialogShown) return;
+    if (!paymentStatus) return;
+
+    const isSuccess = paymentStatus === 'success';
+    const isCanceled = paymentStatus === 'canceled';
+
+    if (!isSuccess && !isCanceled) return;
+
+    // Determine dialog content
+    const title = isSuccess 
+      ? t('Payment Successful! 🎉')
+      : t('Payment Cancelled');
+
+    const content = isSuccess
+      ? t('Your payment has been processed successfully. Your booking is now confirmed. You will receive a confirmation email shortly.')
+      : t('Your payment was cancelled. You can try booking again or contact support if you need assistance.');
+
+    const mode = isSuccess ? 'success' : 'warning';
+
+    // Show the dialog
+    setPaymentDialogShown(true);
+    showDialog({
+      title,
+      content,
+      confirmText: t('Ok'),
+      mode,
+      onConfirm: () => {
+        // Clean up URL parameters
+        const url = new URL(window.location.href);
+        url.searchParams.delete('payment');
+        url.searchParams.delete('session_id');
+        window.history.replaceState({}, '', url.toString());
+        // Reload bookings
+        if (authReady && !authError) {
+          loadBookings();
+        }
+      },
+    });
+  }, [paymentStatus, sessionId, showDialog, t, authReady, authError]);
+
+  // ---------------------------------------------------------------------------
+  // Auth handling
+  // ---------------------------------------------------------------------------
+
+  useEffect(() => {
     if (isAuthenticated) return;
 
-    // Case 2 — one-time push-notification token in the URL.
     const pushToken = new URLSearchParams(window.location.search).get('token');
 
     if (!pushToken) {
-      // Case 3 — no session and no token.
       setAuthError(t('Session expired. Please log in again.'));
       return;
     }
 
-    // Exchange the push token for a short-lived JWT.
-    // The `/auth/token-login` endpoint is public (no Authorization header
-    // required); `api` sends no auth header when none is set, so this works.
     userApi
       .loginWithToken(pushToken)
       .then(({ data }) => login({ token: data.jwt }))
-    // api
-    //   .get<{ jwt: string }>(`/auth/token-login?token=${pushToken}`)
-    //   .then(({ data }) =>
-    //     // login({ token }) is the existing AuthContext branch that calls
-    //     // setAuthToken + loadProfile, returning the full User object.
-    //     login({ token: data.jwt })
-    //   )
-    //   .then(() => {
-    //     // Strip ?token= from history so back/refresh don't replay the token.
-    //     window.history.replaceState({}, '', window.location.pathname);
-    //     setAuthReady(true);
-    //   })
       .catch((err: unknown) => {
         setAuthError(t('The link has expired or is invalid. Please log in.'));
         console.error('[BookingsList] push token exchange failed:', getErrorMessage(err));
-      })
-    ;
-
-    // Run once on mount only — isAuthenticated is intentionally excluded from
-    // deps to avoid re-running after login() updates AuthContext state.
+      });
   }, []);
 
   // ---------------------------------------------------------------------------
   // Data loading
   // ---------------------------------------------------------------------------
 
-  const [bookings,  setBookings]  = useState<BookingEnriched[] | null>(null);
+  const [bookings, setBookings] = useState<BookingEnriched[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadBookings = useCallback(async () => {
@@ -259,19 +279,19 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
   // Filters
   // ---------------------------------------------------------------------------
 
-  const [showFilters,     setShowFilters]     = useState(false);
-  const [filters,         setFilters]         = useState<FilterValues>(DEFAULT_FILTERS);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterValues>(DEFAULT_FILTERS);
   const [quickFilterText, setQuickFilterText] = useState('');
   const debouncedSearch = useDebounce(quickFilterText, 300);
 
   const filteredRows = useMemo(() => {
     if (!bookings) return [];
     return bookings.filter((b) => {
-      if (filters.status     && b.status !== filters.status)                                            return false;
+      if (filters.status && b.status !== filters.status) return false;
       if (filters.eventTitle && !b.eventTitle.toLowerCase().includes(filters.eventTitle.toLowerCase())) return false;
-      if (filters.userEmail  && !b.userEmail.toLowerCase().includes(filters.userEmail.toLowerCase()))   return false;
-      if (filters.dateFrom   && b.performanceDate < filters.dateFrom)                                   return false;
-      if (filters.dateTo     && b.performanceDate > filters.dateTo)                                     return false;
+      if (filters.userEmail && !b.userEmail.toLowerCase().includes(filters.userEmail.toLowerCase())) return false;
+      if (filters.dateFrom && b.performanceDate < filters.dateFrom) return false;
+      if (filters.dateTo && b.performanceDate > filters.dateTo) return false;
       if (debouncedSearch) {
         const q = debouncedSearch.toLowerCase();
         return (
@@ -288,7 +308,7 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
   const hasActiveFilters =
     filters.status !== 'confirmed' ||
     !!filters.eventTitle || !!filters.userEmail ||
-    !!filters.dateFrom   || !!filters.dateTo    ||
+    !!filters.dateFrom || !!filters.dateTo ||
     !!quickFilterText;
 
   const clearFilters = useCallback(() => {
@@ -303,9 +323,9 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
   const columns = useMemo((): GridColDef[] => (
     [
       {
-        field:      'bookingRef',
+        field: 'bookingRef',
         headerName: t('Ticket ref'),
-        width:      130,
+        width: 130,
         renderCell: (p) => (
           <Box component="span" sx={{
             fontFamily: 'monospace', fontWeight: 700,
@@ -316,49 +336,49 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
         ),
       },
       {
-        field:       'userName',
-        headerName:  t('User'),
-        width:       isMobile ? 160 : undefined,
-        flex:        isMobile ? undefined : 1.4,
+        field: 'userName',
+        headerName: t('User'),
+        width: isMobile ? 160 : undefined,
+        flex: isMobile ? undefined : 1.4,
         valueGetter: (_v: unknown, row: BookingEnriched) =>
           `${row.userFirstName} ${row.userLastName}`,
       },
       {
-        field:      'userEmail',
+        field: 'userEmail',
         headerName: t('Email'),
-        width:      isMobile ? 200 : undefined,
-        flex:       isMobile ? undefined : 1.6,
+        width: isMobile ? 200 : undefined,
+        flex: isMobile ? undefined : 1.6,
       },
       {
-        field:      'eventTitle',
+        field: 'eventTitle',
         headerName: t('Event'),
-        width:      isMobile ? 200 : undefined,
-        flex:       isMobile ? undefined : 1.6,
+        width: isMobile ? 200 : undefined,
+        flex: isMobile ? undefined : 1.6,
       },
       {
-        field:          'performanceDate',
-        headerName:     t('Date'),
-        width:          120,
+        field: 'performanceDate',
+        headerName: t('Date'),
+        width: 120,
         valueFormatter: (v: string) => formatDate(v),
       },
       {
-        field:      'startTime',
+        field: 'startTime',
         headerName: t('Time'),
-        width:      65,
+        width: 65,
       },
       {
-        field:          'totalPrice',
-        headerName:     t('Price'),
-        width:          80,
-        align:          'right',
-        headerAlign:    'right',
+        field: 'totalPrice',
+        headerName: t('Price'),
+        width: 80,
+        align: 'right',
+        headerAlign: 'right',
         valueFormatter: (v: number) =>
           v != null ? v.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '',
       },
       {
-        field:      'status',
+        field: 'status',
         headerName: t('Status'),
-        width:      115,
+        width: 115,
         renderCell: (p) => (
           <Chip
             label={t(p.value as string)}
@@ -368,25 +388,25 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
         ),
       },
       {
-        field:       'scannedAt',
-        headerName:  t('Scanned'),
-        width:       85,
-        align:       'center',
+        field: 'scannedAt',
+        headerName: t('Scanned'),
+        width: 85,
+        align: 'center',
         headerAlign: 'center',
-        renderCell:  (p) =>
+        renderCell: (p) =>
           p.value ? <Chip label={t('Yes')} color="info" size="small" /> : null,
       },
       {
-        field:          'bookedAt',
-        headerName:     t('Booked'),
-        width:          155,
+        field: 'bookedAt',
+        headerName: t('Booked'),
+        width: 155,
         valueFormatter: (v: string) => formatDateTime(v),
       },
       {
-        field:      'actions',
+        field: 'actions',
         headerName: '',
-        width:      56,
-        sortable:   false,
+        width: 56,
+        sortable: false,
         renderCell: (p) => (
           <IconButton
             size="small"
@@ -410,22 +430,15 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       <PageHeader title={t('Bookings')} showAdd={false} />
 
-      {/* Auth error (expired push link, or no session at all) */}
       {authError && <Alert severity="error">{authError}</Alert>}
-
-      {/* Data-load error */}
       {loadError && <Alert severity="error">{loadError}</Alert>}
 
-      {/* Empty state — only shown once data has loaded successfully */}
       {!authError && !loadError && bookings?.length === 0 && (
         <Alert severity="info">{t('No bookings found')}</Alert>
       )}
 
-      {/* Grid — rendered only after auth is settled and with no auth error */}
       {authReady && !authError && (
         <Stack spacing={2}>
-
-          {/* Control bar */}
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1 }}>
             <TextField
               size="small"
@@ -481,7 +494,6 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
               />
             </Box>
           </Box>
-
         </Stack>
       )}
     </Container>

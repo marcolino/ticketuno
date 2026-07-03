@@ -62,3 +62,13 @@ export function localizedDate({
   const formatter = new Intl.DateTimeFormat(locale, options);
   return formatter.format(date);
 };
+
+export const getEnvMode = (): 'development' | 'staging' | 'production' => {
+  // Use type assertion to avoid TypeScript error
+  const mode = (import.meta as any).env?.MODE || 'production';
+  return mode;
+};
+
+// export const isDev = getEnvMode() === 'development';
+// export const isStaging = getEnvMode() === 'staging';
+// export const isProd = getEnvMode() === 'production';

@@ -3,8 +3,15 @@
 
   "compilerOptions": {
     "jsx": "react-jsx",
-     "module": "ESNext",
-    "moduleResolution": "bundler"
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    //"baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"], // Override path for frontend
+      "@ticketuno/shared": ["../packages/shared/src/index.ts"],
+      "@ticketuno/shared/*": ["../packages/shared/src/*"]
+    }
   },
 
   "include": [

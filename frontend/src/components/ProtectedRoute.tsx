@@ -50,47 +50,49 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   useEffect(() => {
     if (isAuthenticated && requireAdmin && !isAdmin && !warningShown) {
-      setWarningShown(true);
-      showDialog({
-        title: t('Insufficient Permissions'),
-        content: t('Admin role is required to access this page'),
-        buttons: [
-          {
-            text: 'Login',
-            onClick: () => navigate('/?authMode=login'),
-            variant: 'contained',
-          },
-          {
-            text: 'Go home',
-            onClick: () => navigate('/'),
-            variant: 'contained',
-          },
-        ],
-        mode: 'error',
-      });
+      navigate('/');
+      // setWarningShown(true);
+      // showDialog({
+      //   title: t('Insufficient Permissions'),
+      //   content: t('Admin role is required to access this page'),
+      //   buttons: [
+      //     {
+      //       text: 'Login',
+      //       onClick: () => navigate('/?authMode=login'),
+      //       variant: 'contained',
+      //     },
+      //     {
+      //       text: 'Go home',
+      //       onClick: () => navigate('/'),
+      //       variant: 'contained',
+      //     },
+      //   ],
+      //   mode: 'error',
+      // });
     }
   }, [isAuthenticated, requireAdmin, isAdmin, warningShown, navigate, t]);
 
   useEffect(() => {
     if (isAuthenticated && requireOperator && !isOperator && !warningShown) {
-      setWarningShown(true);
-      showDialog({
-        title: t('Insufficient Permissions'),
-        content: t('Operator role is required to access this page'),
-        buttons: [
-          {
-            text: 'Login',
-            onClick: () => navigate('/?authMode=login'),
-            variant: 'contained',
-          },
-          {
-            text: 'Go home',
-            onClick: () => navigate('/'),
-            variant: 'contained',
-          },
-        ],
-        mode: 'error',
-      });
+      navigate('/');
+      // setWarningShown(true);
+      // showDialog({
+      //   title: t('Insufficient Permissions'),
+      //   content: t('Operator role is required to access this page'),
+      //   buttons: [
+      //     {
+      //       text: 'Login',
+      //       onClick: () => navigate('/?authMode=login'),
+      //       variant: 'contained',
+      //     },
+      //     {
+      //       text: 'Go home',
+      //       onClick: () => navigate('/'),
+      //       variant: 'contained',
+      //     },
+      //   ],
+      //   mode: 'error',
+      // });
     }
   }, [isAuthenticated, requireOperator, isOperator, warningShown, navigate, t]);
 

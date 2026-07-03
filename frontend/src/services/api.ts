@@ -18,9 +18,11 @@ import { PerformanceSeatsResponse } from '@ticketuno/shared/types/performance';
 import { Layout } from '@ticketuno/shared/types/layout';
 import { GeneralSetupType } from '@ticketuno/shared/types/generalSetup';
 import { BookingEnriched, BookingDetail } from '@ticketuno/shared/types/bookings';
+import { StripeConnectSetup } from '@ticketuno/shared';
 import { GuardResult, GuardedDeleteResult, GuardedDeleteResultBulk, GuardedUpdateResult } from '@ticketuno/shared/types/guard';
 import { i18n } from '@/i18n';
 import { sharedConfig as config } from '@ticketuno/shared';
+//import { deprecatedPropType } from '@mui/material';
 
 let redirectingToMaintenance = false;
 
@@ -327,6 +329,9 @@ export const userApi = {
   getAllUsers: () =>
     api.get<User[]>(`/users`),
 
+  impersonate: (userId: string) => // Admin "login as user"
+    api.post<{ token: string }>(`/users/impersonate/${userId}`),
+
   // delete: (userId: string) =>
   //   api.delete<GuardedDeleteResult>(`/users/${userId}`),
   delete: (userIds: string | string[]) => {
@@ -446,7 +451,8 @@ export const eventApi = {
   deletePerformance: (eventId: string, performanceId: string) =>
     api.delete(`/events/${eventId}/performances/${performanceId}`),
 
-  bookPerformance: (eventId: string, performanceId: string, seatIds: string[]) =>
+  // @deprecated // TODO: REMOVE ME
+  _bookPerformance: (eventId: string, performanceId: string, seatIds: string[]) =>
     api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
 };
 
@@ -480,6 +486,9 @@ export const bookingApi = {
   getById: (id: string) =>
     api.get<BookingDetail>(`/bookings/${id}`),
  
+  create: (performanceId: string, seatIds: string[]) =>
+    api.post(`/bookings/${performanceId}/create`, { seatIds }),
+
   /**
    * Authenticated: cancel a booking (release the seat).
    * Regular users may cancel their own confirmed bookings.
@@ -512,6 +521,15 @@ export const imageApi = {
     api.delete(`/images/${filename}`),
 };
 
+export const stripeConnectApi = {
+  onboard: (data: { organizerEmail: string; businessName: string }) =>
+    api.post<{ onboardingUrl: string; stripe: StripeConnectSetup }>('/paymentsStripe/connect/onboard', data),
+  status: () => api.get<StripeConnectSetup>('/paymentsStripe/connect/status'),
+  sync: () => api.post<StripeConnectSetup>('/paymentsStripe/connect/sync'),
+  refreshLink: () => api.post<{ onboardingUrl: string }>('/paymentsStripe/connect/refresh-link'),
+  //refreshLink: () => api.post<{ onboardingUrl: string }>('/paymentsStripe/connect/debug-link'), // TODO...
+};
+
 export const guardsApi = {
   performance:
     (id: string) =>
@@ -528,7 +546,11 @@ export const guardsApi = {
   layout:
     (id: string) =>
       api.get<GuardResult>(`/guards/layout/${id}`).then(r => r.data),
-  };
+  
+  user:
+    (id: string) =>
+      api.get<GuardResult>(`/guards/user/${id}`).then(r => r.data),
+};
 
 export const setupApi = {
   load: () =>

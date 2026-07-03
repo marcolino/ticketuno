@@ -45,12 +45,14 @@ import {
   ConfirmationNumber as ConfirmationNumberIcon,
   Group as GroupIcon,
   QrCode as QrCodeIcon,
+  Link as LinkIcon,
 } from '@mui/icons-material';
 import useNavigate from '@/hooks/useNavigate';
 import Header from './Header';
 import Body from './Body';
 import Footer from './Footer';
 import { useAuth } from '@/contexts/AuthContext';
+import ImpersonationBanner from './ImpersonationBanner';
 import { useDialog } from '../contexts/DialogContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { ThemePreference } from '@ticketuno/shared/types/theme';
@@ -172,6 +174,13 @@ const Home: React.FC = () => {
     navigate('/users');
   };
 
+  const handleStripeOrganizerSetup = () => {
+    //alert("Work in progress...");
+    handleClose();
+    navigate('/stripe-organizer-setup');
+  };
+  
+
   const handleBookingsValidate = () => {
     handleClose();
     navigate('/booking/validate');
@@ -249,10 +258,12 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
 
   //{config.app.languages[i18n.language ?? config.app.defaultLanguage].flag ?? '🏳️' }
   //const languageFlag = '🏳️';
-  let lang = config.app.languages[i18n.language];
-  if (!lang) {
-    lang = config.app.languages[config.app.defaultLanguage];
-  }
+  //let lang = config.app.languages[i18n.language];
+  const lang = config.app.languages[i18n.language as keyof typeof config.app.languages] 
+    ?? config.app.defaultLanguage;
+  // if (!lang) {
+  //   lang = config.app.languages[config.app.defaultLanguage];
+  // }
   const languageFlag = lang.flag ?? '🏳️';
 
   return (
@@ -389,9 +400,23 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                     </ListItemText>
                   </MenuItem>
 
-                  <Divider />
                 </>
               )}
+
+              {isAdmin && (
+                <>
+                  <MenuItem onClick={() => { handleClose(); handleStripeOrganizerSetup(); }}>
+                    <ListItemIcon>
+                      <LinkIcon fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>
+                      {t('Stripe organizer setup')}
+                    </ListItemText>
+                  </MenuItem>
+                </>
+              )}
+
+              <Divider />
 
               <MenuItem onClick={handleProfile}>
                 <ListItemIcon>
@@ -478,6 +503,9 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
           </Button>
         )}
       </Header>
+
+      {/* Impersonation warning (visible only during an admin impersonation) */}
+      <ImpersonationBanner />
 
       {/* Main Body Content */}
       <Body>

@@ -1,6 +1,6 @@
 import config from '../config';
 
-export const formatMoney = (
+export const formatMoney = ( // TODO: do not use config...default..., but current setup values, and language from frontend
   value: number,
   locale: string = config.app.defaultLanguage,
   currency: string = config.app.defaultCurrency): string => {
@@ -91,77 +91,6 @@ export const formatTimeDifference = (
 
   // Join with a space if there are multiple parts
   return parts.join(' ');
-}
-
-
-/**
- *Formats a "humanized" date (for today and yestarday and tomorrow)
- * @param dateInput - Date input
- * @param locale - Locale to which format the date string
- * @param timeZone - Date input
- * @param t - Translation function
- * @returns Humanized date
- */
-export const humanizedDate = (
-  dateInput: string | Date,
-  locale: string,
-  timeZone: string,
-  t: (key: string, params?: Record<string, unknown>) => string
-) => {
-  const date = new Date(
-    typeof dateInput === 'string'
-      ? dateInput.replace(' ', 'T') + 'Z'
-      : dateInput
-  );
-
-  const now = new Date();
-
-  const dateOnly = (d: Date) =>
-    new Intl.DateTimeFormat('en-CA', {
-      timeZone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(d); // YYYY-MM-DD
-
-  const targetDay = dateOnly(date);
-  const today = dateOnly(now);
-
-  const yesterdayDate = new Date(now);
-  yesterdayDate.setDate(now.getDate() - 1);
-  const yesterday = dateOnly(yesterdayDate);
-
-  const tomorrowDate = new Date(now);
-  tomorrowDate.setDate(now.getDate() + 1);
-  const tomorrow = dateOnly(tomorrowDate);
-
-  const time = date.toLocaleTimeString(locale, {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  const humanizedTime = time.replace(/:00$/, '');
-  if (targetDay === today) {
-    return t('today') + ', ' + t('at time') + ' ' + humanizedTime;
-  }
-
-  if (targetDay === yesterday) {
-    return t('yesterday') + ', ' + t('at time') + ' ' + humanizedTime;
-  }
-
-  if (targetDay === tomorrow) {
-    return t('tomorrow') + ', ' + t('at time') + ' ' + humanizedTime;
-  }
-
-  return t('on') + ' ' + date.toLocaleString(locale, {
-    timeZone,
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 /** Helpers *************************************************************************************/

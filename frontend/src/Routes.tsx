@@ -18,6 +18,10 @@ import UserEdit from './components/UserEdit';
 import Unsubscribe from './components/Unsubscribe';
 import ConsentEntry from './components/ConsentEntry';
 import GeneralSetup from './components/GeneralSetup';
+import StripeOrganizerSetup from './components/StripeOrganizerSetup';
+import StripeConnect from './components/StripeConnect';
+//import PaymentResults from './components/PaymentResults';
+import AdminPayments from './components/AdminPayments';
 import Maintenance from './components/Maintenance';
 import NotFound from './components/NotFound';
 import PrivacyPage from './pages/PrivacyPage';
@@ -49,6 +53,7 @@ const router = createBrowserRouter(
             { path: 'bookings', element: <PR><BookingsList mode="all" /></PR> },
             { path: 'bookings/my', element: <PR><BookingsList mode="my" /></PR> },
             { path: 'bookings/:id?', element: <PR><BookingsList /></PR> },
+            { path: 'bookings/:performanceId/create', element: <PerformanceBooking /> },
             { path: 'bookings/edit/:id', element: <PR><BookingEdit /></PR> },
             //{ path: 'booking/validate', element: <PR requireOperator={true}><BookingValidate /></PR> },
             { path: 'users', element: <PR requireOperator={true}><UsersList /></PR> },
@@ -56,6 +61,12 @@ const router = createBrowserRouter(
             { path: 'unsubscribe/:token', element: <Unsubscribe /> },
             { path: 'consent/:token/:type?', element: <ConsentEntry /> },
             { path: 'generalSetup', element: <PR requireOperator={true}><GeneralSetup /></PR> },
+            { path: 'stripe-organizer-setup', element: <PR requireAdmin={true}><StripeOrganizerSetup /></PR> },
+            { path: 'stripe/connect/success', element: <PR requireAdmin={true}><StripeConnect action='success' /></PR> },
+            { path: 'stripe/connect/refresh', element: <PR requireAdmin={true}><StripeConnect action='refresh' /></PR> },
+            { path: 'admin/payments', element: <PR requireAdmin={true}><AdminPayments /></PR> },
+            { path: 'payments/success', element: <BookingsList mode="my" /> },
+            { path: 'payments/canceled', element: <BookingsList mode="my" /> },
             { path: 'maintenance', element: <Maintenance /> },
             { path: 'privacy', element: <PrivacyPage /> },
             { path: 'terms', element: <TermsPage /> },

@@ -1,39 +1,81 @@
-// ── Per-section shapes ──────────────────────────────────────────
-export interface AppSetup {
-  currency: string;
-  timeout: number;
+import { CurrencyCode } from '../config';
+
+// ── Types ──────────────────────────────────────────────────────────────
+
+export type PaymentGateway = 'stripe' | 'satispay' | 'revolut' | 'paypal' | 'sumup' | 'cash' | 'free';
+
+export type StripeConnectStatus = 'none' | 'pending' | 'active' | 'disabled' | 'error';
+
+export interface StripeConnectSetup {
+  status: StripeConnectStatus;
+  organizerEmail: string | null;
+  businessName: string | null;
+  accountId: string | null;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+  detailsSubmitted: boolean;
+  onboardingCompleted: boolean;  
+  onboardingUrl?: string | null;
+  error?: string | null;
 }
 
-export interface PreferencesSetup {
-  enableNotifications: boolean;
-  launchDate: string | null;
-  time: string | null;
-}
-
-export interface SecuritySetup {
-  apiKey: string;
-}
-
-export type PaymentGateway = 'stripe' | 'revolut' | 'paypal' | 'sumup';
-
-export interface PaymentsSetup {
-  enabled: boolean;
-  gateway: PaymentGateway | null;
-  stripePublicKey: string;
-  stripeSecretKey: string;
-  revolutApiKey: string;
-}
-
-// ── Root shape ──────────────────────────────────────────────────
 export interface GeneralSetupType {
-  app: AppSetup;
-  preferences: PreferencesSetup;
-  security: SecuritySetup;
-  payments: PaymentsSetup;
+  app: {
+    currency: CurrencyCode;
+    timeout: number;
+  };
+  preferences: {
+    enableNotifications: boolean;
+    launchDate: string | null;
+    time: string | null;
+  };
+  security: {
+    apiKey: string;
+  };
+  payments: {
+    enabled: boolean;
+    gateway: PaymentGateway | null;
+    stripe: StripeConnectSetup;
+  };
 }
 
-// Derive section keys from the shape itself — stays in sync automatically
+// ── Section names ──────────────────────────────────────────────────────
+
 export type GeneralSetupSections = keyof GeneralSetupType;
 
-// Utility for partial deep saves
-export type DeepPartial<T> = { [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K] };
+// ── DeepPartial helper ─────────────────────────────────────────────────
+
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P];
+};
+
+// ── Default values ─────────────────────────────────────────────────────
+
+export const defaultGeneralSetup: GeneralSetupType = {
+  app: {
+    currency: 'EUR' as CurrencyCode,
+    timeout: 10,
+  },
+  preferences: {
+    enableNotifications: true,
+    launchDate: null,
+    time: null,
+  },
+  security: {
+    apiKey: '',
+  },
+  payments: {
+    enabled: false,
+    gateway: 'stripe',
+    stripe: {
+      accountId: null,
+      status: 'none',
+      onboardingCompleted: false,
+      chargesEnabled: false,
+      payoutsEnabled: false,
+      detailsSubmitted: false,
+      organizerEmail: null,
+      businessName: null,
+    },
+  },
+};

@@ -18,7 +18,7 @@ import setupRoutes from './routes/setup';
 import pushRoutes from './routes/push';
 import paymentsStripeRoutes from './routes/paymentsStripe';
 import internalRoutes from './routes/internal';
-import { database } from './db/database'; // import database AFTER config
+import { database } from './db/database';
 import { loadSetup } from './services/setupService';
 import config from './config';
 
@@ -30,6 +30,13 @@ const localesStaticDir = path.join(rootDir, 'packages', 'shared', 'assets', 'loc
 const app = express();
 
 app.use(cors());
+
+/**
+ * Stripe webhook signature verification needs the raw request body, so the raw
+ * parser MUST be registered for this exact path BEFORE express.json() consumes it.
+ */
+app.use(`${prefix}/paymentsStripe/webhook`, express.raw({ type: 'application/json' }));
+
 app.use(express.json());
 
 // Initialize i18n middleware

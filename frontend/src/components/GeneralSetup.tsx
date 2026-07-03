@@ -21,10 +21,14 @@ import { useSetupRefresh, defaultSetup, deepMerge } from '@/contexts/SetupContex
 import { setupApi } from '@/services/api';
 import PageHeader from './PageHeader';
 import { getErrorMessage } from '@ticketuno/shared/utils/misc';
-import {
-  GeneralSetupType, GeneralSetupSections,
-  PaymentGateway, DeepPartial,
-} from '@ticketuno/shared/types/generalSetup';
+import type {
+  GeneralSetupType,
+  GeneralSetupSections,
+  PaymentGateway,
+  DeepPartial,
+} from '@ticketuno/shared';
+//import { defaultGeneralSetup } from '@ticketuno/shared';
+import { CurrencyCode } from '@ticketuno/shared';
 import config from '@/config';
 
 // ── Constants ───────────────────────────────────────────────────
@@ -33,14 +37,20 @@ const currencies = Object.keys(config.app.currencies);
 const SECTIONS: GeneralSetupSections[] = ['app', 'preferences', 'security', 'payments'];
 
 const PAYMENT_GATEWAYS: { value: PaymentGateway; label: string }[] = [
-  { value: 'stripe',   label: 'Stripe'   },
-  { value: 'revolut',  label: 'Revolut'  },
-  { value: 'paypal',   label: 'PayPal'   },
-  { value: 'sumup',    label: 'SumUp'    },
+  { value: 'stripe', label: 'Stripe' },
+  { value: 'satispay', label: 'Satispay' },
+  { value: 'revolut', label: 'Revolut' },
+  { value: 'paypal', label: 'PayPal' },
+  { value: 'sumup', label: 'SumUp' },
+  { value: 'cash', label: 'Cash' },
+  { value: 'free', label: 'Free' },
 ];
 
-// ── Typed handleChange ──────────────────────────────────────────
-// Keeps section → key → value fully typed.
+// // ── Typed handleChange ──────────────────────────────────────────
+// type SectionKeyMap = {
+//   [S in GeneralSetupSections]: keyof GeneralSetupType[S];
+// };
+
 type SectionSetter = <
   S extends GeneralSetupSections,
   K extends keyof GeneralSetupType[S]
@@ -93,7 +103,7 @@ function GeneralSetup() {
     (async () => {
       try {
         const response = await setupApi.load();
-        const merged: GeneralSetupType = deepMerge(defaultSetup, response.data);
+        const merged: GeneralSetupType = deepMerge(defaultSetup, response.data || {});
         setStatus(merged);
         setInitialStatus(merged);
         entryStatusRef.current = merged;
@@ -159,7 +169,7 @@ function GeneralSetup() {
             <Select
               value={status.app.currency}
               label={t('Currency')}
-              onChange={(e) => handleChange('app', 'currency', e.target.value)}
+              onChange={(e) => handleChange('app', 'currency', e.target.value as CurrencyCode)}
             >
               {currencies.map((c) => (
                 <MenuItem key={c} value={c}>{c}</MenuItem>
@@ -192,7 +202,6 @@ function GeneralSetup() {
             label={t('Enable notifications')}
           />
         </Grid>
-        {/* Dependent fields: disabled when notifications are off */}
         <Grid item xs={12}>
           <TextField
             label={t('Launch date')}
@@ -245,7 +254,6 @@ function GeneralSetup() {
       const { enabled, gateway } = status.payments;
       return (
         <Grid container spacing={2}>
-          {/* Master switch */}
           <Grid item xs={12}>
             <FormControlLabel
               control={
@@ -258,7 +266,6 @@ function GeneralSetup() {
             />
           </Grid>
 
-          {/* Gateway picker — disabled when payments are off */}
           <Grid item xs={12}>
             <FormControl fullWidth disabled={!enabled}>
               <InputLabel>{t('Payment gateway')}</InputLabel>
@@ -275,40 +282,6 @@ function GeneralSetup() {
               </Select>
             </FormControl>
           </Grid>
-
-          {/* Gateway-specific fields */}
-          {enabled && gateway === 'stripe' && (
-            <>
-              <Grid item xs={12}>
-                <TextField
-                  label={t('Stripe public key')}
-                  fullWidth
-                  value={status.payments.stripePublicKey}
-                  onChange={(e) => handleChange('payments', 'stripePublicKey', e.target.value)}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  label={t('Stripe secret key')}
-                  type="password"
-                  fullWidth
-                  value={status.payments.stripeSecretKey}
-                  onChange={(e) => handleChange('payments', 'stripeSecretKey', e.target.value)}
-                />
-              </Grid>
-            </>
-          )}
-          {enabled && gateway === 'revolut' && (
-            <Grid item xs={12}>
-              <TextField
-                label={t('Revolut API key')}
-                type="password"
-                fullWidth
-                value={status.payments.revolutApiKey}
-                onChange={(e) => handleChange('payments', 'revolutApiKey', e.target.value)}
-              />
-            </Grid>
-          )}
         </Grid>
       );
     },

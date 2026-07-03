@@ -15,6 +15,7 @@ import { GeneralSetupType } from '@ticketuno/shared';
 import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardResult } from '@ticketuno/shared';
 import { EventQueryOptions, PerformanceQueryOptions } from '@ticketuno/shared';
 import { ROLES, type Role } from '@ticketuno/shared';
+import { PaymentGateway } from '@ticketuno/shared/types/generalSetup';
 import { notify } from '../services/notificationService';
 import config from '../config';
 
@@ -392,7 +393,7 @@ class Database {
       googleId: row.google_id as string,
       language: row.language as string,
       consent,
-      stripeAccountId: row.stripe_account_id as string,
+      accountId: row.stripe_account_id as string,
       stripeOnboardingCompleted: row.stripe_onboarding_completed as boolean,
       stripeAccountStatus: row.stripe_account_status as string,
       createdAt: row.created_at as string,
@@ -478,6 +479,38 @@ class Database {
     );
   }
 
+  // ---------------------------------------------------------------------------
+  // Audit log
+  // ---------------------------------------------------------------------------
+
+  async logAudit(entry: {
+    action: string;
+    actorUserId?: string | null;
+    targetUserId?: string | null;
+    ip?: string | null;
+    userAgent?: string | null;
+    metadata?: Record<string, unknown> | null;
+  }): Promise<void> {
+    const id = this.uuid();
+    const params: SqlParam[] = [
+      id,
+      entry.action,
+      entry.actorUserId ?? null,
+      entry.targetUserId ?? null,
+      entry.ip ?? null,
+      entry.userAgent ?? null,
+      entry.metadata ? JSON.stringify(entry.metadata) : null,
+    ];
+    await runQuery(
+      this.db, `
+        INSERT INTO audit_log
+        (id, action, actor_user_id, target_user_id, ip, user_agent, metadata)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `,
+      params, 'insert audit log'
+    );
+  }
+
   async getUserByEmail(email: string): Promise<User | null> {
     const row = await getQuery(this.db, `
       SELECT *
@@ -540,6 +573,9 @@ class Database {
       googleId: 'google_id',
       language: 'language',
       consent: 'consent',
+      accountId: 'stripe_account_id',
+      stripeOnboardingCompleted: 'stripe_onboarding_completed',
+      stripeAccountStatus: 'stripe_account_status',
     };
 
     Object.entries(updates).forEach(([key, value]) => {
@@ -1951,9 +1987,10 @@ class Database {
     seatIds: string[],
     userId: string,
     totalPrice: number = 0,
-    paymentMethod: 'stripe' | 'cash' = 'stripe'
+    paymentMethod: PaymentGateway,
   ): Promise<{
     success: boolean;
+    bookingIds: Array<string>;
     bookedCount: number;
     seats: Array<{ seatId: string; bookingRef: string }>;
     unavailableSeats?: string[];
@@ -1977,7 +2014,7 @@ class Database {
       
       if (unavailable.length > 0) {
         await runQuery(this.db, 'ROLLBACK', [], 'bookSeatsWithPaymentMethod rollback unavailable');
-        return { success: false, bookedCount: 0, seats: [], unavailableSeats: unavailable };
+        return { success: false, bookingIds: [], bookedCount: 0, seats: [], unavailableSeats: unavailable };
       }
 
       // Determine initial status based on payment method
@@ -2049,6 +2086,7 @@ class Database {
       await runQuery(this.db, 'COMMIT', [], 'bookSeatsWithPaymentMethod commit');
       return {
         success: true,
+        bookingIds: perSeat.map(s => s.bookingId),
         bookedCount: perSeat.length,
         seats: perSeat.map(({ seatId, bookingRef }) => ({ seatId, bookingRef })),
         unavailableSeats: [],
@@ -2383,21 +2421,54 @@ class Database {
   }
 
   /**
-   * Atomically marks a booking as used.
+   * Atomically marks booking as used (physical entry)
+   * Used when: QR code is scanned at theater entrance
    * Returns true if it was just now marked; false if already scanned, canceled, or not found.
    */
   async markBookingUsed(ref: string, byDevice?: string): Promise<boolean> {
-    const result = await runQuery(
-      this.db, `
-        UPDATE bookings
-        SET scanned_at = CURRENT_TIMESTAMP, scanned_by = ?
-        WHERE booking_ref = ?
-        AND scanned_at IS NULL
-        AND status = 'confirmed'
-      `,
-      [byDevice ?? null, ref], 'mark booking used'
-    );
-    return result.changes > 0;
+    try {
+      const result = await runQuery(
+        this.db, `
+          UPDATE bookings
+          SET scanned_at = CURRENT_TIMESTAMP, scanned_by = ?
+          WHERE booking_ref = ?
+          AND scanned_at IS NULL
+          AND status = 'confirmed'
+        `,
+        [byDevice ?? null, ref],
+        'mark booking used'
+      );
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error marking booking used:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Update booking status with payment reference
+   * Convenience method - combines status + payment intent
+   */
+  async confirmBookingWithPayment(
+    bookingId: string, 
+    paymentIntentId: string
+  ): Promise<boolean> {
+    try {
+      const result = await runQuery(
+        this.db,
+        `UPDATE bookings 
+        SET status = 'confirmed', 
+            payment_intent_id = ?,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+        [paymentIntentId, bookingId],
+        'confirm booking with payment'
+      );
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error confirming booking with payment:', error);
+      return false;
+    }
   }
 
   /**
@@ -2450,6 +2521,84 @@ class Database {
       await runQuery(this.db, 'ROLLBACK', [], 'cancelBooking rollback on error');
       throw err;
     }
+  }
+
+  /**
+   * Update booking status (administrative)
+   * Used for: payment confirmation, cancellation, refund
+   */
+  async updateBookingStatus(bookingId: string, status: BookingStatus): Promise<boolean> {
+    try {
+      const result = await runQuery(
+        this.db,
+        `UPDATE bookings 
+        SET status = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+        [status, bookingId],
+        'update booking status'
+      );
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error updating booking status:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Store payment intent ID for tracking
+   * Used when: payment_intent.succeeded webhook received
+   */
+  async updateBookingPaymentIntent(bookingId: string, paymentIntentId: string): Promise<boolean> {
+    try {
+      const result = await runQuery(
+        this.db,
+        `UPDATE bookings 
+        SET payment_intent_id = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+        [paymentIntentId, bookingId],
+        'update payment intent'
+      );
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error updating payment intent:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Store checkout session ID for tracking
+   * Used when: checkout.session.completed webhook received
+   */
+  async updateBookingCheckoutSession(bookingId: string, sessionId: string): Promise<boolean> {
+    try {
+      const result = await runQuery(
+        this.db,
+        `UPDATE bookings 
+        SET checkout_session_id = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?`,
+        [sessionId, bookingId],
+        'update checkout session'
+      );
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error updating checkout session:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Cancel a booking and release its seats back to 'available'.
+   * Only the owning user (or an admin, enforced at the route level) should call this.
+   */
+  async cancelBookingsByRefs(bookingRefs: string[]): Promise<void> {
+    const placeholders = bookingRefs.map(() => '?').join(', ');
+    await this.db.run(`
+      UPDATE seats
+      SET status = 'available', booking_ref = NULL, booked_by_user_id = NULL, booked_at = NULL
+      WHERE booking_ref IN (${placeholders})
+        AND status = 'pending_payment'
+      `, ...bookingRefs
+    );
   }
 
   // ---------------------------------------------------------------------------

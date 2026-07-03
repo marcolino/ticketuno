@@ -1,5 +1,5 @@
 import { Table, TableBody, TableCell, TableHead, TableRow, Typography, Box } from '@mui/material';
-import { ActiveBookingInfo } from '@shared';
+import { ActiveBookingInfo } from '@ticketuno/shared';
 import { useTranslation } from 'react-i18next';
 
 type ActiveBookingsWarningProps = {

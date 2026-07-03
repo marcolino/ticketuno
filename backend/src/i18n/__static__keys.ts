@@ -36,3 +36,9 @@ t('Premium');
 t('Impaired');
 t('Staff');
 t('Baby');
+
+// payment statuses
+t('pending_payment');
+t('confirmed');
+t('canceled');
+t('refunded');

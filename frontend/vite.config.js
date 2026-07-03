@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import { VitePWA } from 'vite-plugin-pwa'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   build: {
     chunkSizeWarningLimit: 832, // KB - suppress warnings for known-large vendor chunks
     rollupOptions: {
@@ -82,5 +82,10 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
+    //allowedHosts: ['.ngrok-free.app'],
+    allowedHosts: command === 'serve' ? ['.ngrok-free.app'] : [] // 'serve' is 'dev' for Vite
   },
-});
+  define: {
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'), // TODO: do we need this ???
+  },
+}));

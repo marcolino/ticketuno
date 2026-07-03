@@ -3,7 +3,7 @@ import { database } from '../db/database';
 import { requireAuthentication, requireOperator} from '../middleware/auth';
 import { verify } from '../services/hmacService';
 import { authHandler } from '../utils/routeHelper';
-import { humanizedDate } from '../utils/misc';
+import { humanizedDate } from '@ticketuno/shared';
 import { TicketValidationResult } from '@ticketuno/shared';
 import config from '../config';
 const router = express.Router();

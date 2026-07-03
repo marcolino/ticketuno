@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import path from 'path';
 import { database } from '../db/database';
+import { getSetup } from '../services/setupService';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
 import { generateTickets } from '../services/ticketService';
 import { notify } from '../services/notificationService';
@@ -450,8 +451,10 @@ router.get('/:eventId/performances/:performanceId/seats/:sectionName', async (re
   }
 });
 
+// @deprecated
 // Protected: Book seats for a performance
-router.post('/:eventId/performances/:performanceId/book', requireAuthentication, async (req: Request, res: Response) => {
+router.post('/:eventId/performances/:performanceId/book_', requireAuthentication, async (req: Request, res: Response) => {
+  const setup = getSetup();
   try {
     const { seatIds } = req.body;
     const { eventId, performanceId } = req.params;
@@ -526,8 +529,8 @@ router.post('/:eventId/performances/:performanceId/book', requireAuthentication,
     const seatLabel = (seatId: string) => seatLabelMap.get(seatId) ?? seatId;
 
     const bookingRefs = booking.seats.map(s => s.bookingRef);
-    const bookingIsPaid = config.app.reservations.purchases.gateway !== 'free';
-    const useQrcode = config.app.reservations.ticketing.useQrcode;
+    const bookingIsPaid = setup.payments.gateway !== 'free';
+    const useQrcode = true; // TODO: setup.ticketing.useQrcode
     let pdfs: Buffer[];
     let showInfo: ShowInfo;
 

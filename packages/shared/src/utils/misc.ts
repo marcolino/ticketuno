@@ -1,6 +1,8 @@
 // import { t } from 'i18next';
 // import axios from 'axios';
-import { sharedConfig as config } from '@ticketuno/shared';
+import { sharedConfig as config, DeepPartial } from '@ticketuno/shared';
+
+//export type DeepPartial<T> = { [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P] };
 
 export const buildPayload = (userId: string) => {
   return {
@@ -16,6 +18,77 @@ export const getErrorMessage = (
 
   console.error('Error:', error);
 
+  // Helper to check if it's a Stripe error (works for both client and server)
+  const isStripeError = (err: unknown): boolean => {
+    if (!err || typeof err !== 'object') return false;
+    
+    // Stripe errors typically have these properties
+    const hasStripeProps = (
+      'type' in err && 
+      typeof err.type === 'string' &&
+      ('message' in err || 'raw' in err)
+    );
+    
+    // Check for Stripe-like error properties
+    const hasStripeLikeProps = (
+      ('code' in err && typeof err.code === 'string') ||
+      ('statusCode' in err && typeof err.statusCode === 'number') ||
+      ('headers' in err && typeof err.headers === 'object')
+    );
+    
+    return hasStripeProps || (hasStripeLikeProps && 'type' in err);
+  };
+
+  // Handle Stripe errors first
+  if (isStripeError(error)) {
+    const stripeErr = error as any;
+    
+    // Try to get the most descriptive error message
+    if (stripeErr.message) {
+      return stripeErr.message;
+    }
+    
+    // Some Stripe errors have error details in raw or nested objects
+    if (stripeErr.raw && typeof stripeErr.raw === 'object') {
+      if (stripeErr.raw.message) {
+        return stripeErr.raw.message;
+      }
+      if (stripeErr.raw.error?.message) {
+        return stripeErr.raw.error?.message;
+      }
+    }
+    
+    // Get type-specific message if available
+    if (stripeErr.type) {
+      const typeMessages: Record<string, string> = {
+        'StripeCardError': 'Payment card error',
+        'StripeInvalidRequestError': 'Invalid payment request',
+        'StripeAPIError': 'Payment service error',
+        'StripeAuthenticationError': 'Payment authentication failed',
+        'StripePermissionError': 'Payment permission error',
+        'StripeRateLimitError': 'Payment service rate limit exceeded',
+        'card_error': 'Card payment error',
+        'validation_error': 'Validation error',
+        'idempotency_error': 'Duplicate payment request',
+        'invalid_request_error': 'Invalid payment request',
+        'api_error': 'Payment service error',
+        'authentication_error': 'Authentication failed',
+        'rate_limit_error': 'Rate limit exceeded',
+      };
+      
+      // Find the most specific match
+      for (const [key, msg] of Object.entries(typeMessages)) {
+        if (stripeErr.type.includes(key) || key.includes(stripeErr.type)) {
+          return msg;
+        }
+      }
+      
+      return `Payment error (${stripeErr.type})`;
+    }
+    
+    return 'Payment processing error';
+  }
+  
   if (isAxiosLikeError(error)) {
 
     const customError = error.originalError;
@@ -177,6 +250,77 @@ export const formatTimeDifference = (
   return parts.join(' ');
 }
 
+/**
+ * Formats a "humanized" date (for today and yestarday and tomorrow)
+ * @param dateInput - Date input
+ * @param locale - Locale to which format the date string
+ * @param timeZone - Date input
+ * @param t - Translation function
+ * @returns Humanized date
+ */
+export const humanizedDate = (
+  dateInput: string | Date,
+  locale: string,
+  timeZone: string,
+  t: (key: string, params?: Record<string, unknown>) => string
+) => {
+  const date = new Date(
+    typeof dateInput === 'string'
+      ? dateInput.replace(' ', 'T') + 'Z'
+      : dateInput
+  );
+
+  const now = new Date();
+
+  const dateOnly = (d: Date) =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d); // YYYY-MM-DD
+
+  const targetDay = dateOnly(date);
+  const today = dateOnly(now);
+
+  const yesterdayDate = new Date(now);
+  yesterdayDate.setDate(now.getDate() - 1);
+  const yesterday = dateOnly(yesterdayDate);
+
+  const tomorrowDate = new Date(now);
+  tomorrowDate.setDate(now.getDate() + 1);
+  const tomorrow = dateOnly(tomorrowDate);
+
+  const time = date.toLocaleTimeString(locale, {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+  const humanizedTime = time.replace(/:00$/, '');
+  if (targetDay === today) {
+    return t('today') + ', ' + t('at time') + ' ' + humanizedTime;
+  }
+
+  if (targetDay === yesterday) {
+    return t('yesterday') + ', ' + t('at time') + ' ' + humanizedTime;
+  }
+
+  if (targetDay === tomorrow) {
+    return t('tomorrow') + ', ' + t('at time') + ' ' + humanizedTime;
+  }
+
+  return t('on') + ' ' + date.toLocaleString(locale, {
+    timeZone,
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+
 /** Helpers *************************************************************************************/
 
 /**
@@ -227,4 +371,42 @@ function isAxiosLikeError(error: unknown): error is {
       'originalError' in error
     )
   );
+}
+
+/**
+ * Deep merge two objects
+ */
+export function deepMerge<T extends Record<string, any>>(
+  target: T,
+  source: DeepPartial<T>
+): T {
+  if (!source || typeof source !== 'object') {
+    return target;
+  }
+
+  const result = { ...target } as any;
+
+  for (const key in source) {
+    if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+
+    const sourceValue = source[key];
+    const targetValue = result[key];
+
+    if (sourceValue === undefined) continue;
+
+    // Check if both are plain objects (not arrays, not null)
+    if (
+      sourceValue &&
+      typeof sourceValue === 'object' && !Array.isArray(sourceValue) &&
+      targetValue &&
+      typeof targetValue === 'object' && !Array.isArray(targetValue)
+    ) {
+      // Use 'as any' here to bypass the recursive type check
+      result[key] = deepMerge(targetValue, sourceValue as any);
+    } else {
+      result[key] = sourceValue;
+    }
+  }
+
+  return result;
 }

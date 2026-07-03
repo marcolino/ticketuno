@@ -1,15 +1,16 @@
 import path from 'path';
 import { database } from '../db/database';
+import { getSetup } from '../services/setupService';
 import { sendPushToUser } from '../services/pushService';
 import { sendBookingRememberEmail } from '../utils/email';
-import { humanizedDate } from '../utils/misc';
-import { applyDisplayNumbers, generateSeats } from '@ticketuno/shared';
-import type { ShowInfo } from '@ticketuno/shared';
-import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '@ticketuno/shared';
+import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference, humanizedDate } from '@ticketuno/shared/utils/misc';
+import { applyDisplayNumbers, generateSeats } from '@ticketuno/shared/utils/layoutToSeats'; // TODO: do not use just @ticketuno/shared, but ALWAYS use @ticketuno/shared/utils/layoutToSeats
+import type { ShowInfo } from '@ticketuno/shared/types/ticket';
 import { i18n } from '../i18n';
 import config from '../config';
 
 export async function runReminderJob(): Promise<{ sent: number; skipped: number }> {
+  const setup = getSetup();
   const now = new Date();
 
   const from = new Date(now.getTime() + 3 * 60 * 60 * 1000); // 3h from now
@@ -172,8 +173,8 @@ export async function runReminderJob(): Promise<{ sent: number; skipped: number 
             : '',
           showInfo.contactPhone,
           showInfo.contactEmail,
-          config.app.reservations.purchases.gateway !== 'free',
-          config.app.reservations.ticketing.useQrcode,
+          setup.payments.gateway !== 'free',
+          true, // TODO: setup.ticketing.useQrcode,
         );
       } catch (error) {
         console.error(`[reminderJob] Reminder email failed for user ${user_id}:`, error);

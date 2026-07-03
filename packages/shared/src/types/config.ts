@@ -1,6 +1,9 @@
 import { ThemeType, ThemePreference } from './theme';
+import type { PaymentGateway } from '@ticketuno/shared';
 
-export type TicketFormat = 'A4' | 'A3'; // ...
+//export type PaymentGateway = 'free' | 'cash' | 'stripe';
+
+export type TicketFormat = 'A4' | 'A5' | 'A6' | 'A7' | 'A8' | 'A9' | 'A10';
 
 export interface AppLanguage {
   name: string;
@@ -78,8 +81,8 @@ export interface AppConfig {
         nominal: false,
       },
       purchases: {
-        gateways: Record<string, Record<string, unknown>>;
-        gateway: string;
+        gateways: [PaymentGateway];
+        gateway: PaymentGateway;
       };
     };
     images: {

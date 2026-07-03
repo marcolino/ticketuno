@@ -1,39 +1,55 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-  useCallback,
-} from "react";
-import { setupApi } from "@/services/api";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { setupApi } from '@/services/api';
+import { GeneralSetupType } from '@ticketuno/shared/types/generalSetup';
+import { sharedConfig as config } from '@ticketuno/shared';
 
-// Setyp interface
-export interface Setup {
-  language: string;
-  darkMode: boolean;
-  notifications: boolean;
-}
+export const defaultSetup: GeneralSetupType = {
+  app: {
+    currency: config.app.defaultCurrency,
+    timeout: 10,
+  },
+  preferences: {
+    enableNotifications: true,
+    launchDate: null,
+    time: null,
+  },
+  security: {
+    apiKey: '',
+  },
+  payments: {
+    enabled: false,
+    gateway: 'stripe',
+    // stripePublicKey: '',
+    // stripeSecretKey: '',
+    // revolutApiKey: '',
+    stripe: {
+      accountId: null,
+      status: 'none',
+      onboardingCompleted: false,
+      chargesEnabled: false,
+      organizerEmail: null,
+      businessName: null,
+    }
+  },
+};
 
-// Context only exposes setup and refresh
 interface SetupContextType {
-  setup: Setup | null;
+  setup: GeneralSetupType;
   refresh: () => Promise<void>;
 }
 
 const SetupContext = createContext<SetupContextType | undefined>(undefined);
 
 export const SetupProvider = ({ children }: { children: ReactNode }) => {
-  const [setup, setSetup] = useState<Setup | null>(null);
+  const [setup, setSetup] = useState<GeneralSetupType>(defaultSetup);
 
   const loadSetup = useCallback(async () => {
-    const data = await setupApi.get(); // GET backend
-    setSetup(data);
+    const response = await setupApi.load();
+    // Deep merge: backend may not have all keys if schema evolved
+    setSetup(deepMerge(defaultSetup, response.data));
   }, []);
 
-  useEffect(() => {
-    loadSetup();
-  }, [loadSetup]);
+  useEffect(() => { loadSetup(); }, [loadSetup]);
 
   return (
     <SetupContext.Provider value={{ setup, refresh: loadSetup }}>
@@ -42,20 +58,29 @@ export const SetupProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-// Hook to only read setup
 export const useSetup = () => {
-  const context = useContext(SetupContext);
-  if (!context) {
-    throw new Error("useSetup must be used inside SetupProvider");
-  }
-  return context.setup;
+  const ctx = useContext(SetupContext);
+  if (!ctx) throw new Error('useSetup must be used inside SetupProvider');
+  return ctx.setup;
 };
 
-// Internal hook for refresh
 export const useSetupRefresh = () => {
-  const context = useContext(SetupContext);
-  if (!context) {
-    throw new Error("useSetupRefresh must be used inside SetupProvider");
+  const ctx = useContext(SetupContext);
+  if (!ctx) throw new Error('useSetupRefresh must be used inside SetupProvider');
+  return ctx.refresh;
+};
+
+// Simple deep merge (plain objects only — fine for setup shapes)
+export const deepMerge = <T extends object>(base: T, override: Partial<T>): T => {
+  const result = { ...base };
+  for (const key of Object.keys(override) as (keyof T)[]) {
+    const b = base[key], o = override[key];
+    if (o !== undefined) {
+      result[key] =
+        b !== null && o !== null && typeof b === 'object' && typeof o === 'object' && !Array.isArray(b)
+          ? deepMerge(b as object, o as object) as T[typeof key]
+          : o as T[typeof key];
+    }
   }
-  return context.refresh;
+  return result;
 };

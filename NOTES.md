@@ -11,3 +11,9 @@
 
  - To force a rsend-reminders action:
      `CRON_SECRET="(see in .env file)" && curl -f -X POST https://ticketuno.fly.dev/api/v1/internal/send-reminders -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json" --silent`
+
+ - To setup a tunnel to test Stripe webhook callbacks:
+     $ ngrok http 3000 >/dev/null 2>&1 &
+     $ export NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[] | select(.proto=="https") | .public_url') && echo $NGROK_URL
+     
+     and then use $NGROK_URL everywhere https://*.ngrok-free.app is used ...

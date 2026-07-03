@@ -24,6 +24,7 @@ import {
   ResetPasswordResponse,
 } from '@ticketuno/shared/types/user';
 import { i18n } from '@/i18n';
+import { jwtDecode } from 'jwt-decode';
 
 interface AuthContextType {
   user: User | null;
@@ -40,6 +41,10 @@ interface AuthContextType {
   resetPassword: (data: ResetPasswordData) => Promise<ResetPasswordResponse>;
   logout: () => void;
   updateUser: (user: User) => void;
+  impersonate: (userId: string) => Promise<void>;
+  endImpersonation: () => Promise<void>;
+  impersonatedBy: string | null;
+  isImpersonating: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -59,6 +64,18 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAdmin = user?.role === 'admin';
   const isOperator = user?.role === 'admin' || user?.role === 'operator';
+
+  // Derived from the JWT: present only when the current token is an
+  // admin-impersonation token (carries the originating admin's id).
+  const impersonatedBy = useMemo<string | null>(() => {
+    if (!token) return null;
+    try {
+      return jwtDecode<{ impersonatedBy?: string }>(token).impersonatedBy ?? null;
+    } catch {
+      return null;
+    }
+  }, [token]);
+  const isImpersonating = !!impersonatedBy;
   
   const loadProfile = useCallback(async () => {
     try {
@@ -115,6 +132,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     setAuthToken(null);
     localStorage.removeItem('authToken');
+    sessionStorage.removeItem('adminToken');
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
@@ -205,6 +223,29 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(updatedUser);
   }, []);
 
+  // Admin "login as user": swap in a short-lived impersonation token, keeping
+  // the admin token in sessionStorage so the session can be restored.
+  const impersonate = useCallback(async (userId: string) => {
+    const response = await userApi.impersonate(userId);
+    const impersonationToken = response.data.token;
+
+    const adminToken = localStorage.getItem('authToken');
+    if (adminToken) sessionStorage.setItem('adminToken', adminToken);
+
+    setAuthToken(impersonationToken); // sets Authorization header + localStorage
+    setToken(impersonationToken);
+    await loadProfile();
+  }, [loadProfile]);
+
+  const endImpersonation = useCallback(async () => {
+    const adminToken = sessionStorage.getItem('adminToken');
+    if (!adminToken) return;
+    sessionStorage.removeItem('adminToken');
+    setAuthToken(adminToken);
+    setToken(adminToken);
+    await loadProfile();
+  }, [loadProfile]);
+
   // Integrate session manager
   useSessionManager({
     token,
@@ -248,6 +289,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       resetPassword,
       logout,
       updateUser,
+      impersonate,
+      endImpersonation,
+      impersonatedBy,
+      isImpersonating,
     }),
     [
       user,
@@ -264,6 +309,10 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       resetPassword,
       logout,
       updateUser,
+      impersonate,
+      endImpersonation,
+      impersonatedBy,
+      isImpersonating,
     ]
   );
 

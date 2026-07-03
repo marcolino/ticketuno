@@ -1,7 +1,7 @@
 import { sharedConfig } from '@ticketuno/shared';
-import type { SharedConfig } from '@ticketuno/shared';
 
-const config: Pick<SharedConfig, 'app'> = {
+// Frontend only needs the app config
+export const config = {
   app: sharedConfig.app,
 };
 

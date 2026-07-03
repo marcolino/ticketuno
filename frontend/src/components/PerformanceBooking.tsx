@@ -20,11 +20,12 @@ import {
 } from '@mui/icons-material';
 import Alert from './Alert';
 import ExpandableText from './ExpandableText';
-import { eventApi, layoutApi } from '@/services/api';
+import { eventApi, bookingApi, layoutApi } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import useNavigate from '@/hooks/useNavigate';
 import { useToast } from '@/contexts/ToastContext';
+import { useSetup } from '@/contexts/SetupContext';
 import { EventWithDetails, EventPerformance } from '@ticketuno/shared/types/event';
 import { LayoutJSON } from '@ticketuno/shared/types/layout';
 import { generateSeats } from '@ticketuno/shared/utils/layoutToSeats';
@@ -44,6 +45,7 @@ const PerformanceBooking: React.FC = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const theme = useTheme();
+  const setup = useSetup();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const showDialog = useDialog();
   const [forceLoadPerformance, setForceLoadPerformance] = useState(false);
@@ -96,7 +98,7 @@ const PerformanceBooking: React.FC = () => {
       setSeatStatusMap(new Map(allSeatsData.map(s => [s.seatId, s])));
       setError(null);
     } catch (error) {
-      setError(t('Failed to load performance: {{err}}', getErrorMessage(error)));
+      setError(t('Failed to load performance: {{error}}', getErrorMessage(error)));
     // } finally {
     //   setLoading(false);
     }
@@ -195,19 +197,47 @@ const PerformanceBooking: React.FC = () => {
       return;
     }
     try {
-      /*const responseBooking = */await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
-      // const booking = responseBooking.data;
-      //console.log("****************** BOOKING:", responseBooking.data);
+      // await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
+      const response = await bookingApi.create(performanceId, Array.from(selectedSeats));
+      const { paymentMethod, paymentStatus, checkoutUrl, bookingRefs } = response.data;
 
-      await showDialog({
-        title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
-        content:
-          t('You will soon receive an email with booking confirmation') + '.\n\n' +
-          (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: show it at the theater.') : ''),
-        onConfirm: () => navigate('/'),
-        confirmText: 'Ok',
-        mode: 'success',
-      });
+      let message = null;
+      switch (paymentMethod) {
+        case 'stripe':
+          console.log('***** paymentStatus:', paymentStatus);
+          console.log('***** bookingRefs:', bookingRefs);
+          if (!checkoutUrl) {
+            throw new Error(t('Stripe checkout page not available!'));
+          } else { // checkout url present: redirect to Stripe checkout page
+            window.location.href = checkoutUrl;
+          }
+          break;
+        case 'free':
+          message = t('You will soon receive an email with booking confirmation') + '.\n\n' +
+            (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: show it at the theater.') : '') + '.\n\n' +
+            t('There is nothing to pay, event is free') + '.'
+          ;
+          // falls through
+        case 'cash':
+          message = t('You will soon receive an email with booking confirmation') + '.\n\n' +
+            (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: show it at the theater.') : '') + '.\n\n' +
+            t('You will pay your ticket at the theater\'s cashes') + '.\n\n' +
+            t('Total amount is') + ' ' + totalPrice.toFixed(2) + ' ' + setup.app.currency + '.'
+          ;
+          
+          await showDialog({
+            title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
+            content: message,
+            onConfirm: () => navigate('/'),
+            confirmText: 'Ok',
+            mode: 'success',
+          });
+          break;
+        default: // This should not happen
+          throw new Error(t('Internal error: unforeseen payment method {{paymentMethod}}', { paymentMethod }));
+      }
+
+      
 
       setSelectedSeats(new Set());
     } catch (error: any) {
@@ -248,9 +278,28 @@ const PerformanceBooking: React.FC = () => {
               {selectedLabels.join('\n')}
             </Paper>
           </Box>
-          {config.app.reservations.purchases.gateway !== 'free' && (
+          {setup.payments.gateway === 'stripe' && (
+          <Typography variant="h6" color="primary">
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              {t('You will be redirected to Stripe to complete the payment')}
+              {t('Total amount')}: {totalPrice.toFixed(2)} {setup.app.currency}
+            </Typography>
+          </Typography>
+        )}
+          {setup.payments.gateway === 'free' && (
+             <Typography variant="h6">
+              {t('Nothing to pay, event is free')}
+            </Typography>
+          )}
+          {setup.payments.gateway === 'cash' && (
+             <Typography variant="h6">
+              {t('Total amount')}: {totalPrice.toFixed(2)} {setup.app.currency}.
+              {t('The money will be collected at the theater\'s cash')}
+            </Typography>
+          )}
+          {setup.payments.gateway !== 'free' && (
             <Typography variant="h6">
-              {t('Total amount')}: ${totalPrice.toFixed(2)}
+              {t('Total amount')}: {totalPrice.toFixed(2)} {setup.app.currency}
             </Typography>
           )}
         </Box>

@@ -1,5 +1,5 @@
-import { ReactNode } from 'react'
-import { DialogProps, ButtonProps } from '@mui/material'
+import { ReactNode } from 'react';
+import { DialogProps, ButtonProps } from '@mui/material';
 
 export type DialogVariant = 'confirm' | 'alert' | 'custom'
 

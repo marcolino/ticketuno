@@ -62,7 +62,10 @@
     "play-ko": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/finish.wav"
   },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
     "concurrently": "^8.2.2",
+    "eslint": "^9.15.0",
     "i18next-cli": "^1.34.1",
     "sharp": "^0.34.5"
   },

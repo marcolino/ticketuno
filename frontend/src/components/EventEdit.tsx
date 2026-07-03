@@ -25,6 +25,7 @@
   } from '@mui/icons-material';
   import { DatePicker } from '@mui/x-date-pickers/DatePicker';
   import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+  import { PickerValue } from '@mui/x-date-pickers/internals';
   import dayjs, { Dayjs } from 'dayjs';
   import ActiveBookingsWarning from '@/components/ActiveBookingsWarning';
   import useNavigate from '@/hooks/useNavigate';
@@ -41,6 +42,7 @@
   import ImageUploadEditPopup from './ImageUploadEditPopup';
   import { CastEditor, type CastEntry } from './CastEditor';
   import { sharedConfig as config } from '@ticketuno/shared';
+  import { CurrencyCode } from '@ticketuno/shared';
 
   // Helper to convert Event from API to form state (Dayjs for dates/times)
   const eventFromApi = (apiEvent: Event): Partial<Event> & {
@@ -144,6 +146,9 @@
     const [isDirty, setIsDirty] = useState(false);
     useUnsavedChanges(isDirty);
 
+    const currencyCode = (event.currency) as CurrencyCode;
+    const currencySymbol = config.app.currencies[currencyCode]?.symbol;
+    
     const loadEvent = useCallback(
       async (overrideTheaterId?: string) => {
         try {
@@ -288,7 +293,7 @@
     };
 
     // Generic handler for simple fields
-    const handleFieldChange = (field: keyof typeof event) => (value) => {
+    const handleFieldChange = (field: keyof typeof event) => (value: number | string | null) => {
       setEvent((prev) => ({ ...prev, [field]: value }));
       setIsDirty(true);
     };
@@ -521,7 +526,10 @@
                 <DatePicker
                   label={t('Start Date')}
                   value={event.openingDateObj}
-                  onChange={(newValue) => handleFieldChange('openingDateObj')(newValue)}
+                  onChange={(newValue: PickerValue) => {
+                    const value = newValue ? (newValue as any).toISOString?.() || String(newValue) : null;
+                    handleFieldChange('openingDateObj')(value);
+                  }}
                   maxDate={event.closingDateObj || undefined}
                   sx={{ width: '100%' }}
                   slotProps={{
@@ -532,7 +540,10 @@
                 <DatePicker
                   label={t('End Date')}
                   value={event.closingDateObj}
-                  onChange={(newValue) => handleFieldChange('closingDateObj')(newValue)}
+                  onChange={(newValue: PickerValue) => {
+                    const value = newValue ? (newValue as any).toISOString?.() || String(newValue) : null;
+                    handleFieldChange('closingDateObj')(value);
+                  }}
                   minDate={event.openingDateObj || undefined}
                   sx={{ width: '100%' }}
                   slotProps={{
@@ -547,13 +558,19 @@
                 <TimePicker
                   label={isAtLeastMd ? t('Typical Start Time') : t('Start Time')}
                   value={event.typicalStartTimeObj}
-                  onChange={(newValue) => handleFieldChange('typicalStartTimeObj')(newValue)}
+                  onChange={(newValue: PickerValue) => {
+                    const value = newValue ? (newValue as any).toISOString?.() || String(newValue) : null;
+                    handleFieldChange('typicalStartTimeObj')(value);
+                  }}
                   sx={{ width: '100%' }}
                 />
                 <TimePicker
                   label={isAtLeastMd ? t('Typical End Time') : t('End Time')}
                   value={event.typicalEndTimeObj}
-                  onChange={(newValue) => handleFieldChange('typicalEndTimeObj')(newValue)}
+                  onChange={(newValue: PickerValue) => {
+                    const value = newValue ? (newValue as any).toISOString?.() || String(newValue) : null;
+                    handleFieldChange('typicalEndTimeObj')(value);
+                  }}
                   sx={{ width: '100%' }}
                 />
               </Stack>
@@ -612,7 +629,7 @@
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start" sx={{ mt: -0.2 }}>
-                          {config.app.currencies[event.currency || '']?.symbol}
+                          {currencySymbol}
                         </InputAdornment>
                       ),
                     }}

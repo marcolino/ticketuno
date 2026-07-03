@@ -22,6 +22,7 @@ export const requireAuthentication = (req: Request, res: Response, next: NextFun
     }
     req.userId = (decoded as JwtPayload & { userId: string; role: string }).userId;
     req.userRole = (decoded as JwtPayload & { userId: string; role: string }).role;
+    req.impersonatedBy = (decoded as JwtPayload & { impersonatedBy?: string }).impersonatedBy;
     next();
   });
 };
@@ -46,5 +47,17 @@ export const generateToken = (userId: string, role: string): string => {
     expiresIn: config.auth.tokenExpirationDays + 'd' as jwt.SignOptions['expiresIn'],
   };
   // process.env.JWT_SECRET is non-null here (runtime check already)
+  return jwt.sign(payload, process.env.JWT_SECRET as jwt.Secret, options);
+};
+
+/**
+ * Mints a short-lived token that lets an admin act as `userId`.
+ * The `impersonatedBy` claim records the originating admin so the session is
+ * always attributable (surfaced to the UI as a banner) and can never be used
+ * to start a further, nested impersonation.
+ */
+export const generateImpersonationToken = (userId: string, role: string, impersonatedBy: string): string => {
+  const payload = { userId, role, impersonatedBy };
+  const options: SignOptions = { expiresIn: '2h' };
   return jwt.sign(payload, process.env.JWT_SECRET as jwt.Secret, options);
 };

@@ -28,6 +28,7 @@ import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSetup } from '@/contexts/SetupContext';
 import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { CurrencyCode } from '@ticketuno/shared';
 import { handleGuardResult } from '@/utils/guardHandler';
 import Alert from './Alert';
 import PageHeader from './PageHeader';
@@ -193,7 +194,11 @@ const EventList: React.FC = () => {
           const posterImageUrl = event.posterImage ?
             `/uploads/${event.posterImage}` :
             null
-          ;
+            ;
+          
+          const currencyCode = (event.currency) as CurrencyCode;
+          const currencySymbol = config.app.currencies[currencyCode]?.symbol;
+
           return (
             <Grid item xs={12} sm={6} md={4} key={event.id}>
               <Card
@@ -294,7 +299,7 @@ const EventList: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                         <Typography variant="body2" color="text.secondary">
-                          {t('From')} {config.app.currencies[event.currency]?.symbol} {event.baseTicketPrice}
+                          {t('From')} {currencySymbol} {event.baseTicketPrice}
                         </Typography>
                       </Box>
                     )}

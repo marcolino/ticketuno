@@ -1,3 +1,5 @@
+import type { SeatStatus } from '@ticketuno/shared';
+
 export type TheaterStatus = 'active' | 'inactive';
 
 export interface Theater {
