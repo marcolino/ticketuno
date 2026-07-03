@@ -12,6 +12,9 @@ COPY frontend/package*.json ./frontend/
 COPY packages/shared/ ./packages/shared/
 COPY frontend/ ./frontend/
 
+# ✅ Install TypeScript globally
+RUN npm install -g typescript
+
 # Build shared package first
 WORKDIR /app/packages/shared
 RUN npm ci && npm run build
@@ -35,6 +38,9 @@ COPY backend/package*.json ./backend/
 # Copy source code
 COPY packages/shared/ ./packages/shared/
 COPY backend/ ./backend/
+
+# ✅ Install TypeScript globally
+RUN npm install -g typescript
 
 # Build shared package
 WORKDIR /app/packages/shared
