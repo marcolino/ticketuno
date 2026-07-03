@@ -12,12 +12,14 @@ COPY frontend/package*.json ./frontend/
 COPY packages/shared/ ./packages/shared/
 COPY frontend/ ./frontend/
 
-# ✅ Install TypeScript globally
+# Install TypeScript globally
 RUN npm install -g typescript
 
-# Build shared package first
+# Build shared package FIRST with all dependencies (including dev)
 WORKDIR /app/packages/shared
-RUN npm ci && npm run build
+# ✅ Use npm install instead of npm ci to install ALL dependencies
+RUN npm install
+RUN npm run build
 
 # Build frontend
 WORKDIR /app/frontend
@@ -39,12 +41,14 @@ COPY backend/package*.json ./backend/
 COPY packages/shared/ ./packages/shared/
 COPY backend/ ./backend/
 
-# ✅ Install TypeScript globally
+# Install TypeScript globally
 RUN npm install -g typescript
 
-# Build shared package
+# Build shared package FIRST with all dependencies (including dev)
 WORKDIR /app/packages/shared
-RUN npm ci && npm run build
+# ✅ Use npm install instead of npm ci to install ALL dependencies
+RUN npm install
+RUN npm run build
 
 # Build backend
 WORKDIR /app/backend
