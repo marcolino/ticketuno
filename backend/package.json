@@ -1,6 +1,6 @@
 {
   "name": "ticketuno-backend",
-  "version": "1.0.92",
+  "version": "1.0.93",
   "description": "Theater ticket reservation system, backend",
   "main": "dist/server.js",
   "scripts": {
