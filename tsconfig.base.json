@@ -1,13 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-
     "strict": true,
     "skipLibCheck": true,
-
     "paths": {
       "@/*": ["./frontend/src/*"],
       "@ticketuno/shared": ["./packages/shared/src/index.ts"],

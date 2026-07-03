@@ -2,12 +2,30 @@
   "extends": "../tsconfig.base.json",
 
   "compilerOptions": {
-    "rootDir": "..",
-    "outDir": "./dist"
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "paths": {
+      "@ticketuno/shared": ["../packages/shared/src/index.ts"],
+      "@ticketuno/shared/*": ["../packages/shared/src/*"]
+    },
+    "composite": true,
+    "incremental": true
   },
 
   "include": [
-    "src",
-    "../packages/shared/src"
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ],
+  "references": [
+    { "path": "../packages/shared" }
   ]
 }
