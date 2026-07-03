@@ -60,7 +60,9 @@ has_changes() {
   fi
 
   if ! git diff --quiet "${last_tag}" HEAD \
-    -- "${component}/" deploy.sh \
+    -- "${component}/"
+    -- "Dockerfile" \
+    -- "deploy.sh" \
     ":(exclude)${component}/package-lock.json" \
     ":(exclude)${component}/yarn.lock" \
     ":(exclude)${component}/pnpm-lock.yaml"
