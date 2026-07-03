@@ -1,5 +1,5 @@
 # Multi-stage build for optimal size
-FROM node:18-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app
 
@@ -60,7 +60,7 @@ RUN npm ci
 RUN npm run build
 
 # --- Final production image ---
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
