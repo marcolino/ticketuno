@@ -2,7 +2,6 @@
 FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app
-
 # Copy package.json files for all workspaces
 COPY package*.json ./
 COPY packages/shared/package*.json ./packages/shared/
@@ -19,6 +18,8 @@ RUN npm ci && npm run build
 # Build frontend
 WORKDIR /app/frontend
 RUN npm ci
+# Link to the built shared package
+RUN npm link ../packages/shared || npm install ../packages/shared
 ARG VITE_MODE=production
 RUN npm run build -- --mode ${VITE_MODE}
 
@@ -26,13 +27,10 @@ RUN npm run build -- --mode ${VITE_MODE}
 FROM node:18-alpine AS backend-builder
 
 WORKDIR /app
-
-# Copy package.json files for all workspaces
 COPY package*.json ./
 COPY packages/shared/package*.json ./packages/shared/
 COPY backend/package*.json ./backend/
 
-# Copy source code
 COPY packages/shared/ ./packages/shared/
 COPY backend/ ./backend/
 
@@ -43,6 +41,7 @@ RUN npm ci && npm run build
 # Build backend
 WORKDIR /app/backend
 RUN npm ci
+RUN npm link ../packages/shared || npm install ../packages/shared
 RUN npm run build
 
 # --- Final production image ---
@@ -50,13 +49,15 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy production node_modules from backend builder
-COPY --from=backend-builder /app/backend/node_modules ./node_modules
+# Install production dependencies for backend only
+COPY backend/package*.json ./
+#RUN npm ci --only=production && npm cache clean --force
+RUN npm install --production && npm cache clean --force
 
 # Copy built backend
 COPY --from=backend-builder /app/backend/dist ./dist
 
-# Copy built frontend to be served by backend
+# Copy built frontend
 COPY --from=frontend-builder /app/frontend/dist ./public
 
 # Copy shared package (for runtime if needed)
