@@ -8,6 +8,9 @@ COPY package*.json ./
 COPY packages/shared/package*.json ./packages/shared/
 COPY frontend/package*.json ./frontend/
 
+# ✅ Copy the base tsconfig file
+COPY tsconfig.base.json ./
+
 # Copy source code
 COPY packages/shared/ ./packages/shared/
 COPY frontend/ ./frontend/
@@ -15,9 +18,8 @@ COPY frontend/ ./frontend/
 # Install TypeScript globally
 RUN npm install -g typescript
 
-# Build shared package FIRST with all dependencies (including dev)
+# Build shared package FIRST with all dependencies
 WORKDIR /app/packages/shared
-# ✅ Use npm install instead of npm ci to install ALL dependencies
 RUN npm install
 RUN npm run build
 
@@ -37,6 +39,9 @@ COPY package*.json ./
 COPY packages/shared/package*.json ./packages/shared/
 COPY backend/package*.json ./backend/
 
+# ✅ Copy the base tsconfig file
+COPY tsconfig.base.json ./
+
 # Copy source code
 COPY packages/shared/ ./packages/shared/
 COPY backend/ ./backend/
@@ -44,9 +49,8 @@ COPY backend/ ./backend/
 # Install TypeScript globally
 RUN npm install -g typescript
 
-# Build shared package FIRST with all dependencies (including dev)
+# Build shared package FIRST with all dependencies
 WORKDIR /app/packages/shared
-# ✅ Use npm install instead of npm ci to install ALL dependencies
 RUN npm install
 RUN npm run build
 
