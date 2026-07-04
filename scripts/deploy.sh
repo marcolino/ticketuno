@@ -10,7 +10,6 @@
 #   ./deploy.sh --force         → force production deploy even with no changes
 #   ./deploy.sh --no-cache      → disable Docker layer cache
 
-
 set -e
 
 APP_NAME="ticketuno"
