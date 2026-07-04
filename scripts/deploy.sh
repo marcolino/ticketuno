@@ -10,7 +10,7 @@
 #   ./deploy.sh --force         → force production deploy even with no changes
 #   ./deploy.sh --no-cache      → disable Docker layer cache
 
-#set -e
+set -e
 
 APP_NAME="ticketuno"
 REGIONS="fra"
@@ -113,9 +113,7 @@ if ! npm run i18n:status &> /dev/null; then
 fi
 
 echo "🔍 Checking git leaks..."
-npm run check-git-leaks > "$error_log" 2>&1
-exit_code=$?
-if [ $exit_code -ne 0 ]; then
+if ! npm run check-git-leaks > "$error_log" 2>&1; then
   echo "❌ Some secrets could be leaking from git! View leaks? (y/N): "
   read -r answer
   if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
@@ -131,9 +129,7 @@ npm run archive
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 
 echo "🔍 Running pre-deploy checks..."
-npm run type-check > "$error_log" 2>&1
-exit_code=$?
-if [ $exit_code -ne 0 ]; then
+if ! npm run type-check > "$error_log" 2>&1; then
   echo "❌ TypeScript check (\`npm run type-check\`) failed. View errors? (y/N): "
   read -r answer
   if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
