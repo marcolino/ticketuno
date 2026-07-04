@@ -9,12 +9,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "strict": true,
-    "paths": {
-      "@ticketuno/shared": ["../packages/shared/src/index.ts"],
-      "@ticketuno/shared/*": ["../packages/shared/src/*"]
-    }
   },
-
   "include": [
     "src/**/*"
   ],
