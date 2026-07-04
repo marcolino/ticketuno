@@ -112,6 +112,7 @@ if ! npm run i18n:status &> /dev/null; then
   exit 6
 fi
 
+echo "🔍 Checking git leaks..."
 npm run check-git-leaks > "$error_log" 2>&1
 exit_code=$?
 if [ $exit_code -ne 0 ]; then
@@ -129,7 +130,7 @@ npm run archive
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 
-echo "🔍 Running pre-deploy checks... $error_log"
+echo "🔍 Running pre-deploy checks..."
 npm run type-check > "$error_log" 2>&1
 exit_code=$?
 echo "exit_code: $exit_code"
