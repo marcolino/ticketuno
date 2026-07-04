@@ -129,7 +129,7 @@ npm run archive
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 
-echo "🔍 Running pre-deploy checks..."
+echo "🔍 Running pre-deploy checks... 1"
 npm run type-check > "$error_log" 2>&1
 exit_code=$?
 echo "exit_code: $exit_code"
