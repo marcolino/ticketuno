@@ -10,7 +10,7 @@
 #   ./deploy.sh --force         → force production deploy even with no changes
 #   ./deploy.sh --no-cache      → disable Docker layer cache
 
-set -e
+#set -e
 
 APP_NAME="ticketuno"
 REGIONS="fra"
@@ -129,7 +129,7 @@ npm run archive
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
 
-echo "🔍 Running pre-deploy checks... 1"
+echo "🔍 Running pre-deploy checks... $error_log"
 npm run type-check > "$error_log" 2>&1
 exit_code=$?
 echo "exit_code: $exit_code"
