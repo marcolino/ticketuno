@@ -4,7 +4,6 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "./dist",
-    "baseUrl": ".",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
@@ -13,9 +12,7 @@
     "paths": {
       "@ticketuno/shared": ["../packages/shared/src/index.ts"],
       "@ticketuno/shared/*": ["../packages/shared/src/*"]
-    },
-    "composite": true,
-    "incremental": true
+    }
   },
 
   "include": [
@@ -23,9 +20,7 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
-  ],
-  "references": [
-    { "path": "../packages/shared" }
+    "dist",
+    "../packages/shared/node_modules"
   ]
 }

@@ -1,6 +1,9 @@
 # Multi-stage build for optimal size
-FROM node:20-alpine AS frontend-builder
+ARG CACHE_BUST=1
 
+FROM node:20-alpine AS frontend-builder
+ARG CACHE_BUST
+RUN echo "Build started: ${CACHE_BUST}"
 WORKDIR /app
 
 # Copy package.json files for all workspaces
@@ -49,15 +52,24 @@ COPY backend/ ./backend/
 # Install TypeScript globally
 RUN npm install -g typescript
 
-# Build shared package FIRST with all dependencies
+# ✅ Build shared package FIRST in the same stage
 WORKDIR /app/packages/shared
 RUN npm install
 RUN npm run build
 
-# Build backend
+# ✅ Now build backend - it will use the built shared package
 WORKDIR /app/backend
 RUN npm ci
 RUN npm run build
+
+# ✅ Fix: Move the backend build output to the expected location
+RUN echo "=== BEFORE FIX ===" && ls -la /app/backend/dist/
+RUN if [ -d "/app/backend/dist/backend" ]; then \
+      echo "Moving dist/backend to dist/..." && \
+      cp -r /app/backend/dist/backend/* /app/backend/dist/ && \
+      rm -rf /app/backend/dist/backend; \
+    fi
+RUN echo "=== AFTER FIX ===" && ls -la /app/backend/dist/
 
 # --- Final production image ---
 FROM node:20-alpine
@@ -67,7 +79,7 @@ WORKDIR /app
 # Copy production node_modules from backend builder
 COPY --from=backend-builder /app/backend/node_modules ./node_modules
 
-# ✅ Copy built backend to /app/dist (not /app/backend/dist)
+# Copy built backend to /app/dist
 COPY --from=backend-builder /app/backend/dist ./dist
 
 # Copy built frontend to be served by backend
@@ -95,5 +107,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# ✅ CMD expects server.js at /app/dist/server.js
 CMD ["node", "dist/server.js"]
