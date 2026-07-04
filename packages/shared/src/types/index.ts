@@ -4,7 +4,7 @@ export * from './consent';
 export * from './dialog';
 export * from './email';
 export * from './event';
-export * from './express.d';
+export * from './express';
 export * from './generalSetup';
 export * from './guard';
 export * from './image';

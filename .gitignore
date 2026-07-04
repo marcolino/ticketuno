@@ -43,3 +43,12 @@ Thumbs.db
 
 # Backups
 backup-*.db
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Stray compiled output (should only ever be in dist/, this is a safety net)
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
