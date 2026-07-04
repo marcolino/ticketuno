@@ -45,7 +45,7 @@
     "i18n:auto": "./scripts/translate.js",
     "i18n:all": "npm run i18n:extract && npm run i18n:sync && npm run i18n:auto",
     "deploy:staging": "./scripts/deploy.sh --staging && npm run play-ok || npm run play-ko",
-    "deploy:prod": "./scripts/deploy.sh && npm run play-ok || npm run play-ko",
+    "deploy:prod": "./scripts/deploy.sh --force && npm run play-ok || npm run play-ko",
     "maintenance-set": "fly secrets set MAINTENANCE_MODE=1 -a ticketuno",
     "maintenance-reset": "fly secrets set MAINTENANCE_MODE=0 -a ticketuno",
     "maintenance-set:staging": "fly secrets set MAINTENANCE_MODE=1 -a ticketuno-staging",
