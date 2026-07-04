@@ -76,8 +76,10 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy production node_modules from backend builder
-COPY --from=backend-builder /app/backend/node_modules ./node_modules
+## Copy production node_modules from backend builder
+#COPY --from=backend-builder /app/backend/node_modules ./node_modules
+# Copy production node_modules from backend root
+COPY --from=backend-builder /app/node_modules ./node_modules
 
 # Copy built backend to /app/dist
 COPY --from=backend-builder /app/backend/dist ./dist
