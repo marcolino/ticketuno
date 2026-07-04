@@ -1,5 +1,5 @@
-import { LayoutJSON } from '@ticketuno/shared';
-import { GeneratedSeat } from '@ticketuno/shared';
+import { LayoutJSON } from '../types/layout';
+import { GeneratedSeat } from '../types/seat';
 
 export function generateSeats(layout: LayoutJSON): GeneratedSeat[] {
   const seats: GeneratedSeat[] = [];

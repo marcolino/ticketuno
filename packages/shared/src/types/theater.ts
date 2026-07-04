@@ -1,4 +1,4 @@
-import type { SeatStatus } from '@ticketuno/shared';
+import type { SeatStatus } from './seat';
 
 export type TheaterStatus = 'active' | 'inactive';
 

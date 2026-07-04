@@ -1,5 +1,5 @@
 import { ThemeType, ThemePreference } from './theme';
-import type { PaymentGateway } from '@ticketuno/shared';
+import type { PaymentGateway } from './generalSetup';
 
 //export type PaymentGateway = 'free' | 'cash' | 'stripe';
 

@@ -1,6 +1,7 @@
 // import { t } from 'i18next';
 // import axios from 'axios';
-import { sharedConfig as config, DeepPartial } from '@ticketuno/shared';
+import { sharedConfig as config } from '../config';
+import { DeepPartial } from '../types/generalSetup';
 
 //export type DeepPartial<T> = { [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P] };
 

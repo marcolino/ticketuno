@@ -1,3 +1,7 @@
+// Side-effect import: augments Express's Request type globally
+// (adds req.userId, req.userRole, req.impersonatedBy, req.t)
+import './types/express';
+
 // Export config (values)
 export { sharedConfig, isDev, isProd, isStaging } from './config';
 
