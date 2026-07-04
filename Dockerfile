@@ -19,7 +19,7 @@ COPY packages/shared/ ./packages/shared/
 COPY frontend/ ./frontend/
 
 # Install TypeScript globally
-RUN npm install -g typescript
+#RUN npm install -g typescript
 
 # Build shared package FIRST with all dependencies
 WORKDIR /app/packages/shared
@@ -50,7 +50,7 @@ COPY packages/shared/ ./packages/shared/
 COPY backend/ ./backend/
 
 # Install TypeScript globally
-RUN npm install -g typescript
+#RUN npm install -g typescript
 
 # ✅ Build shared package FIRST in the same stage
 WORKDIR /app/packages/shared
