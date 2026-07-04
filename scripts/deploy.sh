@@ -132,6 +132,7 @@ npm run archive
 echo "🔍 Running pre-deploy checks..."
 npm run type-check > "$error_log" 2>&1
 exit_code=$?
+echo "exit_code: $exit_code"
 if [ $exit_code -ne 0 ]; then
   echo "❌ TypeScript check (\`npm run type-check\`) failed. View errors? (y/N): "
   read -r answer
