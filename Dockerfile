@@ -24,7 +24,10 @@ COPY frontend/ ./frontend/
 # Build shared package FIRST with all dependencies
 WORKDIR /app/packages/shared
 RUN npm install
+RUN npx tsc --version
 RUN npm run build
+RUN ls -la dist/ && ls -la dist/types/ && cat dist/index.d.ts
+RUN echo "==================================================================="
 
 # Build frontend
 WORKDIR /app/frontend
@@ -85,14 +88,14 @@ COPY --from=backend-builder /app/backend/dist ./dist
 # Copy package.json to backend
 COPY --from=backend-builder /app/backend/package.json ./package.json
 
-# Copy built frontend to be served by backend
-COPY --from=frontend-builder /app/frontend/dist ./public
-
 # Copy shared package (for runtime if needed)
 COPY --from=backend-builder /app/packages/shared ./packages/shared
 
 # Copy templates from backend source
 COPY --from=backend-builder /app/backend/src/templates ./dist/templates
+
+# Copy built frontend to be served by backend
+COPY --from=frontend-builder /app/frontend/dist ./public
 
 # Create data directory for SQLite
 RUN mkdir -p /data && chown -R node:node /data
