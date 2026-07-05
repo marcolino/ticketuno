@@ -39,3 +39,13 @@ README.md
 .idea/
 .vscode/
 *.sublime-*
+
+# Build outputs & caches
+**/dist/
+**/build/
+**/.next/
+**/out/
+**/.cache/
+**/coverage/
+**/.nyc_output/
+**/*.tsbuildinfo
