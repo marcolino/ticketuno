@@ -12,7 +12,7 @@ export * from './layout';
 //export * from './layoutToSeats';
 export * from './performance';
 export * from './query';
-export * from './resources.d';
+export * from './resources';
 export * from './seat';
 export * from './theme';
 export * from './theater';
