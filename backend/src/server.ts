@@ -23,7 +23,8 @@ import { loadSetup } from './services/setupService';
 import config from './config';
 
 const prefix = `/${config.app.api.prefix}/${config.app.api.version}`;
-const rootDir = path.join(__dirname, '../..');
+//const rootDir = path.join(__dirname, '../..');
+const rootDir = path.join(__dirname, '..');
 const localesDir = path.join(rootDir, 'packages', 'shared', 'assets', 'locales');
 const localesStaticDir = path.join(rootDir, 'packages', 'shared', 'assets', 'locales-static');
 
