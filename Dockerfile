@@ -24,10 +24,9 @@ COPY frontend/ ./frontend/
 # Build shared package FIRST with all dependencies
 WORKDIR /app/packages/shared
 RUN npm install
-RUN npx tsc --version
+#RUN npx tsc --version
 RUN npm run build
-RUN ls -la dist/ && ls -la dist/types/ && cat dist/index.d.ts
-RUN echo "==================================================================="
+#RUN ls -la dist/ && ls -la dist/types/ && cat dist/index.d.ts
 
 # Build frontend
 WORKDIR /app/frontend
@@ -65,14 +64,14 @@ WORKDIR /app/backend
 RUN npm ci
 RUN npm run build
 
-# ✅ Fix: Move the backend build output to the expected location
-RUN echo "=== BEFORE FIX ===" && ls -la /app/backend/dist/
-RUN if [ -d "/app/backend/dist/backend" ]; then \
-      echo "Moving dist/backend to dist/..." && \
-      cp -r /app/backend/dist/backend/* /app/backend/dist/ && \
-      rm -rf /app/backend/dist/backend; \
-    fi
-RUN echo "=== AFTER FIX ===" && ls -la /app/backend/dist/
+# # ✅ Fix: Move the backend build output to the expected location
+# RUN echo "=== BEFORE FIX ===" && ls -la /app/backend/dist/
+# RUN if [ -d "/app/backend/dist/backend" ]; then \
+#       echo "Moving dist/backend to dist/..." && \
+#       cp -r /app/backend/dist/backend/* /app/backend/dist/ && \
+#       rm -rf /app/backend/dist/backend; \
+#     fi
+# RUN echo "=== AFTER FIX ===" && ls -la /app/backend/dist/
 
 # --- Final production image ---
 FROM node:20-alpine
