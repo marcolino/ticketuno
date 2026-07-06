@@ -90,9 +90,8 @@ if (process.env.NODE_ENV !== 'development') {
   if (config.stripe.mode === 'test' && !keyLooksTest) {
     throw new Error('STRIPE_MODE is "test" but STRIPE_API_KEY_TEST does not look like a test key.');
   }
-  
+
   // ... other checks
-}
 }
 
 export default config;
