@@ -64,15 +64,6 @@ WORKDIR /app/backend
 RUN npm ci
 RUN npm run build
 
-# # ✅ Fix: Move the backend build output to the expected location
-# RUN echo "=== BEFORE FIX ===" && ls -la /app/backend/dist/
-# RUN if [ -d "/app/backend/dist/backend" ]; then \
-#       echo "Moving dist/backend to dist/..." && \
-#       cp -r /app/backend/dist/backend/* /app/backend/dist/ && \
-#       rm -rf /app/backend/dist/backend; \
-#     fi
-# RUN echo "=== AFTER FIX ===" && ls -la /app/backend/dist/
-
 # --- Final production image ---
 FROM node:20-alpine
 
@@ -82,16 +73,16 @@ WORKDIR /app
 COPY --from=backend-builder /app/node_modules ./node_modules
 
 # Copy built backend to /app/dist
-COPY --from=backend-builder /app/backend/dist ./dist
+COPY --from=backend-builder /app/backend/dist ./backend/dist
 
 # Copy package.json to backend
-COPY --from=backend-builder /app/backend/package.json ./package.json
+COPY --from=backend-builder /app/backend/package.json ./backend/package.json
 
 # Copy shared package (for runtime if needed)
 COPY --from=backend-builder /app/packages/shared ./packages/shared
 
 # Copy templates from backend source
-COPY --from=backend-builder /app/backend/src/templates ./dist/templates
+COPY --from=backend-builder /app/backend/src/templates ./backend/dist/templates
 
 # Copy built frontend to be served by backend
 COPY --from=frontend-builder /app/frontend/dist ./public
@@ -112,4 +103,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/api/v1/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "backend/dist/server.js"]

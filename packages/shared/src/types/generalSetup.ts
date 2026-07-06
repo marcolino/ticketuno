@@ -4,9 +4,11 @@ import { CurrencyCode } from '../config';
 
 export type PaymentGateway = 'stripe' | 'satispay' | 'revolut' | 'paypal' | 'sumup' | 'cash' | 'free';
 
+export type StripeMode = 'test' | 'live';
 export type StripeConnectStatus = 'none' | 'pending' | 'active' | 'disabled' | 'error';
 
 export interface StripeConnectSetup {
+  mode: StripeMode;
   status: StripeConnectStatus;
   organizerEmail: string | null;
   businessName: string | null;
@@ -68,6 +70,7 @@ export const defaultGeneralSetup: GeneralSetupType = {
     enabled: false,
     gateway: 'stripe',
     stripe: {
+      mode: 'test',
       accountId: null,
       status: 'none',
       onboardingCompleted: false,

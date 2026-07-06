@@ -8,21 +8,43 @@ LOCAL_DB="/tmp/ticketuno-production.db"
 
 set -e
 
-#echo "🛑  Stopping Fly.io web service..."
-#fly scale count 0 -a "$APP_NAME"
+safe=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -s|--safe)
+      safe=true
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    -*)
+      echo "Unknown option: $1" >&2
+      exit 1
+      ;;
+    *)
+      # first non-option argument
+      break
+      ;;
+  esac
+done
 
-echo "🔒 Enabling maintenance mode..."
-fly secrets set MAINTENANCE_MODE=1 -a "$APP_NAME"
 
-echo "🛑 Stopping Fly.io machine..."
-fly machine stop $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME"
+if $safe; then
+  echo "🔒 Enabling maintenance mode..."
+  fly secrets set MAINTENANCE_MODE=1 -a "$APP_NAME" > /dev/null 2>&1
+fi
+
+echo "▶️  Restarting Fly.io machine..."
+fly machine stop $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME" > /dev/null 2>&1
 sleep 3
-echo "▶️  Starting Fly.io machine..."
-fly machine start $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME"
+#echo "▶️  Starting Fly.io machine..."
+fly machine start $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME" > /dev/null 2>&1
 
 echo "⬇️  Downloading database from Fly.io..."
 rm -f "$LOCAL_DB"
-fly ssh sftp get "$REMOTE_DB" "$LOCAL_DB" -a "$APP_NAME"
+fly ssh sftp get "$REMOTE_DB" "$LOCAL_DB" -a "$APP_NAME" > /dev/null 2>&1
 
 if [ ! -f "$LOCAL_DB" ]; then
   echo "❌  Failed to download database!"
@@ -51,13 +73,15 @@ if [ "$OLD_HASH" != "$NEW_HASH" ]; then
     #fly scale count 1 -a $APP_NAME
 
     echo "✅  Database sync complete!"
-  else
-    echo "No changes to database"
   fi
+else
+  echo "   No changes to database"
 fi
 
-echo "🔓 Disabling maintenance mode..."
-fly secrets unset MAINTENANCE_MODE -a "$APP_NAME"
+if $safe; then
+  echo "🔓 Disabling maintenance mode..."
+  fly secrets unset MAINTENANCE_MODE -a "$APP_NAME" > /dev/null 2>&1
+fi
 
 rm -f "$LOCAL_DB" "$LOCAL_DB.sha256"
 exit 0

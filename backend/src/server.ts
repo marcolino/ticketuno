@@ -23,8 +23,7 @@ import { loadSetup } from './services/setupService';
 import config from './config';
 
 const prefix = `/${config.app.api.prefix}/${config.app.api.version}`;
-//const rootDir = path.join(__dirname, '../..');
-const rootDir = path.join(__dirname, '..');
+const rootDir = path.join(__dirname, '../..');
 const localesDir = path.join(rootDir, 'packages', 'shared', 'assets', 'locales');
 const localesStaticDir = path.join(rootDir, 'packages', 'shared', 'assets', 'locales-static');
 
@@ -175,6 +174,9 @@ database.initialize().then(async () => {
   await loadSetup();
   app.listen(process.env.PORT ?? config.host.dev.port, () => {
     console.log(`Server running on port ${process.env.PORT ?? config.host.dev.port} in ${process.env.NODE_ENV} mode`);
+    if (process.env.MAINTENANCE_MODE === '1') {
+      console.log('MAINTENANCE MODE');
+    }
   });
 }).catch(err => {
   console.error('Failed to initialize database:', err);

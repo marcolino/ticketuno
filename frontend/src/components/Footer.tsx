@@ -6,6 +6,7 @@ import {
   Typography,
   IconButton,
   Link,
+  Tooltip,
 } from '@mui/material';
 import {
   InfoOutlined as InfoOutlinedIcon
@@ -27,6 +28,8 @@ function Footer({ children }: FooterProps) {
   const [backendLastCommitDate, setBackendLastCommitDate] = useState('...');
   const { t } = useTranslation();
   const showDialog = useDialog();
+
+  const envMode = getEnvMode();
 
   useEffect(() => {
     (async () => {
@@ -58,7 +61,12 @@ function Footer({ children }: FooterProps) {
       <Container>
         {children || (
           <>
-            <Typography variant="body2" align="center" color="text.secondary">
+            <Typography
+              variant="body2"
+              align="center"
+              color="text.secondary"
+              sx={{ fontSize: "0.8rem" }}
+            >
               
               © {new Date().getFullYear()} {config.app.name}
 
@@ -106,14 +114,14 @@ function Footer({ children }: FooterProps) {
                         component="div" // render as inline element
                         sx={{ lineHeight: 1.5 }}
                       >
-                        <div>{t("This app is produced by")} {config.app.holder.name}</div>
-                        <div>{t("You can reach us at email")} &lt;{config.app.holder.email}&gt;</div>
+                        <div>{t("This app is produced by")} {config.app.holder.name}.</div>
+                        <div>{t("You can reach us at email")} &lt;{config.app.holder.email}&gt;.</div>
                         <div>
                           {t("App mode")} {t("is")} {
-                            getEnvMode() === 'development' ? t('development') :
-                            getEnvMode() === 'staging' ? t('staging') :
+                            envMode === 'development' ? t('development') :
+                            envMode === 'staging' ? t('staging') :
                             t('production')
-                          }
+                          }.
                         </div>
                         <div>{t('Frontend')}:&nbsp;<strong>v{pkg.version}</strong></div>
                         <div>{t('Backend')}:&nbsp;<strong>v{backendVersion}</strong></div>
@@ -137,13 +145,16 @@ function Footer({ children }: FooterProps) {
 
               <OnlineStatus />
 
-              <Box component="span" sx={{ ml: 1, fontSize: '0.9em' }}>
-                {
-                  getEnvMode() === 'development' ? '🛠️' :
-                  getEnvMode() === 'staging' ? '🚀' :
-                  ''
-                }
-              </Box>
+              <Tooltip title={envMode === 'development' ? 'Development mode' : envMode === 'staging' ? 'Staging mode' : 'Production mode'} placement="top" arrow>
+                <Box component="span" sx={{ ml: 1, fontSize: '0.9em' }}>
+                  {
+                    envMode === 'development' ? '🛠️' :
+                    envMode === 'staging' ? '🚀' :
+                    ''
+                  }
+                </Box>
+              </Tooltip>
+
             </Typography>          
           </>
         )

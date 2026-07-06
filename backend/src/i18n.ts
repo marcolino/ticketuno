@@ -12,8 +12,7 @@ console.info = function (...args) {
 };
 
 // project root: ticketuno/
-//const ROOT = path.resolve(__dirname, '../..');
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(__dirname, '../..');
 
 i18n
   .use(Backend)

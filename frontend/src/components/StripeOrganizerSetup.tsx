@@ -23,7 +23,11 @@ import {
   LinkOff as LinkOffIcon,
   Business as BusinessIcon,
   Email as EmailIcon,
+  BugReport as BugReportIcon,
+  LiveTv as LiveTvIcon,
+
 } from '@mui/icons-material';
+import { useSetup } from '@/contexts/SetupContext';
 import { stripeConnectApi } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@ticketuno/shared/utils/misc';
@@ -57,6 +61,48 @@ interface StripeOrganizerSetupProps {
 interface StatusChipProps {
   status: StripeConnectStatus;
 }
+
+function ModeChip() {
+  const { t } = useTranslation();
+  const setup = useSetup();
+  
+  const getModeConfig = () => {
+    const mode = process.env.STRIPE_MODE;
+    switch (mode) {
+      case 'test':
+        return {
+          label: t('Stripe test mode'),
+          color: 'error' as const,
+          icon: <BugReportIcon />,
+        };
+      case 'live':
+        return {
+          label: t('Stripe live mode'),
+          color: 'success' as const,
+          icon: <LiveTvIcon />,
+        };
+      default:
+        return {
+          label: t('Stripe unforeseen mode v {{mode}}', {mode: mode}),
+          color: 'default' as const,
+          icon: <ErrorIcon />,
+        };
+    }
+  };
+
+  const config = getModeConfig();
+
+  return (
+    <Chip
+      //icon={config.icon}
+      label={config.label}
+      color={config.color}
+      variant="filled"
+      size="medium"
+      sx={{ fontWeight: 600 }}
+    />
+  );
+};
 
 function StatusChip({ status }: StatusChipProps) {
   const { t } = useTranslation();
@@ -300,6 +346,7 @@ export function StripeOrganizerSetup({
             <Typography variant="h6" component="h2" fontWeight={600}>
               {t('Stripe Connect Setup')}
             </Typography>
+            <ModeChip />
             <StatusChip status={status} />
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
