@@ -82,7 +82,7 @@ function ModeChip() {
         };
       default:
         return {
-          label: t('Stripe unforeseen mode v {{mode}}', {mode: mode}),
+          label: t('Stripe unforeseen mode v {{mode}}', {mode: stripeMode}),
           color: 'default' as const,
           icon: <ErrorIcon />,
         };
