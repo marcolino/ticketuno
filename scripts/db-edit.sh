@@ -37,10 +37,10 @@ if $safe; then
 fi
 
 echo "▶️  Restarting Fly.io machine..."
-fly machine stop $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME" > /dev/null 2>&1
+fly machine stop $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME" #> /dev/null 2>&1
 sleep 3
 #echo "▶️  Starting Fly.io machine..."
-fly machine start $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME" > /dev/null 2>&1
+fly machine start $(fly machine list -a "$APP_NAME" --json | jq -r '.[0].id') -a "$APP_NAME" #> /dev/null 2>&1
 
 echo "⬇️  Downloading database from Fly.io..."
 rm -f "$LOCAL_DB"

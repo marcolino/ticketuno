@@ -131,7 +131,8 @@ common:
  3 - OK - add all users profile handling
  3 - OK - remove .env, .env.example
  2 - OK - add a consents popup button or link in Profile component
- 2 - OK   - ask AI to implement BookingsList, like UsersList, and BookingEdit, like UserEdit
+ 2 - OK - ask AI to implement BookingsList, like UsersList, and BookingEdit, like UserEdit
+ 2 -    - Make better looking these components better looking: stripe/connect/success and stripe/connect/error
  3 -    - implement tests
 
 bugs:

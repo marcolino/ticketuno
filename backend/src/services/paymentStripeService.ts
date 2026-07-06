@@ -136,13 +136,25 @@ class StripeService {
 
   /** Maps a Stripe account's flags to our stored connect status. */
   private mapAccountStatus(
-    account: { charges_enabled?: boolean | null; details_submitted?: boolean | null }
-  ): { status: StripeConnectStatus; chargesEnabled: boolean; onboardingCompleted: boolean } {
+    account: {
+      charges_enabled?: boolean | null;
+      details_submitted?: boolean | null;
+      payouts_enabled?: boolean | null;
+    }
+  ): {
+    status: StripeConnectStatus;
+    chargesEnabled: boolean;
+    detailsSubmitted: boolean;
+    payoutsEnabled: boolean;
+    onboardingCompleted: boolean;
+  } {
     const chargesEnabled = !!account.charges_enabled;
-    const onboardingCompleted = !!account.details_submitted;
+    const detailsSubmitted = !!account.details_submitted;
+    const payoutsEnabled = !!account.payouts_enabled;
+    const onboardingCompleted = detailsSubmitted; // alias, in caso qualcos'altro lo legga ancora
     const status: StripeConnectStatus =
-      chargesEnabled ? 'active' : onboardingCompleted ? 'disabled' : 'pending';
-    return { status, chargesEnabled, onboardingCompleted };
+      chargesEnabled ? 'active' : detailsSubmitted ? 'disabled' : 'pending';
+    return { status, chargesEnabled, detailsSubmitted, payoutsEnabled, onboardingCompleted };
   }
 
   /**
