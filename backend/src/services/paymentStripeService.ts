@@ -250,13 +250,7 @@ class StripeService {
   }
 
   async handleWebhook(body: Buffer, signature: string): Promise<void> {
-    // console.log('config.stripe:', config.stripe);
-    // console.log('config.stripe.webhookSecret:', config.stripe.webhookSecret);
-    const event = this.stripe.webhooks.constructEvent(
-      body,
-      signature,
-      config.stripe.webhookSecret
-    );
+    const event = this.constructEventWithFallback(body, signature);
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -268,6 +262,39 @@ class StripeService {
       case 'account.updated':
         await this.handleAccountUpdated(event.data.object);
         break;
+      case 'account.external_account.updated':
+        // optional: handle this event type if we want to control connected IBAN/account changes
+        console.log('ℹ️ External account updated for connected account');
+        break;
+    }
+  }
+
+  /**
+   * The two Event Destinations on Stripe (platform vs. connected accounts)
+   * are signed with different secrets but point to the same /webhook URL.
+   * We try the platform secret first; if verification fails due to an invalid
+   * signature, we retry the Connect secret before giving up.
+   */
+  private constructEventWithFallback(body: Buffer, signature: string): Stripe.Event {
+    try {
+      return this.stripe.webhooks.constructEvent(
+        body,
+        signature,
+        config.stripe.webhookSecret
+      );
+    } catch (platformError) {
+      try {
+        return this.stripe.webhooks.constructEvent(
+          body,
+          signature,
+          config.stripe.webhookSecretConnect
+        );
+      } catch (connectError) {
+        // No one of the two secrets verifies the signature: fake event
+        // or badly set secret. We rethrow original error.
+        console.error(connectError);
+        throw platformError;
+      }
     }
   }
 
