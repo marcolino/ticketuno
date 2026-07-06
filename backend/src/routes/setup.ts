@@ -24,6 +24,11 @@ router.post('/', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const partialUpdate = req.body as DeepPartial<GeneralSetupType>;
     
+    // Defensive: delete env-sourced only keys (see /config), never to be persisted
+    if (partialUpdate?.payments?.stripe && 'mode' in partialUpdate.payments.stripe) {
+      delete (partialUpdate.payments.stripe as Record<string, unknown>).mode;
+    }
+
     // Get current full setup
     const currentSetup = await loadSetup();
     

@@ -6,6 +6,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import AuthProvider from './contexts/AuthContext';
 import { SetupProvider } from './contexts/SetupContext';
+import { ConfigProvider } from './contexts/ConfigContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 //import { DialogProvider } from './contexts/DialogContext';
 import { DialogProvider, DialogRenderer } from './contexts/DialogContext'; 
@@ -69,29 +70,31 @@ const App: React.FC = () => {
       localeText={muiLocale}
       key={adapterLocale(i18n.language)}
     >
-      <SetupProvider>
-        <ThemeProvider>
-          <LoadingProvider>
-            <LoadingSpinner />
-            <ToastProvider>
-              <PwaInitializer />
-              <CssBaseline />
-              <DialogProvider>
-                <AuthProvider>
-                  <DialogRenderer />
-                  {/*
-                    ConsentProvider, OAuthHandler, and ToastRouteHandler have moved into
-                    RootLayout so they remain inside the router and can use router hooks.
-                    v7_startTransition stays here on RouterProvider; v7_relativeSplatPath
-                    is passed to createBrowserRouter in Routes.tsx.
-                  */}
-                  <RouterProvider router={router} future={{ v7_startTransition: true }} />
-                </AuthProvider>
-              </DialogProvider>
-            </ToastProvider>
-          </LoadingProvider>
-        </ThemeProvider>
-      </SetupProvider>
+      <ConfigProvider>
+        <SetupProvider>
+          <ThemeProvider>
+            <LoadingProvider>
+              <LoadingSpinner />
+              <ToastProvider>
+                <PwaInitializer />
+                <CssBaseline />
+                <DialogProvider>
+                  <AuthProvider>
+                    <DialogRenderer />
+                    {/*
+                      ConsentProvider, OAuthHandler, and ToastRouteHandler have moved into
+                      RootLayout so they remain inside the router and can use router hooks.
+                      v7_startTransition stays here on RouterProvider; v7_relativeSplatPath
+                      is passed to createBrowserRouter in Routes.tsx.
+                    */}
+                    <RouterProvider router={router} future={{ v7_startTransition: true }} />
+                  </AuthProvider>
+                </DialogProvider>
+              </ToastProvider>
+            </LoadingProvider>
+          </ThemeProvider>
+        </SetupProvider>
+      </ConfigProvider>
     </LocalizationProvider>
   );
 };

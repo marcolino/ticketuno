@@ -560,6 +560,11 @@ export const setupApi = {
     api.post<GeneralSetupType>('/setup', payload),
 };
 
+export const configApi = {
+  load: () =>
+    api.get('/config'),
+};
+
 export const pushApi = {
   getVapidPublicKey: async (): Promise<{ vapidPublicKey: string }> => {
     const response = await api.get('/push/vapid-public-key');

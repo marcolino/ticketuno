@@ -36,6 +36,7 @@ const backendConfig = {
     linkToTermsAndConditions: 'https://ticketuno.fly.dev/terms-and-conditions',
   },
   stripe: {
+    mode: (process.env.STRIPE_MODE as 'test' | 'live') || 'test',
     secretKey: process.env.STRIPE_MODE === 'test'
       ? process.env.STRIPE_API_KEY_TEST || ''
       : process.env.STRIPE_API_KEY_LIVE || '',
@@ -71,10 +72,27 @@ const config = {
   },
 };
 
-// Safety checks
+// Safety checks in production/staging
 if (process.env.NODE_ENV !== 'development') {
+  // JWT checks
   if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET must be set in production!');
+
+  // Stripe checks
+  if (config.stripe.mode !== 'test' && config.stripe.mode !== 'live') {
+    throw new Error(`STRIPE_MODE must be 'test' or 'live', got: "${config.stripe.mode}"`);
+  }
+
+  const keyLooksLive = config.stripe.secretKey.startsWith('sk_live_');
+  const keyLooksTest = config.stripe.secretKey.startsWith('sk_test_');
+  if (config.stripe.mode === 'live' && !keyLooksLive) {
+    throw new Error('STRIPE_MODE is "live" but STRIPE_API_KEY_LIVE does not look like a live key.');
+  }
+  if (config.stripe.mode === 'test' && !keyLooksTest) {
+    throw new Error('STRIPE_MODE is "test" but STRIPE_API_KEY_TEST does not look like a test key.');
+  }
+  
   // ... other checks
+}
 }
 
 export default config;

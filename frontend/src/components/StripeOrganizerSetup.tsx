@@ -27,7 +27,7 @@ import {
   LiveTv as LiveTvIcon,
 
 } from '@mui/icons-material';
-import { useSetup } from '@/contexts/SetupContext';
+import { useConfig } from '@/contexts/ConfigContext';
 import { stripeConnectApi } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@ticketuno/shared/utils/misc';
@@ -64,11 +64,10 @@ interface StatusChipProps {
 
 function ModeChip() {
   const { t } = useTranslation();
-  const setup = useSetup();
+  const { stripeMode } = useConfig();
   
   const getModeConfig = () => {
-    const mode = process.env.STRIPE_MODE;
-    switch (mode) {
+    switch (stripeMode) {
       case 'test':
         return {
           label: t('Stripe test mode'),
