@@ -61,7 +61,8 @@
     "check-git-leaks": "gitleaks detect --source . --log-opts='--all' -v",
     "archive": "scripts/archive-temporary-files.sh",
     "play-ok": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/trumpet.wav",
-    "play-ko": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/finish.wav"
+    "play-ko": "date; ffplay -loglevel 0 -autoexit -nodisp dev/sounds/finish.wav",
+    "ngrok": "ngrok http --url=cockatoo-liberal-eft.ngrok-free.app 3000 > /dev/null 2>&1 &"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.17.0",

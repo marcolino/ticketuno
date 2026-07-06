@@ -42,6 +42,7 @@ const backendConfig = {
       : process.env.STRIPE_API_KEY_LIVE || '',
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
+    webhookSecretConnect: process.env.STRIPE_WEBHOOK_SECRET_CONNECT || '',
     platformFeePercent: Number(process.env.STRIPE_PLATFORM_FEE_PERCENT) || 5,
     platformFeeFixed: Number(process.env.STRIPE_PLATFORM_FEE_FIXED) || 50,
     currency: 'eur',
@@ -91,7 +92,16 @@ if (process.env.NODE_ENV !== 'development') {
     throw new Error('STRIPE_MODE is "test" but STRIPE_API_KEY_TEST does not look like a test key.');
   }
 
-  // ... other checks
+  // Webhook secrets check (nuovo)
+  if (!config.stripe.webhookSecret) {
+    throw new Error('STRIPE_WEBHOOK_SECRET must be set in production!');
+  }
+  if (!config.stripe.webhookSecretConnect) {
+    throw new Error('STRIPE_WEBHOOK_SECRET_CONNECT must be set in production!');
+  }
+
+  // Other checks ...
+  
 }
 
 export default config;

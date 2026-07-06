@@ -250,8 +250,8 @@ class StripeService {
   }
 
   async handleWebhook(body: Buffer, signature: string): Promise<void> {
-    console.log('config.stripe:', config.stripe);
-    console.log('config.stripe.webhookSecret:', config.stripe.webhookSecret);
+    // console.log('config.stripe:', config.stripe);
+    // console.log('config.stripe.webhookSecret:', config.stripe.webhookSecret);
     const event = this.stripe.webhooks.constructEvent(
       body,
       signature,
