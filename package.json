@@ -18,6 +18,7 @@
     "build:shared": "npm --workspace @ticketuno/shared run build",
     "build:backend": "npm --workspace backend run build",
     "build:frontend": "npm --workspace frontend run build",
+    "postinstall": "npm run build --workspace=packages/shared",
     "type-check": "npm run type-check:shared && npm run type-check:backend && npm run type-check:frontend",
     "type-check:shared": "npm --workspace @ticketuno/shared run type-check",
     "type-check:backend": "npm --workspace backend run type-check",

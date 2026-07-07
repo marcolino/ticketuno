@@ -252,6 +252,8 @@ class StripeService {
   async handleWebhook(body: Buffer, signature: string): Promise<void> {
     const event = this.constructEventWithFallback(body, signature);
 
+    console.info(`STRIPE WEBHOOK RECEIVED for event type ${event.type}`);
+
     switch (event.type) {
       case 'checkout.session.completed':
         await this.handleCheckoutCompleted(event.data.object);
@@ -290,8 +292,8 @@ class StripeService {
           config.stripe.webhookSecretConnect
         );
       } catch (connectError) {
-        // No one of the two secrets verifies the signature: fake event
-        // or badly set secret. We rethrow original error.
+        // No one of the two secrets verifies the signature:
+        // fake event or badly set secret. We rethrow original error.
         console.error(connectError);
         throw platformError;
       }
@@ -334,7 +336,7 @@ class StripeService {
 
         // Skip if f status is already confirmed
         if (booking.status === 'confirmed') {
-          console.log(`ℹ️ Booking ${bookingId} already confirmed`);
+          console.log(`ℹ️  Booking ${bookingId} already confirmed`);
           return;
         }
 

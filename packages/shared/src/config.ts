@@ -154,6 +154,4 @@ export const sharedConfig = {
   },
 } as const;
 
-console.log('baseUrlFrontend:', sharedConfig.app.baseUrlFrontend);
-
 export type SharedConfig = typeof sharedConfig;

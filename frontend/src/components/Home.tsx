@@ -184,6 +184,7 @@ const Home: React.FC = () => {
   const handleBookingsValidate = () => {
     handleClose();
     navigate('/booking/validate');
+    //navigate('/bookings');
   };
   const handleProfile = () => {
     handleClose();
@@ -399,7 +400,6 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                       {t('Users')}
                     </ListItemText>
                   </MenuItem>
-
                 </>
               )}
 
@@ -413,10 +413,11 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
                       {t('Stripe organizer setup')}
                     </ListItemText>
                   </MenuItem>
+
+                  <Divider />
                 </>
               )}
 
-              <Divider />
 
               <MenuItem onClick={handleProfile}>
                 <ListItemIcon>

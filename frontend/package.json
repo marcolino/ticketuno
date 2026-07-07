@@ -11,6 +11,7 @@
     "test": "echo 'vitest run (TO DO)'",
     "lint": "eslint src",
     "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist",
     "unused": "ts-prune",
     "check": "npm run type-check && npm run lint && npm run test"
   },

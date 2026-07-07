@@ -8,7 +8,7 @@ export const HOLDER = {
 
 /* ---------------------------------- API ---------------------------------- */
 
-export const NGROK_URL = 'cockatoo-liberal-eft.ngrok-free.app';
+export const NGROK_URL = 'https://cockatoo-liberal-eft.ngrok-free.app';
 
 export const API = {
   prefix: 'api',

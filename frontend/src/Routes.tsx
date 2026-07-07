@@ -12,7 +12,7 @@ import LayoutEdit from './components/LayoutEdit';
 import LayoutList from './components/LayoutList';
 import BookingsList from './components/BookingsList';
 import BookingEdit from './components/BookingEdit';
-//import BookingValidate from './components/BookingValidate';
+import BookingValidate from './components/BookingValidate';
 import UsersList from './components/UsersList';
 import UserEdit from './components/UserEdit';
 import Unsubscribe from './components/Unsubscribe';
@@ -55,7 +55,7 @@ const router = createBrowserRouter(
             { path: 'bookings/:id?', element: <PR><BookingsList /></PR> },
             { path: 'bookings/:performanceId/create', element: <PerformanceBooking /> },
             { path: 'bookings/edit/:id', element: <PR><BookingEdit /></PR> },
-            //{ path: 'booking/validate', element: <PR requireOperator={true}><BookingValidate /></PR> },
+            { path: 'booking/validate', element: <PR requireOperator={true}><BookingValidate /></PR> },
             { path: 'users', element: <PR requireOperator={true}><UsersList /></PR> },
             { path: 'user/edit/:id?', element: <UserEdit /> },
             { path: 'unsubscribe/:token', element: <Unsubscribe /> },
