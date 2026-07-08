@@ -18,8 +18,7 @@ class TenantDbManager {
 
   private tenantDbPath(slug: string): string {
     assertValidSlug(slug);
-    const baseDir = path.dirname(config.db.dataRoot); // e.g. /data (or ./data locally)
-    return path.join(baseDir, slug, config.db.name);
+    return path.join(config.db.dataRoot, slug, config.db.name);
   }
 
   async getTenantDb(slug: string): Promise<Database> {
