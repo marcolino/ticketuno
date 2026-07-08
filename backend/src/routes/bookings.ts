@@ -139,13 +139,14 @@ router.patch('/:id/scan', requireAuthentication, requireOperator, async (req: Re
 
 // POST /bookings/create - create a booking with a payment method
 router.post('/:performanceId/create', requireAuthentication, async (req: Request, res: Response) => {
-  const setup = getSetup();
-  // TODO: remove payments enabled/disabled boolean, we use gateway free...
   try {
+    const setup = getSetup();
     // TODO: totalPrice was in req.body, but it is not needed,
     //       it is calculated as `event!.baseTicketPrice * seatIds.length`;
-    //       here we will add logic for different seats prices, if needed.
-    //       So check if frontend calculates totalPrice, and delete it.
+    //       so check if frontend calculates totalPrice, and delete it.
+    
+    // NOTE: add logic for different seats prices here, if needed.
+
     const performanceId = req.params.performanceId;
     const paymentMethod = setup.payments.gateway as PaymentGateway;
     const { seatIds } = req.body; 

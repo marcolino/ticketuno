@@ -1,36 +1,59 @@
 import { database } from '../db/database';
 import { GeneralSetupType, StripeConnectSetup } from '@ticketuno/shared';
+import { getCurrentTenantSlug } from '../tenancy/tenantContext';
+import { tenantRegistry } from '../tenancy/tenantRegistry';
 
-let cachedSetup: GeneralSetupType | null = null;
+//let cachedSetup: GeneralSetupType | null = null;
+const cachedSetupByTenant = new Map<string, GeneralSetupType>();
 
-export const loadSetup = async () => {
-  if (!cachedSetup) {
-    const setup = await database.loadSetup();
-    if (!setup) {
-      throw new Error("Setup not found");
-    }
-    cachedSetup = setup;
+export const loadSetup = async (): Promise<GeneralSetupType> => {
+  const slug = getCurrentTenantSlug();
+  const cached = cachedSetupByTenant.get(slug);
+  if (cached) return cached;
+
+  const setup = await database.loadSetup();
+  if (!setup) {
+    throw new Error(`Setup not found for tenant "${slug}"`);
   }
-  return cachedSetup;
+  cachedSetupByTenant.set(slug, setup);
+  return setup;
 };
 
 export const refreshSetup = async () => {
+  // const setup = await database.loadSetup();
+  // if (!setup) {
+  //   throw new Error("Setup not found");
+  // }
+  // cachedSetup = setup;
+  // return cachedSetup;
+  const slug = getCurrentTenantSlug();
   const setup = await database.loadSetup();
   if (!setup) {
-    throw new Error("Setup not found");
+    throw new Error(`Setup not found for tenant "${slug}"`);
   }
-  cachedSetup = setup;
-  return cachedSetup;
+  cachedSetupByTenant.set(slug, setup);
+  return setup;
 };
 
-export const getSetup = () => {
-  if (!cachedSetup) {
-    throw new Error("Setup not loaded yet");
+export const getSetup = (): GeneralSetupType => {
+  const slug = getCurrentTenantSlug();
+  const cached = cachedSetupByTenant.get(slug);
+  if (!cached) {
+    throw new Error(`Setup not loaded yet for tenant "${slug}"`);
   }
-  return cachedSetup;
+  return cached;
 };
 
-// ── Stripe Connect (platform organizer account) ─────────────────
+/**
+ * Called once per tenant at boot, from tenantDbManager.createTenantDb(),
+ * so the cache is warm before the first real request for that tenant arrives.
+ * Not meant to be called from request-handling code.
+ */
+export const primeSetupCache = async (slug: string, setup: GeneralSetupType): Promise<void> => {
+  cachedSetupByTenant.set(slug, setup);
+};
+
+// ── Stripe Connect (per-tenant organizer account) ─────────────────
 const DEFAULT_STRIPE_CONNECT: StripeConnectSetup = {
   accountId: null,
   status: 'none',
@@ -54,6 +77,7 @@ export const readStripeConnect = (setup: GeneralSetupType): StripeConnectSetup =
 export const updateStripeConnect = async (
   patch: Partial<StripeConnectSetup>,
 ): Promise<StripeConnectSetup> => {
+  const slug = getCurrentTenantSlug();
   const current = await loadSetup();
   const merged: GeneralSetupType = {
     ...current,
@@ -64,5 +88,11 @@ export const updateStripeConnect = async (
   };
   await database.saveSetup(merged);
   await refreshSetup();
+
+  // Keep the boot-time accountId → tenant index (used by the webhook route)
+  // in sync whenever onboarding sets or changes the connected account id.
+  const accountId = merged.payments?.stripe?.accountId;
+  if (accountId) tenantRegistry.indexStripeAccountId(slug, accountId);
+  
   return readStripeConnect(getSetup());
 };

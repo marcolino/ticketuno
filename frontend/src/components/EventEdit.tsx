@@ -298,6 +298,18 @@
       setIsDirty(true);
     };
 
+    // Specialized handler for date fields
+    const handleDateFieldChange = (field: 'openingDateObj' | 'closingDateObj' | 'typicalStartTimeObj' | 'typicalEndTimeObj') => (value: Dayjs | null) => {
+      setEvent((prev) => ({ ...prev, [field]: value }));
+      setIsDirty(true);
+    };
+
+    // Handler for time fields (TimePicker)
+    const handleTimeFieldChange = (field: 'typicalStartTimeObj' | 'typicalEndTimeObj') => (value: Dayjs | null) => {
+      setEvent((prev) => ({ ...prev, [field]: value }));
+      setIsDirty(true);
+    };
+
     const handleGenresChange = (genres: string[]) => {
       setEvent((prev) => ({ ...prev, genres }));
       setIsDirty(true);
@@ -527,8 +539,7 @@
                   label={t('Start Date')}
                   value={event.openingDateObj}
                   onChange={(newValue: PickerValue) => {
-                    const value = newValue ? (newValue as any).toISOString?.() || String(newValue) : null;
-                    handleFieldChange('openingDateObj')(value);
+                    handleDateFieldChange('openingDateObj')(newValue);
                   }}
                   maxDate={event.closingDateObj || undefined}
                   sx={{ width: '100%' }}
@@ -541,8 +552,7 @@
                   label={t('End Date')}
                   value={event.closingDateObj}
                   onChange={(newValue: PickerValue) => {
-                    const value = newValue ? (newValue as any).toISOString?.() || String(newValue) : null;
-                    handleFieldChange('closingDateObj')(value);
+                    handleDateFieldChange('openingDateObj')(newValue);
                   }}
                   minDate={event.openingDateObj || undefined}
                   sx={{ width: '100%' }}
@@ -559,8 +569,7 @@
                   label={isAtLeastMd ? t('Typical Start Time') : t('Start Time')}
                   value={event.typicalStartTimeObj}
                   onChange={(newValue: PickerValue) => {
-                    const value = newValue ? (newValue as any).toISOString?.() || String(newValue) : null;
-                    handleFieldChange('typicalStartTimeObj')(value);
+                    handleTimeFieldChange('typicalStartTimeObj')(newValue);
                   }}
                   sx={{ width: '100%' }}
                 />
@@ -568,8 +577,7 @@
                   label={isAtLeastMd ? t('Typical End Time') : t('End Time')}
                   value={event.typicalEndTimeObj}
                   onChange={(newValue: PickerValue) => {
-                    const value = newValue ? (newValue as any).toISOString?.() || String(newValue) : null;
-                    handleFieldChange('typicalEndTimeObj')(value);
+                    handleTimeFieldChange('typicalEndTimeObj')(newValue);
                   }}
                   sx={{ width: '100%' }}
                 />

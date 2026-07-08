@@ -1,13 +1,20 @@
-// Protected routes triggered only internally (by GitHub Action, ...)
+// Protected routes triggered only internally (by internal dasboard, or GitHub Action, or ...)
 
 import { Router, Request, Response } from 'express';
 import { runReminderJob } from '../jobs/reminderJob';
 import { requireCronAuth } from '../middleware/authCron';
 import { getErrorMessage } from '@ticketuno/shared';
+// import { requireAuthentication, requireAdmin } from '../middleware/auth';
+// import { tenantRegistry } from '../tenancy/tenantRegistry';
 
 const router = Router();
 
-router.post('/send-reminders', requireCronAuth, async (_req: Request, res: Response) => {
+// router.post('/tenants/reload', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
+//   await tenantRegistry.reload();
+//   res.json({ slugs: tenantRegistry.getAllSlugs() });
+// });
+
+router.post('/send-reminders', requireCronAuth, async (req: Request, res: Response) => {
 
   // Respond immediately Fly.io confirmed alive, job runs async
   if (process.env.NODE_ENV === 'production') { // in production runReminderJob could be sloooow ...

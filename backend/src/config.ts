@@ -1,6 +1,7 @@
-import { sharedConfig } from '@ticketuno/shared';
 import dotenv from 'dotenv';
 import path from 'path';
+import { sharedConfig } from '@ticketuno/shared';
+import { tenantContext } from './tenancy/tenantContext';
 
 // Load .env in development
 if (process.env.NODE_ENV === 'development') {
@@ -8,14 +9,29 @@ if (process.env.NODE_ENV === 'development') {
 }
 // If not developing we have provider's variables available in environment
 
+const uploadsBaseDir = path.join(process.cwd(), '..', 'data');
+const defaultTenantSlug = 'demo';
+
 // Backend-only config
 const backendConfig = {
+  internal: {
+    adminToken: process.env.INTERNAL_ADMIN_TOKEN || '',
+  },
   db: {
     database: 'sqlite',
-    path: '../data/ticketuno.db',
+    name: 'ticketuno.db',
+    path: '../data/ticketuno.db', // TODO: do we need this???
+    defaultTenantSlug: defaultTenantSlug,
   },
   uploads: {
-    path: '../data/uploads',
+    //path: '../data/uploads',
+    get path(): string {
+      const ctx = tenantContext.getStore();
+      // Falls back to a fixed folder if read outside a tenant context
+      // (e.g. during a bare `npm run migrations` script) — shouldn't happen in normal request flow.
+      const slug = ctx?.slug ?? defaultTenantSlug;
+      return path.join(uploadsBaseDir, slug, 'uploads');
+    },
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
     allowedMimeNames: ['JPEG', 'PNG', 'WEBP', 'GIF'],
     allowedTypes: ['poster', 'website', 'profile', 'banner', 'thumbnail'],

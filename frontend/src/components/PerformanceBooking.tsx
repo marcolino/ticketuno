@@ -197,51 +197,63 @@ const PerformanceBooking: React.FC = () => {
       return;
     }
     try {
-      // await eventApi.bookPerformance(eventId, performanceId, Array.from(selectedSeats));
       const response = await bookingApi.create(performanceId, Array.from(selectedSeats));
       const { paymentMethod, paymentStatus, checkoutUrl, bookingRefs } = response.data;
 
-      let message = null;
-      switch (paymentMethod) {
-        case 'stripe':
-          console.log('***** paymentStatus:', paymentStatus);
-          console.log('***** bookingRefs:', bookingRefs);
-          if (!checkoutUrl) {
-            throw new Error(t('Stripe checkout page not available!'));
-          } else { // checkout url present: redirect to Stripe checkout page
-            window.location.href = checkoutUrl;
-          }
+      // Stripe with a real checkout session is the only path that leaves this
+      // function via redirect rather than a confirmation dialog.
+      if (paymentStatus === 'pending' && paymentMethod === 'stripe') {
+        if (!checkoutUrl) {
+          throw new Error(t('Stripe checkout page not available!'));
+        }
+        window.location.href = checkoutUrl;
+        return;
+      }
+
+      // Every other paymentStatus means the booking is already final —
+      // build the right confirmation message for each case.
+      const qrLine = config.app.reservations.ticketing.useQrcode
+        ? t('The email will have attached the real ticket with a QR code: show it at the theater.') + '.\n\n'
+        : '';
+
+      let message: string;
+      switch (paymentStatus) {
+        case 'zero_amount_payment':
+          message =
+            t('You will soon receive an email with booking confirmation') + '.\n\n' +
+            qrLine +
+            t('There is nothing to pay, this event is free of charge') + '.'
+          ;
           break;
-        case 'free':
-          message = t('You will soon receive an email with booking confirmation') + '.\n\n' +
-            (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: show it at the theater.') : '') + '.\n\n' +
+        case 'not_requested': // free-gateway event
+          message =
+            t('You will soon receive an email with booking confirmation') + '.\n\n' +
+            qrLine +
             t('There is nothing to pay, event is free') + '.'
           ;
-          // falls through
-        case 'cash':
-          message = t('You will soon receive an email with booking confirmation') + '.\n\n' +
-            (config.app.reservations.ticketing.useQrcode ? t('The email will have attached the real ticket with a QR code: show it at the theater.') : '') + '.\n\n' +
+          break;
+        case 'deferred': // cash
+          message =
+            t('You will soon receive an email with booking confirmation') + '.\n\n' +
+            qrLine +
             t('You will pay your ticket at the theater\'s cashes') + '.\n\n' +
             t('Total amount is') + ' ' + totalPrice.toFixed(2) + ' ' + setup.app.currency + '.'
           ;
-          
-          await showDialog({
-            title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
-            content: message,
-            onConfirm: () => navigate('/'),
-            confirmText: 'Ok',
-            mode: 'success',
-          });
           break;
         default: // This should not happen
-          throw new Error(t('Internal error: unforeseen payment method {{paymentMethod}}', { paymentMethod }));
+          throw new Error(t('Internal error: unforeseen payment status {{paymentStatus}}', { paymentStatus }));
       }
 
-      
+      await showDialog({
+        title: '🏁' + ' ' + t('Successfully booked {{count}} seats', { count: selectedSeats.size }),
+        content: message,
+        onConfirm: () => navigate('/'),
+        confirmText: 'Ok',
+        mode: 'success',
+      });
 
       setSelectedSeats(new Set());
     } catch (error: any) {
-      //console.error('Booking error:', error);
       if (error.originalError && error.originalError.unavailableSeats?.length > 0) {
         await showDialog({
           title: t('Attention'),

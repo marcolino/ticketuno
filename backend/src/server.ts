@@ -19,7 +19,10 @@ import configRoutes from './routes/config';
 import pushRoutes from './routes/push';
 import paymentsStripeRoutes from './routes/paymentsStripe';
 import internalRoutes from './routes/internal';
-import { database } from './db/database';
+import { tenantRegistry } from './tenancy/tenantRegistry';
+import { tenantDbManager } from './tenancy/tenantDbManager';
+import { runWithTenant } from './tenancy/tenantContext';
+//import { database } from './db/database';
 import { loadSetup } from './services/setupService';
 import config from './config';
 
@@ -31,6 +34,47 @@ const localesStaticDir = path.join(rootDir, 'packages', 'shared', 'assets', 'loc
 const app = express();
 
 app.use(cors());
+
+/**
+ * This route (must be registered before the tenant-resolution middleware)
+ */
+app.post('/internal/tenants/reload', express.json(), async (req, res) => {
+  const token = req.headers['x-internal-admin-token'];
+  if (!config.internal.adminToken || token !== config.internal.adminToken) {
+    return res.status(404).end(); // 404, not 401 — don't reveal the route exists
+  }
+  try {
+    await tenantRegistry.reload();
+    res.json({ slugs: tenantRegistry.getAllSlugs() });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'reload failed' });
+  }
+});
+
+/**
+ * Tenant resolution (must be registered before DB initialization)
+ */
+app.use(async (req, res, next) => {
+  if (req.path === `${prefix}/paymentsStripe/webhook`) {
+    // Resolved inside the webhook handler itself via Stripe account id
+    return next();
+  }
+
+  const rawHost = (req.headers['x-forwarded-host'] as string) || req.headers.host || '';
+  const hostname = rawHost.split(':')[0].toLowerCase() + (rawHost.includes(':') && process.env.NODE_ENV === 'development' ? `:${rawHost.split(':')[1]}` : '');
+
+  const slug = tenantRegistry.resolveSlugByDomain(rawHost.toLowerCase()) ?? tenantRegistry.resolveSlugByDomain(hostname);
+  if (!slug) {
+    return res.status(404).json({ error: 'Unknown tenant domain', domain: rawHost });
+  }
+
+  try {
+    const db = await tenantDbManager.getTenantDb(slug);
+    runWithTenant({ slug, db }, () => next());
+  } catch (err) {
+    next(err);
+  }
+});
 
 /**
  * Stripe webhook signature verification needs the raw request body, so the raw
@@ -111,8 +155,21 @@ app.use(`${prefix}/push`, pushRoutes);
 app.use(`${prefix}/paymentsStripe`, paymentsStripeRoutes);
 app.use(`${prefix}/internal`, internalRoutes);
 
+// Serve uploaded images (per-tenant directory, resolved per request — NOT
+// evaluated once at boot like a bare express.static(config.uploads.path) would be).
+const uploadsStaticHandlers = new Map<string, RequestHandler>();
+
+app.use('/uploads', (req: Request, res: Response, next) => {
+  const dir = config.uploads.path; // tenant-aware getter — correct value for THIS request
+  let handler = uploadsStaticHandlers.get(dir);
+  if (!handler) {
+    handler = express.static(dir);
+    uploadsStaticHandlers.set(dir, handler);
+  }
+  handler(req, res, next);
+});
 // Serve uploaded images
-app.use('/uploads', express.static(config.uploads.path));
+//app.use('/uploads', express.static(config.uploads.path));
 
 // Global error handler
 app.use(
@@ -172,15 +229,36 @@ if (process.env.NODE_ENV !== 'development') {
   });
 }
 
-database.initialize().then(async () => {
-  await loadSetup();
+async function start() {
+  await tenantRegistry.load();
+  await tenantDbManager.initializeAllTenants(); // runs migrations + seeds admin/operator for every tenant
+
+  // Call loadSetup() once per tenant
+  for (const slug of tenantRegistry.getAllSlugs()) {
+    await runWithTenant({ slug, db: (await tenantDbManager.getTenantDb(slug)) }, loadSetup);
+  }
   app.listen(process.env.PORT ?? config.host.dev.port, () => {
     console.log(`Server running on port ${process.env.PORT ?? config.host.dev.port} in ${process.env.NODE_ENV} mode`);
     if (process.env.MAINTENANCE_MODE === '1') {
       console.log('MAINTENANCE MODE');
     }
   });
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
+}
+
+start().catch(err => {
+  console.error('Failed to initialize server:', err);
   process.exit(1);
 });
+
+// database.initialize().then(async () => {
+//   await loadSetup();
+//   app.listen(process.env.PORT ?? config.host.dev.port, () => {
+//     console.log(`Server running on port ${process.env.PORT ?? config.host.dev.port} in ${process.env.NODE_ENV} mode`);
+//     if (process.env.MAINTENANCE_MODE === '1') {
+//       console.log('MAINTENANCE MODE');
+//     }
+//   });
+// }).catch(err => {
+//   console.error('Failed to initialize database:', err);
+//   process.exit(1);
+// });

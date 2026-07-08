@@ -82,7 +82,6 @@ export default defineConfig(({ command }) => ({
         changeOrigin: true,
       },
     },
-    //allowedHosts: ['.ngrok-free.app'],
     allowedHosts: command === 'serve' ? ['.ngrok-free.app'] : [] // 'serve' is 'dev' for Vite
   },
   define: {

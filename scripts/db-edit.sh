@@ -3,7 +3,8 @@
 # Stops Fly.io app, downloads database, lets you edit it, then uploads it back and restarts app
 
 APP_NAME="ticketuno"
-REMOTE_DB="/data/ticketuno.db"
+SLUG={$1:-"demo"}
+REMOTE_DB="/data/${SLUG}/ticketuno.db"
 LOCAL_DB="/tmp/ticketuno-production.db"
 
 set -e

@@ -16,6 +16,7 @@ import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardR
 import { EventQueryOptions, PerformanceQueryOptions } from '@ticketuno/shared';
 import { ROLES, type Role } from '@ticketuno/shared';
 import { PaymentGateway } from '@ticketuno/shared/types/generalSetup';
+import { tenantContext } from '../tenancy/tenantContext';
 import { notify } from '../services/notificationService';
 import config from '../config';
 
@@ -33,6 +34,7 @@ interface GetAllBookingsOptions {
 
 class Database {
   private _db: sqlite3.Database | null = null;
+  private tenantSlug: string = config.db.defaultTenantSlug; // TODO: why this tenantSlug is declared but its value is never read ??
 
   /** Safe accessor — throws if initialize() has not been called yet. */
   private get db(): sqlite3.Database {
@@ -50,12 +52,20 @@ class Database {
       .replace(/=+$/, '');
   }
 
-  async initialize(): Promise<void> {
-    const dir = path.dirname(config.db.path);
+  async initialize(dbPath: string = config.db.path, tenantSlug: string = config.db.defaultTenantSlug): Promise<void> {
+    this.tenantSlug = tenantSlug;
+    const dir = path.dirname(dbPath);
     await fs.mkdir(dir, { recursive: true });
 
     return new Promise<void>((resolve, reject) => {
-      this._db = new sqlite3.Database(config.db.path, async (err) => {
+      this._db = new sqlite3.Database(dbPath, async (err) => {
+
+  // async initialize(): Promise<void> {
+  //   const dir = path.dirname(config.db.path);
+  //   await fs.mkdir(dir, { recursive: true });
+
+  //   return new Promise<void>((resolve, reject) => {
+  //     this._db = new sqlite3.Database(config.db.path, async (err) => {
         if (err) {
           reject(err);
         } else {
@@ -418,16 +428,18 @@ class Database {
   }
 
   async createDefaultUsers(): Promise<void> {
-    const adminEmail = process.env.ADMIN_USER_EMAIL;
-    const adminPassword = process.env.ADMIN_USER_PASSWORD;
-    const operatorEmail = process.env.OPERATOR_USER_EMAIL;
-    const operatorPassword = process.env.OPERATOR_USER_PASSWORD;
+    const postfix = this.tenantSlug.toUpperCase().replace(/-/g, '_');
+
+    const adminEmail = process.env[`ADMIN_USER_EMAIL_${postfix}`] ?? process.env.ADMIN_USER_EMAIL;
+    const adminPassword = process.env[`ADMIN_USER_PASSWORD_${postfix}`] ?? process.env.ADMIN_USER_PASSWORD;
+    const operatorEmail = process.env[`OPERATOR_USER_EMAIL_${postfix}`] ?? process.env.OPERATOR_USER_EMAIL;
+    const operatorPassword = process.env[`OPERATOR_USER_PASSWORD_${postfix}`] ?? process.env.OPERATOR_USER_PASSWORD;
 
     if (!adminEmail || !adminPassword) {
-      throw new Error('ADMIN_USER_EMAIL and ADMIN_USER_PASSWORD must be set in environment!');
+      throw new Error(`ADMIN_USER_EMAIL_${postfix} (or ADMIN_USER_EMAIL) and ...PASSWORD must be set!`);
     }
     if (!operatorEmail || !operatorPassword) {
-      throw new Error('OPERATOR_USER_EMAIL and OPERATOR_USER_PASSWORD must be set in environment!');
+      throw new Error(`OPERATOR_USER_EMAIL_${postfix} (or OPERATOR_USER_EMAIL) and ...PASSWORD must be set!`);
     }
 
     try {
@@ -2919,4 +2931,24 @@ function areLayoutStructuresEqual(oldJson: LayoutJSON, newJson: LayoutJSON): boo
   return true;
 }
 
-export const database = new Database();
+const getActiveDb = (): Database => {
+  const ctx = tenantContext.getStore();
+  if (!ctx) {
+    throw new Error(
+      'Database accessed outside of a tenant context. Wrap this code path with runWithTenant() ' +
+      '(this happens automatically for HTTP requests via middleware; cron/background jobs must do it explicitly).'
+    );
+  }
+  return ctx.db;
+}
+
+const database = new Proxy({} as Database, {
+  get(_target, prop: string | symbol) {
+    const db = getActiveDb();
+    const value = (db as unknown as Record<string | symbol, unknown>)[prop as string];
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(db) : value;
+  },
+}) as Database;
+
+
+export { Database, database };

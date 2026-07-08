@@ -249,10 +249,22 @@ class StripeService {
     return percentFee + fixedFee;
   }
 
-  async handleWebhook(body: Buffer, signature: string): Promise<void> {
-    const event = this.constructEventWithFallback(body, signature);
+  /**
+   * Verifies the Stripe signature only — no DB access, so it's safe to call
+   * BEFORE tenant context is known (that's the whole point: the route reads
+   * event.account from the verified event to resolve the tenant).
+   */
+  verifyWebhookEvent(body: Buffer, signature: string): Stripe.Event {
+    return this.constructEventWithFallback(body, signature);
+  }
 
-    console.info(`STRIPE WEBHOOK RECEIVED for event type ${event.type}`);
+  /**
+   * Everything that used to run inside handleWebhook() after verification.
+   * Must be called from within runWithTenant() — it calls database.* and
+   * loadSetup()/updateStripeConnect(), which both resolve via tenant context.
+   */
+  async processWebhookEvent(event: Stripe.Event): Promise<void> {
+    console.info(`⚫ Stripe webhook received for event type ${event.type}`);
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -260,16 +272,37 @@ class StripeService {
         break;
       case 'payment_intent.succeeded':
         await this.handlePaymentSucceeded(event.data.object);
-        break; 
+        break;
       case 'account.updated':
         await this.handleAccountUpdated(event.data.object);
         break;
       case 'account.external_account.updated':
-        // optional: handle this event type if we want to control connected IBAN/account changes
         console.log('ℹ️ External account updated for connected account');
         break;
     }
   }
+
+  // async handleWebhook(body: Buffer, signature: string): Promise<void> {
+  //   const event = this.constructEventWithFallback(body, signature);
+
+  //   console.info(`⚫ Stripe webhook received for event type ${event.type}`);
+
+  //   switch (event.type) {
+  //     case 'checkout.session.completed':
+  //       await this.handleCheckoutCompleted(event.data.object);
+  //       break;
+  //     case 'payment_intent.succeeded':
+  //       await this.handlePaymentSucceeded(event.data.object);
+  //       break; 
+  //     case 'account.updated':
+  //       await this.handleAccountUpdated(event.data.object);
+  //       break;
+  //     case 'account.external_account.updated':
+  //       // optional: handle this event type if we want to control connected IBAN/account changes
+  //       console.log('ℹ️ External account updated for connected account');
+  //       break;
+  //   }
+  // }
 
   /**
    * The two Event Destinations on Stripe (platform vs. connected accounts)

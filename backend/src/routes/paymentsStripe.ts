@@ -1,9 +1,11 @@
 import express, { Request, Response } from 'express';
 import { paymentStripeService } from '../services/paymentStripeService';
-//import { database } from '../db/database';
 import { requireAuthentication, requireAdmin } from '../middleware/auth';
 import { getErrorMessage } from '@ticketuno/shared';
 import { loadSetup, readStripeConnect, updateStripeConnect } from '../services/setupService';
+import { tenantRegistry } from '../tenancy/tenantRegistry';
+import { tenantDbManager } from '../tenancy/tenantDbManager';
+import { runWithTenant } from '../tenancy/tenantContext';
 //import config from '../config';
 
 const router = express.Router();
@@ -19,6 +21,7 @@ const router = express.Router();
 
 // Create-or-reuse the organizer account and return a fresh onboarding link.
 router.post('/connect/onboard', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const { organizerEmail, businessName } = req.body as {
       organizerEmail?: string;
@@ -41,6 +44,8 @@ router.post('/connect/onboard', requireAuthentication, requireAdmin, async (req:
         organizerEmail,
         businessName,
       });
+      // NOTE: updateStripeConnect() already calls tenantRegistry.indexStripeAccountId()
+      // internally now (see setupService.ts below) — no extra step needed here.
     }
 
     const onboardingUrl = await paymentStripeService.getOnboardingLink(accountId);
@@ -52,7 +57,7 @@ router.post('/connect/onboard', requireAuthentication, requireAdmin, async (req:
 
 // Read the stored organizer connect status (admin).
 router.get('/connect/status', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const stripe = readStripeConnect(await loadSetup());
     res.json(stripe);
@@ -63,7 +68,7 @@ router.get('/connect/status', requireAuthentication, requireAdmin, async (req: R
 
 // Re-sync the stored status from Stripe (admin) — handy when webhooks aren't wired (dev).
 router.post('/connect/sync', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const stripe = await paymentStripeService.refreshConnectedAccountStatus();
     if (!stripe) {
@@ -77,7 +82,7 @@ router.post('/connect/sync', requireAuthentication, requireAdmin, async (req: Re
 
 // Mint a fresh onboarding link (admin) — Stripe links expire and are single-use.
 router.post('/connect/refresh-link', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const stripe = readStripeConnect(await loadSetup());
     if (!stripe.accountId) {
@@ -91,7 +96,7 @@ router.post('/connect/refresh-link', requireAuthentication, requireAdmin, async 
 });
 
 router.post('/connect/debug-link', requireAuthentication, requireAdmin, async (req, res) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const stripe = readStripeConnect(await loadSetup());
     if (!stripe.accountId) {
@@ -127,7 +132,7 @@ router.post('/connect/debug-link', requireAuthentication, requireAdmin, async (r
  * Stripe redirects here if onboarding needs refreshing or fails
  */
 router.get('/connect/refresh', async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   console.log('🔄 Stripe Connect refresh callback received:', {
     query: req.query,
     state: req.query.state,
@@ -139,8 +144,7 @@ router.get('/connect/refresh', async (req: Request, res: Response) => {
     res.redirect('/admin/settings/payments');
   } catch (error) {
     console.error('❌ Error refreshing Stripe status:', error);
-    console.log('Redirecting to /admin/settings/payments?error'); // TODO ...
-    res.redirect(`/admin/settings/payments?error=${encodeURIComponent(getErrorMessage(error))}`);
+    res.redirect(`/admin/settings/payments?error=${encodeURIComponent(getErrorMessage(error))}`); // TODO ...
   }
 });
 
@@ -149,7 +153,7 @@ router.get('/connect/refresh', async (req: Request, res: Response) => {
  * Stripe redirects here after successful onboarding
  */
 router.get('/connect/success', async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO...
+  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   console.log('✅ Stripe Connect success callback received:', {
     query: req.query,
     state: req.query.state,
@@ -168,15 +172,23 @@ router.get('/connect/success', async (req: Request, res: Response) => {
     res.redirect('/admin/settings/payments?onboarding=success');
   } catch (error) {
     console.error('❌ Error handling Stripe success callback:', error);
-    console.log('Redirecting to //admin/settings/payments?onboarding=?error'); // TODO ...
-    res.redirect(`/admin/settings/payments?error=${encodeURIComponent(getErrorMessage(error))}`);
+    res.redirect(`/admin/settings/payments?error=${encodeURIComponent(getErrorMessage(error))}`); // TODO...
   }
 });
 
 // ---------------------------------------------------------------------------
-// Stripe webhook (public). The raw body parser is registered in server.ts for
-// this exact path BEFORE express.json(), so req.body is the raw Buffer
-// Stripe's signature verification requires.
+// Stripe webhook (public, cross-tenant entry point).
+//
+// This route cannot rely on the host-based tenant-resolution
+// middleware in server.ts, because Stripe always calls back our platform
+// domain (e.g. ticketuno.fly.dev/api/v1/paymentsStripe/webhook), never to a
+// tenant's own domain. So server.ts's middleware must special-case this exact
+// path and let it through untouched; tenant resolution happens here, using
+// the connected-account id on the event.
+// 
+// The raw body parser is registered in server.ts for this exactpath BEFORE
+// express.json(), so req.body is the raw Buffer Stripe's signature
+// verification requires.
 //
 // NOTE: to trigger a webhook from CLI:
 //  - stripe trigger account.updated
@@ -188,12 +200,40 @@ router.post('/webhook', async (req: Request, res: Response) => {
   if (!sig) sig = '';
   if (Array.isArray(sig)) sig = sig[0];
 
+  let event;
   try {
-    await paymentStripeService.handleWebhook(req.body as Buffer, sig);
+    event = paymentStripeService.verifyWebhookEvent(req.body as Buffer, sig);
+  } catch (error) {
+    return res.status(400).send(`Webhook Error: ${getErrorMessage(error)}`);
+  }
+
+  // Connect events carry the connected account id at the top level.
+  const accountId = (event as { account?: string }).account;
+  const slug = accountId ? tenantRegistry.resolveSlugByStripeAccountId(accountId) : null;
+
+  if (!slug) {
+    console.error(`Stripe webhook for unmapped account "${accountId}" (event ${event.type}) — ignoring.`);
+    // Ack with 200 so Stripe stops retrying; this is a data/config problem, not
+    // a transient failure, and we don't want Stripe hammering us over it.
+    return res.json({ received: true, ignored: true });
+  }
+
+  try {
+    const db = await tenantDbManager.getTenantDb(slug);
+    await runWithTenant({ slug, db }, async () => {
+      await paymentStripeService.processWebhookEvent(event);
+    });
     res.json({ received: true });
   } catch (error) {
-    res.status(400).send(`Webhook Error: ${getErrorMessage(error)}`);
+    console.error(`Error processing webhook for tenant "${slug}":`, error);
+    res.status(500).send(`Webhook processing error: ${getErrorMessage(error)}`);
   }
+  // try {
+  //   await paymentStripeService.handleWebhook(req.body as Buffer, sig);
+  //   res.json({ received: true });
+  // } catch (error) {
+  //   res.status(400).send(`Webhook Error: ${getErrorMessage(error)}`);
+  // }
 });
 
 // ---------------------------------------------------------------------------

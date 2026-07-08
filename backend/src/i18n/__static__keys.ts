@@ -33,8 +33,8 @@ t('Chinese');
 t('Unavailable'); 
 t('Restricted view');
 t('Premium');
-t('Impaired');
-t('Staff');
+t('Reserved for Impaired');
+t('Reserved for Staff');
 t('Baby');
 
 // payment statuses

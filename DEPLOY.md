@@ -98,7 +98,7 @@ fly status --app ticketuno
 
 ---
 
-## Database Migrations
+## Database Migrations (TODO: TO BE UPDATED TO MULTI-TENANCY)
 
 Migrations run automatically on every startup. Migration files live in `backend/src/db/`. See `MIGRATIONS.md` for the full migration log.
 

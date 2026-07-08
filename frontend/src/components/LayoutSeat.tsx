@@ -42,14 +42,14 @@ export const CONDITION_COLORS: Record<
     backrest: '#006064',
     armrest:  '#002F3E',
     text:     '#B2EBF2',
-    label:    'Impaired',
+    label:    'Reserved for Impaired',
   },
   Staff: {
     base:     '#9E9E9E',
     backrest: '#BDBDBD',
     armrest:  '#757575',
     text:     '#424242',
-    label:    'Staff',
+    label:    'Reserved for Staff',
   },
   Baby: {
     base:     '#c310bd',
