@@ -21,8 +21,8 @@ class TenantRegistry {
   private accountIdToSlug = new Map<string, string>();
 
   // /data/tenants.json — sits next to the per-tenant folders
-  private registryPath = path.join(path.dirname(config.db.path), 'tenants.json');
-
+  private registryPath = path.join(config.db.dataRoot, 'tenants.json');
+  
   async load(): Promise<void> {
     try {
       const raw = await fs.readFile(this.registryPath, 'utf8');

@@ -18,7 +18,7 @@ class TenantDbManager {
 
   private tenantDbPath(slug: string): string {
     assertValidSlug(slug);
-    const baseDir = path.dirname(config.db.path); // e.g. /data (or ./data locally)
+    const baseDir = path.dirname(config.db.dataRoot); // e.g. /data (or ./data locally)
     return path.join(baseDir, slug, config.db.name);
   }
 

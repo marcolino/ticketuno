@@ -52,7 +52,7 @@ class Database {
       .replace(/=+$/, '');
   }
 
-  async initialize(dbPath: string = config.db.path, tenantSlug: string = config.db.defaultTenantSlug): Promise<void> {
+  async initialize(dbPath: string, tenantSlug: string): Promise<void> {
     this.tenantSlug = tenantSlug;
     const dir = path.dirname(dbPath);
     await fs.mkdir(dir, { recursive: true });

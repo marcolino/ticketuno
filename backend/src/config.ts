@@ -9,7 +9,8 @@ if (process.env.NODE_ENV === 'development') {
 }
 // If not developing we have provider's variables available in environment
 
-const uploadsBaseDir = path.join(process.cwd(), '..', 'data');
+const dataDir = '/data';
+const uploadsBaseDir = dataDir;
 const defaultTenantSlug = 'demo';
 
 // Backend-only config
@@ -20,7 +21,8 @@ const backendConfig = {
   db: {
     database: 'sqlite',
     name: 'ticketuno.db',
-    path: '../data/ticketuno.db', // TODO: do we need this???
+    //path: path.join(dataDir, 'ticketuno.db'),
+    dataRoot: dataDir,
     defaultTenantSlug: defaultTenantSlug,
   },
   uploads: {
