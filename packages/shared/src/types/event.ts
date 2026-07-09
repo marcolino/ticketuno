@@ -1,5 +1,5 @@
 import { Theater } from './theater';
-export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'canceled';
+//export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'canceled';
 
 export interface Event {
   id: string;
