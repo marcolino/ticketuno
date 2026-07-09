@@ -1407,7 +1407,7 @@ class Database {
       event.isSoldOut ? 1 : 0, event.specialRequirements ?? null, event.minimumAge ?? null,
       event.createdByUserId ?? null, event.typicalStartTime ?? null, event.typicalEndTime ?? null,
       event.posterImage ?? null, event.trailerUrl ?? null, event.websiteUrl ?? null,
-      event.socialMediaLinks ?? null, event.status, event.cancelationReason ?? null,
+      event.socialMediaLinks ?? null, event.status ?? null, event.cancelationReason ?? null,
       event.maxCapacity ?? null, event.contentWarnings ?? null,
     ];
     await runQuery(this.db, sql, params, 'create event');

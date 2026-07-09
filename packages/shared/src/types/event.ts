@@ -1,5 +1,5 @@
 import { Theater } from './theater';
-//export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'canceled';
+export type EventStatus = 'scheduled' | 'in progress' | 'completed' | 'canceled';
 
 export interface Event {
   id: string;
@@ -36,7 +36,7 @@ export interface Event {
   trailerUrl?: string;
   websiteUrl?: string;
   socialMediaLinks?: string;
-  //status: EventStatus;
+  status?: EventStatus;
   canceled: number,
   cancelationReason?: string;
   maxCapacity?: number;

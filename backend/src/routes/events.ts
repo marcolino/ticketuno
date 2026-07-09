@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
         const theater = await database.getTheaterById(event.theaterId);
         const performances = await database.getPerformancesByEventId(event.id);
         const upcomingPerformances = performances ? performances.filter(p =>
-          new Date(p.performanceDate) >= new Date() && event.status === 'in progress' || event.status === 'scheduled'
+          new Date(p.performanceDate) >= new Date() && (event.status === 'in progress' || event.status === 'scheduled')
         ) : [];
 
         return {
@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
           currency: event.currency,
           nextPerformanceDate: upcomingPerformances[0]?.performanceDate,
           availablePerformances: upcomingPerformances.length,
-          status: event.status,
+          status: event.status!,
           posterImage: event.posterImage,
         };
       })
