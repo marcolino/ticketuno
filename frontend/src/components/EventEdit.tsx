@@ -552,9 +552,9 @@
                   label={t('End Date')}
                   value={event.closingDateObj}
                   onChange={(newValue: PickerValue) => {
-                    handleDateFieldChange('openingDateObj')(newValue);
+                    handleDateFieldChange('closingDateObj')(newValue);
                   }}
-                  minDate={event.openingDateObj || undefined}
+                  minDate={event.closingDateObj || undefined}
                   sx={{ width: '100%' }}
                   slotProps={{
                     inputAdornment: { sx: { ml: 0 } },
