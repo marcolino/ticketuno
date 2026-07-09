@@ -1283,7 +1283,7 @@ class Database {
       trailerUrl: row.trailer_url as string,
       websiteUrl: row.website_url as string,
       socialMediaLinks: row.social_media_links as string,
-      status: row.status as EventStatus,
+      //status: row.status as EventStatus,
       canceled: row.canceled as number,
       cancelationReason: row.cancelation_reason as string | undefined,
       maxCapacity: row.max_capacity as number,
@@ -1351,9 +1351,10 @@ class Database {
     if (!options.pastToo) {
       clauses.push(`performance_date >= DATE('now')`);
     }
-    // if (!options.canceledToo) {
-    //   clauses.push(`status != 'canceled'`);
-    // }
+    if (!options.canceledToo) {
+      //clauses.push(`status != 'canceled'`);
+      clauses.push(`canceled != 1`);
+    }
     return clauses;
   }
 
@@ -1373,7 +1374,7 @@ class Database {
     });
   }
 
-  async getEventById(id: string, options: EventQueryOptions = {pastToo: true}): Promise<Event | null> {
+  async getEventById(id: string, options: EventQueryOptions = {pastToo: true, canceledToo: true}): Promise<Event | null> {
     const filterClauses = this.buildEventFilterClauses(options);
     const where = [`id = ?`, `deleted_at IS NULL`, ...filterClauses].join(' AND ');
     const row = await getQuery(this.db, `SELECT * FROM events WHERE ${where}`, [id], 'get event by id');
