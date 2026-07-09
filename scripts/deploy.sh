@@ -198,6 +198,7 @@ fi
 
 echo "🔐 Importing non-local secrets from ${ENV_FILE}..."
 grep -v '_LOCAL=' "${ENV_FILE}" | fly secrets import --app "${APP_NAME}"
+grep -v '_LOCAL=' "${ENV_FILE}" | fly secrets import --app "${APP_NAME}"
 fly secrets set \
   NODE_ENV="${DEPLOY_NODE_ENV}" \
   PORT="8080" \
