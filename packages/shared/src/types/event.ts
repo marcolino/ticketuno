@@ -36,7 +36,7 @@ export interface Event {
   trailerUrl?: string;
   websiteUrl?: string;
   socialMediaLinks?: string;
-  status: EventStatus;
+  //status: EventStatus;
   canceled: number,
   cancelationReason?: string;
   maxCapacity?: number;
