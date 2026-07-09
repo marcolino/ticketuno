@@ -196,8 +196,8 @@ fi
 
 # ─── Secrets ─────────────────────────────────────────────────────────────────
 
-echo "🔐 Importing secrets from ${ENV_FILE}..."
-cat "${ENV_FILE}" | fly secrets import --app "${APP_NAME}"
+echo "🔐 Importing non-local secrets from ${ENV_FILE}..."
+grep -v '_LOCAL=' "${ENV_FILE}" | fly secrets import --app "${APP_NAME}"
 fly secrets set \
   NODE_ENV="${DEPLOY_NODE_ENV}" \
   PORT="8080" \
@@ -251,7 +251,7 @@ fly secrets set \
   --app "${APP_NAME}"
 
 # set secrets on github.comn
-gh secret set CRON_SECRET --body "`grep CRON_SECRET ./backend/.env | cut -d= -f2`"
+gh secret set CRON_SECRET --body "`grep '^CRON_SECRET=' ./backend/.env | cut -d= -f2`"
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 
