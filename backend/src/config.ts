@@ -9,7 +9,7 @@ if (process.env.NODE_ENV === 'development') {
 }
 // If not developing we have provider's variables available in environment
 
-const dataDir = '/data';
+const dataDir = path.join(process.cwd(), '..', 'data');
 const uploadsBaseDir = dataDir;
 const defaultTenantSlug = 'demo';
 

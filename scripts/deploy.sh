@@ -25,7 +25,7 @@ DEPLOY_NODE_ENV="production"
 
 error_log=$(mktemp)
 
-# Parse flags
+# Parse flagsuploadsBaseDir
 for arg in "$@"; do
   case $arg in
     --force) FORCE=true ;;
