@@ -7,6 +7,8 @@ import {
   StripeConnectSetup,
   StripeConnectStatus,
 } from '@ticketuno/shared';
+import { tenantContext } from '../tenancy/tenantContext';
+import { notify } from '../services/notificationService';
 import { loadSetup, readStripeConnect, updateStripeConnect } from './setupService';
 import { i18n } from '../i18n';
 import config from '../config';
@@ -200,6 +202,18 @@ class StripeService {
     
     const platformFee = this.calculatePlatformFee(totalAmount);
 
+    /**
+     * We have to add tenat slug to metadata since Stripe only populates
+     * event.account when an event is generated within a connected account's
+     * own context — destination-charge events generated on the platform
+     * never carry it, regardless of where the money ultimately routes.
+     */
+    const tenantSlug = tenantContext.getStore()?.slug;
+    if (!tenantSlug) {
+      await notify(`⚠️ createCheckoutSession called outside of tenant context`);
+      throw new Error('createCheckoutSession called outside of tenant context');
+    }
+    
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       customer_email: customerEmail,
@@ -229,11 +243,13 @@ class StripeService {
           bookingIds: JSON.stringify(bookingIds), // Store all IDs as JSON
           performanceId,
           seatIds: JSON.stringify(seatIds),
+          tenantSlug,
         },
       },
       metadata: { // Session metadata
         bookingIds: JSON.stringify(bookingIds),
         performanceId,
+        tenantSlug,
       },
     });
 

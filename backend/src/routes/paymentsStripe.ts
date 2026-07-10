@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { paymentStripeService } from '../services/paymentStripeService';
+import { notify } from '../services/notificationService';
 import { requireAuthentication, requireAdmin } from '../middleware/auth';
 import { getErrorMessage } from '@ticketuno/shared';
 import { loadSetup, readStripeConnect, updateStripeConnect } from '../services/setupService';
@@ -208,13 +209,20 @@ router.post('/webhook', async (req: Request, res: Response) => {
   }
 
   // Connect events carry the connected account id at the top level.
-  const accountId = (event as { account?: string }).account;
-  const slug = accountId ? tenantRegistry.resolveSlugByStripeAccountId(accountId) : null;
-
+  const accountId = (event as { account?: string }).account; // this will be undefined for every checkout.session.completed and payment_intent.succeeded
+  let slug: string | null = null;
+  if (accountId) {
+    // account.updated / account.external_account.updated — genuine Connect events
+    slug = tenantRegistry.resolveSlugByStripeAccountId(accountId);
+  } else {
+    // checkout.session.completed / payment_intent.succeeded — platform events,
+    // resolve tenant from metadata stamped at session-creation time.
+    const obj = (event.data.object as { metadata?: { tenantSlug?: string } });
+    slug = obj.metadata?.tenantSlug ?? null;
+  }
   if (!slug) {
-    console.error(`Stripe webhook for unmapped account "${accountId}" (event ${event.type}) — ignoring.`);
-    // Ack with 200 so Stripe stops retrying; this is a data/config problem, not
-    // a transient failure, and we don't want Stripe hammering us over it.
+    console.error(`Stripe webhook: could not resolve tenant (event ${event.type}, account "${accountId}") — ignoring.`);
+    await notify(`⚠️ Stripe webhook ignored — no tenant resolved\nEvent: ${event.type} (${event.id}), Account: ${accountId}`);
     return res.json({ received: true, ignored: true });
   }
 
