@@ -236,56 +236,6 @@ router.post('/webhook', async (req: Request, res: Response) => {
     console.error(`Error processing webhook for tenant "${slug}":`, error);
     res.status(500).send(`Webhook processing error: ${getErrorMessage(error)}`);
   }
-  // try {
-  //   await paymentStripeService.handleWebhook(req.body as Buffer, sig);
-  //   res.json({ received: true });
-  // } catch (error) {
-  //   res.status(400).send(`Webhook Error: ${getErrorMessage(error)}`);
-  // }
 });
-
-// ---------------------------------------------------------------------------
-// Create a checkout session for a booking (authenticated). The organizer
-// account is read from setup; the destination is never trusted from the client.
-// @deprecated, use bookings.tsx → /:performanceId/create
-// ---------------------------------------------------------------------------
-/*
-router.post('/create-checkout', requireAuthentication, async (req: Request, res: Response) => {
-  try {
-    const { bookingId, performanceId, seatIds, totalAmount } = req.body;
-
-    // Verify booking is owned by the requesting user.
-    const booking = await database.getBookingById(bookingId);
-    if (!booking || booking.userId !== req.userId) {
-      return res.status(403).json({ error: req.t('Unauthorized') });
-    }
-
-    const user = await database.getUserById(req.userId!);
-    if (!user) {
-      return res.status(404).json({ error: req.t('User not found') });
-    }
-
-    const stripe = readStripeConnect(await loadSetup());
-    if (!stripe.accountId || stripe.status !== 'active') {
-      return res.status(503).json({ error: req.t('Online payments are not available yet') });
-    }
-
-    const session = await paymentStripeService.createCheckoutSession(
-      bookingId,
-      performanceId,
-      seatIds,
-      totalAmount,
-      stripe.accountId,
-      user.email,
-      `${config.app.baseUrlFrontend}/payment/success`,
-      `${config.app.baseUrlFrontend}/payment/cancel`
-    );
-
-    res.json({ sessionId: session.sessionId, sessionUrl: session.sessionUrl });
-  } catch (error) {
-    res.status(500).json({ error: req.t('Failed to create checkout: {{err}}', { err: req.t(getErrorMessage(error)) }) });
-  }
-});
-*/
 
 export default router;

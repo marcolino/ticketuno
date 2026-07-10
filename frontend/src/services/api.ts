@@ -451,9 +451,11 @@ export const eventApi = {
   deletePerformance: (eventId: string, performanceId: string) =>
     api.delete(`/events/${eventId}/performances/${performanceId}`),
 
+  /*
   // @deprecated // TODO: REMOVE ME
   _bookPerformance: (eventId: string, performanceId: string, seatIds: string[]) =>
     api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
+  */
 };
 
 export const ticketApi = {

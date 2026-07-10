@@ -451,6 +451,7 @@ router.get('/:eventId/performances/:performanceId/seats/:sectionName', async (re
   }
 });
 
+/*
 // @deprecated
 // Protected: Book seats for a performance
 router.post('/:eventId/performances/:performanceId/book_', requireAuthentication, async (req: Request, res: Response) => {
@@ -519,7 +520,7 @@ router.post('/:eventId/performances/:performanceId/book_', requireAuthentication
       const layoutRecord = await database.getLayoutById(theater.currentLayoutId);
       if (layoutRecord) {
         const layoutJSON = JSON.parse(layoutRecord.json);
-        const withDisplay = applyDisplayNumbers(generateSeats(layoutJSON)/*, conditions*/);
+        const withDisplay = applyDisplayNumbers(generateSeats(layoutJSON));
         withDisplay.forEach(s => {
           const dn = s.displayNumber ?? s.seatNumber;
           seatLabelMap.set(s.seatId, `${s.sectionName}-${s.rowId}-${dn}`);
@@ -666,6 +667,7 @@ router.post('/:eventId/performances/:performanceId/book_', requireAuthentication
     res.status(500).json({ error: req.t('Failed to book seats: {{err}}', {err: getErrorMessage(error)}) });
   }
 });
+*/
 
 export const findSeatById = (
   seatId: string,

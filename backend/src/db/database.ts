@@ -1733,6 +1733,7 @@ class Database {
    * 
    * @deprecated, use releaseExpiredPendingBookings
    */
+  /*
   async releaseExpiredReservations(): Promise<boolean> {
     const result = await runQuery(
       this.db, `
@@ -1745,6 +1746,7 @@ class Database {
     );
     return result.changes > 0;
   }
+  */
 
   async bulkCreateSeats(
     performanceId: string,
@@ -1892,6 +1894,7 @@ class Database {
    * 
    * @deprecated Use bookSeatsWithPaymentMethod() instead.
    */
+  /*
   async bookSeats(
     performanceId: string,
     seatIds: string[],
@@ -1985,6 +1988,7 @@ class Database {
       throw err;
     }
   }
+  */
 
   /**
    * Atomic booking transaction, with payment method.
@@ -2079,7 +2083,7 @@ class Database {
       for (const { seatId, bookingRef, bookingId } of perSeat) {
         const seatStatus = paymentMethod === 'cash' ? 'booked' : 'reserved';
         const reservedUntil = paymentMethod === 'stripe' 
-          ? new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes reservation
+          ? new Date(Date.now() + config.reservations.staleCutoffMinutes * 60 * 1000).toISOString()
           : null;
         
         await runQuery(
@@ -2160,48 +2164,54 @@ class Database {
     }
   }
 
-  // Add this method to release expired pending bookings (run via cron job)
-  async releaseExpiredPendingBookings(): Promise<number> {
+  /**
+   * Finds bookings still 'pending_payment' past the given age, cancels them,
+   * and releases their seats back to 'available'. Supersedes the old
+   * releaseExpiredReservations(), which only touched seats and never
+   * canceled the dangling booking row itself.
+   */
+  async releaseExpiredPendingBookings(cutoffMinutes: number): Promise<{ expiredCount: number; bookingIds: string[] }> {
     await runQuery(this.db, 'BEGIN TRANSACTION', [], 'releaseExpiredPendingBookings begin');
     try {
-      // Release seats that have been reserved for more than 30 minutes
-      const updateSeatsResult = await runQuery(
+      const stale = await allQuery<{ id: string }>(
         this.db, `
-          UPDATE seats
-          SET status = 'available', booking_id = NULL, booking_ref = NULL,
-              booked_by_user_id = NULL, booked_at = NULL, reserved_until = NULL,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE status = 'reserved'
-          AND reserved_until < CURRENT_TIMESTAMP
+          SELECT id FROM bookings
+          WHERE status = 'pending_payment'
+          AND payment_method = 'stripe'
+          AND booked_at < datetime('now', '-' || ? || ' minutes')
         `,
-        [], 'releaseExpiredPendingBookings update seats'
+        [cutoffMinutes], 'releaseExpiredPendingBookings select stale'
       );
 
-      // Cancel the associated pending bookings
-      const updateBookingsResult = await runQuery(
-        this.db, `
-          UPDATE bookings
-          SET status = 'canceled', canceled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-          WHERE status = 'pending_payment'
-          AND id IN (
-            SELECT booking_id FROM seats 
-            WHERE status = 'available' 
-            AND reserved_until IS NULL
-            AND booking_id IS NOT NULL
-          )
-        `,
-        [], 'releaseExpiredPendingBookings cancel bookings'
-      );
+      const bookingIds = stale.map(b => b.id);
+
+      if (bookingIds.length > 0) {
+        const placeholders = bookingIds.map(() => '?').join(', ');
+
+        await runQuery(
+          this.db, `
+            UPDATE bookings
+            SET status = 'canceled', canceled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+            WHERE id IN (${placeholders})
+          `,
+          bookingIds, 'releaseExpiredPendingBookings cancel bookings'
+        );
+
+        await runQuery(
+          this.db, `
+            UPDATE seats
+            SET status = 'available', booking_id = NULL, booking_ref = NULL,
+                booked_by_user_id = NULL, reserved_until = NULL, updated_at = CURRENT_TIMESTAMP
+            WHERE booking_id IN (${placeholders})
+          `,
+          bookingIds, 'releaseExpiredPendingBookings release seats'
+        );
+      }
 
       await runQuery(this.db, 'COMMIT', [], 'releaseExpiredPendingBookings commit');
-
-      if (updateBookingsResult.changes > 0) {
-        await notify(`🥀 ${updateBookingsResult.changes} pending payment booking reservations are expired, and then canceled`);
-      }
-      
-      return updateSeatsResult.changes;
+      return { expiredCount: bookingIds.length, bookingIds };
     } catch (err) {
-      await runQuery(this.db, 'ROLLBACK', [], 'releaseExpiredPendingBookings rollback');
+      await runQuery(this.db, 'ROLLBACK', [], 'releaseExpiredPendingBookings rollback on error');
       throw err;
     }
   }

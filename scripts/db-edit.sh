@@ -3,7 +3,7 @@
 # Stops Fly.io app, downloads database, lets you edit it, then uploads it back and restarts app
 
 APP_NAME="ticketuno"
-SLUG={$1:-"demo"}
+SLUG=${1:-"demo"}
 REMOTE_DB="/data/${SLUG}/ticketuno.db"
 LOCAL_DB="/tmp/ticketuno-production.db"
 
@@ -31,6 +31,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+echo "✏️  Editing database for ${SLUG} tenant ..."
 
 if $safe; then
   echo "🔒 Enabling maintenance mode..."
@@ -51,7 +52,7 @@ if [ ! -f "$LOCAL_DB" ]; then
   echo "❌  Failed to download database!"
   exit 1
 fi
-#echo "💾 Database downloaded locally at $LOCAL_DB"
+echo "💾 Database downloaded locally at $LOCAL_DB"
 
 echo "☩  Calculating signature of database before changes..."
 OLD_HASH=$(sha256sum "$LOCAL_DB" | awk '{print $1}')

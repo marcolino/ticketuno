@@ -208,7 +208,7 @@ router.post('/:performanceId/create', requireAuthentication, async (req: Request
           }
 
           const buyer = await database.getUserById(userId);
-           const bookingIds = bookingResult.bookingIds; // Array of IDs
+          const bookingIds = bookingResult.bookingIds; // Array of IDs
 
           // Build URLs with placeholders
           const successUrl = `${config.app.baseUrlFrontend}/payments/success?payment=success&session_id={CHECKOUT_SESSION_ID}`;

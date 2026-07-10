@@ -223,7 +223,7 @@ Your endpoint runs the reminder logic and returns
 
 GitHub Actions (cron)
        |
-       | POST /api/internal/send-reminders
+       | POST /api/internal/send-booking-reminders
        | Authorization: Bearer <CRON_SECRET>
        ↓
   Fly.io machine wakes up
@@ -235,7 +235,7 @@ GitHub Actions (cron)
 Backend — add one protected route:
 ```typescript
 // routes/internal.ts
-router.post('/send-reminders', (req, res) => {
+router.post('/send-booking-reminders', (req, res) => {
   const secret = req.headers.authorization?.replace('Bearer ', '');
   if (secret !== process.env.CRON_SECRET) {
     return res.status(401).json({ error: 'Unauthorized' });
@@ -260,7 +260,7 @@ jobs:
     steps:
       - name: Trigger reminder endpoint
         run: |
-          curl -f -X POST https://your-app.fly.dev/api/internal/send-reminders \
+          curl -f -X POST https://your-app.fly.dev/api/internal/send-booking-reminders \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json"
 

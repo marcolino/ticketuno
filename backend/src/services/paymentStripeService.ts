@@ -380,13 +380,17 @@ class StripeService {
         const booking = await database.getBookingById(bookingId);
         if (!booking) {
           console.warn(`⚠️ Booking not found: ${bookingId}`);
-          return;
+          continue;
         }
 
         // Skip if f status is already confirmed
-        if (booking.status === 'confirmed') {
+        if (booking.status !== 'confirmed') {
+          const updated = await database.updateBookingStatus(bookingId, 'confirmed');
+          if (updated) {
+            console.log(`✅ Booking ${bookingId} (${booking.bookingRef}) confirmed via checkout`);
+          }
+        } else {
           console.log(`ℹ️  Booking ${bookingId} already confirmed`);
-          return;
         }
 
         // Update booking status to confirmed
@@ -396,7 +400,6 @@ class StripeService {
         }
 
         await database.updateBookingCheckoutSession(bookingId, session.id);
-
       }
 
       // Send confirmation email (optional)

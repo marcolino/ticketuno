@@ -74,6 +74,12 @@ const backendConfig = {
       redirectUri: `${sharedConfig.app.baseUrlBackend}/api/v1/paymentsStripe/connect/oauth/callback`,
     },
   },
+  reservations: {
+    staleCutoffMinutes: 30,
+  },
+  bookings: {
+    staleCutoffMinutes: 30, // matches the 30 minutes seat reservation window 
+  },
   host: {
     dev: { name: 'localhost', port: 3000 },
   },
