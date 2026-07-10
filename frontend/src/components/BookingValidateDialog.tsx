@@ -9,17 +9,17 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { alpha } from '@mui/material/styles';
-import type { Theme } from '@mui/material/styles';
-import {
-  CheckCircle as CheckCircleIcon,
-  Cancel as CancelIcon,
-  DoNotDisturb as DoNotDisturbOnIcon,
-  // QrCodeScanner as QrCodeScannerIcon,
-  // DeleteSweep as DeleteSweepIcon,
-} from '@mui/icons-material';
+// import { alpha } from '@mui/material/styles';
+// import type { Theme } from '@mui/material/styles';
+// import {
+//   CheckCircle as CheckCircleIcon,
+//   Cancel as CancelIcon,
+//   DoNotDisturb as DoNotDisturbOnIcon,
+//   // QrCodeScanner as QrCodeScannerIcon,
+//   // DeleteSweep as DeleteSweepIcon,
+// } from '@mui/icons-material';
 //import useNavigate from '@/hooks/useNavigate';
-import { TicketValidationStatus, TicketValidationResult, TicketScanEntry } from '@ticketuno/shared/types/ticket';
+import { /*TicketValidationStatus, */TicketValidationResult, TicketScanEntry } from '@ticketuno/shared/types/ticket';
 import { QrCodeScanner, playSuccessSound, playFailureSound } from './QrCodeScanner';
 import { ticketApi } from '@/services/api';
 import { useDialog } from '@/contexts/DialogContext';
@@ -101,6 +101,7 @@ export const BookingValidateDialog: React.FC<BookingValidateProps> = ({ open, on
 
   // ── Mark entry as "new" (highlighted) for 1.5 s ──────────────────────────
   const markNew = (id: string) => {
+    console.log(`markNew(${id}`);
     if (newEntryTimer.current) clearTimeout(newEntryTimer.current);
     // setNewEntryId(id);
     // newEntryTimer.current = setTimeout(() => setNewEntryId(null), 1500);
@@ -186,7 +187,7 @@ export const BookingValidateDialog: React.FC<BookingValidateProps> = ({ open, on
   }, [t]);
 
   console.log("Entries:", entries); // TODO: how do we use entries?
-  
+
   return (
     <QrCodeScanner
       open={scannerOpen}
