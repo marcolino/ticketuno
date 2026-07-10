@@ -9,22 +9,7 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Box,
-  //Button,
-  Chip,
-  CircularProgress,
-  Collapse,
-  // Dialog,
-  // DialogContent,
-  // DialogTitle,
-  // Divider,
-  // Paper,
-  Stack,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import { alpha, useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import {
   CheckCircle as CheckCircleIcon,
@@ -53,109 +38,38 @@ async function validateTicket(code: string): Promise<TicketValidationResult> {
   }
 }
 
-// ─── Status helpers ───────────────────────────────────────────────────────────
-const STATUS_META: Record<TicketValidationStatus, {
-  color: 'success' | 'error' | 'warning' | 'default';
-  icon: React.ReactElement;
-  bg: (theme: Theme) => string;
-}> = {
-  valid: {
-    color: 'success',
-    icon: <CheckCircleIcon fontSize="small" />,
-    bg: (t) => alpha(t.palette.success.main, 0.08)
-  },
-  already_used: {
-    color: 'warning',
-    icon: <DoNotDisturbOnIcon fontSize="small" />,
-    bg: (t) => alpha(t.palette.warning.main, 0.08)
-  },
-  invalid: {
-    color: 'error',
-    icon: <CancelIcon fontSize="small" />,
-    bg: (t) => alpha(t.palette.error.main, 0.08)
-  },
-  error: {
-    color: 'error',
-    icon: <CancelIcon fontSize="small" />,
-    bg: (t) => alpha(t.palette.error.main, 0.08)
-  },
-};
-
-function statusLabel(entry: TicketScanEntry, t: (k: string) => string): string {
-  const base = entry.pending ? t('Validating…') : entry.label;
-  return entry.duplicateCount > 1 ? `${base} (×${entry.duplicateCount})` : base;
-}
-
-// ─── Single log row ───────────────────────────────────────────────────────────
-
-// const ScanRow: React.FC<{ entry: TicketScanEntry; isNew: boolean }> = ({ entry, isNew }) => {
-//   const theme = useTheme();
-//   const { t } = useTranslation();
-//   const meta = STATUS_META[entry.status];
-
-//   return (
-//     <Collapse in appear timeout={300}>
-//       <Box
-//         sx={{
-//           display: 'flex',
-//           alignItems: 'center',
-//           gap: 1.5,
-//           px: 2,
-//           py: 1.25,
-//           backgroundColor: isNew
-//             ? meta.bg(theme)
-//             : 'transparent',
-//           transition: 'background-color 1.5s ease',
-//           '&:hover': { backgroundColor: alpha(theme.palette.action.hover, 0.5) },
-//         }}
-//       >
-//         {/* Status icon / spinner */}
-//         <Box sx={{ color: `${meta.color}.main`, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-//           {entry.pending
-//             ? <CircularProgress size={16} color="inherit" />
-//             : meta.icon}
-//         </Box>
-
-//         {/* Code + label */}
-//         <Stack flex={1} spacing={0} minWidth={0}>
-//          <Typography
-//             variant="body2"
-//             fontWeight={600}
-//             sx={{
-//               fontFamily: 'monospace',
-//               letterSpacing: 0.5,
-//               wordBreak: 'break-all',   // ← breaks anywhere in a long code
-//               overflowWrap: 'anywhere', // ← fallback for older engines
-//             }}
-//           >
-//             {/*entry.code*/}{entry.ref}
-//           </Typography>
-//           <Typography variant="caption" color="text.secondary">
-//             {statusLabel(entry, t)}
-//           </Typography>
-//         </Stack>
-
-//         {/* Duplicate badge */}
-//         {entry.duplicateCount > 1 && !entry.pending && (
-//           <Tooltip title={t('Same code scanned {{n}} times in a row', { n: entry.duplicateCount })}>
-//             <Chip
-//               size="small"
-//               label={`× ${entry.duplicateCount}`}
-//               color={meta.color}
-//               variant="outlined"
-//               sx={{ height: 20, fontSize: 11, cursor: 'default' }}
-//             />
-//           </Tooltip>
-//         )}
-
-//         {/* Time */}
-//         <Typography variant="caption" color="text.disabled" flexShrink={0} sx={{ fontSize: 11 }}>
-//           {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-//         </Typography>
-//       </Box>
-//     </Collapse>
-//   );
+// // ─── Status helpers ───────────────────────────────────────────────────────────
+// const STATUS_META: Record<TicketValidationStatus, {
+//   color: 'success' | 'error' | 'warning' | 'default';
+//   icon: React.ReactElement;
+//   bg: (theme: Theme) => string;
+// }> = {
+//   valid: {
+//     color: 'success',
+//     icon: <CheckCircleIcon fontSize="small" />,
+//     bg: (t) => alpha(t.palette.success.main, 0.08)
+//   },
+//   already_used: {
+//     color: 'warning',
+//     icon: <DoNotDisturbOnIcon fontSize="small" />,
+//     bg: (t) => alpha(t.palette.warning.main, 0.08)
+//   },
+//   invalid: {
+//     color: 'error',
+//     icon: <CancelIcon fontSize="small" />,
+//     bg: (t) => alpha(t.palette.error.main, 0.08)
+//   },
+//   error: {
+//     color: 'error',
+//     icon: <CancelIcon fontSize="small" />,
+//     bg: (t) => alpha(t.palette.error.main, 0.08)
+//   },
 // };
+
+// function statusLabel(entry: TicketScanEntry, t: (k: string) => string): string {
+//   const base = entry.pending ? t('Validating…') : entry.label;
+//   return entry.duplicateCount > 1 ? `${base} (×${entry.duplicateCount})` : base;
+// }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -249,7 +163,7 @@ export const BookingValidateDialog: React.FC<BookingValidateProps> = ({ open, on
         playFailureSound();
         showDialog({
           title: t('Invalid ticket'),
-          content: t('This ticket is invalid: {{reason}}', { reason: result.label}),
+          content: t('This ticket is invalid: {{reason}}', { reason: result.label }),
           //cancelText: t('Cancel'),
           confirmText: t('Close'),
           onConfirm: () => { },
@@ -271,6 +185,8 @@ export const BookingValidateDialog: React.FC<BookingValidateProps> = ({ open, on
     }
   }, [t]);
 
+  console.log("Entries:", entries); // TODO: how do we use entries?
+  
   return (
     <QrCodeScanner
       open={scannerOpen}
@@ -281,123 +197,6 @@ export const BookingValidateDialog: React.FC<BookingValidateProps> = ({ open, on
       enableSounds={false} // we play sounds ourselves after validation
     />
   );
-
-  // ─── Render ───────────────────────────────────────────────────────────────
-  // return (
-  //   <Dialog
-  //     open={open}
-  //     onClose={onClose}
-  //     fullWidth
-  //     maxWidth="xs"
-  //     // Prevent accidental close by clicking the backdrop while scanning
-  //     disableEscapeKeyDown={scannerOpen}
-  //   >
-  //     <DialogTitle sx={{ pb: 1 }}>
-  //       <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-  //         {/* Title + scan trigger */}
-  //         <Stack direction="row" alignItems="center" gap={1}>
-  //           <QrCodeScannerIcon fontSize="small" />
-  //           <Typography variant="h6" component="span">
-  //             {t('Validate tickets')}
-  //           </Typography>
-  //         </Stack>
-
-  //         {/* Summary chips — only when there are entries */}
-  //         {entries.length > 0 && (
-  //           <Stack direction="row" alignItems="center" spacing={1}>
-  //             <Chip icon={<CheckCircleIcon />} label={valid}   color="success" size="small" variant="outlined" />
-  //             <Chip icon={<CancelIcon />}       label={invalid} color="error"   size="small" variant="outlined" />
-  //             <Chip label={t('{{n}} total', { n: total })}    size="small" variant="outlined" />
-  //           </Stack>
-  //         )}
-  //       </Stack>
-  //     </DialogTitle>
-
-  //     <DialogContent sx={{ p: 0 }}>
-  //       <Stack spacing={0}>
-
-  //         {/* ── Toolbar row ── */}
-  //         <Stack
-  //           direction="row"
-  //           alignItems="center"
-  //           justifyContent="space-between"
-  //           sx={{ px: 2, py: 1, borderBottom: 1, borderColor: 'divider' }}
-  //         >
-  //           <Button
-  //             size="small"
-  //             variant="contained"
-  //             startIcon={<QrCodeScannerIcon />}
-  //             onClick={() => setScannerOpen(true)}
-  //             disabled={scannerOpen}
-  //           >
-  //             {t('Scan tickets')}
-  //           </Button>
-
-  //           <Stack direction="row" alignItems="center" spacing={1}>
-  //             {entries.length > 0 && (
-  //               <Tooltip title={t('Clear log')}>
-  //                 <Button
-  //                   size="small"
-  //                   color="inherit"
-  //                   startIcon={<DeleteSweepIcon />}
-  //                   onClick={() => setEntries([])}
-  //                   sx={{ color: 'text.secondary' }}
-  //                 >
-  //                   {t('Clear')}
-  //                 </Button>
-  //               </Tooltip>
-  //             )}
-  //             <Button size="small" variant="outlined" onClick={onClose}>
-  //               {t('Close')}
-  //             </Button>
-  //           </Stack>
-  //         </Stack>
-
-  //         {/* ── Log panel ── */}
-  //         {entries.length > 0 && (
-  //           <Paper
-  //             variant="outlined"
-  //             square
-  //             sx={{ border: 0, borderTop: 1, borderColor: 'divider' }}
-  //           >
-  //             <Box
-  //               sx={{
-  //                 overflow: 'auto',
-  //                 maxHeight: { xs: '56vh', sm: '60vh' },
-  //                 minHeight: '80px',
-  //               }}
-  //             >
-  //               {entries.map((entry, idx) => (
-  //                 <React.Fragment key={entry.id}>
-  //                   {idx > 0 && <Divider />}
-  //                   <ScanRow entry={entry} isNew={entry.id === newEntryId} />
-  //                 </React.Fragment>
-  //               ))}
-  //             </Box>
-  //           </Paper>
-  //         )}
-
-  //       </Stack>
-  //     </DialogContent>
-
-  //     {/* ── Inner scanner dialog ── */}
-  //     <QrCodeScanner
-  //       open={scannerOpen}
-  //       onScan={handleScan}
-  //       //onClose={() => setScannerOpen(false)}
-  //       onClose={onClose}
-  //       scanCooldown={1500}
-  //       enableSounds={false} // we play sounds ourselves after validation
-  //     />
-  //   </Dialog>
-  // );
 };
-
-// Route entry point — renders the dialog permanently open,
-// navigates back on close. Drop this once all callers use the dialog directly.
-// const BookingValidatePage: React.FC = () => {
-//   const navigate = useNavigate();
-//   return <BookingValidate open={true} onClose={() => navigate(-1)} />;
-// };
 
 export default BookingValidateDialog;
