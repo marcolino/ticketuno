@@ -1,18 +1,18 @@
 import { Router, Request, Response } from 'express';
-import path from 'path';
+//import path from 'path';
 import { database } from '../db/database';
-import { getSetup } from '../services/setupService';
+//import { getSetup } from '../services/setupService';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
-import { generateTickets } from '../services/ticketService';
-import { notify } from '../services/notificationService';
-import { sendBookingConfirmationEmail } from '../utils/email';
+//import { generateTickets } from '../services/ticketService';
+//import { notify } from '../services/notificationService';
+//import { sendBookingConfirmationEmail } from '../utils/email';
 import { Event, EventPerformance, EventStats } from '@ticketuno/shared';
 import { EventQueryOptions } from '@ticketuno/shared';
-import { ShowInfo } from '@ticketuno/shared';
-import { generateSeats, applyDisplayNumbers } from '@ticketuno/shared';
+//import { ShowInfo } from '@ticketuno/shared';
+import { generateSeats/*, applyDisplayNumbers*/ } from '@ticketuno/shared';
 import { PerformanceSeatsResponse, SeatData} from '@ticketuno/shared';
 import { getErrorMessage } from '@ticketuno/shared';
-import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '@ticketuno/shared';
+//import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference } from '@ticketuno/shared';
 import config from '../config';
 
 

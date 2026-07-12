@@ -16,6 +16,7 @@ export interface Booking {
   scannedBy: string | null;
   updatedAt?: string;
   canceledAt?: string;
+  confirmationEmailSentAt?: string | null;
 }
 
 export interface BookingQueryOptions {
@@ -48,6 +49,7 @@ export interface BookingEnriched {
   scannedBy: string | null;
   canceledAt: string | null;
   updatedAt: string | null;
+  confirmationEmailSentAt: string | null;
 }
  
 export interface SeatDetail {

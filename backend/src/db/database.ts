@@ -230,6 +230,7 @@ class Database {
         scanned_by TEXT,
         updated_at DATETIME,
         canceled_at DATETIME,
+        confirmation_email_sent_at DATETIME,
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (performance_id) REFERENCES performances(id)
       );
@@ -1876,6 +1877,7 @@ class Database {
       scannedBy: row.scanned_by as string | null,
       updatedAt: row.updated_at as string | undefined,
       canceledAt: row.canceled_at as string | undefined,
+      confirmationEmailSentAt: row.confirmation_email_sent_at as string | undefined,
     };
   }
 
@@ -2316,6 +2318,7 @@ class Database {
       scannedAt: (row.scanned_at as string) ?? null,
       scannedBy: (row.scanned_by as string) ?? null,
       canceledAt: (row.canceled_at as string) ?? null,
+      confirmationEmailSentAt: row.confirmation_email_sent_at as string ?? null,
       updatedAt: (row.updated_at as string) ?? null,
     };
   }
@@ -2492,6 +2495,20 @@ class Database {
       console.error('Error confirming booking with payment:', error);
       return false;
     }
+  }
+
+  /**
+   * Update booking confirmation_email_sent_at
+   */
+  async markConfirmationEmailSent(bookingIds: string[]): Promise<void> {
+    const placeholders = bookingIds.map(() => '?').join(', ');
+    await runQuery(
+      this.db, `
+        UPDATE bookings SET confirmation_email_sent_at = CURRENT_TIMESTAMP
+        WHERE id IN (${placeholders})
+      `,
+      bookingIds, 'mark confirmation email sent'
+    );
   }
 
   /**
