@@ -44,7 +44,7 @@ router.post('/send-booking-reminders', requireCronAuth, async (req: Request, res
  */
 router.post('/release-expired-bookings', requireCronAuth, async (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production') {
-    res.json({ ok: true });
+    return res.json({ ok: true, message: 'Job skipped in production' });
     return;
   }
   try {
