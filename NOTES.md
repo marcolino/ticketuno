@@ -12,8 +12,9 @@
  - To force a resend of booking reminders action:
      `CRON_SECRET="(see in .env file)" && curl -f -X POST https://ticketuno.fly.dev/api/v1/internal/send-booking-reminders -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json" --silent`
 
- - To setup a tunnel to test Stripe webhook callbacks:
-     $ ngrok http 3000 >/dev/null 2>&1 &
-     $ export NGROK_URL=$(curl -s http://127.0.0.1:4040/api/tunnels | jq -r '.tunnels[] | select(.proto=="https") | .public_url') && echo $NGROK_URL
-     
-     and then use $NGROK_URL everywhere https://*.ngrok-free.app is used ...
+ - Registars:
+   - register.it:
+     - account: log in with google oauth
+     - domain: ticketuno.it (0.00€/y., used for running a local tunnel)
+     - auth-info code for domain ticketuno.it: AI-36294916a52a5
+     - customer code: MS274700-EU+RO

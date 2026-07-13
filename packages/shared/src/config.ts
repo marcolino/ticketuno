@@ -10,7 +10,7 @@ import {
   DEFAULT_COUNTRY,
   DEFAULT_TIMEZONE,
   DEFAULT_PHONE_PREFIX,
-  NGROK_URL
+  TUNNEL_URL
 } from './constants';
 
 // ── Environment detection ──────────────────────────────────────────────
@@ -20,8 +20,8 @@ export const isProd = nodeEnv === 'production';
 export const isStaging = nodeEnv === 'staging';
 
 // ── URLs ──────────────────────────────────────────────────────────────────
-const baseUrlFrontendDevelopment = NGROK_URL || 'http://localhost:3000';
-const baseUrlBackendDevelopment = NGROK_URL || 'http://localhost:3001';
+const baseUrlFrontendDevelopment = 'http://localhost:3000'; // vite dev server
+const baseUrlBackendDevelopment = TUNNEL_URL || 'http://localhost:3001'; // needs to be externally reachable for Stripe webhooks/Connect callbacks
 
 const baseUrlFrontendStaging = `https://${CODENAME}-staging.fly.dev`;
 const baseUrlBackendStaging = `https://${CODENAME}-staging.fly.dev`;

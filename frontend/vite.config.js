@@ -82,7 +82,7 @@ export default defineConfig(({ command }) => ({
         changeOrigin: true,
       },
     },
-    allowedHosts: command === 'serve' ? ['.ngrok-free.app'] : [] // 'serve' is 'dev' for Vite
+    allowedHosts: command === 'serve' ? ['.ticketuno.it'] : [] // 'serve' is 'dev' for Vite
   },
   define: {
     'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'), // TODO: do we need this ???

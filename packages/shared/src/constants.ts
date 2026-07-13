@@ -8,7 +8,7 @@ export const HOLDER = {
 
 /* ---------------------------------- API ---------------------------------- */
 
-export const NGROK_URL = 'https://cockatoo-liberal-eft.ngrok-free.app';
+export const TUNNEL_URL = 'https://webhook.ticketuno.it';
 
 export const API = {
   prefix: 'api',

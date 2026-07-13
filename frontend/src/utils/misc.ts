@@ -1,5 +1,6 @@
 import { t } from 'i18next';
 // import axios from 'axios';
+import config from '../config';
 
 // interface LocalizedDateProps {
 //   dateString: string; // format: YYYY-MM-DD
@@ -62,6 +63,17 @@ export function localizedDate({
   const formatter = new Intl.DateTimeFormat(locale, options);
   return formatter.format(date);
 };
+
+export function localizedCurrency(
+  amount: number,
+  currency: string = config.app.defaultCurrency,
+  locale: string = config.app.defaultLanguage,
+): string {
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency,
+  }).format(amount);
+}
 
 export const getEnvMode = (): 'development' | 'staging' | 'production' => {
   // Use type assertion to avoid TypeScript error

@@ -146,8 +146,7 @@
     const [isDirty, setIsDirty] = useState(false);
     useUnsavedChanges(isDirty);
 
-    const currencyCode = (event.currency) as CurrencyCode;
-    const currencySymbol = config.app.currencies[currencyCode]?.symbol;
+    const currencySymbol = config.app.currencies[(event.currency) as CurrencyCode]?.symbol;
     
     const loadEvent = useCallback(
       async (overrideTheaterId?: string) => {

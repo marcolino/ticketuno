@@ -60,10 +60,14 @@ const backendConfig = {
       : process.env.STRIPE_API_KEY_LIVE || '',
     publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
     webhookSecret: process.env.STRIPE_MODE === 'test'
-      ? (process.env.STRIPE_WEBHOOK_SECRET_TEST || process.env.STRIPE_WEBHOOK_SECRET_TEST_LOCAL || '')
+      ? ((process.env.NODE_ENV === 'development') ?
+        process.env.STRIPE_WEBHOOK_SECRET_TEST_LOCAL || '' :
+        process.env.STRIPE_WEBHOOK_SECRET_TEST || '')
       : (process.env.STRIPE_WEBHOOK_SECRET_LIVE || ''),
     webhookSecretConnect: process.env.STRIPE_MODE === 'test'
-      ? (process.env.STRIPE_WEBHOOK_SECRET_TEST_CONNECT || process.env.STRIPE_WEBHOOK_SECRET_TEST_CONNECT_LOCAL || '')
+      ? ((process.env.NODE_ENV === 'development') ?
+        process.env.STRIPE_WEBHOOK_SECRET_TEST_CONNECT_LOCAL || '' :
+        process.env.STRIPE_WEBHOOK_SECRET_TEST_CONNECT || '')
       : (process.env.STRIPE_WEBHOOK_SECRET_LIVE_CONNECT || ''),
     
     platformFeePercent: Number(process.env.STRIPE_PLATFORM_FEE_PERCENT) || 5,
@@ -81,7 +85,7 @@ const backendConfig = {
     staleCutoffMinutes: 30, // matches the 30 minutes seat reservation window 
   },
   host: {
-    dev: { name: 'localhost', port: 3000 },
+    dev: { name: 'localhost', port: 3001 },
   },
   assets: {
     path: './assets',

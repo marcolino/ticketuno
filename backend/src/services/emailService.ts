@@ -58,7 +58,7 @@ class EmailService {
 
           const result = translator(key, options.hash ?? {});
 
-          console.log('[EMAIL][HB]', key, '=>', result);
+          //console.log('[EMAIL][HB]', key, '=>', result);
 
           return result;
         } catch (err: unknown) {

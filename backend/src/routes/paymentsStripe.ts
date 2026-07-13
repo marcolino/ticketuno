@@ -7,7 +7,7 @@ import { loadSetup, readStripeConnect, updateStripeConnect } from '../services/s
 import { tenantRegistry } from '../tenancy/tenantRegistry';
 import { tenantDbManager } from '../tenancy/tenantDbManager';
 import { runWithTenant } from '../tenancy/tenantContext';
-//import config from '../config';
+import config from '../config';
 
 const router = express.Router();
 
@@ -22,7 +22,7 @@ const router = express.Router();
 
 // Create-or-reuse the organizer account and return a fresh onboarding link.
 router.post('/connect/onboard', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
+  // res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const { organizerEmail, businessName } = req.body as {
       organizerEmail?: string;
@@ -58,7 +58,7 @@ router.post('/connect/onboard', requireAuthentication, requireAdmin, async (req:
 
 // Read the stored organizer connect status (admin).
 router.get('/connect/status', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
+  // res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const stripe = readStripeConnect(await loadSetup());
     res.json(stripe);
@@ -69,7 +69,7 @@ router.get('/connect/status', requireAuthentication, requireAdmin, async (req: R
 
 // Re-sync the stored status from Stripe (admin) — handy when webhooks aren't wired (dev).
 router.post('/connect/sync', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
+  // res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const stripe = await paymentStripeService.refreshConnectedAccountStatus();
     if (!stripe) {
@@ -83,7 +83,7 @@ router.post('/connect/sync', requireAuthentication, requireAdmin, async (req: Re
 
 // Mint a fresh onboarding link (admin) — Stripe links expire and are single-use.
 router.post('/connect/refresh-link', requireAuthentication, requireAdmin, async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
+  // res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const stripe = readStripeConnect(await loadSetup());
     if (!stripe.accountId) {
@@ -97,7 +97,7 @@ router.post('/connect/refresh-link', requireAuthentication, requireAdmin, async 
 });
 
 router.post('/connect/debug-link', requireAuthentication, requireAdmin, async (req, res) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
+  // res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   try {
     const stripe = readStripeConnect(await loadSetup());
     if (!stripe.accountId) {
@@ -133,7 +133,7 @@ router.post('/connect/debug-link', requireAuthentication, requireAdmin, async (r
  * Stripe redirects here if onboarding needs refreshing or fails
  */
 router.get('/connect/refresh', async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
+  // res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   console.log('🔄 Stripe Connect refresh callback received:', {
     query: req.query,
     state: req.query.state,
@@ -154,7 +154,7 @@ router.get('/connect/refresh', async (req: Request, res: Response) => {
  * Stripe redirects here after successful onboarding
  */
 router.get('/connect/success', async (req: Request, res: Response) => {
-  res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
+  // res.setHeader('ngrok-skip-browser-warning', 'true'); // TODO: only while developing...
   console.log('✅ Stripe Connect success callback received:', {
     query: req.query,
     state: req.query.state,
@@ -203,6 +203,9 @@ router.post('/webhook', async (req: Request, res: Response) => {
 
   let event;
   try {
+    // console.log('config.stripe.mode:', config.stripe.mode);
+    // console.log('config.stripe.stripe.secretKey:', config.stripe.secretKey);
+    // console.log('config.stripe.stripe.webhookSecret:', config.stripe.webhookSecret);
     event = paymentStripeService.verifyWebhookEvent(req.body as Buffer, sig);
   } catch (error) {
     return res.status(400).send(`Webhook Error: ${getErrorMessage(error)}`);
