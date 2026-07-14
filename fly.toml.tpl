@@ -1,4 +1,4 @@
-app = '${APP_NAME}'
+app = "$APP_NAME"
 primary_region = 'fra'
 [build]
 [deploy]
@@ -11,7 +11,7 @@ primary_region = 'fra'
   min_machines_running = 0
   processes = ['app']
 [mounts]
-  source = "${VOLUME_NAME}"
+  source = "$VOLUME_NAME"
   destination = "/data"
 [[vm]]
   memory = '1gb'
