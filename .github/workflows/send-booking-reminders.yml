@@ -22,10 +22,10 @@ jobs:
           SECRET: ${{ secrets.CRON_SECRET }}
       - name: Trigger reminder endpoint
         run: |
-          curl -f -X POST https://ticketuno.fly.dev/api/v1/internal/send-booking-reminders \
+          curl -4 -f -X POST https://ticketuno.fly.dev/api/v1/internal/send-booking-reminders \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --max-time 30 \
+            --max-time 60 \
             --silent
         env:
           SECRET: ${{ secrets.CRON_SECRET }}

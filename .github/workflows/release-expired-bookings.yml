@@ -12,10 +12,10 @@ jobs:
     steps:
       - name: Trigger release-expired-bookings endpoint
         run: |
-          curl -f -X POST https://ticketuno.fly.dev/api/v1/internal/release-expired-bookings \
+          curl -4 -f -X POST https://ticketuno.fly.dev/api/v1/internal/release-expired-bookings \
             -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             -H "Content-Type: application/json" \
-            --max-time 30 \
+            --max-time 60 \
             --silent
 
 # To test this job: CRON_SECRET="***" && curl -f -X POST https://ticketuno.fly.dev/api/v1/internal/release-expired-bookings -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json" --silent

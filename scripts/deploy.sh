@@ -254,14 +254,21 @@ fly secrets set \
 # set secrets on github.comn
 gh secret set CRON_SECRET --body "`grep '^CRON_SECRET=' ./backend/.env | cut -d= -f2`"
 
+# ─── Build fly.toml from template ─────────────────────────────────────────────
+FLY_CONFIG="$(mktemp /tmp/fly-config-XXXXXX.toml)"
+trap 'rm -f "$FLY_CONFIG"' EXIT
+envsubst < fly.toml.tpl > "$FLY_CONFIG"
+echo "FLY.TOML:" # TODO: DEBUG ONLY
+less "$FLY_CONFIG" # TODO: DEBUG ONLY
+
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 
-echo "🏗️  Building and deploying to ${APP_NAME}"
-CACHE_FLAGS=""
-if [ "$CACHE" = "" ] || [ "$CACHE" = "false" ]; then
-  CACHE_FLAGS="--no-cache --buildkit"
-fi
-fly deploy --build-arg VITE_MODE="${DEPLOY_NODE_ENV}" --config "${FLY_CONFIG}" --app "${APP_NAME}" --regions "${REGIONS}" ${CACHE_FLAGS} 
+fly deploy \
+  --build-arg VITE_MODE="${DEPLOY_NODE_ENV}" \
+  --config "${FLY_CONFIG}" \
+  --app "${APP_NAME}" \
+  --regions "${REGIONS}" \
+  ${CACHE_FLAGS}
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
 

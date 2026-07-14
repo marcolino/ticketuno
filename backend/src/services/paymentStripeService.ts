@@ -304,6 +304,7 @@ class StripeService {
         await this.handleAccountUpdated(event.data.object);
         break;
       case 'account.external_account.updated':
+        // no action needed, Stripe handles payout routing independently
         console.log('ℹ️ External account updated for connected account');
         break;
     }
