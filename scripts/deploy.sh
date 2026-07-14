@@ -258,6 +258,9 @@ gh secret set CRON_SECRET --body "`grep '^CRON_SECRET=' ./backend/.env | cut -d=
 FLY_CONFIG="$(mktemp /tmp/fly-config-XXXXXX.toml)"
 trap 'rm -f "$FLY_CONFIG"' EXIT
 envsubst < fly.toml.tpl > "$FLY_CONFIG"
+echo "APP_NAME: $APP_NAME"
+echo "VOLUME_NAME: $VOLUME_NAME"
+read x
 echo "FLY.TOML:" # TODO: DEBUG ONLY
 less "$FLY_CONFIG" # TODO: DEBUG ONLY
 
