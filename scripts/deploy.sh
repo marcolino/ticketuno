@@ -5,13 +5,15 @@
 #       only when changes are detected in the respective directory.
 #
 # Usage:
-#   ./deploy.sh                 → deploy to production
-#   ./deploy.sh --staging       → deploy to staging (no version bump, no tag)
-#   ./deploy.sh --force         → force production deploy even with no changes
-#   ./deploy.sh --no-cache      → disable Docker layer cache
+#   ./deploy.sh        → deploy to production
+#      --staging       → deploy to staging (no version bump, no tag)
+#      --force         → force production deploy even with no changes
+#      --no-cache      → disable Docker layer cache
+################################################################################
 
-set -e
-
+set -e # any error is fatal
+  
+# ─── Set variables ────────────────────────────────────────────────────────────
 APP_NAME="ticketuno"
 REGIONS="fra"
 ORG="personal"
@@ -23,9 +25,11 @@ FLY_CONFIG="fly.toml"
 VOLUME_NAME="ticketuno_data"
 DEPLOY_NODE_ENV="production"
 
+# ─── Handle errors log file ───────────────────────────────────────────────────
 error_log=$(mktemp)
+trap 'rm -f "$error_log"' EXIT
 
-# Parse flagsuploadsBaseDir
+# ─── Parse flags ──────────────────────────────────────────────────────────────
 for arg in "$@"; do
   case $arg in
     --force) FORCE=true ;;
@@ -35,7 +39,6 @@ for arg in "$@"; do
 done
 
 # ─── Staging overrides ────────────────────────────────────────────────────────
-
 if [ "$STAGING" = true ]; then
   APP_NAME="ticketuno-staging"
   FLY_CONFIG="fly.staging.toml"
@@ -44,7 +47,6 @@ if [ "$STAGING" = true ]; then
 fi
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
-
 get_last_tag() {
   local component=$1
   git tag --list "${component}-v*" --sort=-version:refname | head -1
@@ -74,7 +76,6 @@ has_changes() {
 }
 
 # ─── Pre-flight checks ────────────────────────────────────────────────────────
-
 if [ "$STAGING" = true ]; then
   echo "🚀 Deploying app \"${APP_NAME}\" (STAGING) to Fly.io..."
 else
@@ -119,15 +120,13 @@ if ! npm run check-git-leaks > "$error_log" 2>&1; then
   if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
     less "$error_log"
   fi
-  rm -f "$error_log"
   exit 6
 fi
 
-# Archive temporary files
+# ─── Archive temporary files ──────────────────────────────────────────────────
 npm run archive
 
 # ─── TypeScript check ─────────────────────────────────────────────────────────
-
 echo "🔍 Running pre-deploy checks..."
 if ! npm run type-check > "$error_log" 2>&1; then
   echo "❌ TypeScript check (\`npm run type-check\`) failed. View errors? (y/N): "
@@ -135,12 +134,10 @@ if ! npm run type-check > "$error_log" 2>&1; then
   if [[ "$answer" == "y" || "$answer" == "Y" ]]; then
     less "$error_log"
   fi
-  rm -f "$error_log"
   exit 6
 fi
 
 # ─── Change detection (production only) ──────────────────────────────────────
-
 BACKEND_CHANGED=false
 FRONTEND_CHANGED=false
 
@@ -174,12 +171,10 @@ else
 fi
 
 # ─── Read current versions ────────────────────────────────────────────────────
-
 BACKEND_VERSION=$(node  -p "require('./backend/package.json').version")
 FRONTEND_VERSION=$(node -p "require('./frontend/package.json').version")
 
 # ─── Ensure app exists ────────────────────────────────────────────────────────
-
 if [ -z "$(fly apps list | grep -E "\s+${APP_NAME}\s+")" ]; then
   echo "📦 Creating new Fly.io app \"${APP_NAME}\"..."
   fly apps create "${APP_NAME}" --org "${ORG}"
@@ -187,6 +182,7 @@ else
   echo "✅ App ${APP_NAME} exists on fly.io, skipping creation."
 fi
 
+# ─── Ensure volume exists ─────────────────────────────────────────────────────
 if ! fly volumes list -a "${APP_NAME}" --json | jq -e '.[] | select(.name == "'"${VOLUME_NAME}"'")' > /dev/null; then
   echo "📦 Volume ${VOLUME_NAME} not found. Creating..."
   fly volumes create "${VOLUME_NAME}" --region "${REGIONS}" --size 1 --app "${APP_NAME}"
@@ -194,21 +190,11 @@ else
   echo "✅ Volume ${VOLUME_NAME} already exists."
 fi
 
-# ─── Secrets ─────────────────────────────────────────────────────────────────
-
-echo "🔐 Importing non-local secrets from ${ENV_FILE}..."
-grep -v '_LOCAL=' "${ENV_FILE}" | fly secrets import --app "${APP_NAME}"
-grep -v '_LOCAL=' "${ENV_FILE}" | fly secrets import --app "${APP_NAME}"
-fly secrets set \
-  NODE_ENV="${DEPLOY_NODE_ENV}" \
-  PORT="8080" \
-  --app "${APP_NAME}"
-
+# ─── Generate PWA Assets ─────────────────────────────────────────────────────
 echo "📱 Generating PWA assets..."
 npm run pwa:generate
 
 # ─── Version bumps (production only) ─────────────────────────────────────────
-
 if [ "$STAGING" = false ]; then
   if [ "$BACKEND_CHANGED" = true ]; then
     echo "🔢 Bumping backend version..."
@@ -226,7 +212,6 @@ if [ "$STAGING" = false ]; then
 fi
 
 # ─── Commit + tag + push (production only) ───────────────────────────────────
-
 if [ "$STAGING" = false ]; then
   if [ "$BACKEND_CHANGED" = true ] || [ "$FRONTEND_CHANGED" = true ]; then
     COMMIT_MSG="chore: deploy"
@@ -245,10 +230,12 @@ if [ "$STAGING" = false ]; then
   fi
 fi
 
-# 
-
 # ─── Set secrets on fly.io ────────────────────────────────────────────────────
+echo "🔐 Importing non-local secrets from ${ENV_FILE}..."
+grep -v '_LOCAL=' "${ENV_FILE}" | fly secrets import --app "${APP_NAME}"
 fly secrets set \
+  NODE_ENV="${DEPLOY_NODE_ENV}" \
+  PORT="8080" \
   GIT_COMMIT="$(git rev-parse --short HEAD)" \
   GIT_COMMIT_DATE="$(git log -1 --format='%ci' | cut -c1-19)" \
   --app "${APP_NAME}"
@@ -261,11 +248,6 @@ FLY_CONFIG="$(mktemp /tmp/fly-config-XXXXXX.toml)"
 trap 'rm -f "$FLY_CONFIG"' EXIT
 export APP_NAME VOLUME_NAME
 envsubst < fly.toml.tpl > "$FLY_CONFIG"
-echo "APP_NAME: $APP_NAME"
-echo "VOLUME_NAME: $VOLUME_NAME"
-read x
-echo "FLY.TOML:" # TODO: DEBUG ONLY
-less "$FLY_CONFIG" # TODO: DEBUG ONLY
 
 # ─── Deploy ───────────────────────────────────────────────────────────────────
 fly deploy \
@@ -276,7 +258,6 @@ fly deploy \
   ${CACHE_FLAGS}
 
 # ─── Summary ─────────────────────────────────────────────────────────────────
-
 echo ""
 if [ "$STAGING" = true ]; then
   echo "✅ Staging deploy complete at https://${APP_NAME}.fly.dev"
