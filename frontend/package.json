@@ -1,7 +1,7 @@
 {
   "name": "ticketuno-frontend",
   "type": "module",
-  "version": "1.0.128",
+  "version": "1.0.129",
   "description": "Theater ticket reservation system, frontend",
   "private": true,
   "scripts": {
