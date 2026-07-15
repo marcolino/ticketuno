@@ -362,7 +362,7 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
   // Columns
   // ---------------------------------------------------------------------------
 
-  const columns = useMemo((): GridColDef<BookingDetail>[] => (
+  const columns = useMemo((): GridColDef<BookingEnriched>[] => (
     [
       // {
       //   field: 'bookingRef',
