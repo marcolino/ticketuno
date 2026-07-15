@@ -49,8 +49,7 @@ const router = createBrowserRouter(
             { path: 'layout/new/:theaterId?', element: <PR requireOperator={true}><LayoutEdit /></PR> },
             { path: 'layout/edit/:id', element: <PR requireOperator={true}><LayoutEdit /></PR> },
             { path: 'layouts', element: <PR requireOperator={true}><LayoutList /></PR> },
-            // This route does not require operator role because users can handle their own bookings too
-            { path: 'bookings', element: <PR><BookingsList mode="all" /></PR> },
+            { path: 'bookings', element: <PR requireOperator={true}><BookingsList mode="all" /></PR> },
             { path: 'bookings/my', element: <PR><BookingsList mode="my" /></PR> },
             { path: 'bookings/:id?', element: <PR><BookingsList /></PR> },
             { path: 'bookings/:performanceId/create', element: <PerformanceBooking /> },

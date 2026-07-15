@@ -1,0 +1,48 @@
+// AUTO-GENERATED FILE. DO NOT EDIT.
+// Generated from MJML templates for i18next extraction.
+import { t } from 'i18next';
+
+t("All rights reserved");
+t("Best regards");
+t("Cancelation Policy");
+t("Confirm reset of your password");
+t("Confirm your email");
+t("Date");
+t("Dear");
+t("Event");
+t("For accessibility requirements, please directly contact the theater");
+t("Hey,");
+t("If you can no longer attend, please see our");
+t("Important Information");
+t("Manage your consents");
+t("Performance Details");
+t("Please either print it out or have it ready to scan on your mobile device upon arrival at the theater");
+t("Please either print out the reference number or have it ready on your mobile device upon arrival at the theater");
+t("Please note that tickets are non-refundable unless the event is canceled or rescheduled.");
+t("Remember your booking for");
+t("Seats");
+t("Start using the app!");
+t("Terms & Conditions");
+t("Thank you for booking with us!");
+t("The booked performance is on");
+t("The code to confirm your email is");
+t("The code to confirm your password reset is");
+t("The team of");
+t("The theater is");
+t("Theater");
+t("Theater email contact");
+t("Theater phone contact");
+t("Time");
+t("Total Paid");
+t("Unsubscribe from these emails");
+t("We are excited to confirm your tickets for the upcoming performance");
+t("We look forward to welcome you to the theater!");
+t("Welcome to");
+t("You are receiving this email because you subscribed to updates.");
+t("Your Ticket");
+t("Your booking reference number are on the tickets");
+t("Your booking reference number are on the tickets in the booking confirmation email");
+t("Your e-ticket is attached to this email");
+t("Your e-ticket is attached to this email as a QR-Code");
+t("Your front-row seat to amazing performances starts now.");
+t("for options regarding ticket transfers or credit.");

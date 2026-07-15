@@ -8,7 +8,6 @@ type ActiveBookingsWarningProps = {
   verb?: 'delete' | 'edit' | 'edit theater association';
 };
 
-
 const ActiveBookingsWarning: React.FC<ActiveBookingsWarningProps> = ({ 
   bookings, 
   action, 

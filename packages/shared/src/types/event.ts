@@ -56,6 +56,15 @@ export interface EventPerformance {
   updatedAt?: string;
 }
 
+export interface EventPerformanceWithSeatCounts extends EventPerformance {
+  seatCounts?: {
+    total: number;
+    available: number;
+    booked: number;
+    reserved: number;
+  };
+}
+
 export interface EventStats {
   id: string;
   title: string;

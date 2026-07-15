@@ -80,6 +80,7 @@ router.get('/:id', async (req, res) => {
         const counts = await database.getSeatCountsByPerformanceId(performance.id!);
         return {
           ...performance,
+          totalSeats: counts.total,
           availableSeats: counts.available,
           bookedSeats: counts.booked
         };
@@ -683,7 +684,6 @@ export const findSeatById = (
       }
     }
   }
-
   return null;
 };
 

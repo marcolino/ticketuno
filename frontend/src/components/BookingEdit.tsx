@@ -16,18 +16,17 @@ import {
 import {
   ArrowBack,
   Cancel,
-  //CheckCircleOutline,
   ConfirmationNumber,
   QrCodeScanner,
 } from '@mui/icons-material';
-
 import useNavigate from '@/hooks/useNavigate';
 import Title from '@/components/Title';
 import Alert from './Alert';
+import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
 import { bookingApi } from '@/services/api';
-import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { getErrorMessage, formatFullDate } from '@ticketuno/shared/utils/misc';
 import { BookingDetail, BookingStatus } from '@ticketuno/shared/types/bookings';
 
 // ---------------------------------------------------------------------------
@@ -41,20 +40,20 @@ const STATUS_COLORS: Record<BookingStatus, 'success' | 'error' | 'warning' | 'de
   pending_payment: 'warning',
 };
 
-function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString(undefined, {
-    year: 'numeric', month: 'long', day: 'numeric',
-  });
-}
+// function fmtDate(iso: string | null | undefined): string {
+//   if (!iso) return '—';
+//   return new Date(iso).toLocaleDateString(undefined, {
+//     year: 'numeric', month: 'long', day: 'numeric',
+//   });
+// }
 
-function fmtDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString(undefined, {
-    year: 'numeric', month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
-  });
-}
+// function fmtDateTime(iso: string | null | undefined): string {
+//   if (!iso) return '—';
+//   return new Date(iso).toLocaleString(undefined, {
+//     year: 'numeric', month: 'short', day: 'numeric',
+//     hour: '2-digit', minute: '2-digit',
+//   });
+// }
 
 // ---------------------------------------------------------------------------
 // Layout helpers
@@ -100,6 +99,7 @@ const SectionCard: React.FC<SectionCardProps> = ({ title, children }) => (
 const BookingEdit: React.FC = () => {
   const { id: bookingId } = useParams<{ id: string }>();
   const { t } = useTranslation();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const showDialog = useDialog();
   const theme = useTheme();
@@ -139,7 +139,8 @@ const BookingEdit: React.FC = () => {
         {
           ref: booking.bookingRef,
           event: booking.eventTitle,
-          date: fmtDate(booking.performanceDate),
+          //date: fmtDate(booking.performanceDate),
+          date: formatFullDate(booking.performanceDate, user!.language),
         }
       ),
       confirmText: t('Cancel ticket'),
@@ -248,7 +249,7 @@ const BookingEdit: React.FC = () => {
           mb: 3, px: 2, py: 1.5, borderRadius: 1,
           bgcolor: 'action.hover', display: 'inline-flex', alignItems: 'center', gap: 2,
         }}>
-          <Typography variant="body2" color="text.secondary">{t('Ticket ref')}</Typography>
+          <Typography variant="body2" color="text.secondary">{t('Reference')}:</Typography>
           <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 500, letterSpacing: 2 }}>
             {booking.bookingRef}
           </Typography>
@@ -260,7 +261,8 @@ const BookingEdit: React.FC = () => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               {/* <CheckCircleOutline fontSize="small" /> */}
               {t('Scanned on {{time}} by {{by}}', {
-                time: fmtDateTime(booking.scannedAt),
+                //time: fmtDateTime(booking.scannedAt),
+                time: formatFullDate(booking.scannedAt ?? '', user!.language, { hour: '2-digit', minute: '2-digit' }),
                 by: booking.scannedBy ?? t('unknown'),
               })}
             </Box>
@@ -273,7 +275,7 @@ const BookingEdit: React.FC = () => {
           <SectionCard title={t('Event & Performance')}>
             <InfoRow label={t('Event')} value={booking.eventTitle} />
             <InfoRow label={t('Theater')} value={booking.theaterName} />
-            <InfoRow label={t('Date')} value={fmtDate(booking.performanceDate)} />
+            <InfoRow label={t('Date')} value={formatFullDate(booking.performanceDate, user!.language)} />
             <InfoRow label={t('Start time')} value={booking.startTime} />
             {booking.endTime && (
               <InfoRow label={t('End time')} value={booking.endTime} />
@@ -308,12 +310,12 @@ const BookingEdit: React.FC = () => {
 
           {/* ── Dates ── */}
           <SectionCard title={t('Dates')}>
-            <InfoRow label={t('Booked at')} value={fmtDateTime(booking.bookedAt)} />
+            <InfoRow label={t('Booked at')} value={formatFullDate(booking.bookedAt, user!.language, { hour: '2-digit', minute: '2-digit' })} />
             {booking.canceledAt && (
-              <InfoRow label={t('Canceled at')} value={fmtDateTime(booking.canceledAt)} />
+              <InfoRow label={t('Canceled at')} value={formatFullDate(booking.canceledAt, user!.language, { hour: '2-digit', minute: '2-digit' })} />
             )}
             {booking.updatedAt && booking.updatedAt !== booking.bookedAt && (
-              <InfoRow label={t('Updated at')} value={fmtDateTime(booking.updatedAt)} />
+              <InfoRow label={t('Updated at')} value={formatFullDate(booking.updatedAt, user!.language, { hour: '2-digit', minute: '2-digit' })} />
             )}
           </SectionCard>
 

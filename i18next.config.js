@@ -19,6 +19,13 @@ module.exports = defineConfig({
       '!' + path.join(projectRoot, 'backend/src/**/*.test.{js,ts}'),
       '!' + path.join(projectRoot, 'backend/src/**/*.d.ts'),
       '!' + path.join(projectRoot, 'backend/node_modules/**'),
+
+      // Shared files
+      path.join(projectRoot, 'packages/shared/src/**/*.{js,ts}'),
+      '!' + path.join(projectRoot, 'packages/shared/src/**/*.spec.{js,ts}'),
+      '!' + path.join(projectRoot, 'packages/shared/src/**/*.test.{js,ts}'),
+      '!' + path.join(projectRoot, 'packages/shared/src/**/*.d.ts'),
+      '!' + path.join(projectRoot, 'packages/shared/node_modules/**'),
     ],
     //output: path.join(projectRoot, 'shared/locales/{{language}}/{{namespace}}.json'),
     output: path.join(projectRoot, 'packages/shared/assets/locales/{{language}}/{{namespace}}.json'),

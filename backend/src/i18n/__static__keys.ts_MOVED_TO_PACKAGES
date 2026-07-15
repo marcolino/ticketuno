@@ -42,3 +42,16 @@ t('pending_payment');
 t('confirmed');
 t('canceled');
 t('refunded');
+
+// guard verbs
+t('delete');
+t('edit');
+t('edit theater association');
+
+// guard actions
+t('theater');
+t('actionDescription');
+t('layout');
+t('event');
+t('performance');
+t('user');

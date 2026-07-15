@@ -34,9 +34,9 @@ import { SeatStatus, SpecialCondition } from '@ticketuno/shared/types/seat';
 import { SeatData, PerformanceSeatsResponse } from '@ticketuno/shared/types/performance';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
-import { localizedDate, localizedCurrency } from '@/utils/misc';
+import { localizedCurrency } from '@/utils/misc';
 import { sharedConfig as config } from '@ticketuno/shared';
-import { getErrorMessage } from '@ticketuno/shared/utils/misc';
+import { getErrorMessage, formatMoney, formatFullDate } from '@ticketuno/shared/utils/misc';
 
 const PerformanceBooking: React.FC = () => {
   const { t } = useTranslation();
@@ -238,7 +238,8 @@ const PerformanceBooking: React.FC = () => {
             t('You will soon receive an email with booking confirmation') + '.\n\n' +
             qrLine +
             t('You will pay your ticket at the theater\'s cashes') + '.\n\n' +
-            t('Total amount is') + ' ' + localizedCurrency(totalPrice) + '.'
+            // t('Total amount is') + ' ' + localizedCurrency(totalPrice) + '.'
+            t('Total amount is') + ' ' + formatMoney(totalPrice, user!.language, event?.currency) + '.'
           ;
           break;
         default: // This should not happen
@@ -286,20 +287,23 @@ const PerformanceBooking: React.FC = () => {
         <Box>
           <Typography>
             {t('You are about to book {{count}} seats', { count: selectedSeats.size })}
-            &nbsp;{t('for')} {localizedDate({ dateString: performance?.performanceDate, locale: user!.language })}:
+            {/* &nbsp;{t('for')} {localizedDate({ dateString: performance?.performanceDate, locale: user!.language })}: */}
+            &nbsp;{t('for performance on')} {formatFullDate(performance?.performanceDate ?? '', user!.language, { weekday: 'long' })}
+            {event?.title ? ' ' + t('for the event') + ' "' + event.title + '"' : ''}
+            :
           </Typography>
           <Box sx={{ maxHeight: '40vh', overflowY: 'auto', mt: 1 }}>
-            <Paper sx={{ p: 1, my: 2 }}>
+            <Paper square={false} variant="outlined" sx={{ p: 1, m: 6, backgroundColor: 'background.default' }}>
               {selectedLabels.join('\n')}
             </Paper>
           </Box>
           {setup.payments.gateway === 'stripe' && (
-          <Typography variant="h6" color="primary">
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {t('You will be redirected to Stripe to complete the payment')}.
+            <Typography variant="h6" color="primary">
+              <Typography variant="body2" color="text.secondary" sx={{ my: 2 }}>
+                {t('You will be redirected to Stripe to complete the payment')}.
+              </Typography>
             </Typography>
-          </Typography>
-        )}
+          )}
           {setup.payments.gateway === 'free' && (
              <Typography variant="h6">
               {t('Nothing to pay, event is free')}
@@ -313,7 +317,8 @@ const PerformanceBooking: React.FC = () => {
           {setup.payments.gateway !== 'free' && (
             <Typography variant="h6">
               {/* {t('Total amount')}: {totalPrice.toFixed(2)} {currencySymbol} */}
-              {t('Total amount')}: {localizedCurrency(totalPrice)}.
+              {/* {t('Total amount')}: {localizedCurrency(totalPrice)}. */}
+              {t('Total amount')}: {formatMoney(totalPrice, user!.language, event?.currency)}.
             </Typography>
           )}
         </Box>

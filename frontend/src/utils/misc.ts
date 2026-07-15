@@ -1,4 +1,4 @@
-import { t } from 'i18next';
+// import { t } from 'i18next';
 // import axios from 'axios';
 import config from '../config';
 
@@ -7,62 +7,64 @@ import config from '../config';
 //   locale?: string; // optional, defaults to 'en-EN'
 // }
 
-interface LocalizedDateProps {
-  dateString: string | Date | undefined,
-  locale?: string; // e.g., 'it-IT', 'en-US'
-  weekday?: 'long' | 'short' | 'narrow';
-  year?: 'numeric' | '2-digit';
-  month?: 'numeric' | '2-digit' | 'long' | 'short' | 'narrow';
-  day?: 'numeric' | '2-digit';
-}
+// // TODO: use packages/shares/src/utils/misc.ts ...
+// interface LocalizedDateProps {
+//   dateString: string | Date | undefined,
+//   locale?: string; // e.g., 'it-IT', 'en-US'
+//   weekday?: 'long' | 'short' | 'narrow';
+//   year?: 'numeric' | '2-digit';
+//   month?: 'numeric' | '2-digit' | 'long' | 'short' | 'narrow';
+//   day?: 'numeric' | '2-digit';
+// }
 
-export function localizedDate({
-  dateString,
-  locale = 'en-EN',
-  weekday = 'long',
-  year = 'numeric',
-  month = 'long',
-  day = 'numeric',
-}: LocalizedDateProps) {
-  let date: Date;
-  let useUTC; // whether to force UTC in formatting
+// // TODO: use packages/shared/src/utils/misc/formatFullDate
+// export function localizedDate({
+//   dateString,
+//   locale = 'en-EN',
+//   weekday = 'long',
+//   year = 'numeric',
+//   month = 'long',
+//   day = 'numeric',
+// }: LocalizedDateProps) {
+//   let date: Date;
+//   let useUTC; // whether to force UTC in formatting
 
-  // Determine the Date object and formatting behavior
-  if (dateString === undefined) {
-    // Use today's date (local time)
-    date = new Date();
-    useUTC = false;
-  } else if (dateString instanceof Date) {
-    // Use the provided Date object as-is (local time)
-    date = dateString;
-    useUTC = false;
-  } else {
-    // Parse string in YYYY-MM-DD format as UTC to avoid timezone shifts
-    date = new Date(dateString + 'T00:00:00Z');
-    useUTC = true;
-  }
+//   // Determine the Date object and formatting behavior
+//   if (dateString === undefined) {
+//     // Use today's date (local time)
+//     date = new Date();
+//     useUTC = false;
+//   } else if (dateString instanceof Date) {
+//     // Use the provided Date object as-is (local time)
+//     date = dateString;
+//     useUTC = false;
+//   } else {
+//     // Parse string in YYYY-MM-DD format as UTC to avoid timezone shifts
+//     date = new Date(dateString + 'T00:00:00Z');
+//     useUTC = true;
+//   }
 
-  // Validate the date
-  if (isNaN(date.getTime())) {
-    return t('Invalid date');
-  }
+//   // Validate the date
+//   if (isNaN(date.getTime())) {
+//     return t('Invalid date');
+//   }
 
-  // Build formatter options dynamically
-  const options: Intl.DateTimeFormatOptions = {
-    weekday,
-    year,
-    month,
-    day,
-  };
+//   // Build formatter options dynamically
+//   const options: Intl.DateTimeFormatOptions = {
+//     weekday,
+//     year,
+//     month,
+//     day,
+//   };
 
-  if (useUTC) {
-    options.timeZone = 'UTC';
-  }
+//   if (useUTC) {
+//     options.timeZone = 'UTC';
+//   }
 
-  // Create formatter with requested locale and desired options
-  const formatter = new Intl.DateTimeFormat(locale, options);
-  return formatter.format(date);
-};
+//   // Create formatter with requested locale and desired options
+//   const formatter = new Intl.DateTimeFormat(locale, options);
+//   return formatter.format(date);
+// };
 
 export function localizedCurrency(
   amount: number,

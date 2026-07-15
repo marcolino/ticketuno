@@ -33,19 +33,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 
 // ── Types ───────────────────────────────────────────────────
-//export type StripeConnectStatus = 'none' | 'pending' | 'active' | 'error';
 import { StripeConnectSetup, StripeConnectStatus } from '@ticketuno/shared';
-// export interface StripeConnectSetup {
-//   status: StripeConnectStatus;
-//   organizerEmail?: string;
-//   businessName?: string;
-//   accountId?: string;
-//   chargesEnabled?: boolean;
-//   payoutsEnabled?: boolean;
-//   detailsSubmitted?: boolean;
-//   onboardingUrl?: string;
-//   error?: string;
-// }
 
 // ── Component Props ────────────────────────────────────────
 interface StripeOrganizerSetupProps {
@@ -337,40 +325,8 @@ export function StripeOrganizerSetup({
 
   // ── Render ─────────────────────────────────────────────────
   return (
-    <Paper sx={{ p: 3, borderRadius: 2 }}>
+    <Paper sx={{ p: 2, borderRadius: 2 }}>
       <Stack spacing={2}>
-        {/* Header with status */}
-        {/* <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Typography variant="h6" component="h2" fontWeight={600}>
-              {t('Stripe Connect Setup')}
-            </Typography>
-            <ModeChip />
-            <StatusChip status={status} />
-          </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<RefreshIcon />}
-              onClick={syncStatus}
-              disabled={isNone || loading}
-            >
-              {t('Refresh status')}
-            </Button>
-            {!isActive && !isNone && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<LinkIcon />}
-                onClick={handleRefreshLink}
-                disabled={loading}
-              >
-                {t('New onboarding link')}
-              </Button>
-            )}
-          </Box>
-        </Box> */}
         {/* Header with status */}
         <Stack spacing={2}>
           {/* Title and status chips row */}
@@ -378,39 +334,54 @@ export function StripeOrganizerSetup({
             display: 'flex', 
             flexDirection: { xs: 'column', sm: 'row' },
             alignItems: { xs: 'flex-start', sm: 'center' },
+            justifyContent: 'space-between',
             gap: { xs: 1, sm: 2 }
           }}>
-            <Typography variant="h6" component="h2" fontWeight={600}>
+            <Typography variant="h6" component="h4" fontWeight={600}>
               {t('Stripe Connect Setup')}
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-              <ModeChip />
-              <StatusChip status={status} />
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'center' },
+              gap: { xs: 1, sm: 2 },
+              width: { xs: '100%', sm: 'auto' }
+            }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <ModeChip />
+                <StatusChip status={status} />
+              </Box>
+              
+              {/* Action buttons row */}
+              <Box sx={{ 
+                display: 'flex', 
+                gap: 1, 
+                flexWrap: 'wrap',
+                width: { xs: '100%', sm: 'auto' },
+                justifyContent: { xs: 'flex-start', sm: 'flex-end' }
+              }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<RefreshIcon />}
+                  onClick={syncStatus}
+                  disabled={isNone || loading}
+                >
+                  {t('Refresh status')}
+                </Button>
+                {!isActive && !isNone && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<LinkIcon />}
+                    onClick={handleRefreshLink}
+                    disabled={loading}
+                  >
+                    {t('New onboarding link')}
+                  </Button>
+                )}
+              </Box>
             </Box>
-          </Box>
-          
-          {/* Action buttons row */}
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <Button
-              variant="outlined"
-              size="small"
-              startIcon={<RefreshIcon />}
-              onClick={syncStatus}
-              disabled={isNone || loading}
-            >
-              {t('Refresh status')}
-            </Button>
-            {!isActive && !isNone && (
-              <Button
-                variant="outlined"
-                size="small"
-                startIcon={<LinkIcon />}
-                onClick={handleRefreshLink}
-                disabled={loading}
-              >
-                {t('New onboarding link')}
-              </Button>
-            )}
           </Box>
         </Stack>
 

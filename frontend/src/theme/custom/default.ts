@@ -38,7 +38,7 @@ export const defaultTheme: PaletteModeRecord<ReturnType<typeof createTheme>> = {
           error: '#f44336',
           info: '#2196f3',
         },
-        custom: {
+        light: {
           lightBlue: '#e3f2fd',
           lightGreen: '#e8f5e9',
           lightRed: '#ffebee',

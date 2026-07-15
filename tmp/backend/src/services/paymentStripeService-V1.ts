@@ -8,13 +8,6 @@ import {
   StripeAccount,
   StripeConnectSetup,
   StripeConnectStatus,
-  ShowInfo,
-  formatMoney,
-  formatFullDate,
-  formatWeekday,
-  formatTimeDifference,
-  applyDisplayNumbers,
-  generateSeats,
 } from '@ticketuno/shared';
 import { tenantContext } from '../tenancy/tenantContext';
 import { notify } from './notificationService';
@@ -25,11 +18,67 @@ import { PerformanceSeatsResponse, SeatData} from '@ticketuno/shared';
 import { i18n } from '../i18n';
 import config from '../config';
 
+
+import {
+  formatMoney, formatFullDate, formatWeekday, formatTimeDifference,
+  applyDisplayNumbers, generateSeats
+} from '@ticketuno/shared';
+import type { ShowInfo } from '@ticketuno/shared';
+
+// type StripeEvent =
+//   ReturnType<InstanceType<typeof Stripe>['webhooks']['constructEvent']>;
+
+// type CheckoutCompletedEvent =
+//   Extract<StripeEvent, {
+//     type: 'checkout.session.completed';
+//   }>;
+
+// type CheckoutSession =
+//   CheckoutCompletedEvent['data']['object'];
+
+// type PaymentSucceededEvent =
+//   Extract<
+//     StripeEvent,
+//     { type: 'payment_intent.succeeded' }
+//   >;
+
+// type PaymentIntent =
+//   PaymentSucceededEvent['data']['object'];
+
+// type AccountUpdatedEvent =
+//   Extract<
+//     StripeEvent,
+//     { type: 'account.updated' }
+//   >;
+
+// type StripeAccount =
+//   AccountUpdatedEvent['data']['object'];
+
+// type EventPayload<T extends StripeEvent['type']> =
+//   Extract<StripeEvent, { type: T }>['data']['object'];
+
 class StripeService {
+  //private stripe: InstanceType<typeof Stripe>;
+  //private stripe: Stripe;
+  //private stripe: ReturnType<typeof createStripe>;
   private stripe = new Stripe(
     config.stripe.secretKey,
+    // {
+    //   apiVersion: '2026-05-27.dahlia',
+    // }
   );
+  // constructor() {
+  //   if (!config.stripe.secretKey) {
+  //     throw new Error('STRIPE_SECRET_KEY is not configured');
+  //   }
+  //   this.stripe = new Stripe(config.stripe.secretKey, {
+  //     apiVersion: '2026-05-27.dahlia',
+  //   });
+  // }
 
+  /**
+   * Get the Stripe instance (useful for direct API calls)
+   */
   getStripe(): Stripe {
     return this.stripe;
   }
@@ -99,9 +148,7 @@ class StripeService {
     return account.id;
   }
 
-  /**
-   * Maps a Stripe account's flags to our stored connect status.
-   */
+  /** Maps a Stripe account's flags to our stored connect status. */
   private mapAccountStatus(
     account: {
       charges_enabled?: boolean | null;
@@ -118,7 +165,7 @@ class StripeService {
     const chargesEnabled = !!account.charges_enabled;
     const detailsSubmitted = !!account.details_submitted;
     const payoutsEnabled = !!account.payouts_enabled;
-    const onboardingCompleted = detailsSubmitted; // Alias, in the event it is yet read (TODO: REMOVE-ME)
+    const onboardingCompleted = detailsSubmitted; // alias, in caso qualcos'altro lo legga ancora
     const status: StripeConnectStatus =
       chargesEnabled ? 'active' : detailsSubmitted ? 'disabled' : 'pending';
     return { status, chargesEnabled, detailsSubmitted, payoutsEnabled, onboardingCompleted };
@@ -144,8 +191,10 @@ class StripeService {
 
     const accountLink = await this.stripe.accountLinks.create({
       account: accountId,
-      refresh_url: `${baseUrl}/stripe/connect/refresh`,
-      return_url: `${baseUrl}/stripe/connect/success`,
+      // refresh_url: `${config.app.baseUrlFrontend}/settings/payments/refresh`,
+      // return_url: `${config.app.baseUrlFrontend}/settings/payments/success`,
+      refresh_url: `${baseUrl}/stripe/connect/refresh`, // TODO ...
+      return_url: `${baseUrl}/stripe/connect/success`, // TODO ...
       type: 'account_onboarding',
     });
     console.log('✅ Onboarding link created:', accountLink.url);
@@ -162,11 +211,11 @@ class StripeService {
     successUrl: string,
     cancelUrl: string,
   ): Promise<{ sessionId: string; sessionUrl: string }> {
-
+    
     const platformFee = this.calculatePlatformFee(totalAmount);
 
     /**
-     * We have to add tenant slug to metadata since Stripe only populates
+     * We have to add tenat slug to metadata since Stripe only populates
      * event.account when an event is generated within a connected account's
      * own context — destination-charge events generated on the platform
      * never carry it, regardless of where the money ultimately routes.
@@ -176,19 +225,7 @@ class StripeService {
       await notify(`⚠️ createCheckoutSession called outside of tenant context`);
       throw new Error('createCheckoutSession called outside of tenant context');
     }
-
-    /**
-     * Stripe metadata values are capped at 500 chars. bookingIds serialised
-     * as JSON blows past that well before 40 seats (one booking row per
-     * seat in our schema). Instead we stamp a single short group ref on all
-     * the pending booking rows and only pass that ref through Stripe
-     * metadata. Both webhook handlers (checkout.session.completed /
-     * payment_intent.succeeded) resolve the full set of bookings from the
-     * DB via this ref instead of parsing them out of metadata.
-     */
-    const bookingGroupRef = randomUUID();
-    await database.setBookingGroupRef(bookingIds, bookingGroupRef);
-
+    
     const session = await this.stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       customer_email: customerEmail,
@@ -199,7 +236,7 @@ class StripeService {
             product_data: {
               // TODO: check if translation works with i18n.t ...
               name: `TicketUno - ${i18n.t('Seats')}: ${seatIds.join(', ')}`,
-              description: `${i18n.t('Performance ID')}: ${performanceId}, ${i18n.t('Seats')}: ${seatIds.length}`,
+              description: `${i18n.t('Performance ID')}: ${performanceId}, ${i18n.t('Bookings')}: ${bookingIds.join(', ')}`,
             },
             unit_amount: totalAmount,
           },
@@ -215,13 +252,14 @@ class StripeService {
           destination: organizeraccountId,
         },
         metadata: { // Payment intent metadata
-          bookingGroupRef,
+          bookingIds: JSON.stringify(bookingIds), // Store all IDs as JSON
           performanceId,
+          //seatIds: JSON.stringify(seatIds),
           tenantSlug,
         },
       },
       metadata: { // Session metadata
-        bookingGroupRef,
+        bookingIds: JSON.stringify(bookingIds),
         performanceId,
         tenantSlug,
       },
@@ -273,6 +311,28 @@ class StripeService {
     }
   }
 
+  // async handleWebhook(body: Buffer, signature: string): Promise<void> {
+  //   const event = this.constructEventWithFallback(body, signature);
+
+  //   console.info(`⚫ Stripe webhook received for event type ${event.type}`);
+
+  //   switch (event.type) {
+  //     case 'checkout.session.completed':
+  //       await this.handleCheckoutCompleted(event.data.object);
+  //       break;
+  //     case 'payment_intent.succeeded':
+  //       await this.handlePaymentSucceeded(event.data.object);
+  //       break; 
+  //     case 'account.updated':
+  //       await this.handleAccountUpdated(event.data.object);
+  //       break;
+  //     case 'account.external_account.updated':
+  //       // optional: handle this event type if we want to control connected IBAN/account changes
+  //       console.log('ℹ️ External account updated for connected account');
+  //       break;
+  //   }
+  // }
+
   /**
    * The two Event Destinations on Stripe (platform vs. connected accounts)
    * are signed with different secrets but point to the same /webhook URL.
@@ -304,27 +364,39 @@ class StripeService {
 
   private async handleCheckoutCompleted(session: CheckoutSession): Promise<void> {
     console.log(`📨 Checkout completed: ${session.id}`);
-
+    
     try {
-      // 1. Resolve the booking group from session metadata
-      const bookingGroupRef = session.metadata?.bookingGroupRef;
-      if (!bookingGroupRef) {
-        console.warn(`⚠️ No bookingGroupRef in checkout session: ${session.id}`);
+      // 1. Get booking ID(s) from session metadata
+      const bookingIdsJson = session.metadata?.bookingIds;
+      if (!bookingIdsJson) {
+        console.warn(`⚠️ No bookingIds in checkout session: ${session.id}`);
         return;
       }
 
-      const groupBookings = await database.getBookingsByGroupRef(bookingGroupRef);
-      if (groupBookings.length === 0) {
-        console.warn(`⚠️ No bookings found for group ref: ${bookingGroupRef}`);
-        return;
+      let bookingIds: string[];
+      try {
+        bookingIds = JSON.parse(bookingIdsJson);
+      } catch (parseError) {
+        // Fallback: single booking ID (backward compatibility) - TODO: REMOVE-ME
+        const singleId = session.metadata?.bookingId;
+        if (singleId) {
+          console.warn('⚠️ Still a session.metadata.bookingId as string, and not array ...')
+          bookingIds = [singleId];
+        } else {
+          throw parseError;
+        }
       }
 
-      console.log(`📦 Processing ${groupBookings.length} booking(s) for group ${bookingGroupRef}`);
+      console.log(`📦 Processing ${bookingIds.length} booking(s): ${bookingIds.join(', ')}`);
 
       // 2. Update all bookings
       const bookings = [];
-      for (const booking of groupBookings) {
-        const bookingId = booking.id;
+      for (const bookingId of bookingIds) {
+        const booking = await database.getBookingById(bookingId);
+        if (!booking) {
+          console.warn(`⚠️ Booking not found: ${bookingId}`);
+          continue;
+        }
 
         // Skip if f status is already confirmed
         if (booking.status !== 'confirmed') {
@@ -336,24 +408,27 @@ class StripeService {
           console.log(`ℹ️  Booking ${bookingId} already confirmed`);
         }
 
+        // Update booking status to confirmed
+        const updated = await database.updateBookingStatus(bookingId, 'confirmed');
+        if (updated) {
+          console.log(`✅ Booking ${bookingId} (${booking.bookingRef}) confirmed via checkout`);
+        }
+
         await database.updateBookingCheckoutSession(bookingId, session.id);
         bookings.push(booking);
       }
 
       if (bookings.length > 0 && !bookings[0].confirmationEmailSentAt) {
-        const claimed = await database.claimConfirmationEmailSend(bookings.map(b => b.id));
-        if (claimed) {
-          try {
-            await this.sendBookingConfirmationForGroup(bookings, session.id);
-            //await database.markConfirmationEmailSent(bookings.map(b => b.id));
-          } catch (emailError) {
-            // Non-fatal: booking status is already correct; don't fail the
-            // whole webhook (and thus retry it forever) over an email issue.
-            console.warn(`❌ Confirmation email failed for checkout ${session.id}:`, emailError);
-          }
-        } else {
-          console.log(`ℹ️  Confirmation email already sent for checkout ${session.id}`);
+        try {
+          await this.sendBookingConfirmationForGroup(bookings, session.id);
+          await database.markConfirmationEmailSent(bookingIds);
+        } catch (emailError) {
+          // Non-fatal: booking status is already correct; don't fail the
+          // whole webhook (and thus retry it forever) over an email issue.
+          console.warn(`❌ Confirmation email failed for checkout ${session.id}:`, emailError);
         }
+      } else if (bookings[0]?.confirmationEmailSentAt) {
+        console.log(`ℹ️  Confirmation email already sent for checkout ${session.id}`);
       }
 
     } catch (error) {
@@ -498,23 +573,32 @@ class StripeService {
 
   private async handlePaymentSucceeded(paymentIntent: PaymentIntent): Promise<void> {
     console.log(`📨 Payment succeeded: ${paymentIntent.id}`);
-
+    
     try {
-      const bookingGroupRef = paymentIntent.metadata?.bookingGroupRef;
-      if (!bookingGroupRef) {
-        console.warn(`⚠️ No bookingGroupRef in payment intent metadata`);
+      // Parse the booking IDs from metadata
+      const bookingIdsJson = paymentIntent.metadata?.bookingIds;
+      if (!bookingIdsJson) {
+        console.warn(`⚠️ No bookingIds in payment intent metadata`);
         return;
       }
 
-      const groupBookings = await database.getBookingsByGroupRef(bookingGroupRef);
-      console.log(`📦 Bookings for group ${bookingGroupRef}: ${groupBookings.map(b => b.id).join(', ')}`);
+      const bookingIds: string[] = JSON.parse(bookingIdsJson);
+      console.log(`📦 Booking IDs: ${bookingIds.join(', ')}`);
 
-      for (const booking of groupBookings) {
-        const success = await database.confirmBookingWithPayment(booking.id, paymentIntent.id);
+      // Update all bookings
+      for (const bookingId of bookingIds) {
+        const booking = await database.getBookingById(bookingId);
+        if (!booking) {
+          console.warn(`⚠️ Booking not found: ${bookingId}`);
+          continue;
+        }
+
+        // One call - status + payment intent
+        const success = await database.confirmBookingWithPayment(bookingId, paymentIntent.id);
         if (success) {
-          console.log(`✅ Booking ${booking.id} confirmed with payment ${paymentIntent.id}`);
+          console.log(`✅ Booking ${bookingId} confirmed with payment ${paymentIntent.id}`);
         } else {
-          throw new Error(`⚠️ Failed to confirm booking ${booking.id}`);
+          throw new Error(`⚠️ Failed to confirm booking ${bookingId}`);
         }
       }
 
@@ -544,6 +628,7 @@ class StripeService {
     }
     return null;
   }
+  
 }
 
 export const paymentStripeService = new StripeService();

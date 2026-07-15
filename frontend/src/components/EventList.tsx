@@ -27,19 +27,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSetup } from '@/contexts/SetupContext';
-import { getErrorMessage } from '@ticketuno/shared/utils/misc';
-import { localizedCurrency } from '@/utils/misc';
-import { CurrencyCode } from '@ticketuno/shared';
+import { getErrorMessage, formatMoney } from '@ticketuno/shared/utils/misc';
+//import { localizedCurrency } from '@/utils/misc';
+//import { CurrencyCode } from '@ticketuno/shared';
 import { handleGuardResult } from '@/utils/guardHandler';
 import Alert from './Alert';
 import PageHeader from './PageHeader';
 import ExpandableText from './ExpandableText';
-import config from '@/config';
+//import config from '@/config';
 
 const EventList: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { isOperator, loading } = useAuth();
+  const { user, isOperator, loading } = useAuth();
   const toast = useToast();
   const showDialog = useDialog();
   const [events, setEvents] = useState<EventStats[] | null>(null);
@@ -257,7 +257,7 @@ const EventList: React.FC = () => {
                 <CardContent sx={{ flexGrow: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
                     <Chip
-                      label={t(event.status)}
+                      label={t('Event is') + ' ' + t(event.status)}
                       color={getStatusColor(event.status)}
                       size="small"
                     />
@@ -274,7 +274,7 @@ const EventList: React.FC = () => {
                   </Box>
 
                   {event.genres && event.genres.map((genre, index) =>
-                    <Chip key={index} label={genre} size="small" sx={{ mb: 1 }} />
+                    <Chip key={index} label={genre} size="small" sx={{ mb: 1, mr: 0.5 }} />
                   )}
 
                   <Box sx={{ mt: 2 }}>
@@ -288,9 +288,15 @@ const EventList: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                       <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                       <Typography variant="body2" color="text.secondary">
-                        {event.nextPerformanceDate
-                          ? t('Next performance') + ': ' + formatDate(event.nextPerformanceDate)
-                          : t('No upcoming performances')
+                        {
+                          <>
+                            {(event.availablePerformances <= 0) &&
+                              <>{t('No upcoming performances')}</>
+                            }
+                            {(event.availablePerformances > 0) &&
+                              <>{t('Next performace on {{date}} ({{count}} total)', { count: event.availablePerformances, date: formatDate(event.nextPerformanceDate)})}</>
+                            }
+                          </>
                         }
                       </Typography>
                     </Box>
@@ -299,16 +305,12 @@ const EventList: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                         <Typography variant="body2" color="text.secondary">
-                          {t('From')} {localizedCurrency(event.baseTicketPrice)}
+                          {/* {t('From')} {localizedCurrency(event.baseTicketPrice)} */}
+                          {t('From')} {formatMoney(event.baseTicketPrice, user!.language, event.currency)}
                         </Typography>
                       </Box>
                     )}
 
-                    {(event.availablePerformances > 0) && (
-                      <Typography variant="body2" color="success.main">
-                        {t('{{count}} performances available', { count: event.availablePerformances })}
-                      </Typography>
-                    )}
                   </Box>
                 </CardContent>
                 <CardActions sx={{

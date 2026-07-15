@@ -17,7 +17,7 @@ import { EventQueryOptions, PerformanceQueryOptions } from '@ticketuno/shared';
 import { ROLES, type Role } from '@ticketuno/shared';
 import { PaymentGateway } from '@ticketuno/shared/types/generalSetup';
 import { tenantContext } from '../tenancy/tenantContext';
-import { notify } from '../services/notificationService';
+//import { notify } from '../services/notificationService';
 import config from '../config';
 
 // ---------------------------------------------------------------------------
@@ -1752,28 +1752,58 @@ class Database {
   async bulkCreateSeats(
     performanceId: string,
     seats: GeneratedSeat[],
-    //seatConditions: Record<string, SpecialCondition> = {}
   ): Promise<boolean> {
-    // Filter out physically absent seats — they should never be bookable
-    //const bookableSeats = seats.filter(s => seatConditions[s.seatId] !== 'Absent');
-    const bookableSeats = seats;
-    const placeholders = bookableSeats.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
-    const values: (string | number)[] = [];
+    const allSeats = seats;
+    const placeholders = seats.map(() => '(?, ?, ?, ?, ?, ?, ?)').join(', ');
+    const values: (string | number | null)[] = [];
 
-    bookableSeats.forEach(seat => {
-      values.push(performanceId, seat.seatId, seat.sectionName, seat.rowId, seat.seatNumber, 'available');
+    allSeats.forEach(seat => {
+      values.push(
+        performanceId, 
+        seat.seatId, 
+        seat.sectionName, 
+        seat.rowId, 
+        seat.seatNumber, 
+        'available',
+        seat.specialCondition || null
+      );
     });
 
     const result = await runQuery(
       this.db, `
         INSERT OR IGNORE INTO seats
-        (performance_id, seat_id, section_name, row_id, seat_number, status)
+        (performance_id, seat_id, section_name, row_id, seat_number, status, special_condition)
         VALUES ${placeholders}
       `,
       values, 'bulk create seats'
     );
     return result.changes > 0;
   }
+  // async bulkCreateSeats(
+  //   performanceId: string,
+  //   seats: GeneratedSeat[],
+  //   //seatConditions: Record<string, SpecialCondition> = {}
+  // ): Promise<boolean> {
+  //   // Filter out physically absent seats — they should never be bookable
+  //   //const bookableSeats = seats.filter(s => seatConditions[s.seatId] !== 'Absent');
+  //   const bookableSeats = seats;
+  //   const placeholders = bookableSeats.map(() => '(?, ?, ?, ?, ?, ?)').join(', ');
+  //   const values: (string | number)[] = [];
+
+  //   bookableSeats.forEach(seat => {
+  //     values.push(performanceId, seat.seatId, seat.sectionName, seat.rowId, seat.seatNumber, 'available');
+  //   });
+
+  //   const result = await runQuery(
+  //     this.db, `
+  //       INSERT OR IGNORE INTO seats
+  //       (performance_id, seat_id, section_name, row_id, seat_number, status)
+  //       VALUES ${placeholders}
+  //     `,
+  //     values, 'bulk create seats'
+  //   );
+  //   return result.changes > 0;
+  // }
 
   /**
    * Get seats grouped by section → row for UI rendering.
@@ -1816,18 +1846,30 @@ class Database {
    * Get seat counts for a performance (calculated from the seats table).
    */
   async getSeatCountsByPerformanceId(performanceId: string): Promise<{
-    available: number; booked: number; reserved: number
+    total: number; available: number; booked: number; reserved: number
   }> {
-    const row = await getQuery<{ available: number; booked: number; reserved: number }>(
-      this.db,
-      `SELECT
-         COUNT(CASE WHEN status = 'available' THEN 1 END) AS available,
-         COUNT(CASE WHEN status = 'booked'    THEN 1 END) AS booked,
-         COUNT(CASE WHEN status = 'reserved'  THEN 1 END) AS reserved
-       FROM seats WHERE performance_id = ?`,
+    const row = await getQuery<{ total: number, available: number; booked: number; reserved: number }>(
+      this.db, `
+        SELECT
+          COUNT(*) AS total,
+          COUNT(CASE 
+            WHEN status = 'available' 
+            AND (special_condition IS NULL OR special_condition NOT IN ('Unavailable', 'Staff'))
+            THEN 1 
+          END) AS available,
+          COUNT(CASE WHEN status = 'booked' THEN 1 END) AS booked,
+          COUNT(CASE WHEN status = 'reserved' THEN 1 END) AS reserved
+        FROM seats 
+        WHERE performance_id = ?
+      `,
       [performanceId], 'get seat counts'
     );
-    return { available: row?.available || 0, booked: row?.booked || 0, reserved: row?.reserved || 0 };
+
+    const total = row?.total || 0;
+    const available = row?.available || 0;
+    const booked = row?.booked || 0;
+    const reserved = row?.reserved || 0;
+    return { total, available, booked, reserved };
   }
 
   async performanceHasBookings(performanceId: string): Promise<boolean> {
@@ -2164,6 +2206,21 @@ class Database {
       await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingAfterPayment rollback');
       throw err;
     }
+  }
+
+  /**
+   * Claim confirmation email for bookings has been sent,
+   * to avoid sending it twice
+   */
+  async claimConfirmationEmailSend(bookingIds: string[]): Promise<boolean> {
+    if (bookingIds.length === 0) return false;
+    const placeholders = bookingIds.map(() => '?').join(',');
+    const result = await runQuery(this.db, `
+      UPDATE bookings
+      SET confirmation_email_sent_at = CURRENT_TIMESTAMP
+      WHERE id IN (${placeholders}) AND confirmation_email_sent_at IS NULL
+    `, bookingIds, 'claim confirmation email send');
+    return result.changes > 0; // true solo per chi ha "vinto" la race
   }
 
   /**
@@ -2639,6 +2696,26 @@ class Database {
         AND status = 'pending_payment'
       `, ...bookingRefs
     );
+  }
+
+  async setBookingGroupRef(bookingIds: string[], groupRef: string): Promise<void> {
+    if (bookingIds.length === 0) return;
+    const placeholders = bookingIds.map(() => '?').join(',');
+    await runQuery(this.db, `
+      UPDATE bookings
+      SET booking_group_ref = ?
+      WHERE id IN (${placeholders})
+    `, [groupRef, ...bookingIds], 'set booking group ref');
+  }
+
+  async getBookingsByGroupRef(groupRef: string): Promise<Booking[]> {
+    const rows = await allQuery(
+      this.db,
+      `SELECT * FROM bookings WHERE booking_group_ref = ?`,
+      [groupRef],
+      'get get bookings by group ref',
+    );
+    return (rows ?? []).map(r => this.mapRowToBooking(r));
   }
 
   // ---------------------------------------------------------------------------

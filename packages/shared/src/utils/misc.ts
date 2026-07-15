@@ -177,12 +177,57 @@ export const formatMoney = (
 };
 
 /**
- * 
- * @param date Formats a date i
+ * @param date Formats a string/Date/number as a localized Date
  * @param locale 
- * @returns 
+ * @returns string
  */
 export const formatFullDate = (
+  date: string | Date | number,
+  locale: string = config.app.defaultLanguage,
+  options?: Intl.DateTimeFormatOptions
+): string => {
+  let dateObj: Date;
+
+  if (date instanceof Date) {
+    dateObj = date;
+  } else if (typeof date === 'number') {
+    dateObj = new Date(date);
+  } else if (typeof date === 'string') {
+    // Try parsing as ISO or YYYY-MM-DD
+    const trimmed = date.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      dateObj = parseUTCDate(trimmed); // keep your existing helper
+    } else {
+      dateObj = new Date(trimmed);
+      if (isNaN(dateObj.getTime())) {
+        // fallback: try to parse as YYYY-MM-DD if it contains 'T'
+        const simple = trimmed.split('T')[0];
+        if (/^\d{4}-\d{2}-\d{2}$/.test(simple)) {
+          dateObj = parseUTCDate(simple);
+        } else {
+          console.warn('Invalid date string:', trimmed);
+          return 'Invalid date';
+        }
+      }
+    }
+  } else {
+    return 'Invalid date';
+  }
+
+  if (isNaN(dateObj.getTime())) {
+    return 'Invalid date';
+  }
+
+  const defaultOptions: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  };
+
+  return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(dateObj);
+};
+export const formatFullDate_DEPRECATED = (
   date: string | Date,
   locale: string = config.app.defaultLanguage,
   options?: Intl.DateTimeFormatOptions // optional, can override defaults

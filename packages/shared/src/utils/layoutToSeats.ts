@@ -3,6 +3,7 @@ import { GeneratedSeat } from '../types/seat';
 
 export function generateSeats(layout: LayoutJSON): GeneratedSeat[] {
   const seats: GeneratedSeat[] = [];
+  const seatConditions = layout.seatConditions || {};
 
   layout.sections.forEach(section => {
     const sectionId = section.id;
@@ -57,6 +58,9 @@ export function generateSeats(layout: LayoutJSON): GeneratedSeat[] {
 
         const seatId = `${sectionName}-${rowId}-${seatNum}`;
         
+        // Get special condition from layout's seatConditions
+        const specialCondition = seatConditions[seatId] || undefined;
+
         seats.push({
           seatId,
           sectionId,
@@ -65,6 +69,7 @@ export function generateSeats(layout: LayoutJSON): GeneratedSeat[] {
           seatNumber: seatNum,
           x: seatX,
           y: seatY,
+          specialCondition,
         });
       }
     });

@@ -59,7 +59,7 @@
   //import { useLoading } from '@/contexts/LoadingContext';
   import { eventApi } from '@/services/api';
   import { getErrorMessage } from '@ticketuno/shared/utils/misc';
-  import { EventWithDetails, EventPerformance } from '@ticketuno/shared/types/event';
+  import { EventWithDetails, EventPerformance, EventPerformanceWithSeatCounts } from '@ticketuno/shared/types/event';
   import useNavigate from '@/hooks/useNavigate';
   import { useAuth } from '@/contexts/AuthContext';
   import { useDialog } from '@/contexts/DialogContext';
@@ -76,7 +76,6 @@
     availableSeats: number;
     bookedSeats: number;
     seatData: string;
-    //status: 'scheduled' | 'in progress' | 'completed' | 'canceled';
     createdAt?: string;
     updatedAt?: string;
   }
@@ -131,12 +130,8 @@
           })
         ;
         setPerformances(filteredPerfs!);
-        //setError(null);
       } catch (error) {
-        //etError(getErrorMessage(error));
         toast.error(getErrorMessage(error));
-      // } finally {
-      //   setLoading(false);
       }
     }, [id, isOperator]);
 
@@ -338,21 +333,17 @@
 
     // Get total seats (available + booked)
     const getTotalSeats = (performance: EventPerformance) => {
-      return (performance.availableSeats ?? 0) + (performance.bookedSeats ?? 0);
+      //return (performance.availableSeats ?? 0) + (performance.bookedSeats ?? 0);
+      return (performance as any).totalSeats ?? 0;
     };
 
     // Create Choose Seats button component to avoid repetition
     const ChooseSeatsButton = ({ performance, size = 'medium' }: { performance: EventPerformance, size?: 'small' | 'medium' }) => {
-      const isAvailable = (performance.availableSeats ?? 0) > 0; //&& performance.status === 'scheduled';
+      const isAvailable = (performance.availableSeats ?? 0) > 0;
       const buttonText = isAvailable ? 
-        /*(isMobile ? (
-          <>
-            <Box component="span" display="block">{t('Choose')}</Box>
-            <Box component="span" display="block">{t('seats')}</Box>
-          </>
-        ) : )*/ t('Choose seats')
-        : t('Sold Out');
-      
+        t('Choose seats') :
+        t('Sold Out')
+      ;
       const buttonColor = isAvailable ? 'success' : 'error';
       const buttonVariant = 'contained'; // Always contained for consistency
 
@@ -844,9 +835,11 @@
                 flexDirection: 'column',
                 gap: 1
               }}>
-                {performances && performances.map((performance) => (
-                  <MobilePerformanceCard key={performance.id} performance={performance} />
-                ))}
+                {performances && performances.map((performance) => {
+                  return (
+                    <MobilePerformanceCard key={performance.id} performance={performance} />
+                  )
+                })}
               </Box>
 
               {/* Desktop DataGrid */}

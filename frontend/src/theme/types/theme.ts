@@ -69,7 +69,7 @@ export interface CustomPaletteMode {
     info: string;
   };
 
-  custom: {
+  light: {
     lightBlue: string;
     lightGreen: string;
     lightRed: string;
