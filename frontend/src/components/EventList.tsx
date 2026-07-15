@@ -34,7 +34,7 @@ import { handleGuardResult } from '@/utils/guardHandler';
 import Alert from './Alert';
 import PageHeader from './PageHeader';
 import ExpandableText from './ExpandableText';
-//import config from '@/config';
+import config from '@/config';
 
 const EventList: React.FC = () => {
   const { t } = useTranslation();
@@ -306,7 +306,7 @@ const EventList: React.FC = () => {
                         <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                         <Typography variant="body2" color="text.secondary">
                           {/* {t('From')} {localizedCurrency(event.baseTicketPrice)} */}
-                          {t('From')} {formatMoney(event.baseTicketPrice, user!.language, event.currency)}
+                          {t('From')} {formatMoney(event.baseTicketPrice, user && user.language ? user.language : config.app.defaultLanguage, event.currency)}
                         </Typography>
                       </Box>
                     )}

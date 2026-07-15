@@ -24,6 +24,7 @@ common:
  1 - OK - i18n:extract:  ..._many: ""
  2 -    - remove all comments in code
  3 -    - catch (err) => catch (error)
+ 3 -    - decide if refactor "one booking per seat" mode to "one booking order, many items per seats"
 
  backend:
  1 - OK - add passepartout
@@ -55,7 +56,10 @@ common:
  2 - OK - add a check to avoid deleting currently logged user
  3 - OK - refactor routes in routes+controllers - see Claude chat "Fixing booking confirmation email API..." - NO
  2 - OK - set up a staging machine on fly.io / Dockerfile / fly.toml / package.json
+ 1 -    - change `import config from '@ticketuno/shared';` to `import config from '../config';` in backend
  2 -    - complete tickets buy process, optionally (if setup.payments.enabled) redirecting to stripe for payment
+ 2 -    - allow "cancel ticket" only for operators in my bookings details
+ 2 -    - a canceled ticked should be listed (as canceled) in bookings list, currently it is filtered out
  3 -    - make a script to backup database, and schedule it, daily
  3 -    - make a method to clean up unreferenced images from /data/images, and schedule it, weekly
  3 -    - make a method to release expired reservations (releaseExpiredReservations), and schedule it, weekly
@@ -64,11 +68,11 @@ common:
  3 -    - ask AI to refactor db/database.ts, splitting in different files (but avoid one file per table...)
  3 -    - implement a real logging system
  3 -    - implement tests
- 2 -    - allow "cancel ticket" only for operators in my bookings details
- 2 -    - a canceled ticked should be listed (as canceled) in bookings list, currently it is filtered out
- 1 -    - change `import config from '@ticketuno/shared';` to `import config from '../config';` in backend
  3 -    - handle audit database table
- 
+ 3 -    - in the emails, specify if NODE_ENV is production, staging, development, and STRIPE_MODE is test or live.
+ 3 -    - use Sentry for audit/logging
+ 3 -    - make one asset folder per tenant
+
  frontend:
  1 - OK - Design.tsx => Home.tsx
  1 - OK - avoid flickering with ChatGPT
