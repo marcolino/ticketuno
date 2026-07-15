@@ -34,7 +34,6 @@ import { SeatStatus, SpecialCondition } from '@ticketuno/shared/types/seat';
 import { SeatData, PerformanceSeatsResponse } from '@ticketuno/shared/types/performance';
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
-import { localizedCurrency } from '@/utils/misc';
 import { sharedConfig as config } from '@ticketuno/shared';
 import { getErrorMessage, formatMoney, formatFullDate } from '@ticketuno/shared/utils/misc';
 

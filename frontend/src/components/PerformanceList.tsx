@@ -59,7 +59,7 @@
   //import { useLoading } from '@/contexts/LoadingContext';
   import { eventApi } from '@/services/api';
   import { getErrorMessage } from '@ticketuno/shared/utils/misc';
-  import { EventWithDetails, EventPerformance, EventPerformanceWithSeatCounts } from '@ticketuno/shared/types/event';
+  import { EventWithDetails, EventPerformance } from '@ticketuno/shared/types/event';
   import useNavigate from '@/hooks/useNavigate';
   import { useAuth } from '@/contexts/AuthContext';
   import { useDialog } from '@/contexts/DialogContext';

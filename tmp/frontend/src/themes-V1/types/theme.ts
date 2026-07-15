@@ -32,7 +32,7 @@ export interface CustomPaletteMode {
     error: string;
     info: string;
   };
-  llight: {
+  light: {
     lightBlue: string;
     lightGreen: string;
     lightRed: string;

@@ -25,7 +25,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { bookingApi, userApi } from '@/services/api';
 import { getErrorMessage, formatMoney, formatFullDate } from '@ticketuno/shared/utils/misc';
-import { BookingEnriched, BookingStatus, BookingDetail } from '@ticketuno/shared/types/bookings';
+import { BookingEnriched, BookingStatus } from '@ticketuno/shared/types/bookings';
 import config from '@/config';
 
 // ---------------------------------------------------------------------------

@@ -7,7 +7,6 @@ import { loadSetup, readStripeConnect, updateStripeConnect } from '../services/s
 import { tenantRegistry } from '../tenancy/tenantRegistry';
 import { tenantDbManager } from '../tenancy/tenantDbManager';
 import { runWithTenant } from '../tenancy/tenantContext';
-import config from '../config';
 
 const router = express.Router();
 
