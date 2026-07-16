@@ -41,6 +41,7 @@ t('Baby');
 t('pending_payment');
 t('confirmed');
 t('canceled');
+t('not_required');
 t('refunded');
 
 // guard verbs

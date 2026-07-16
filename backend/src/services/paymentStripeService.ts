@@ -1,4 +1,3 @@
-import path from 'path';
 import { randomUUID } from 'crypto';
 import Stripe from 'stripe';
 import { database } from '../db/database';
@@ -8,20 +7,11 @@ import {
   StripeAccount,
   StripeConnectSetup,
   StripeConnectStatus,
-  ShowInfo,
-  formatMoney,
-  formatFullDate,
-  formatWeekday,
-  formatTimeDifference,
-  applyDisplayNumbers,
-  generateSeats,
 } from '@ticketuno/shared';
 import { tenantContext } from '../tenancy/tenantContext';
 import { notify } from './notificationService';
-import { generateTickets } from './ticketService';
 import { loadSetup, readStripeConnect, updateStripeConnect } from './setupService';
-import { sendBookingConfirmationEmail } from '../utils/email';
-import { PerformanceSeatsResponse, SeatData} from '@ticketuno/shared';
+import { bookingConfirmationService } from './bookingConfirmationService';
 import { i18n } from '../i18n';
 import config from '../config';
 
@@ -328,7 +318,7 @@ class StripeService {
 
         // Skip if f status is already confirmed
         if (booking.status !== 'confirmed') {
-          const updated = await database.updateBookingStatus(bookingId, 'confirmed');
+          const updated = await database.updateBookingStatus(bookingId, 'confirmed', 'paid');
           if (updated) {
             console.log(`✅ Booking ${bookingId} (${booking.bookingRef}) confirmed via checkout`);
           }
@@ -344,7 +334,7 @@ class StripeService {
         const claimed = await database.claimConfirmationEmailSend(bookings.map(b => b.id));
         if (claimed) {
           try {
-            await this.sendBookingConfirmationForGroup(bookings, session.id);
+            await bookingConfirmationService.sendBookingConfirmationForGroup(bookings, session.id);
             //await database.markConfirmationEmailSent(bookings.map(b => b.id));
           } catch (emailError) {
             // Non-fatal: booking status is already correct; don't fail the
@@ -367,6 +357,7 @@ class StripeService {
    * for a group of per-seat bookings that share the same checkout session.
    * Mirrors the ticket-generation logic from the deprecated /book_ route.
    */
+  /* @DEPRECATED - Use the same function in services/bookingConfirmationService
   private async sendBookingConfirmationForGroup(
     bookings: Awaited<ReturnType<typeof database.getBookingById>>[],
     sessionId: string,
@@ -495,6 +486,7 @@ class StripeService {
 
     console.log(`✅ Confirmation email sent for checkout ${sessionId} (${bookings.length} seat(s))`);
   }
+  */
 
   private async handlePaymentSucceeded(paymentIntent: PaymentIntent): Promise<void> {
     console.log(`📨 Payment succeeded: ${paymentIntent.id}`);
@@ -529,20 +521,6 @@ class StripeService {
     const stripe = readStripeConnect(await loadSetup());
     if (!stripe.accountId || account.id !== stripe.accountId) return;
     await updateStripeConnect(this.mapAccountStatus(account));
-  }
-
-  private findSeatById(seatId: string, performanceSeats: PerformanceSeatsResponse): SeatData | null {
-    // Loop over sections with keys
-    for (const section of Object.values<PerformanceSeatsResponse[string]>(performanceSeats)) {
-      // section is typed as { [row: string]: SeatData[] }
-      for (const row of Object.values<SeatData[]>(section)) {
-        const found = row.find((seat: SeatData) => seat.seatId === seatId);
-        if (found) {
-          return found;
-        }
-      }
-    }
-    return null;
   }
 }
 

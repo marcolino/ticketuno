@@ -10,7 +10,7 @@ import { Layout, LayoutJSON } from '@ticketuno/shared';
 import { Event, EventPerformance } from '@ticketuno/shared';
 import { GeneratedSeat } from '@ticketuno/shared';
 import { FullConsent } from '@ticketuno/shared';
-import { Booking, BookingStatus, BookingQueryOptions, BookingEnriched, BookingDetail, SeatDetail } from '@ticketuno/shared';
+import { Booking, BookingStatus, BookingPaymentStatus, BookingQueryOptions, BookingEnriched, BookingDetail, SeatDetail } from '@ticketuno/shared';
 import { GeneralSetupType } from '@ticketuno/shared';
 import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardResult } from '@ticketuno/shared';
 import { EventQueryOptions, PerformanceQueryOptions } from '@ticketuno/shared';
@@ -1289,7 +1289,7 @@ class Database {
       cancelationReason: row.cancelation_reason as string | undefined,
       maxCapacity: row.max_capacity as number,
       contentWarnings: row.content_warnings as string,
-      acceptsCash: row.acceptsCash as boolean,
+      acceptsCash: row.accepts_cash as boolean,
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string,
       deletedAt: row.deleted_at as string,
@@ -1910,10 +1910,11 @@ class Database {
       userId: row.user_id as string,
       performanceId: row.performance_id as string,
       status: row.status as BookingStatus,
+      paymentStatus: row.payment_status as BookingPaymentStatus,
       totalPrice: row.total_price as number,
       seatCount: row.seat_count as number,
       seatIds,
-      paymentIntentId: row.payment_intent_id as string,
+      paymentIntentId: row.payment_intent_id as string | null,
       bookedAt: row.booked_at as string,
       scannedAt: row.scanned_at as Date | null,
       scannedBy: row.scanned_by as string | null,
@@ -2079,7 +2080,15 @@ class Database {
       }
 
       // Determine initial status based on payment method
-      const initialStatus: BookingStatus = paymentMethod === 'cash' ? 'confirmed' : 'pending_payment';
+      const initialStatus: BookingStatus =
+        paymentMethod === 'cash' || paymentMethod === 'free' ? 'confirmed' : 'pending_payment'
+      ;
+      
+      const initialPaymentStatus: BookingPaymentStatus =
+        paymentMethod === 'cash' ? 'cash_due'
+          : paymentMethod === 'free' ? 'not_required'
+            : 'pending'
+      ;
       
       const perSeat: Array<{ seatId: string; bookingRef: string; bookingId: string }> = [];
 
@@ -2103,7 +2112,7 @@ class Database {
                 pricePerSeat, 
                 JSON.stringify([seatId]),
                 paymentMethod,
-                paymentMethod === 'cash' ? 'paid' : 'pending'
+                initialPaymentStatus,
               ],
               'bookSeatsWithPaymentMethod insert booking'
             );
@@ -2132,7 +2141,7 @@ class Database {
         
         await runQuery(
           this.db, `
-            UPDATE seats
+              
             SET status = ?, booking_id = ?, booking_ref = ?,
                 booked_by_user_id = ?, booked_at = CURRENT_TIMESTAMP, 
                 reserved_until = ?, updated_at = CURRENT_TIMESTAMP
@@ -2158,6 +2167,7 @@ class Database {
     }
   }
 
+/*
   // Add this method to confirm booking after Stripe payment
   async confirmBookingAfterPayment(bookingId: string): Promise<boolean> {
     await runQuery(this.db, 'BEGIN TRANSACTION', [], 'confirmBookingAfterPayment begin');
@@ -2207,6 +2217,7 @@ class Database {
       throw err;
     }
   }
+*/
 
   /**
    * Claim confirmation email for bookings has been sent,
@@ -2368,6 +2379,7 @@ class Database {
       theaterId: row.theater_id as string,
       theaterName: row.theater_name as string,
       status: row.status as BookingStatus,
+      paymentStatus: row.payment_status as BookingPaymentStatus,
       totalPrice: row.total_price as number,
       seatCount: row.seat_count as number,
       seatIds,
@@ -2542,28 +2554,40 @@ class Database {
   }
 
   /**
-   * Update booking status with payment reference
+   * Update booking status with payment reference, and seat status with 'reserved'
    * Convenience method - combines status + payment intent
    */
-  async confirmBookingWithPayment(
-    bookingId: string, 
-    paymentIntentId: string
-  ): Promise<boolean> {
+  async confirmBookingWithPayment(bookingId: string, paymentIntentId: string): Promise<boolean> {
+    await runQuery(this.db, 'BEGIN TRANSACTION', [], 'confirmBookingWithPayment begin');
     try {
-      const result = await runQuery(
-        this.db,
-        `UPDATE bookings 
-        SET status = 'confirmed', 
-            payment_intent_id = ?,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?`,
-        [paymentIntentId, bookingId],
-        'confirm booking with payment'
+      const booking = await getQuery<{ status: string }>(
+        this.db, `SELECT status FROM bookings WHERE id = ?`, [bookingId],
+        'confirmBookingWithPayment get booking'
       );
-      return result.changes > 0;
-    } catch (error) {
-      console.error('Error confirming booking with payment:', error);
-      return false;
+      if (!booking || booking.status !== 'pending_payment') {
+        await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingWithPayment rollback');
+        return false;
+      }
+      await runQuery(
+        this.db, `
+          UPDATE bookings
+          SET status = 'confirmed', payment_status = 'paid',
+              payment_intent_id = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `, [paymentIntentId, bookingId], 'confirmBookingWithPayment update booking'
+      );
+      await runQuery(
+        this.db, `
+          UPDATE seats
+          SET status = 'booked', reserved_until = NULL, updated_at = CURRENT_TIMESTAMP
+          WHERE booking_id = ? AND status = 'reserved'
+        `, [bookingId], 'confirmBookingWithPayment update seats'
+      );
+      await runQuery(this.db, 'COMMIT', [], 'confirmBookingWithPayment commit');
+      return true;
+    } catch (err) {
+      await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingWithPayment rollback on error');
+      throw err;
     }
   }
 
@@ -2637,17 +2661,32 @@ class Database {
    * Update booking status (administrative)
    * Used for: payment confirmation, cancellation, refund
    */
-  async updateBookingStatus(bookingId: string, status: BookingStatus): Promise<boolean> {
+  async updateBookingStatus(
+    bookingId: string,
+    status: BookingStatus,
+    paymentStatus?: BookingPaymentStatus,
+  ): Promise<boolean> {
     try {
-      const result = await runQuery(
-        this.db,
-        `UPDATE bookings 
-        SET status = ?, updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?`,
-        [status, bookingId],
-        'update booking status'
-      );
-      return result.changes > 0;
+      const result = paymentStatus ?
+        await runQuery(
+          this.db, `
+            UPDATE bookings
+            SET status = ?, payment_status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `,
+          [status, paymentStatus, bookingId],
+          'update booking status'
+        ) :
+        await runQuery(
+          this.db, `
+            UPDATE bookings
+            SET status = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `,
+          [status, bookingId],
+          'update booking status'
+        );
+    return result.changes > 0;
     } catch (error) {
       console.error('Error updating booking status:', error);
       return false;
@@ -2701,14 +2740,31 @@ class Database {
    * Only the owning user (or an admin, enforced at the route level) should call this.
    */
   async cancelBookingsByRefs(bookingRefs: string[]): Promise<void> {
+    if (bookingRefs.length === 0) return;
     const placeholders = bookingRefs.map(() => '?').join(', ');
-    await this.db.run(`
-      UPDATE seats
-      SET status = 'available', booking_ref = NULL, booked_by_user_id = NULL, booked_at = NULL
-      WHERE booking_ref IN (${placeholders})
-        AND status = 'pending_payment'
-      `, ...bookingRefs
-    );
+    await runQuery(this.db, 'BEGIN TRANSACTION', [], 'cancelBookingsByRefs begin');
+    try {
+      await runQuery(
+        this.db, `
+          UPDATE bookings
+          SET status = 'canceled', canceled_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+          WHERE booking_ref IN (${placeholders})
+        `, bookingRefs, 'cancelBookingsByRefs cancel bookings'
+      );
+      await runQuery(
+        this.db, `
+          UPDATE seats
+          SET status = 'available', booking_id = NULL, booking_ref = NULL,
+              booked_by_user_id = NULL, booked_at = NULL, reserved_until = NULL,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE booking_ref IN (${placeholders}) AND status = 'reserved'
+        `, bookingRefs, 'cancelBookingsByRefs release seats'
+      );
+      await runQuery(this.db, 'COMMIT', [], 'cancelBookingsByRefs commit');
+    } catch (err) {
+      await runQuery(this.db, 'ROLLBACK', [], 'cancelBookingsByRefs rollback');
+      throw err;
+    }
   }
 
   async setBookingGroupRef(bookingIds: string[], groupRef: string): Promise<void> {

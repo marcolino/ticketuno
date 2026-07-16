@@ -1,4 +1,8 @@
+// status column — booking lifecycle, revert to original 4 values
 export type BookingStatus = 'pending_payment' | 'confirmed' | 'canceled' | 'refunded';
+
+// payment_status column — payment lifecycle, new dedicated type
+export type BookingPaymentStatus = 'pending' | 'paid' | 'cash_due' | 'not_required' | 'refunded';
 
 export interface Booking {
   id: string;
@@ -7,6 +11,7 @@ export interface Booking {
   holderName?: string;
   performanceId: string;
   status: BookingStatus;
+  paymentStatus: BookingPaymentStatus;
   totalPrice: number;
   seatCount: number;
   seatIds: string[]; // parsed from seat_ids JSON column
@@ -41,6 +46,7 @@ export interface BookingEnriched {
   theaterId: string;
   theaterName: string;
   status: BookingStatus;
+  paymentStatus: BookingPaymentStatus;
   totalPrice: number;
   seatCount: number;
   seatIds: string[];

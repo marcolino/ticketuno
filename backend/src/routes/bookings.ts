@@ -4,10 +4,12 @@ import { requireAuthentication, requireOperator } from '../middleware/auth';
 //import { AuthRequest } from '@ticketuno/shared';
 import { paymentStripeService } from '../services/paymentStripeService';
 //import { createCheckoutSession } from '../services/paymentStripeService';
+//import { sendBookingConfirmationEmail } from '../utils/email';
 import { getErrorMessage } from '@ticketuno/shared';
 //import { GeneralSetupType } from '@ticketuno/shared';
 //import { PaymentGateway } from '@ticketuno/shared/types/generalSetup';
 import { getSetup, readStripeConnect } from '../services/setupService';
+import { bookingConfirmationService } from '../services/bookingConfirmationService';
 import { PaymentGateway } from '@ticketuno/shared';
 import config from '../config';
 
@@ -188,7 +190,7 @@ router.post('/:performanceId/create', requireAuthentication, async (req: Request
       return res.json({
         success: true,
         paymentMethod,
-        paymentStatus: 'zero_amount_payment',
+        paymentStatus: 'free',
         bookingRefs,
       });
     }
@@ -237,18 +239,34 @@ router.post('/:performanceId/create', requireAuthentication, async (req: Request
         }
       }
       case 'cash': {
+        const bookings = await Promise.all(
+          bookingResult.bookingIds.map(id => database.getBookingById(id))
+        );
+        const sessionId = 'cash_session_id';
+        await bookingConfirmationService.sendBookingConfirmationForGroup(
+          bookings.filter((b): b is NonNullable<typeof b> => !!b),
+          sessionId,
+        );
         return res.json({
           success: true,
           paymentMethod,
-          paymentStatus: 'deferred',
+          paymentStatus: 'cash_due',
           bookingRefs,
         });
       }
       case 'free': {
+        const bookings = await Promise.all(
+          bookingResult.bookingIds.map(id => database.getBookingById(id))
+        );
+        const sessionId = 'free_session';
+        await bookingConfirmationService.sendBookingConfirmationForGroup(
+          bookings.filter((b): b is NonNullable<typeof b> => !!b),
+          sessionId,
+        );
         return res.json({
           success: true,
           paymentMethod,
-          paymentStatus: 'not_requested',
+          paymentStatus: 'free',
           bookingRefs,
         });
       }
