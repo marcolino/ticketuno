@@ -52,7 +52,7 @@ function Footer({ children }: FooterProps) {
       component="footer"
       sx={{
         py: 2,
-        px: 2,
+        px: 0,
         mt: 'auto',
         //boxShadow: '0px -2px 4px -1px rgba(0,0,0,0.2)',
         backgroundColor: (theme) => theme.palette.background.paper,

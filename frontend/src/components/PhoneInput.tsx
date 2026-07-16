@@ -4,8 +4,7 @@ import { useTheme } from '@mui/material/styles';
 import OriginalPhoneInput, {
   PhoneInputProps as OriginalPhoneInputProps,
 } from 'react-phone-input-2';
-// Make sure to import the CSS once in your app root:
-//import 'react-phone-input-2/lib/material.css';
+import 'react-phone-input-2/lib/material.css';
 import { sharedConfig as config } from '@ticketuno/shared';
 
 export type PhoneInputProps = OriginalPhoneInputProps & {

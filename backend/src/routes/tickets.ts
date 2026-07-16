@@ -15,7 +15,6 @@ router.post('/:payload/validate',
   authHandler(async (req, res) =>
 {
   const payload = req.params.payload;
-  const { byDevice } = req.body as { byDevice?: string };
 
   // Basic guard
   if (!payload || typeof payload !== 'string') {
@@ -89,7 +88,7 @@ router.post('/:payload/validate',
   }
 
   // Mark as used (atomic update guards against race conditions) ────────
-  const updated = await database.markBookingUsed(ref, byDevice);
+  const updated = await database.markBookingUsed(ref, req.userId);
   if (!updated) {
     // Another validator just beat us to it (race condition)
     return res.json({

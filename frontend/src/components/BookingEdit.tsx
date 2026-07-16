@@ -6,6 +6,7 @@ import {
   Paper,
   Box,
   Button,
+  IconButton,
   Chip,
   Divider,
   Stack,
@@ -16,6 +17,7 @@ import {
 import {
   ArrowBack,
   Cancel,
+  Close,
   ConfirmationNumber,
   QrCodeScanner,
 } from '@mui/icons-material';
@@ -25,9 +27,10 @@ import Alert from './Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
-import { bookingApi } from '@/services/api';
-import { getErrorMessage, formatFullDate } from '@ticketuno/shared/utils/misc';
+import { bookingApi, userApi } from '@/services/api';
+import { getErrorMessage, formatFullDate, formatMoney } from '@ticketuno/shared/utils/misc';
 import { BookingDetail, BookingStatus } from '@ticketuno/shared/types/bookings';
+import config from '@/config';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -40,21 +43,6 @@ const STATUS_COLORS: Record<BookingStatus, 'success' | 'error' | 'warning' | 'de
   pending_payment: 'warning',
 };
 
-// function fmtDate(iso: string | null | undefined): string {
-//   if (!iso) return '—';
-//   return new Date(iso).toLocaleDateString(undefined, {
-//     year: 'numeric', month: 'long', day: 'numeric',
-//   });
-// }
-
-// function fmtDateTime(iso: string | null | undefined): string {
-//   if (!iso) return '—';
-//   return new Date(iso).toLocaleString(undefined, {
-//     year: 'numeric', month: 'short', day: 'numeric',
-//     hour: '2-digit', minute: '2-digit',
-//   });
-// }
-
 // ---------------------------------------------------------------------------
 // Layout helpers
 // ---------------------------------------------------------------------------
@@ -64,8 +52,8 @@ interface InfoRowProps {
   value: React.ReactNode;
 }
 const InfoRow: React.FC<InfoRowProps> = ({ label, value }) => (
-  <Box sx={{ display: 'flex', gap: 2, py: 0.75, alignItems: 'flex-start' }}>
-    <Typography variant="body2" color="text.secondary" sx={{ minWidth: { xs: 90, sm: 200 }, flexShrink: 0 }}>
+  <Box sx={{ display: 'flex', gap: 2, py: 0.1, alignItems: 'flex-start' }}>
+    <Typography variant="body2" color="text.secondary" sx={{ minWidth: { xs: 80, sm: 150 }, flexShrink: 0 }}>
       {label}
     </Typography>
     <Typography variant="body2" sx={{
@@ -84,7 +72,7 @@ interface SectionCardProps {
   children: React.ReactNode;
 }
 const SectionCard: React.FC<SectionCardProps> = ({ title, children }) => (
-  <Paper variant="outlined" sx={{ p: 2 }}>
+  <Paper variant="outlined" sx={{ px: 2, py: 1 }}>
     <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
       {title}
     </Typography>
@@ -99,16 +87,17 @@ const SectionCard: React.FC<SectionCardProps> = ({ title, children }) => (
 const BookingEdit: React.FC = () => {
   const { id: bookingId } = useParams<{ id: string }>();
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, isOperator } = useAuth();
   const navigate = useNavigate();
   const showDialog = useDialog();
   const theme = useTheme();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [booking, setBooking] = useState<BookingDetail | null>(null);
+  const [scannedBy, setScannedBy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  
+
   // -------------------------------------------------------------------------
   // Load
   // -------------------------------------------------------------------------
@@ -125,6 +114,19 @@ const BookingEdit: React.FC = () => {
     })();
   }, [bookingId]);
 
+  useEffect(() => {
+    if (!booking || !booking.scannedBy) return;
+    (async () => {
+      try {
+        const response = await userApi.getProfile(booking.scannedBy ?? undefined);
+        const user = response.data;
+        setScannedBy(`${user.firstName} ${user.lastName}`);
+      } catch (err) {
+        setError(getErrorMessage(err));
+      }
+    })();
+  }, [booking?.scannedBy]);
+
   // -------------------------------------------------------------------------
   // Cancel
   // -------------------------------------------------------------------------
@@ -134,13 +136,21 @@ const BookingEdit: React.FC = () => {
 
     showDialog({
       title: t('Cancel ticket'),
-      content: t(
-        'Cancel ticket {{ref}} for "{{event}}" on {{date}}? The seat will be released and made available again.',
+      // TODO: remove the following refund note when refunds will be handled...
+      content: t('\
+Are you sure to cancel ticket {{ref}} for event "{{event}}" at teather "{{theaterName}}" \
+for seat "{{seatSectionName}} {{seatRowId}}-{{seatNumber}}" on {{date}} ?\n\n\
+The seat will be released and made available again.\n\n\
+Note that refund is not handled yet.\n\
+',
         {
           ref: booking.bookingRef,
           event: booking.eventTitle,
-          //date: fmtDate(booking.performanceDate),
+          theaterName: booking.theaterName,
           date: formatFullDate(booking.performanceDate, user!.language),
+          seatSectionName: booking.seat!.sectionName,
+          seatRowId: booking.seat!.rowId,
+          seatNumber: booking.seat!.seatNumber,
         }
       ),
       confirmText: t('Cancel ticket'),
@@ -167,16 +177,16 @@ const BookingEdit: React.FC = () => {
   // Mark as scanned (manual operator override)
   // -------------------------------------------------------------------------
 
-  const handleMarkScanned = () => {
+  const handleMarkUsed = () => {
     if (!booking) return;
 
     showDialog({
-      title: t('Mark as scanned'),
+      title: t('Mark as used'),
       content: t(
         'Manually mark ticket {{ref}} as used? Only do this when the QR scanner cannot be used.',
         { ref: booking.bookingRef }
       ),
-      confirmText: t('Mark as scanned'),
+      confirmText: t('Mark as used'),
       cancelText: t('Cancel'),
       mode: 'warning',
       onConfirm: async () => {
@@ -185,10 +195,10 @@ const BookingEdit: React.FC = () => {
           await bookingApi.markScanned(booking.id);
           setBooking((prev) =>
             prev
-              ? { ...prev, scannedAt: new Date().toISOString(), scannedBy: 'operator' }
+              ? { ...prev, scannedAt: new Date().toISOString(), scannedBy }
               : null
           );
-          toast.success(t('Ticket marked as scanned'));
+          toast.success(t('Ticket marked as used'));
         } catch (err) {
           toast.error(getErrorMessage(err));
         } finally {
@@ -213,20 +223,26 @@ const BookingEdit: React.FC = () => {
     );
   }
 
-  if (!booking) {
-    return (
-      <Container maxWidth="sm" sx={{ mt: 4 }}>
-        <Alert severity="info">{t('Loading…')}</Alert>
-      </Container>
-    );
-  }
+  if (!booking) return;
+  // if (!booking) {
+  //   return (
+  //     <Container maxWidth="sm" sx={{ mt: 4 }}>
+  //       <Alert severity="info">{t('Loading…')}</Alert>
+  //     </Container>
+  //   );
+  // }
 
   const isConfirmed = booking.status === 'confirmed';
-  const isScanned   = !!booking.scannedAt;
+  const isScanned = !!booking.scannedAt;
+  const language = user?.language ?? config.app.defaultLanguage;
+  const currency = booking.seat!.eventCurrency ?? config.app.defaultCurrency;
+  const price = booking.seat!.price != null ? booking.seat!.price : booking.seat!.eventPrice;
 
   // -------------------------------------------------------------------------
   // Render — main
   // -------------------------------------------------------------------------
+
+  console.log("BOOKING:", booking);
 
   return (
     <Container maxWidth="sm" sx={{ mt: 4, mb: 4, px: { xs: 0, sm: 2 } }}>
@@ -238,38 +254,62 @@ const BookingEdit: React.FC = () => {
           justifyContent: 'space-between', flexWrap: 'wrap', gap: 1, mb: 2,
         }}>
           <Title icon={<ConfirmationNumber />}>{t('Ticket')}</Title>
+          <IconButton
+            onClick={() => navigate(-1)}
+            disabled={saving}
+            aria-label={t('Close')}
+            size="small"
+            sx={{ color: 'text.primary' }}
+          >
+            <Close />
+          </IconButton>
+        </Box>
+
+        {/* Ticket ref pill + status chip */}
+        <Box sx={{
+          mb: 3, display: 'flex', flexWrap: 'wrap',
+          alignItems: 'center', rowGap: 1, columnGap: 2,
+        }}>
+          <Box sx={{
+            px: 2, py: 1, borderRadius: 1,
+            bgcolor: 'action.hover', display: 'flex', alignItems: 'center', gap: 1,
+          }}>
+            <Typography variant="body2" color="info">{t('Ref.')}:</Typography>
+            <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 500, letterSpacing: 1.5 }}>
+              {booking.bookingRef}
+            </Typography>
+          </Box>
           <Chip
             label={t(booking.status)}
             color={STATUS_COLORS[booking.status] ?? 'default'}
+            sx={{ ml: 'auto' }}
           />
-        </Box>
-
-        {/* Ticket ref — prominent pill */}
-        <Box sx={{
-          mb: 3, px: 2, py: 1.5, borderRadius: 1,
-          bgcolor: 'action.hover', display: 'inline-flex', alignItems: 'center', gap: 2,
-        }}>
-          <Typography variant="body2" color="text.secondary">{t('Reference')}:</Typography>
-          <Typography variant="body1" sx={{ fontFamily: 'monospace', fontWeight: 500, letterSpacing: 2 }}>
-            {booking.bookingRef}
-          </Typography>
         </Box>
 
         {/* Scanned banner */}
         {isScanned && (
           <Alert severity="success" sx={{ mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              {/* <CheckCircleOutline fontSize="small" /> */}
-              {t('Scanned on {{time}} by {{by}}', {
-                //time: fmtDateTime(booking.scannedAt),
-                time: formatFullDate(booking.scannedAt ?? '', user!.language, { hour: '2-digit', minute: '2-digit' }),
-                by: booking.scannedBy ?? t('unknown'),
-              })}
+              {!isOperator && (
+                <>
+                  {t('Used on {{time}}', {
+                    time: formatFullDate(booking.scannedAt ?? '', user!.language, { hour: '2-digit', minute: '2-digit' }),
+                  })}
+                </>
+              )}
+              {isOperator && (
+                <>
+                  {t('Scanned on {{time}} by {{by}}', {
+                    time: formatFullDate(booking.scannedAt ?? '', user!.language, { hour: '2-digit', minute: '2-digit' }),
+                    by: scannedBy ?? t('unknown'),
+                  })}
+                </>
+              )}
             </Box>
           </Alert>
         )}
 
-        <Stack spacing={2}>
+        <Stack spacing={1}>
 
           {/* ── Event / Performance ── */}
           <SectionCard title={t('Event & Performance')}>
@@ -290,11 +330,10 @@ const BookingEdit: React.FC = () => {
               <InfoRow label={t('Seat')} value={booking.seat.seatNumber} />
               <InfoRow
                 label={t('Price')}
-                value={
-                  booking.seat.price != null
-                    ? `${booking.currency} ${booking.seat.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                    : '—'
-                }
+                value={price != null ? formatMoney(price, language, currency) : '—'}
+                  // booking.seat.price != null
+                  //   ? `${booking.currency} ${booking.seat.price.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                  //   : '—'
               />
             </SectionCard>
           )}
@@ -322,41 +361,29 @@ const BookingEdit: React.FC = () => {
           <Divider />
 
           {/* ── Action buttons ── */}
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
 
-            <Button
-              variant="outlined"
-              startIcon={<ArrowBack />}
-              onClick={() => navigate(-1)}
-              disabled={saving}
-              sx={{ ml: 'auto' }}
-            >
-              {t('Back')}
-            </Button>
-
-            {/* Manual scan override — only if confirmed and not yet scanned */}
-            {isConfirmed && !isScanned && (
+            {/* Manual scan override — only if operator, and ticket is confirmed and not yet scanned */}
+            {isOperator && isConfirmed && !isScanned && (
               <Button
-                variant="outlined"
+                variant="contained"
                 color="info"
                 startIcon={<QrCodeScanner />}
-                onClick={handleMarkScanned}
+                onClick={handleMarkUsed}
                 disabled={saving}
-                sx={{ ml: 'auto' }}
               >
-                {t('Mark as scanned')}
+                {t('Mark as used')}
               </Button>
             )}
 
-            {/* Cancel — only if still confirmed, pushed right */}
-            {isConfirmed && (
+            {/* Cancel — only if still confirmed */}
+            {isOperator && isConfirmed && (
               <Button
                 variant="contained"
                 color="error"
                 startIcon={<Cancel />}
                 onClick={handleCancel}
                 disabled={saving}
-                sx={{ ml: 'auto' }}
               >
                 {saving ? t('Canceling…') : t('Cancel ticket')}
               </Button>

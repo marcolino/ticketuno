@@ -20,7 +20,6 @@ import ConsentEntry from './components/ConsentEntry';
 import GeneralSetup from './components/GeneralSetup';
 import StripeOrganizerSetup from './components/StripeOrganizerSetup';
 import StripeConnect from './components/StripeConnect';
-//import PaymentResults from './components/PaymentResults';
 import AdminPayments from './components/AdminPayments';
 import Maintenance from './components/Maintenance';
 import NotFound from './components/NotFound';

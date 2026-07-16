@@ -59,6 +59,8 @@ export interface SeatDetail {
   rowId: string;
   seatNumber: number;
   price: number;
+  eventPrice: number;
+  eventCurrency: string;
 }
  
 export interface BookingDetail extends BookingEnriched {

@@ -2480,12 +2480,23 @@ class Database {
     // Fetch the physical seat row linked to this booking
     const seatRow = await getQuery<Record<string, unknown>>(
       this.db, `
-        SELECT seat_id, section_name, row_id, seat_number, price, booking_ref
-        FROM seats
+        SELECT
+          s.seat_id,
+          s.section_name,
+          s.row_id,
+          s.seat_number,
+          s.price,
+          s.booking_ref,
+          e.currency AS event_currency,
+          e.base_ticket_price AS event_base_ticket_price
+        FROM seats s
+        JOIN bookings b on b.id = ?
+        JOIN performances p on p.id = b.performance_id
+        JOIN events e on e.id = p.event_id
         WHERE booking_id = ?
         LIMIT 1
       `,
-      [bookingId],
+      [bookingId, bookingId],
       'get booking detail seat'
     );
   
@@ -2497,6 +2508,8 @@ class Database {
           rowId: seatRow.row_id as string,
           seatNumber: seatRow.seat_number as number,
           price: seatRow.price as number,
+          eventPrice: seatRow.event_base_ticket_price as number,
+          eventCurrency: seatRow.event_currency as string,
         }
       : null;
   
@@ -2508,7 +2521,7 @@ class Database {
    * Used when: QR code is scanned at theater entrance
    * Returns true if it was just now marked; false if already scanned, canceled, or not found.
    */
-  async markBookingUsed(ref: string, byDevice?: string): Promise<boolean> {
+  async markBookingUsed(ref: string, by?: string): Promise<boolean> {
     try {
       const result = await runQuery(
         this.db, `
@@ -2518,7 +2531,7 @@ class Database {
           AND scanned_at IS NULL
           AND status = 'confirmed'
         `,
-        [byDevice ?? null, ref],
+        [by ?? null, ref],
         'mark booking used'
       );
       return result.changes > 0;

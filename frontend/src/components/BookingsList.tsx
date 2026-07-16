@@ -471,7 +471,7 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
       },
       {
         field: 'scannedAt',
-        headerName: t('Scanned'),
+        headerName: t('Used'),
         width: 85,
         align: 'center',
         headerAlign: 'center',
