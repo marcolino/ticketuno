@@ -28,7 +28,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     <Box
       sx={{
         mb: 3,
-        pb: 1.5,
+        pb: 0.5,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',

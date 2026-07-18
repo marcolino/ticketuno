@@ -562,15 +562,6 @@
                   )}
                 </Box>
               </Box>
-              {/* {isOperator && (
-              <Button
-                variant="contained"
-                startIcon={<EditIcon />}
-                onClick={handleEditEvent}
-              >
-                {t('Edit Event')}
-              </Button>
-            )} */}
             </Box>
 
             {/* Description Accordion */}
@@ -598,9 +589,9 @@
               </AccordionSummary>
               <AccordionDetails>
                 {/* Event Information Grid */}
-                <Grid container spacing={3}>
+                <Grid container spacing={{ xs: 0, md: 3 }}>
                   <Grid item xs={12} md={6}>
-                    <List dense>
+                    <List dense sx={{ py: 0 }}>
                       {event && event.theater && (
                         <ListItem>
                           <TheatersIcon sx={{ mr: 2, color: 'text.secondary' }} />
@@ -642,7 +633,7 @@
                   </Grid>
 
                   <Grid item xs={12} md={6}>
-                    <List dense>
+                    <List dense sx={{ py: 0 }}>
                       {event && event.director && (
                         <ListItem>
                           <PersonIcon sx={{ mr: 2, color: 'text.secondary' }} />
@@ -742,16 +733,6 @@
                 )}
               </Box>
             )}
-            {/* {error && (
-              <Alert severity="error" sx={{ mb: 2 }}>
-                {error}
-              </Alert>
-            )} */}
-            {/* {!error && !event && (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                {t('No events present')}
-              </Alert>
-            )} */}
             <Box sx={{ 
               display: 'flex', 
               justifyContent: 'space-between', 

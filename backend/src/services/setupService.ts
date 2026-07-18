@@ -1,5 +1,5 @@
 import { database } from '../db/database';
-import { GeneralSetupType, StripeConnectSetup } from '@ticketuno/shared';
+import { GeneralSetupType, StripeConnectSetup, defaultGeneralSetup, deepMerge } from '@ticketuno/shared';
 import { getCurrentTenantSlug } from '../tenancy/tenantContext';
 import { tenantRegistry } from '../tenancy/tenantRegistry';
 
@@ -11,10 +11,11 @@ export const loadSetup = async (): Promise<GeneralSetupType> => {
   const cached = cachedSetupByTenant.get(slug);
   if (cached) return cached;
 
-  const setup = await database.loadSetup();
-  if (!setup) {
+  const setupRaw = await database.loadSetup();
+  if (!setupRaw) {
     throw new Error(`Setup not found for tenant "${slug}"`);
   }
+  const setup = deepMerge(defaultGeneralSetup, setupRaw);
   cachedSetupByTenant.set(slug, setup);
   return setup;
 };
@@ -27,10 +28,11 @@ export const refreshSetup = async () => {
   // cachedSetup = setup;
   // return cachedSetup;
   const slug = getCurrentTenantSlug();
-  const setup = await database.loadSetup();
-  if (!setup) {
+  const setupRaw = await database.loadSetup();
+  if (!setupRaw) {
     throw new Error(`Setup not found for tenant "${slug}"`);
   }
+  const setup = deepMerge(defaultGeneralSetup, setupRaw);
   cachedSetupByTenant.set(slug, setup);
   return setup;
 };

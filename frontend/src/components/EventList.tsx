@@ -165,7 +165,7 @@ const EventList: React.FC = () => {
   // }
 
   return (
-    <Container maxWidth="md" sx={{ mt: 4, mb: 4 }}>
+    <Container maxWidth="md" sx={{ mt: 1, mb: 1 }}>
       {/* <Typography variant="h4" gutterBottom>
         {t('Current Events')}
       </Typography> */}
@@ -193,10 +193,7 @@ const EventList: React.FC = () => {
           const posterImageUrl = event.posterImage ?
             `/uploads/${event.posterImage}` :
             null
-            ;
-          
-          //const currencySymbol = config.app.currencies[(event.currency) as CurrencyCode]?.symbol;
-
+          ;
           return (
             <Grid item xs={12} sm={6} md={4} key={event.id}>
               <Card
@@ -253,7 +250,7 @@ const EventList: React.FC = () => {
                   </Box>
                 </CardMedia>
                 <CardContent sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 0.5 }}>
                     <Chip
                       label={t('Event is') + ' ' + t(event.status)}
                       color={getStatusColor(event.status)}
@@ -276,14 +273,14 @@ const EventList: React.FC = () => {
                   )}
 
                   <Box sx={{ mt: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                       <TheaterIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                       <Typography variant="body2" color="text.secondary">
                         {event.theaterName}
                       </Typography>
                     </Box>
 
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                       <CalendarIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                       <Typography variant="body2" color="text.secondary">
                         {
@@ -300,7 +297,7 @@ const EventList: React.FC = () => {
                     </Box>
 
                     {setup.payments.enabled && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
                         <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                         <Typography variant="body2" color="text.secondary">
                           {t('From')} {formatMoney(event.baseTicketPrice, user && user.language ? user.language : config.app.defaultLanguage, event.currency)}

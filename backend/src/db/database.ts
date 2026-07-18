@@ -2508,6 +2508,23 @@ class Database {
         this.db, `SELECT status FROM bookings WHERE id = ?`, [bookingId],
         'confirmBookingWithPayment get booking'
       );
+      if (!booking) {
+        await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingWithPayment rollback not found');
+        return false;
+      }
+      if (booking.status === 'confirmed') {
+        // Already confirmed — most likely the sibling checkout.session.completed
+        // webhook got here first. Idempotent no-op, not a failure.
+        await runQuery(
+          this.db, `
+            UPDATE bookings
+            SET payment_intent_id = COALESCE(payment_intent_id, ?), updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+          `, [paymentIntentId, bookingId], 'confirmBookingWithPayment backfill payment_intent_id'
+        );
+        await runQuery(this.db, 'COMMIT', [], 'confirmBookingWithPayment commit (already confirmed)');
+        return true;
+      }
       if (!booking || booking.status !== 'pending_payment') {
         await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingWithPayment rollback');
         return false;

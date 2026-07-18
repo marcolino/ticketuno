@@ -40,10 +40,12 @@ const SECTIONS: GeneralSetupSections[] = ['app', 'branding', /*'preferences', 's
 
 const PAYMENT_GATEWAYS: { value: PaymentGateway; label: string }[] = [
   { value: 'stripe', label: 'Stripe' },
+  /*
   { value: 'satispay', label: 'Satispay' },
   { value: 'revolut', label: 'Revolut' },
   { value: 'paypal', label: 'PayPal' },
   { value: 'sumup', label: 'SumUp' },
+  */
   { value: 'cash', label: 'Cash' },
   { value: 'free', label: 'Free' },
 ];

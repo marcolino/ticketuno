@@ -366,44 +366,15 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
 
   const columns = useMemo((): GridColDef<BookingEnriched>[] => (
     [
-      // {
-      //   field: 'bookingRef',
-      //   headerName: t('Ticket ref'),
-      //   width: 110,
-      //   renderCell: (p) => (
-      //     <Box component="span" sx={{
-      //       fontFamily: 'monospace', fontWeight: 700,
-      //       fontSize: '0.8rem', letterSpacing: 0.5,
-      //     }}>
-      //       {p.value}
-      //     </Box>
-      //   ),
-      // },
       {
         field: 'bookingSeat',
         headerName: t('Seat'),
         width: 150,
-        // valueGetter: (params: GridCellParams<any, BookingDetail>) => {
-        //   const { row } = params;
-        //   const { sectionName = '', rowId = '', seatNumber = '' } = row.seat;
-        //   return `${sectionName} ${rowId}-${seatNumber}`.trim() || '—'; // fallback if all are empty
-        // },
-        // renderCell: (p) => (
-        //   <Box component="span" sx={{
-        //     fontFamily: 'monospace', fontWeight: 700,
-        //     fontSize: '0.8rem', letterSpacing: 0.5,
-        //   }}>
-        //     {p.value}
-        //     {/* {p.seat.sectionName} {p.seat.rowId} {p.seat.seatNumber} */}
-        //   </Box>
-        // ),
         renderCell: (params) => {
           const { row } = params;
-          console.log("ROW:", row);
+          //console.log("ROW:", row);
           let seat = row.seatIds[0]; // one seat per booking...
           if (!seat) seat = '—';
-          //const { sectionName = '', rowId = '', seatNumber = '' } = row.seat;
-          //const display = `${sectionName} ${rowId}-${seatNumber}`.trim() || '—';
           return (
             <Box component="span" sx={{ fontFamily: 'monospace', fontWeight: 700, fontSize: '0.8rem', letterSpacing: 0.5 }}>
               {seat}
