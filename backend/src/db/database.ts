@@ -15,7 +15,7 @@ import { GeneralSetupType } from '@ticketuno/shared';
 import { ActiveBookingInfo, GuardedDeleteResult, GuardedDeleteResultBulk, GuardResult } from '@ticketuno/shared';
 import { EventQueryOptions, PerformanceQueryOptions } from '@ticketuno/shared';
 import { ROLES, type Role } from '@ticketuno/shared';
-import { PaymentGateway } from '@ticketuno/shared/types/generalSetup';
+import { defaultGeneralSetup, PaymentGateway } from '@ticketuno/shared/types/generalSetup';
 import { tenantContext } from '../tenancy/tenantContext';
 //import { notify } from '../services/notificationService';
 import config from '../config';
@@ -250,6 +250,7 @@ class Database {
         booked_by_user_id TEXT,
         booked_at DATETIME,
         reserved_until TEXT,
+        special_condition TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME,
         PRIMARY KEY (performance_id, seat_id),
@@ -480,14 +481,7 @@ class Database {
         (id, data)
         VALUES (1, ?)
       `,
-      [JSON.stringify({
-        currency: config.app.defaultCurrency,
-        timeout: 10,
-        enableNotifications: true,
-        launchDate: null,
-        time: null,
-        apiKey: '',
-      })],
+      [JSON.stringify(defaultGeneralSetup)],
       'INSERT default setup row'
     );
   }
@@ -1732,7 +1726,7 @@ class Database {
    * 
    * @returns a boolean value that indicates if any reservations were expired, and released
    * 
-   * @deprecated, use releaseExpiredPendingBookings
+   * @ deprecated, use releaseExpiredPendingBookings
    */
   /*
   async releaseExpiredReservations(): Promise<boolean> {
@@ -1812,7 +1806,7 @@ class Database {
     [sectionName: string]: { [rowId: string]: Seat[] }
   }> {
     const sql = `
-      SELECT seat_id, section_name, row_id, seat_number, status, price
+      SELECT seat_id, section_name, row_id, seat_number, status, price,
              booking_id, booking_ref, booked_by_user_id, reserved_until
       FROM seats
       WHERE performance_id = ?
@@ -1937,7 +1931,7 @@ class Database {
    *
    * Returns booked seats with their refs on success, or the unavailable seat IDs on failure.
    * 
-   * @deprecated Use bookSeatsWithPaymentMethod() instead.
+   *  @ deprecated Use bookSeatsWithPaymentMethod() instead.
    */
   /*
   async bookSeats(
@@ -2141,7 +2135,7 @@ class Database {
         
         await runQuery(
           this.db, `
-              
+            UPDATE seats
             SET status = ?, booking_id = ?, booking_ref = ?,
                 booked_by_user_id = ?, booked_at = CURRENT_TIMESTAMP, 
                 reserved_until = ?, updated_at = CURRENT_TIMESTAMP
@@ -2166,58 +2160,6 @@ class Database {
       throw err;
     }
   }
-
-/*
-  // Add this method to confirm booking after Stripe payment
-  async confirmBookingAfterPayment(bookingId: string): Promise<boolean> {
-    await runQuery(this.db, 'BEGIN TRANSACTION', [], 'confirmBookingAfterPayment begin');
-    try {
-      // Get the booking
-      const booking = await getQuery<{ status: string; performance_id: string }>(
-        this.db,
-        `SELECT status, performance_id FROM bookings WHERE id = ?`,
-        [bookingId],
-        'confirmBookingAfterPayment get booking'
-      );
-
-      if (!booking) {
-        await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingAfterPayment booking not found');
-        return false;
-      }
-
-      if (booking.status !== 'pending_payment') {
-        await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingAfterPayment wrong status');
-        return false;
-      }
-
-      // Update booking status
-      await runQuery(
-        this.db,
-        `UPDATE bookings 
-         SET status = 'confirmed', payment_status = 'paid', updated_at = CURRENT_TIMESTAMP 
-         WHERE id = ?`,
-        [bookingId],
-        'confirmBookingAfterPayment update status'
-      );
-
-      // Update seat status from 'reserved' to 'booked'
-      await runQuery(
-        this.db,
-        `UPDATE seats 
-         SET status = 'booked', reserved_until = NULL, updated_at = CURRENT_TIMESTAMP 
-         WHERE booking_id = ? AND status = 'reserved'`,
-        [bookingId],
-        'confirmBookingAfterPayment update seats'
-      );
-
-      await runQuery(this.db, 'COMMIT', [], 'confirmBookingAfterPayment commit');
-      return true;
-    } catch (err) {
-      await runQuery(this.db, 'ROLLBACK', [], 'confirmBookingAfterPayment rollback');
-      throw err;
-    }
-  }
-*/
 
   /**
    * Claim confirmation email for bookings has been sent,
@@ -2415,6 +2357,7 @@ class Database {
       t.id AS theater_id,
       t.name AS theater_name,
       b.status,
+      b.payment_status,
       b.total_price,
       b.seat_count,
       b.seat_ids,
@@ -2422,6 +2365,7 @@ class Database {
       b.scanned_at,
       b.scanned_by,
       b.canceled_at,
+      b.confirmation_email_sent_at,
       b.updated_at
     FROM bookings b
     JOIN users u ON u.id  = b.user_id

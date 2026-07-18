@@ -2,22 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Outlet, useLocation } from "react-router-dom";
 import { useTranslation } from 'react-i18next';
 import {
-  // AppBar,
-  // Toolbar,
   Typography,
   Button,
   IconButton,
   Box,
-  // Container,
   Menu,
   MenuItem,
   Avatar,
   Divider,
   ListItemIcon,
   ListItemText,
-  // Dialog,
-  // DialogTitle,
-  // DialogContent,
   List,
   ListItem,
   ListItemButton,
@@ -26,11 +20,6 @@ import {
   Tooltip,
 } from '@mui/material';
 import {
-  //EventSeat as EventSeatIcon,
-  //Login as LoginIcon,
-  //Add as AddIcon,
-  //Home as HomeIcon,
-  //AccountCircle as AccountCircleIcon,
   Logout as LogoutIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
@@ -40,7 +29,6 @@ import {
   Curtains as CurtainsIcon,
   TheaterComedy as TheaterComedyIcon,
   SettingsSuggest as SettingsSuggestIcon,
-  //Theaters as TheatersIcon,
   Settings as SettingsIcon,
   ConfirmationNumber as ConfirmationNumberIcon,
   Group as GroupIcon,
@@ -56,22 +44,17 @@ import ImpersonationBanner from './ImpersonationBanner';
 import { useDialog } from '../contexts/DialogContext';
 import { useThemeMode } from '@/contexts/ThemeContext';
 import { ThemePreference } from '@ticketuno/shared/types/theme';
+import { useSetup } from '@/contexts/SetupContext';
 import { UserProfile } from '@ticketuno/shared/types/user';
 import AuthDialog from './AuthDialog';
 import { userApi } from '@/services/api';
 import config from '../config';
 
-//console.log('CONFIG is:', config);
-
-// interface HomeProps {
-//   children: React.ReactNode;
-// }
-
-//const Home: React.FC<HomeProps> = ({ children }) => {
 const Home: React.FC = () => {
   const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
+  const setup = useSetup();
   //const location = useLocation();
   const { user, updateUser, isAuthenticated, isOperator, isAdmin, logout } = useAuth();
   //const { mode, toggleMode } = useThemeMode();
@@ -87,9 +70,10 @@ const Home: React.FC = () => {
 
   const showDialog = useDialog();
 
-  // const toggleTheme = () => {
-  //   setThemeType(themeType === 'custom' ? 'native' : 'custom');
-  // }
+  const logoSrc = setup.branding.logoImage
+    ? `${config.app.baseUrlBackend}/uploads/${setup.branding.logoImage}`
+    : '/images/logo.png'
+  ;
 
   const handleThemeChange = (
     _: React.MouseEvent<HTMLElement>,
@@ -282,7 +266,7 @@ ${(user.lastName && user.lastName.length && user.lastName[0]) ?? '?'}\
           sx={{ mr: 2 }}
         >
           <img 
-            src="/images/logo.png" 
+            src={logoSrc}
             alt={t('Logo')}
             style={{ 
               width: 48, 

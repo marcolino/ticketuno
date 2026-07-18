@@ -1,5 +1,3 @@
-// frontend/src/contexts/SetupContext.tsx
-
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { setupApi } from '@/services/api';
 import { 

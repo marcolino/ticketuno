@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import { database } from '../db/database';
 import { requireAuthentication, requireOperator } from '../middleware/auth';
 import { Layout } from '@ticketuno/shared';
-import { i18n } from '../i18n';
 import { getErrorMessage } from '@ticketuno/shared';
 
 const router = Router();
@@ -14,7 +13,7 @@ router.post('/', requireAuthentication, requireOperator, async (req: Request, re
     const id = await database.createLayout(layout);
     res.json({ id });
   } catch (error: unknown) {
-    res.status(500).json({ error: i18n.t('Failed to create layout: {{err}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to create layout: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 
@@ -25,7 +24,7 @@ router.get('/', requireAuthentication, requireOperator, async (req: Request, res
     const layouts = await database.getAllLayouts();
     res.json(layouts);
   } catch (error: unknown) {
-    res.status(500).json({ error: i18n.t('Failed to get layouts: {{err}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to get layouts: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 
@@ -38,7 +37,7 @@ router.get('/:id', async (req, res) => {
     }
     res.json(layout);
   } catch (error: unknown) {
-    res.status(500).json({ error: i18n.t('Failed to get layout by id: {{err}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to get layout by id: {{err}}', { err: getErrorMessage(error) }) });
   }
 });
 

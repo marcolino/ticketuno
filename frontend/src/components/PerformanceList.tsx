@@ -291,17 +291,9 @@
       }
     };
 
-    // const _handleBookPerformance = (performanceId: string) => { // TODO: REMOVE ME
-    //   navigate(`/event/${id}/performance/${performanceId}/book`);
-    // };
     const handleCreateBooking = (performanceId: string) => {
       navigate(`/event/${id}/performance/${performanceId}/book`);
-      //navigate(`/bookings/${performanceId}/create`);
     };
-
-    // const handleEditEvent = () => {
-    //   navigate(`/event/edit/${id}`);
-    // };
 
     // Date/Time handlers for pickers
     const handlePerformanceDateChange = (value: Dayjs | null) => {
@@ -351,7 +343,6 @@
         <Button
           variant={buttonVariant}
           color={buttonColor}
-          //onClick={() => handleBookPerformance(performance.id)} // TODO: REMOVE ME
           onClick={() => handleCreateBooking(performance.id)}
           disabled={!isAvailable}
           size={size}
@@ -404,7 +395,6 @@
           <IconButton
             size="small"
             color="success"
-            //onClick={() => handleBookPerformance(performance.id || '')} // TODO: REMOVE ME
             onClick={() => handleCreateBooking(performance.id || '')}
           >
             <EventSeatIcon fontSize="small" />

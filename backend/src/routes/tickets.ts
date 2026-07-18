@@ -2,6 +2,7 @@ import express, {  RequestHandler } from 'express';
 import { database } from '../db/database';
 import { requireAuthentication, requireOperator} from '../middleware/auth';
 import { verify } from '../services/hmacService';
+import { getSetup } from '../services/setupService';
 import { authHandler } from '../utils/routeHelper';
 import { humanizedDate } from '@ticketuno/shared';
 import { TicketValidationResult } from '@ticketuno/shared';
@@ -79,7 +80,7 @@ router.post('/:payload/validate',
         when: humanizedDate(
           booking.scannedAt as unknown as string,
           config.app.defaultLanguage,
-          config.app.defaultTimezone,
+          getSetup().app.timezone, /*config.app.defaultTimezone,*/
           req.t.bind(req),
         ),
         interpolation: { escapeValue: false }

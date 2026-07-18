@@ -36,12 +36,6 @@ router.post('/send-booking-reminders', requireCronAuth, async (req: Request, res
   }
 });
 
-
-/**
- * TODO: ot error from github ci:
- * Run curl -f -X POST https://ticketuno.fly.dev/api/v1/internal/release-expired-bookings \
- * Error: Process completed with exit code 22.
- */
 router.post('/release-expired-bookings', requireCronAuth, async (req: Request, res: Response) => {
   if (process.env.NODE_ENV === 'production') {
     return res.json({ ok: true, message: 'Job skipped in production' });

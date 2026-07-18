@@ -28,8 +28,6 @@ import { useDialog } from '@/contexts/DialogContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useSetup } from '@/contexts/SetupContext';
 import { getErrorMessage, formatMoney } from '@ticketuno/shared/utils/misc';
-//import { localizedCurrency } from '@/utils/misc';
-//import { CurrencyCode } from '@ticketuno/shared';
 import { handleGuardResult } from '@/utils/guardHandler';
 import Alert from './Alert';
 import PageHeader from './PageHeader';
@@ -305,7 +303,6 @@ const EventList: React.FC = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
                         <ConfirmationNumberIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
                         <Typography variant="body2" color="text.secondary">
-                          {/* {t('From')} {localizedCurrency(event.baseTicketPrice)} */}
                           {t('From')} {formatMoney(event.baseTicketPrice, user && user.language ? user.language : config.app.defaultLanguage, event.currency)}
                         </Typography>
                       </Box>

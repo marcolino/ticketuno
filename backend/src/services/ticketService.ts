@@ -187,7 +187,12 @@ async function drawTicket(
   // ── Pre-fetch poster (used in stub in both modes) ─────────────────────────
   const posterBuf: Buffer | null = show.poster
     ? await fs.readFile(show.poster).catch(() => null)
-    : null;
+    : null
+  ;
+  const logoBuf: Buffer | null = show.logo
+    ? await fs.readFile(show.logo).catch(() => null)
+    : null
+  ;
 
   // ── Shell ─────────────────────────────────────────────────────────────────
   // Drop shadow
@@ -320,6 +325,11 @@ async function drawTicket(
   doc.fontSize(7.5).font('Helvetica').fillColor(C.textMid)
      .text(show.leadRole, col2X, cy + 12, { width: halfW });
   cy += 38;
+
+  if (logoBuf) {
+    const logoSize = 20;
+    doc.image(logoBuf, TKT_X + 12, y0 + 10, { fit: [logoSize, logoSize] });
+  }
 
   rule(doc, TKT_X + 10, cy, MAIN_W - 20);
   cy += 8;

@@ -3,8 +3,7 @@ import { requireAuthentication, requireOperator } from '../middleware/auth';
 import { User } from '@ticketuno/shared';
 import emailService from '../services/emailService';
 import { getErrorMessage } from '@ticketuno/shared';
-import { sendBulkEmail, BulkEmailPayload, BulkEmailRecipient } from '../services/emailServiceBulk';
-import { i18n } from '../i18n';
+import { sendBulkEmail, BulkEmailPayload, BulkEmailRecipient } from '../services/emailBulkService';
 import { database } from '../db/database';
 import config from '../config';
 
@@ -51,10 +50,10 @@ router.post('/bulk', requireAuthentication, requireOperator, async (req: Request
 
     // ── Validation ──────────────────────────────────────────────────────────
     if (!subject?.trim()) {
-      return res.status(400).json({ error: i18n.t('Subject is required') });
+      return res.status(400).json({ error: req.t('Subject is required') });
     }
     if (!body?.trim()) {
-      return res.status(400).json({ error: i18n.t('Body is required') });
+      return res.status(400).json({ error: req.t('Body is required') });
     }
 
     let resolvedRecipients: BulkEmailRecipient[] = [];
@@ -72,11 +71,11 @@ router.post('/bulk', requireAuthentication, requireOperator, async (req: Request
         // extend as needed
       }));
     } else {
-      return res.status(400).json({ error: i18n.t('Provide recipients or userIds') });
+      return res.status(400).json({ error: req.t('Provide recipients or userIds') });
     }
 
     if (resolvedRecipients.length === 0) {
-      return res.status(400).json({ error: i18n.t('No valid recipients found') });
+      return res.status(400).json({ error: req.t('No valid recipients found') });
     }
 
     const payload: BulkEmailPayload = {
@@ -88,7 +87,7 @@ router.post('/bulk', requireAuthentication, requireOperator, async (req: Request
     const result = await sendBulkEmail(payload);
 
     return res.status(200).json({
-      message: i18n.t('Sent {{count}} / {{total}} emails', {count: result.sent, total: result.total }),
+      message: req.t('Sent {{count}} / {{total}} emails', {count: result.sent, total: result.total }),
       ...result,
     });
   } catch (error) {

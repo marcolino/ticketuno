@@ -23,16 +23,20 @@ export interface StripeConnectSetup {
 export interface GeneralSetupType {
   app: {
     currency: CurrencyCode;
-    timeout: number;
+    //timeout: number;
+    timezone: string;
   };
-  preferences: {
-    enableNotifications: boolean;
-    launchDate: string | null;
-    time: string | null;
+  branding: {
+    logoImage: string | null;
   };
-  security: {
-    apiKey: string;
-  };
+  // preferences: {
+  //   enableNotifications: boolean;
+  //   launchDate: string | null;
+  //   time: string | null;
+  // };
+  // security: {
+  //   apiKey: string;
+  // };
   payments: {
     enabled: boolean;
     gateway: PaymentGateway | null;
@@ -55,16 +59,18 @@ export type DeepPartial<T> = {
 export const defaultGeneralSetup: GeneralSetupType = {
   app: {
     currency: 'EUR' as CurrencyCode,
-    timeout: 10,
+    //timeout: 10,
+    timezone: 'Europe/Rome',
   },
-  preferences: {
-    enableNotifications: true,
-    launchDate: null,
-    time: null,
-  },
-  security: {
-    apiKey: '',
-  },
+  branding: { logoImage: null },
+  // preferences: {
+  //   enableNotifications: true,
+  //   launchDate: null,
+  //   time: null,
+  // },
+  // security: {
+  //   apiKey: '',
+  // },
   payments: {
     enabled: false,
     gateway: 'stripe',

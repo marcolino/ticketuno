@@ -1,7 +1,6 @@
 import webpush, { WebPushError } from 'web-push';
 import { database } from '../db/database';
 import { getErrorMessage } from '@ticketuno/shared';
-import { i18n } from '../i18n';
 
 export interface PushPayload {
   title: string;
@@ -15,9 +14,9 @@ let initialized = false;
 function ensureInitialized() {
   if (initialized) return;
   const { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_MAILTO } = process.env;
-  if (!VAPID_PUBLIC_KEY) throw new Error(i18n.t('VAPID_PUBLIC_KEY env var not set'));
-  if (!VAPID_PRIVATE_KEY) throw new Error(i18n.t('VAPID_PRIVATE_KEY env var not set'));
-  if (!VAPID_MAILTO) throw new Error(i18n.t('VAPID_MAILTO env var not set'));
+  if (!VAPID_PUBLIC_KEY) throw new Error('VAPID_PUBLIC_KEY env var not set');
+  if (!VAPID_PRIVATE_KEY) throw new Error('VAPID_PRIVATE_KEY env var not set');
+  if (!VAPID_MAILTO) throw new Error('VAPID_MAILTO env var not set');
   webpush.setVapidDetails(`mailto:${VAPID_MAILTO}`, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
   initialized = true;
 }

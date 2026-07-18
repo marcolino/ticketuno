@@ -3,8 +3,11 @@ import { database } from '../db/database';
 import { getSetup } from '../services/setupService';
 import { sendPushToUser } from '../services/pushService';
 import { sendBookingRememberEmail } from '../utils/email';
-import { formatMoney, formatFullDate, formatWeekday, formatTimeDifference, humanizedDate } from '@ticketuno/shared/utils/misc';
-import { applyDisplayNumbers, generateSeats } from '@ticketuno/shared/utils/layoutToSeats'; // TODO: do not use just @ticketuno/shared, but ALWAYS use @ticketuno/shared/utils/layoutToSeats
+import {
+  formatMoney, formatWallClock, formatWeekday,
+  formatTimeDifference, humanizedDate
+} from '@ticketuno/shared/utils/misc';
+import { applyDisplayNumbers, generateSeats } from '@ticketuno/shared/utils/layoutToSeats';
 import type { ShowInfo } from '@ticketuno/shared/types/ticket';
 import { tenantRegistry } from '../tenancy/tenantRegistry';
 import { tenantDbManager } from '../tenancy/tenantDbManager';
@@ -115,7 +118,7 @@ async function runReminderJobOnce(): Promise<{ sent: number; skipped: number }> 
     const humanDate = humanizedDate(
       `${first.performance_date}T${first.start_time}`,
       config.app.defaultLanguage,
-      config.app.defaultTimezone,
+      getSetup().app.timezone, /*config.app.defaultTimezone,*/
       t,
     );
     console.log('[reminderJob] humanDate:', humanDate);
@@ -142,7 +145,10 @@ async function runReminderJobOnce(): Promise<{ sent: number; skipped: number }> 
         poster: event.posterImage
           ? path.join(config.uploads.path, event.posterImage)
           : path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName),
-        date: formatFullDate(performance.performanceDate, user.language),
+        logo: setup.branding.logoImage
+          ? path.join(config.uploads.path, setup.branding.logoImage)
+          : null,
+        date: formatWallClock(performance.performanceDate, user.language),
         dayOfWeek: formatWeekday(performance.performanceDate,  user.language),
         time: performance.startTime,
         duration: (performance.endTime && performance.startTime)
@@ -175,7 +181,7 @@ async function runReminderJobOnce(): Promise<{ sent: number; skipped: number }> 
           showInfo.contactPhone,
           showInfo.contactEmail,
           setup.payments.gateway !== 'free',
-          true, // TODO: setup.ticketing.useQrcode,
+          true, // TODO: use setup.ticketing.useQrcode, to be added to setup
         );
       } catch (error) {
         console.error(`[reminderJob] Reminder email failed for user ${user_id}:`, error);

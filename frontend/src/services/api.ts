@@ -450,12 +450,6 @@ export const eventApi = {
 
   deletePerformance: (eventId: string, performanceId: string) =>
     api.delete(`/events/${eventId}/performances/${performanceId}`),
-
-  /*
-  // @deprecated // TODO: REMOVE ME
-  _bookPerformance: (eventId: string, performanceId: string, seatIds: string[]) =>
-    api.post(`/events/${eventId}/performances/${performanceId}/book`, { seatIds }),
-  */
 };
 
 export const ticketApi = {
@@ -529,7 +523,6 @@ export const stripeConnectApi = {
   status: () => api.get<StripeConnectSetup>('/paymentsStripe/connect/status'),
   sync: () => api.post<StripeConnectSetup>('/paymentsStripe/connect/sync'),
   refreshLink: () => api.post<{ onboardingUrl: string }>('/paymentsStripe/connect/refresh-link'),
-  //refreshLink: () => api.post<{ onboardingUrl: string }>('/paymentsStripe/connect/debug-link'), // TODO...
 };
 
 export const guardsApi = {

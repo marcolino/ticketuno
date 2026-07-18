@@ -4,10 +4,10 @@ import mjml2html from 'mjml';
 import fs from 'fs/promises';
 import path from 'path';
 import Handlebars from 'handlebars';
-
 import { database } from '../db/database';
 import { SendEmailOptions } from '@ticketuno/shared';
 import { i18n } from '../i18n';
+import { getSetup } from './setupService';
 import config from '../config';
 import { getErrorMessage } from '@ticketuno/shared';
 
@@ -207,7 +207,7 @@ class EmailService {
       const templateVariables = {
         ...variables,
         appName: config.app.name,
-        logoUrl: `${config.app.baseUrlProduction}/images/logo.png`,
+        logoUrl: this.resolveLogoUrl(),
         translator,
       };
 
@@ -302,6 +302,20 @@ class EmailService {
     ;
 
     return payload;
+  }
+
+  private resolveLogoUrl(): string {
+    try {
+      const setup = getSetup();
+      return setup.branding.logoImage
+        ? `${config.app.baseUrlBackend}/uploads/${setup.branding.logoImage}`
+        : `${config.app.baseUrlBackend}/images/logo.png`
+        ;
+    } catch (err) {
+      // outside tenant scope, return a default logo
+      console.error('Error resolving logo url:', err);
+      return `${config.app.baseUrlProduction}/images/logo.png`;
+    }
   }
 }
 

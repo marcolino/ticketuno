@@ -35,7 +35,7 @@ import { SeatData, PerformanceSeatsResponse } from '@ticketuno/shared/types/perf
 import LayoutPreviewSVG from './LayoutPreviewSVG';
 import LayoutLegend from './LayoutLegend';
 import { sharedConfig as config } from '@ticketuno/shared';
-import { getErrorMessage, formatMoney, formatFullDate } from '@ticketuno/shared/utils/misc';
+import { getErrorMessage, formatMoney, formatWallClock } from '@ticketuno/shared/utils/misc';
 
 const PerformanceBooking: React.FC = () => {
   const { t } = useTranslation();
@@ -97,7 +97,7 @@ const PerformanceBooking: React.FC = () => {
       setSeatStatusMap(new Map(allSeatsData.map(s => [s.seatId, s])));
       setError(null);
     } catch (error) {
-      setError(t('Failed to load performance: {{error}}', getErrorMessage(error)));
+      setError(t('Failed to load performance: {{error}}', { error: getErrorMessage(error) }));
     // } finally {
     //   setLoading(false);
     }
@@ -212,34 +212,30 @@ const PerformanceBooking: React.FC = () => {
 
       // Every other paymentStatus means the booking is already final —
       // build the right confirmation message for each case.
-      const qrLine = config.app.reservations.ticketing.useQrcode
-        ? t('The email will have attached the real ticket with a QR code: show it at the theater.') + '.\n\n'
-        : '';
+      let message = t('You will soon receive an email with booking confirmation') + (
+        config.app.reservations.ticketing.useQrcode ?
+        '.\n\n' + t('The email will have attached the real ticket with a QR code: show it at the theater') :
+        '') + '.'
+      ;
 
-      let message: string;
+      //let message: string;
       switch (paymentStatus) {
-        case 'zero_amount_payment':
-          message =
-            t('You will soon receive an email with booking confirmation') + '.\n\n' +
-            qrLine +
-            t('There is nothing to pay, this event is free of charge') + '.'
+        case 'free':
+          message += '\n\n' +
+            t('There is nothing to pay') + '.'
           ;
           break;
-        case 'not_requested': // free-gateway event
-          message =
-            t('You will soon receive an email with booking confirmation') + '.\n\n' +
-            qrLine +
-            t('There is nothing to pay, event is free') + '.'
-          ;
-          break;
-        case 'deferred': // cash
-          message =
-            t('You will soon receive an email with booking confirmation') + '.\n\n' +
-            qrLine +
-            t('You will pay your ticket at the theater\'s cashes') + '.\n\n' +
-            // t('Total amount is') + ' ' + localizedCurrency(totalPrice) + '.'
-            t('Total amount is') + ' ' + formatMoney(totalPrice, user!.language, event?.currency) + '.'
-          ;
+        case 'cash_due': // cash is due
+          if (totalPrice > 0) {
+            message += '\n\n' +
+              t('You will pay your ticket at the theater\'s cashes') + '.\n\n' +
+              t('Total amount is') + ' ' + formatMoney(totalPrice, user!.language, event?.currency) + '.'
+            ;
+          } else {
+            message += '\n\n' +
+              t('There is nothing to pay, this event is free of charge') + '.'
+            ;
+          }
           break;
         default: // This should not happen
           throw new Error(t('Internal error: unforeseen payment status {{paymentStatus}}', { paymentStatus }));
@@ -287,37 +283,33 @@ const PerformanceBooking: React.FC = () => {
           <Typography>
             {t('You are about to book {{count}} seats', { count: selectedSeats.size })}
             {/* &nbsp;{t('for')} {localizedDate({ dateString: performance?.performanceDate, locale: user!.language })}: */}
-            &nbsp;{t('for performance on')} {formatFullDate(performance?.performanceDate ?? '', user!.language, { weekday: 'long' })}
+            &nbsp;{t('for performance on')} {formatWallClock(performance?.performanceDate ?? '', user!.language, { weekday: 'long' })}
             {event?.title ? ' ' + t('for the event') + ' "' + event.title + '"' : ''}
             :
           </Typography>
           <Box sx={{ maxHeight: '40vh', overflowY: 'auto', mt: 1 }}>
-            <Paper square={false} variant="outlined" sx={{ p: 1, m: 6, backgroundColor: 'background.default' }}>
+            <Paper square={false} variant="outlined" sx={{ p: 1, m: 2, backgroundColor: 'background.default' }}>
               {selectedLabels.join('\n')}
             </Paper>
           </Box>
-          {setup.payments.gateway === 'stripe' && (
-            <Typography variant="h6" color="primary">
-              <Typography variant="body2" color="text.secondary" sx={{ my: 2 }}>
-                {t('You will be redirected to Stripe to complete the payment')}.
-              </Typography>
+          {(setup.payments.gateway === 'stripe') && (totalPrice > 0) && (
+            <Typography>
+              {t('You will be redirected to the checkout page to complete the payment')}.
             </Typography>
           )}
-          {setup.payments.gateway === 'free' && (
-             <Typography variant="h6">
-              {t('Nothing to pay, event is free')}
+          {(setup.payments.gateway === 'free') && (
+             <Typography>
+              {t('There is nothing to pay')}.
             </Typography>
           )}
-          {setup.payments.gateway === 'cash' && (
-             <Typography variant="h6">
-              {t('The money will be collected at the theater\'s cash')}
-            </Typography>
-          )}
-          {setup.payments.gateway !== 'free' && (
-            <Typography variant="h6">
-              {/* {t('Total amount')}: {totalPrice.toFixed(2)} {currencySymbol} */}
-              {/* {t('Total amount')}: {localizedCurrency(totalPrice)}. */}
+          {setup.payments.gateway !== 'free' && (totalPrice > 0) && (
+            <Typography>
               {t('Total amount')}: {formatMoney(totalPrice, user!.language, event?.currency)}.
+            </Typography>
+          )}
+          {(setup.payments.gateway === 'cash') && (totalPrice > 0) && (
+             <Typography>
+              {t('You will pay your ticket at the theater\'s cashes')}.
             </Typography>
           )}
         </Box>

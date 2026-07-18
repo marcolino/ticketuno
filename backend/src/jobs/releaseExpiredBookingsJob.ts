@@ -4,8 +4,6 @@ import { tenantDbManager } from '../tenancy/tenantDbManager';
 import { runWithTenant } from '../tenancy/tenantContext';
 import config from '../config';
 
-//const STALE_BOOKING_CUTOFF_MINUTES = 30; // matches the 30-min seat reservation window (TODO: to config)
-
 async function releaseExpiredPendingBookingsOnce(): Promise<{ expired: number }> {
   const { expiredCount, bookingIds } = await database.releaseExpiredPendingBookings(config.bookings.staleCutoffMinutes);
 

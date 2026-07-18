@@ -143,10 +143,7 @@ router.patch('/:id/scan', requireAuthentication, requireOperator, async (req: Re
 router.post('/:performanceId/create', requireAuthentication, async (req: Request, res: Response) => {
   try {
     const setup = getSetup();
-    // TODO: totalPrice was in req.body, but it is not needed,
-    //       it is calculated as `event!.baseTicketPrice * seatIds.length`;
-    //       so check if frontend calculates totalPrice, and delete it.
-    
+
     // NOTE: add logic for different seats prices here, if needed.
 
     const performanceId = req.params.performanceId;
@@ -168,7 +165,12 @@ router.post('/:performanceId/create', requireAuthentication, async (req: Request
     if (seatIds.length <= 0) {
       return res.status(400).json({ error: req.t('No seats requested!') });
     }
+    
+    const theater = event ? await database.getTheaterById(event.theaterId) : null;
 
+    const performanceDateTime = performance ? performance.performanceDate + ' ' + performance.startTime : '';
+    const theaterName = theater ? theater.name : '';
+          
     const bookingResult = await database.bookSeatsWithPaymentMethod(
       performanceId,
       seatIds,
@@ -216,16 +218,20 @@ router.post('/:performanceId/create', requireAuthentication, async (req: Request
           const successUrl = `${config.app.baseUrlFrontend}/payments/success?payment=success&session_id={CHECKOUT_SESSION_ID}`;
           const cancelUrl = `${config.app.baseUrlFrontend}/payments/canceled?payment=canceled&session_id={CHECKOUT_SESSION_ID}`;
           
-          const checkoutSession = await paymentStripeService.createCheckoutSession(
+          const checkoutSession = await paymentStripeService.createCheckoutSession({
             bookingIds,
             performanceId,
             seatIds,
-            totalAmountCents,
-            stripe.accountId,
-            buyer?.email ?? '',
+            totalAmount: totalAmountCents,
+            organizerAccountId: stripe.accountId,
+            customerEmail: buyer?.email ?? '',
+            eventTitle: event!.title,
+            performanceDateTime,
+            theaterName,
             successUrl,
             cancelUrl,
-          );
+            t: req.t,
+          });
           return res.json({
             paymentMethod: 'stripe',
             paymentStatus: 'pending',
@@ -242,7 +248,7 @@ router.post('/:performanceId/create', requireAuthentication, async (req: Request
         const bookings = await Promise.all(
           bookingResult.bookingIds.map(id => database.getBookingById(id))
         );
-        const sessionId = 'cash_session_id';
+        const sessionId = bookingRefs.join(',');
         await bookingConfirmationService.sendBookingConfirmationForGroup(
           bookings.filter((b): b is NonNullable<typeof b> => !!b),
           sessionId,
@@ -258,7 +264,7 @@ router.post('/:performanceId/create', requireAuthentication, async (req: Request
         const bookings = await Promise.all(
           bookingResult.bookingIds.map(id => database.getBookingById(id))
         );
-        const sessionId = 'free_session';
+        const sessionId = bookingRefs.join(',');
         await bookingConfirmationService.sendBookingConfirmationForGroup(
           bookings.filter((b): b is NonNullable<typeof b> => !!b),
           sessionId,
@@ -272,7 +278,7 @@ router.post('/:performanceId/create', requireAuthentication, async (req: Request
       }
     }
   } catch (error) {
-    res.status(500).json({ error: req.t('Failed to create booking: {{error}}', { err: getErrorMessage(error) }) });
+    res.status(500).json({ error: req.t('Failed to create booking: {{error}}', { error: getErrorMessage(error) }) });
   }
 });
 

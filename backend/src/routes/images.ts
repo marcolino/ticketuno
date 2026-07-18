@@ -1,6 +1,5 @@
 import express, { Router, Request, Response } from 'express';
-import multer/*, { StorageEngine }*/ from 'multer';
-import { i18n } from '../i18n';
+import multer from 'multer';
 import path from 'path';
 import crypto from 'crypto';
 import fs from 'fs/promises';
@@ -30,7 +29,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: { fileSize: config.uploads.sizeLimit.value },
-  fileFilter: (_req, file, cb) => {
+  fileFilter: (req, file, cb) => {
     const allowed = {
       mime: config.uploads.allowedMimeTypes,
       typeNames: config.uploads.allowedMimeNames,
@@ -38,7 +37,7 @@ const upload = multer({
     if (allowed.mime.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(i18n.t('Invalid file type. Allowed types are: {{typeNames}}', { typeNames: allowed.typeNames })));
+      cb(new Error(req.t('Invalid file type. Allowed types are: {{typeNames}}', { typeNames: allowed.typeNames })));
     }
   }
 });

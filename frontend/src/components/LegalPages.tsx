@@ -49,11 +49,11 @@ function interpolate(text: string, vars: Record<string, string>): string {
 
 export default function LegalPages({ ns, sections }: LegalPagesProps) {
   const { t } = useTranslation(ns);
-  const { name: appName, baseUrlProduction, holder } = config.app;
+  const { name: appName, baseUrlBackend, holder } = config.app;
 
   const vars: Record<string, string> = {
     appName,
-    appUrl: baseUrlProduction,
+    appUrl: baseUrlBackend,
     holderName: holder.name,
     holderEmail: holder.email,
   };

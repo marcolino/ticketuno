@@ -2,23 +2,22 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Box, Container, Paper, Grid, TextField, MenuItem,
+  Box, Container, Paper, Grid, MenuItem,
   Divider, Select, InputLabel, FormControl, Button, List,
   ListItemButton, ListItemText, useMediaQuery, Accordion,
   AccordionSummary, AccordionDetails, Typography,
-  Switch, FormControlLabel, InputAdornment, IconButton,
+  Switch, FormControlLabel
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import {
   AccessTime as AccessTimeIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
-  Visibility, VisibilityOff,
 } from '@mui/icons-material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useToast } from '@/contexts/ToastContext';
 import { useSetupRefresh, defaultSetup, deepMerge } from '@/contexts/SetupContext';
-import { setupApi } from '@/services/api';
+import { setupApi, imageApi,  } from '@/services/api';
 import PageHeader from './PageHeader';
 import { getErrorMessage } from '@ticketuno/shared/utils/misc';
 import type {
@@ -27,14 +26,17 @@ import type {
   PaymentGateway,
   DeepPartial,
 } from '@ticketuno/shared';
-//import { defaultGeneralSetup } from '@ticketuno/shared';
 import { CurrencyCode } from '@ticketuno/shared';
 import config from '@/config';
 
 // ── Constants ───────────────────────────────────────────────────
 const currencies = Object.keys(config.app.currencies);
 
-const SECTIONS: GeneralSetupSections[] = ['app', 'preferences', 'security', 'payments'];
+const TIMEZONES: string[] = typeof Intl.supportedValuesOf === 'function'
+  ? Intl.supportedValuesOf('timeZone')
+  : ['Europe/Rome', 'Europe/Paris', 'Europe/London', 'America/New_York', 'UTC'];
+  
+const SECTIONS: GeneralSetupSections[] = ['app', 'branding', /*'preferences', 'security',*/ 'payments'];
 
 const PAYMENT_GATEWAYS: { value: PaymentGateway; label: string }[] = [
   { value: 'stripe', label: 'Stripe' },
@@ -85,7 +87,6 @@ function GeneralSetup() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [justSaved, setJustSaved] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const savedTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const entryStatusRef = useRef<GeneralSetupType | null>(null);
@@ -178,6 +179,18 @@ function GeneralSetup() {
           </FormControl>
         </Grid>
         <Grid item xs={12}>
+          <FormControl fullWidth>
+            <InputLabel>{t('Timezone')}</InputLabel>
+            <Select
+              value={status.app.timezone}
+              label={t('Timezone')}
+              onChange={(e) => handleChange('app', 'timezone', e.target.value)}
+            >
+              {TIMEZONES.map((tz) => <MenuItem key={tz} value={tz}>{tz}</MenuItem>)}
+            </Select>
+          </FormControl>
+        </Grid>
+        {/* <Grid item xs={12}>
           <TextField
             label={t('Session timeout (minutes)')}
             type="number"
@@ -185,70 +198,116 @@ function GeneralSetup() {
             value={status.app.timeout}
             onChange={(e) => handleChange('app', 'timeout', Number(e.target.value))}
           />
-        </Grid>
+        </Grid> */}
       </Grid>
     ),
 
-    preferences: () => (
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={status.preferences.enableNotifications}
-                onChange={(e) => handleChange('preferences', 'enableNotifications', e.target.checked)}
+    branding: () => {
+      const logoUrl = status.branding.logoImage
+        ? `${config.app.baseUrlBackend}/uploads/${status.branding.logoImage}`
+        : null;
+
+      const handleLogoUpload = async (file: File) => {
+        try {
+          const response = await imageApi.upload(file, 'logo');
+          handleChange('branding', 'logoImage', response.data.filename);
+        } catch (error) {
+          toast.error(getErrorMessage(error));
+        }
+      };
+
+      const handleLogoRemove = async () => {
+        if (status.branding.logoImage) {
+          try { await imageApi.delete(status.branding.logoImage); }
+          catch (error) { console.warn('Failed to delete old logo file:', error); }
+        }
+        handleChange('branding', 'logoImage', null);
+      };
+
+      return (
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            {logoUrl && (
+              <Box sx={{ mb: 2 }}>
+                <img src={logoUrl} alt={t('Logo')} style={{ maxHeight: 80, maxWidth: '100%' }} />
+              </Box>
+            )}
+            <Button variant="outlined" component="label">
+              {t('Upload logo')}
+              <input
+                type="file" hidden
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={(e) => { const file = e.target.files?.[0]; if (file) handleLogoUpload(file); }}
               />
-            }
-            label={t('Enable notifications')}
-          />
+            </Button>
+            {status.branding.logoImage && (
+              <Button color="error" onClick={handleLogoRemove} sx={{ ml: 1 }}>{t('Remove')}</Button>
+            )}
+          </Grid>
         </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label={t('Launch date')}
-            type="date"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-            disabled={!status.preferences.enableNotifications}
-            value={status.preferences.launchDate ?? ''}
-            onChange={(e) => handleChange('preferences', 'launchDate', e.target.value || null)}
-          />
-        </Grid>
-        <Grid item xs={12}>
-          <TextField
-            label={t('Launch time')}
-            type="time"
-            fullWidth
-            InputLabelProps={{ shrink: true }}
-            disabled={!status.preferences.enableNotifications}
-            value={status.preferences.time ?? ''}
-            onChange={(e) => handleChange('preferences', 'time', e.target.value || null)}
-          />
-        </Grid>
-      </Grid>
-    ),
+      );
+    },
 
-    security: () => (
-      <Grid container spacing={2}>
-        <Grid item xs={12}>
-          <TextField
-            label={t('API Key')}
-            type={showApiKey ? 'text' : 'password'}
-            fullWidth
-            value={status.security.apiKey}
-            onChange={(e) => handleChange('security', 'apiKey', e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={() => setShowApiKey((v) => !v)} edge="end">
-                    {showApiKey ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-      </Grid>
-    ),
+    // preferences: () => (
+    //   <Grid container spacing={2}>
+    //     <Grid item xs={12}>
+    //       <FormControlLabel
+    //         control={
+    //           <Switch
+    //             checked={status.preferences.enableNotifications}
+    //             onChange={(e) => handleChange('preferences', 'enableNotifications', e.target.checked)}
+    //           />
+    //         }
+    //         label={t('Enable notifications')}
+    //       />
+    //     </Grid>
+    //     <Grid item xs={12}>
+    //       <TextField
+    //         label={t('Launch date')}
+    //         type="date"
+    //         fullWidth
+    //         InputLabelProps={{ shrink: true }}
+    //         disabled={!status.preferences.enableNotifications}
+    //         value={status.preferences.launchDate ?? ''}
+    //         onChange={(e) => handleChange('preferences', 'launchDate', e.target.value || null)}
+    //       />
+    //     </Grid>
+    //     <Grid item xs={12}>
+    //       <TextField
+    //         label={t('Launch time')}
+    //         type="time"
+    //         fullWidth
+    //         InputLabelProps={{ shrink: true }}
+    //         disabled={!status.preferences.enableNotifications}
+    //         value={status.preferences.time ?? ''}
+    //         onChange={(e) => handleChange('preferences', 'time', e.target.value || null)}
+    //       />
+    //     </Grid>
+    //   </Grid>
+    // ),
+
+    // security: () => (
+    //   <Grid container spacing={2}>
+    //     <Grid item xs={12}>
+    //       <TextField
+    //         label={t('API Key')}
+    //         type={showApiKey ? 'text' : 'password'}
+    //         fullWidth
+    //         value={status.security.apiKey}
+    //         onChange={(e) => handleChange('security', 'apiKey', e.target.value)}
+    //         InputProps={{
+    //           endAdornment: (
+    //             <InputAdornment position="end">
+    //               <IconButton onClick={() => setShowApiKey((v) => !v)} edge="end">
+    //                 {showApiKey ? <VisibilityOff /> : <Visibility />}
+    //               </IconButton>
+    //             </InputAdornment>
+    //           ),
+    //         }}
+    //       />
+    //     </Grid>
+    //   </Grid>
+    // ),
 
     payments: () => {
       const { enabled, gateway } = status.payments;

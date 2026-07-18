@@ -9,12 +9,13 @@ type StripeConnectProps = {
   action?: 'success' | 'refresh';
 };
 
+// TODO: is this component really needed?
 const StripeConnect: React.FC<StripeConnectProps> = ({ action }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const theme = useTheme();
 
-  console.log("StripeConnect - action:", action); // TODO: handle action ('success' / 'refresh')
+  console.log("StripeConnect - action:", action);
 
   return (
     <Container maxWidth="md">
@@ -33,7 +34,7 @@ const StripeConnect: React.FC<StripeConnectProps> = ({ action }) => {
         </Typography>
 
         <Typography variant="h1" sx={{ mb: 2, fontWeight: 800 }}>
-            {action ?? '—'} {/* TODO... */}
+          {action ?? '—'}
         </Typography>
         
         <Button

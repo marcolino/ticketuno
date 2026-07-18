@@ -36,7 +36,7 @@ const backendConfig = {
     },
     allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],
     allowedMimeNames: ['JPEG', 'PNG', 'WEBP', 'GIF'],
-    allowedTypes: ['poster', 'website', 'profile', 'banner', 'thumbnail'],
+    allowedTypes: ['poster', 'website', 'profile', 'banner', 'thumbnail', 'logo'],
     sizeLimit: {
       value: 10 * 1024 * 1024,
       description: "10MB",

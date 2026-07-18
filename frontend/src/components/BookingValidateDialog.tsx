@@ -86,13 +86,7 @@ export const BookingValidateDialog: React.FC<BookingValidateProps> = ({ open, on
   
   const [scannerOpen, setScannerOpen] = useState(true);
   const [entries, setEntries] = useState<TicketScanEntry[]>([]);
-  //const [newEntryId, setNewEntryId] = useState<string | null>(null); // TODO: never read...
   const newEntryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Derived counters
-  // const total = entries.reduce((n, e) => n + e.duplicateCount, 0);
-  // const valid = entries.filter((e) => e.status === 'valid').reduce((n, e) => n + e.duplicateCount, 0);
-  //const invalid = total - valid;
 
   // Re-open the inner scanner whenever the outer dialog opens
   React.useEffect(() => {

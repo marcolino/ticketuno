@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { TFunction } from 'i18next';
+//import { TFunction } from 'i18next';
 
 export type TabValue = 'login' | 'register' | 'verify' | 'forgot' | 'reset';
 

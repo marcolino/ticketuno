@@ -50,7 +50,7 @@ export interface AppConfig {
     languages: Record<string, AppLanguage>;
     defaultLanguage: string;
     defaultCountry: string;
-    defaultTimezone: string;
+    //defaultTimezone: string;
     defaultPhonePrefix: string;
     currencies: Record<CurrencyCode, Currency>;
     defaultCurrency: CurrencyCode;

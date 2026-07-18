@@ -52,6 +52,9 @@ export type CurrencyCode = keyof typeof CURRENCIES;
 // ── Shared Config ──────────────────────────────────────────────────────
 export const sharedConfig = {
   app: {
+    codename: CODENAME,
+    name: APP_NAME,
+
     holder: {
       name: HOLDER.name,
       email: HOLDER.email,
@@ -80,9 +83,6 @@ export const sharedConfig = {
       },
     },
 
-    codename: CODENAME,
-    name: APP_NAME,
-
     baseUrlBackend: resolve(
       baseUrlBackendDevelopment,
       baseUrlBackendStaging,
@@ -104,7 +104,7 @@ export const sharedConfig = {
     languages: LANGUAGES,
     defaultLanguage: DEFAULT_LANGUAGE,
     defaultCountry: DEFAULT_COUNTRY,
-    defaultTimezone: DEFAULT_TIMEZONE,
+    //defaultTimezone: DEFAULT_TIMEZONE,
     defaultPhonePrefix: DEFAULT_PHONE_PREFIX,
     currencies: CURRENCIES,
     defaultCurrency: DEFAULT_CURRENCY as CurrencyCode,

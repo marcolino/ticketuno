@@ -72,6 +72,7 @@ export interface ShowInfo {
   titleLine2: string;
   subtitle: string;
   poster: string;
+  logo?: string | null; 
   date: string;
   dayOfWeek: string;
   time: string;

@@ -176,89 +176,78 @@ export const formatMoney = (
   }).format(value);
 };
 
+
 /**
- * @param date Formats a string/Date/number as a localized Date
- * @param locale 
+ * Internal: parses Date | epoch-millis | "YYYY-MM-DD" | naive "YYYY-MM-DD HH:MM:SS"
+ *  (e.g. SQLite CURRENT_TIMESTAMP, always UTC, no marker) | any Date()-parseable string.
+ */
+function parseFlexibleDate(date: string | Date | number): Date {
+  if (date instanceof Date) return date;
+  if (typeof date === 'number') return new Date(date);
+
+  const trimmed = date.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return parseUTCDate(trimmed);
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+    return new Date(trimmed.replace(' ', 'T') + 'Z');
+  }
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) return parsed;
+  const simple = trimmed.split('T')[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(simple)) return parseUTCDate(simple);
+  return new Date(NaN);
+}
+
+function formatWithIntl(
+  dateObj: Date, locale: string,
+  defaultOptions: Intl.DateTimeFormatOptions, options?: Intl.DateTimeFormatOptions,
+): string {
+  if (isNaN(dateObj.getTime())) return 'Invalid date';
+  return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(dateObj);
+}
+
+/**
+ * Wall-clock calendar dates (performance dates) — UTC-pinned, never shifts with viewer tz.
+ * 
+ * @param date:string | Date | number             Formats a string/Date/number as a localized Date
+ * @param locale: string                          Requested locale
+ * @param options?: Intl.DateTimeFormatOptions    Additional options for formatWithIntl (hour, minute, second...)
  * @returns string
  */
-export const formatFullDate = (
+export const formatWallClock = (
   date: string | Date | number,
   locale: string = config.app.defaultLanguage,
   options?: Intl.DateTimeFormatOptions
-): string => {
-  let dateObj: Date;
+): string => formatWithIntl(parseFlexibleDate(date), locale,
+  { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }, options);
 
-  if (date instanceof Date) {
-    dateObj = date;
-  } else if (typeof date === 'number') {
-    dateObj = new Date(date);
-  } else if (typeof date === 'string') {
-    // Try parsing as ISO or YYYY-MM-DD
-    const trimmed = date.trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-      dateObj = parseUTCDate(trimmed); // keep your existing helper
-    } else {
-      dateObj = new Date(trimmed);
-      if (isNaN(dateObj.getTime())) {
-        // fallback: try to parse as YYYY-MM-DD if it contains 'T'
-        const simple = trimmed.split('T')[0];
-        if (/^\d{4}-\d{2}-\d{2}$/.test(simple)) {
-          dateObj = parseUTCDate(simple);
-        } else {
-          console.warn('Invalid date string:', trimmed);
-          return 'Invalid date';
-        }
-      }
-    }
-  } else {
-    return 'Invalid date';
-  }
-
-  if (isNaN(dateObj.getTime())) {
-    return 'Invalid date';
-  }
-
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  };
-
-  return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(dateObj);
-};
-export const formatFullDate_DEPRECATED = (
-  date: string | Date,
-  locale: string = config.app.defaultLanguage,
-  options?: Intl.DateTimeFormatOptions // optional, can override defaults
-): string => {
-  // Convert input to a Date object (UTC for strings)
-  const dateObj = typeof date === 'string' ? parseUTCDate(date) : date;
-
-  // Default options: day numeric, month long, year numeric, UTC timezone
-  const defaultOptions: Intl.DateTimeFormatOptions = {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC', // date should always be UTC
-  };
-
-  // User options override defaults
-  return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(dateObj);
-};
-
+/**
+ * Wall-clock weekday name (e.g. "Thursday") for a calendar date — UTC-pinned, same rationale as formatWallClock.
+ * 
+ * @param date:string | Date | number             Formats a string/Date/number as a localized Date
+ * @param locale: string                          Requested locale
+ */
 export const formatWeekday = (
-  date: string | Date,
+  date: string | Date | number,
   locale: string = config.app.defaultLanguage,
-): string => {
-  // Convert input to a Date object (UTC for strings)
-  const dateObj = typeof date === 'string' ? parseUTCDate(date) : date;
+): string => formatWithIntl(parseFlexibleDate(date), locale,
+  { weekday: 'long', timeZone: 'UTC' });
 
-  return new Intl.DateTimeFormat(locale, {
-    weekday: 'long',
-    timeZone: 'UTC',
-  }).format(dateObj);
-}
+/**
+ * Genuine UTC instants (bookedAt, canceledAt, scannedAt, updatedAt) — converts to given tz.
+ *
+ * @param date:string | Date | number             Formats a string/Date/number as a localized Date
+ * @param locale: string                          Requested locale
+ * @param timeZone: string,                       Requested TimeZone
+ * @param options?: Intl.DateTimeFormatOptions    Additional options for formatWithIntl (hour, minute, second...)
+ * @returns string
+ */
+export const formatInstant = (
+  date: string | Date | number,
+  locale: string,
+  timeZone: string,
+  options?: Intl.DateTimeFormatOptions
+): string => formatWithIntl(parseFlexibleDate(date), locale,
+  { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone }, options);
 
 /**
  * Calculates the absolute difference between two times given as "HH:MM" strings.

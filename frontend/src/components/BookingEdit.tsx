@@ -8,7 +8,7 @@ import {
   Button,
   IconButton,
   Chip,
-  Divider,
+  //Divider,
   Stack,
   Typography,
   useMediaQuery,
@@ -27,8 +27,9 @@ import Alert from './Alert';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
 import { toast } from '@/contexts/ToastContext';
+import { useSetup } from '@/contexts/SetupContext';
 import { bookingApi, userApi } from '@/services/api';
-import { getErrorMessage, formatFullDate, formatMoney } from '@ticketuno/shared/utils/misc';
+import { getErrorMessage, formatInstant, formatWallClock, formatMoney } from '@ticketuno/shared/utils/misc';
 import { BookingDetail, BookingStatus } from '@ticketuno/shared/types/bookings';
 import config from '@/config';
 
@@ -73,10 +74,12 @@ interface SectionCardProps {
 }
 const SectionCard: React.FC<SectionCardProps> = ({ title, children }) => (
   <Paper variant="outlined" sx={{ px: 2, py: 1 }}>
-    <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+    <Typography variant="overline" sx={{ display: 'block', color: 'primary.contrastText', bgcolor: 'primary.light', px: 2, mb: 0.5, fontStyle: 'oblique', borderRadius: 0.5 }}>
       {title}
     </Typography>
-    {children}
+    <Box sx={{ px: 2 }}>
+      {children}
+    </Box>
   </Paper>
 );
 
@@ -91,6 +94,7 @@ const BookingEdit: React.FC = () => {
   const navigate = useNavigate();
   const showDialog = useDialog();
   const theme = useTheme();
+  const setup = useSetup();
   const isXs = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [booking, setBooking] = useState<BookingDetail | null>(null);
@@ -147,7 +151,7 @@ Note that refund is not handled yet.\n\
           ref: booking.bookingRef,
           event: booking.eventTitle,
           theaterName: booking.theaterName,
-          date: formatFullDate(booking.performanceDate, user!.language),
+          date: formatWallClock(booking.performanceDate, user!.language),
           seatSectionName: booking.seat!.sectionName,
           seatRowId: booking.seat!.rowId,
           seatNumber: booking.seat!.seatNumber,
@@ -293,15 +297,14 @@ Note that refund is not handled yet.\n\
               {!isOperator && (
                 <>
                   {t('Used on {{time}}', {
-                    time: formatFullDate(booking.scannedAt ?? '', user!.language, { hour: '2-digit', minute: '2-digit' }),
+                    time: formatInstant(booking.scannedAt ?? '', user!.language ?? config.app.defaultLanguage, setup.app.timezone),
                   })}
                 </>
               )}
               {isOperator && (
                 <>
                   {t('Scanned on {{time}} by {{by}}', {
-                    time: formatFullDate(booking.scannedAt ?? '', user!.language, { hour: '2-digit', minute: '2-digit' }),
-                    by: scannedBy ?? t('unknown'),
+                    time: formatInstant(booking.scannedAt ?? '', user!.language ?? config.app.defaultLanguage, setup.app.timezone),
                   })}
                 </>
               )}
@@ -311,11 +314,22 @@ Note that refund is not handled yet.\n\
 
         <Stack spacing={1}>
 
+          {/* ── Customer ── */}
+          {isOperator && (
+            <SectionCard title={t('Customer')}>
+              <InfoRow label={t('Name')} value={`${booking.userFirstName} ${booking.userLastName}`} />
+              <InfoRow label={t('Email')} value={booking.userEmail} />
+              {booking.userPhone && (
+                <InfoRow label={t('Phone')} value={booking.userPhone} />
+              )}
+            </SectionCard>
+          )}
+
           {/* ── Event / Performance ── */}
           <SectionCard title={t('Event & Performance')}>
             <InfoRow label={t('Event')} value={booking.eventTitle} />
             <InfoRow label={t('Theater')} value={booking.theaterName} />
-            <InfoRow label={t('Date')} value={formatFullDate(booking.performanceDate, user!.language)} />
+            <InfoRow label={t('Date')} value={formatWallClock(booking.performanceDate, user!.language)} />
             <InfoRow label={t('Start time')} value={booking.startTime} />
             {booking.endTime && (
               <InfoRow label={t('End time')} value={booking.endTime} />
@@ -338,30 +352,21 @@ Note that refund is not handled yet.\n\
             </SectionCard>
           )}
 
-          {/* ── Customer ── */}
-          <SectionCard title={t('Customer')}>
-            <InfoRow label={t('Name')} value={`${booking.userFirstName} ${booking.userLastName}`} />
-            <InfoRow label={t('Email')} value={booking.userEmail} />
-            {booking.userPhone && (
-              <InfoRow label={t('Phone')} value={booking.userPhone} />
-            )}
-          </SectionCard>
-
           {/* ── Dates ── */}
           <SectionCard title={t('Dates')}>
-            <InfoRow label={t('Booked at')} value={formatFullDate(booking.bookedAt, user!.language, { hour: '2-digit', minute: '2-digit' })} />
+            <InfoRow label={t('Booked at')} value={formatInstant(booking.bookedAt, user?.language ?? config.app.defaultLanguage, setup.app.timezone)} />
             {booking.canceledAt && (
-              <InfoRow label={t('Canceled at')} value={formatFullDate(booking.canceledAt, user!.language, { hour: '2-digit', minute: '2-digit' })} />
+              <InfoRow label={t('Canceled at')} value={formatInstant(booking.canceledAt, user?.language ?? config.app.defaultLanguage, setup.app.timezone)} />
             )}
-            {booking.updatedAt && booking.updatedAt !== booking.bookedAt && (
-              <InfoRow label={t('Updated at')} value={formatFullDate(booking.updatedAt, user!.language, { hour: '2-digit', minute: '2-digit' })} />
+            {booking.updatedAt && (booking.updatedAt.slice(0, 16) !== booking.bookedAt.slice(0, 16)) && (
+              <InfoRow label={t('Updated at')} value={formatInstant(booking.updatedAt, user?.language ?? config.app.defaultLanguage, setup.app.timezone)} />
             )}
           </SectionCard>
 
-          <Divider />
+          {/* <Divider sx={{ pt: 2, pb: 4 }} /> */}
 
           {/* ── Action buttons ── */}
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', pt: 3 }}>
 
             {/* Manual scan override — only if operator, and ticket is confirmed and not yet scanned */}
             {isOperator && isConfirmed && !isScanned && (

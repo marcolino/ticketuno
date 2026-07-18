@@ -3,7 +3,7 @@ import { database } from '../db/database';
 import {
   ShowInfo,
   formatMoney,
-  formatFullDate,
+  formatWallClock,
   formatWeekday,
   formatTimeDifference,
   applyDisplayNumbers,
@@ -11,7 +11,8 @@ import {
 } from '@ticketuno/shared';
 import { generateTickets } from './ticketService';
 import { sendBookingConfirmationEmail } from '../utils/email';
-import { PerformanceSeatsResponse, SeatData} from '@ticketuno/shared';
+import { PerformanceSeatsResponse, SeatData } from '@ticketuno/shared';
+import { getSetup } from './setupService';
 import { i18n } from '../i18n';
 import config from '../config';
 
@@ -62,7 +63,8 @@ class BookingConfirmationService {
 
     const language = user.language || config.app.defaultLanguage;
     const t = i18n.getFixedT(language.toLowerCase().split('-')[0], 'common');
-
+    const setup = getSetup();
+    
     const showInfo: ShowInfo = {
       theater: theater?.name ?? '',
       titleLine1: event.title ?? '',
@@ -71,7 +73,10 @@ class BookingConfirmationService {
       poster: event.posterImage
         ? path.join(config.uploads.path, event.posterImage)
         : path.join(__dirname, '..', config.assets.path, 'images', config.assets.defaultEventPosterImageName),
-      date: formatFullDate(performance.performanceDate, user.language),
+      logo: setup.branding.logoImage
+        ? path.join(config.uploads.path, setup.branding.logoImage)
+        : null,
+      date: formatWallClock(performance.performanceDate, user.language),
       dayOfWeek: formatWeekday(performance.performanceDate, user.language),
       time: performance.startTime,
       duration: (performance.endTime && performance.startTime)

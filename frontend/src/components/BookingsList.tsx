@@ -23,8 +23,9 @@ import PageHeader from './PageHeader';
 import useNavigate from '@/hooks/useNavigate';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDialog } from '@/contexts/DialogContext';
+import { useSetup } from '@/contexts/SetupContext';
 import { bookingApi, userApi } from '@/services/api';
-import { getErrorMessage, formatMoney, formatFullDate } from '@ticketuno/shared/utils/misc';
+import { getErrorMessage, formatMoney, formatWallClock, formatInstant } from '@ticketuno/shared/utils/misc';
 import { BookingEnriched, BookingStatus } from '@ticketuno/shared/types/bookings';
 import config from '@/config';
 
@@ -170,6 +171,7 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const theme = useTheme();
+  const setup = useSetup();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { user, isAuthenticated, login } = useAuth();
   const showDialog = useDialog();
@@ -436,8 +438,8 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
         field: 'performanceDate',
         headerName: t('Date'),
         width: 120,
-        //valueFormatter: (v: string) => formatFullDate(v),
-        valueFormatter: (v: string) => formatFullDate(v, user!.language),
+        //valueFormatter: (v: string) => formatWallClock(v),
+        valueFormatter: (v: string) => formatWallClock(v, user!.language),
       },
       {
         field: 'startTime',
@@ -483,7 +485,7 @@ const BookingsList: React.FC<BookingsListProps> = ({ mode = 'all' }) => {
         headerName: t('Booked'),
         width: 155,
         //valueFormatter: (v: string) => formatDateTime(v),
-        valueFormatter: (v: string) => formatFullDate(v, user!.language, { hour: '2-digit', minute: '2-digit' }),
+        valueFormatter: (v: string) => formatInstant(v, user!.language ?? config.app.defaultLanguage, setup.app.timezone),
       },
       {
         field: 'actions',

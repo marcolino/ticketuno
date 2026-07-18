@@ -8,7 +8,6 @@ import AuthProvider from './contexts/AuthContext';
 import { SetupProvider } from './contexts/SetupContext';
 import { ConfigProvider } from './contexts/ConfigContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-//import { DialogProvider } from './contexts/DialogContext';
 import { DialogProvider, DialogRenderer } from './contexts/DialogContext'; 
 import { ToastProvider } from './contexts/ToastContext';
 import { LoadingProvider } from './contexts/LoadingContext';
@@ -47,7 +46,7 @@ const App: React.FC = () => {
   // Map language to MUI locale
   const muiLocale = useMemo(() => {
     //const lang = i18n.language.split('-')[0];
-    const lang = i18n.language ? i18n.language.split('-')[0] : 'it'; // TODO: default language... And, why undefined, in Firefox anonymous???
+    const lang = i18n.language ? i18n.language.split('-')[0] : config.app.defaultLanguage;
     switch (lang) {
       // Add all supported languages here
       case 'it':
